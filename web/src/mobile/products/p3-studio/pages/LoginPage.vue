@@ -42,12 +42,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { stubAccessToken } from "../../../../api/client";
 import { p2 } from "../../../../api/client";
 import { loginWithAccessToken, persist, session } from "../../../../api/session";
 import { isSafeMobileReturn, savePendingRedirect, safeMobileReturn } from "../../../auth/safeReturn";
+import { postHost } from "../../../host/hostBridge";
 
 const route = useRoute();
 const router = useRouter();
@@ -59,6 +60,10 @@ const error = ref("");
 const rawReturn = computed(() => route.query.return);
 const returnTo = computed(() => safeMobileReturn(rawReturn.value));
 const unsafeAttempt = computed(() => Boolean(rawReturn.value) && !isSafeMobileReturn(String(rawReturn.value)));
+
+onMounted(() => {
+  postHost("login", { action: "request", returnTo: returnTo.value });
+});
 
 async function onStubLogin() {
   error.value = "";
@@ -80,6 +85,7 @@ async function onStubLogin() {
       // Token + display name already persisted. Issued context needs the JAR.
       error.value = `${err.code || "LOGIN"} ${err.message} · 浏览器已持有 stub token`;
     }
+    postHost("login", { action: "done" });
     await router.replace(returnTo.value);
   } catch (err) {
     error.value = `${err.code || "LOGIN"} ${err.message}`;

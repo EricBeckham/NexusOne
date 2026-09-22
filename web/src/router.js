@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { session } from "./api/session";
 import { isSafeMobileReturn, safeMobileReturn } from "./mobile/auth/safeReturn";
+import { postHost } from "./mobile/host/hostBridge";
 
 const routes = [
   { path: "/login", name: "login", component: () => import("./views/LoginView.vue"), meta: { public: true, title: "登录" } },
@@ -34,6 +35,18 @@ const routes = [
     meta: { mobile: true, public: true, tabs: false, title: "登录回跳" },
   },
   {
+    path: "/m/host",
+    name: "m-host",
+    component: () => import("./mobile/products/p3-studio/pages/HostMessagePage.vue"),
+    meta: { mobile: true, public: true, title: "宿主消息", product: "p3" },
+  },
+  {
+    path: "/m/host-harness",
+    name: "m-host-harness",
+    component: () => import("./mobile/products/p3-studio/pages/HostHarnessPage.vue"),
+    meta: { harness: true, public: true, title: "宿主验收" },
+  },
+  {
     path: "/m/p3/home",
     name: "m-home",
     component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),
@@ -59,7 +72,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  if (!to.meta.mobile || to.meta.public) {
+  if (to.meta.harness || !to.meta.mobile || to.meta.public) {
     return true;
   }
   if (session.accessToken) {
@@ -67,6 +80,12 @@ router.beforeEach((to) => {
   }
   const returnTo = isSafeMobileReturn(to.fullPath) ? to.fullPath : safeMobileReturn(to.path);
   return { path: "/m/login", query: { return: returnTo } };
+});
+
+router.afterEach((to) => {
+  if (to.meta.mobile && !to.meta.harness) {
+    postHost("route", { action: "changed", path: to.fullPath });
+  }
 });
 
 export default router;

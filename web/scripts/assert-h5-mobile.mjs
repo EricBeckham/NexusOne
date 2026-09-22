@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * G15 H5 (partial): mobile login-redirect / file / routing wiring.
- * Does not claim host-message or Keycloak PKCE acceptance.
+ * G15 H5: mobile login-redirect / file / routing + F014 host-message wiring.
+ * Does not claim Keycloak PKCE, APP WebView, or 小程序 acceptance.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -27,7 +27,10 @@ const files = {
   home: read("src/mobile/products/p3-studio/pages/HomePage.vue"),
   filesPage: read("src/mobile/products/p3-studio/pages/FilesPage.vue"),
   fileDetail: read("src/mobile/products/p3-studio/pages/FileDetailPage.vue"),
+  hostPage: read("src/mobile/products/p3-studio/pages/HostMessagePage.vue"),
+  harness: read("src/mobile/products/p3-studio/pages/HostHarnessPage.vue"),
   shell: read("src/mobile/layouts/NxMobileShell.vue"),
+  hostBridge: read("src/mobile/host/hostBridge.js"),
   ledger: read("src/views/studio/LedgerListView.vue"),
   ledgerDetail: read("src/views/studio/LedgerDetailView.vue"),
   formList: read("src/views/studio/FormListView.vue"),
@@ -59,16 +62,19 @@ requireIncludes("router", files.router, [
   'path: "/m/p3/files"',
   'path: "/m/p3/files/:id"',
   'path: "/m/p3/home"',
+  'path: "/m/host"',
+  'path: "/m/host-harness"',
   "beforeEach",
   'path: "/m/login"',
   'query: { return: returnTo }',
   'path: "/p3/ledgers"',
   'path: "/p3/forms"',
   'path: "/p3/todos"',
+  'postHost("route"',
 ]);
-requireIncludes("App.vue", files.app, ["NxMobileShell", "route.meta.mobile", "AppShell"]);
+requireIncludes("App.vue", files.app, ["NxMobileShell", "route.meta.mobile", "route.meta.harness", "AppShell"]);
 requireIncludes("files API", files.filesApi, ["/api/v1/files", "signed-url", "ARCH-024"]);
-requireIncludes("login page", files.login, ["safeMobileReturn", "mobile-stub-login", "authorize-url"]);
+requireIncludes("login page", files.login, ["safeMobileReturn", "mobile-stub-login", "authorize-url", 'postHost("login"']);
 requireIncludes("callback", files.callback, ["consumePendingRedirect", "/m/callback"]);
 requireIncludes("files page", files.filesPage, [
   "validateUploadFile",
@@ -76,9 +82,17 @@ requireIncludes("files page", files.filesPage, [
   "AbortController",
   "file-demo-oversize",
   "file-demo-mime",
+  'postHost("file"',
 ]);
-requireIncludes("file detail", files.fileDetail, ["signDownload"]);
-requireIncludes("shell", files.shell, ["mobile-back", "history.length"]);
+requireIncludes("file detail", files.fileDetail, ["signDownload", 'postHost("file"']);
+requireIncludes("shell", files.shell, ["mobile-back", "history.length", "useHostPort", 'postHost("close"']);
+requireIncludes("host page", files.hostPage, ["host-out-login", "host-out-route", "host-out-file", "host-out-close"]);
+requireIncludes("harness", files.harness, ["host-iframe", "nexus-host", "/m/host?embedded=true"]);
+requireIncludes("hostBridge", files.hostBridge, ["HostBridgePort", "postMessage", "nexus-h5", "nexus-host"]);
+
+forbidIncludes("hostBridge", files.hostBridge, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
+forbidIncludes("host page", files.hostPage, ["isWeChat", "isDingTalk"]);
+forbidIncludes("home", files.home, ["未在本切片验收"]);
 
 for (const [name, text] of Object.entries({
   ledger: files.ledger,
@@ -87,7 +101,7 @@ for (const [name, text] of Object.entries({
   formStudio: files.formStudio,
   todos: files.todos,
 })) {
-  forbidIncludes(`desktop ${name}`, text, ["/m/p3", "NxMobileShell", "mobile-stub-login"]);
+  forbidIncludes(`desktop ${name}`, text, ["/m/p3", "NxMobileShell", "mobile-stub-login", "hostBridge"]);
 }
 
 if (/headers\[["']X-Tenant-Id["']\]\s*=/.test(files.filesApi + files.client)
@@ -137,11 +151,17 @@ if (HOST_CHANNELS.join(",") !== "login,route,file,close") {
   failures.push("host bridge must only expose login/route/file/close");
 }
 const caps = hostCapabilities();
-if (caps.accepted !== false) {
-  failures.push("must not claim host-message acceptance");
+if (caps.accepted !== true) {
+  failures.push("must accept F014 postMessage contract on mobile browser");
+}
+if (!caps.otherHostsOpen?.includes("APP WebView")) {
+  failures.push("must keep APP WebView listed as leftover");
 }
 if (postHost("eval", {}).ok) {
   failures.push("unknown host channel must be rejected");
+}
+if (postHost("login", { access_token: "x" }).ok) {
+  failures.push("host login must reject access_token");
 }
 
 if (failures.length) {
@@ -151,4 +171,4 @@ if (failures.length) {
   }
   process.exit(1);
 }
-console.log("PASS: H5 mobile login-redirect / file / routing wired; desktop P3 pages untouched; host-message not claimed");
+console.log("PASS: H5 mobile login-redirect / file / routing / F014 host-message wired; desktop P3 pages untouched; APP WebView / 小程序 leftover");

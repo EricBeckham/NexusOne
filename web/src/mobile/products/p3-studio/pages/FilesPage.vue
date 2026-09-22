@@ -85,6 +85,7 @@ import {
   rememberRecentFile,
   validateUploadFile,
 } from "../../../file/constraints";
+import { postHost } from "../../../host/hostBridge";
 
 const route = useRoute();
 const router = useRouter();
@@ -167,6 +168,7 @@ async function onUpload() {
       tenantId: body.tenant_id || session.tenantId,
     });
     ok.value = `已上传 ${fileId}`;
+    postHost("file", { action: "upload", fileId, fileName: picked.value.name });
     await router.push(`/m/p3/files/${fileId}`);
   } catch (err) {
     if (err.code === "FILE_CANCELLED") {

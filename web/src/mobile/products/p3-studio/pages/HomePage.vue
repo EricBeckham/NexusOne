@@ -2,7 +2,7 @@
   <div>
     <div class="m-hero">
       <h2>你好，{{ session.displayName || "访客" }}</h2>
-      <p>星构 H5 · 登录回跳 / 文件 / 路由。桌面台账、表单、待办页未改。</p>
+      <p>星构 H5 · 登录回跳 / 文件 / 路由 / 宿主消息。桌面台账、表单、待办页未改。</p>
     </div>
     <div class="m-card">
       <h3>会话与租户</h3>
@@ -23,9 +23,15 @@
     </div>
     <div class="m-card">
       <h3>宿主消息</h3>
-      <p class="m-muted" data-testid="mobile-host-gap">
-        {{ host.host }} · 受控通道 login/route/file/close 未在本切片验收（无 APP WebView / 小程序）。
+      <p class="m-muted" data-testid="mobile-host-caps">
+        {{ host.host }} · postMessage · login/route/file/close 已在移动浏览器验收。
       </p>
+      <p class="m-muted" data-testid="mobile-host-gap">
+        仍开放：{{ host.otherHostsOpen.join(" / ") }}。
+      </p>
+      <router-link class="m-btn ghost" to="/m/host" data-testid="mobile-open-host">打开宿主消息页</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/host-harness" data-testid="mobile-open-harness">打开 iframe 宿主</router-link>
     </div>
   </div>
 </template>
