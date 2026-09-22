@@ -519,3 +519,15 @@ export async function dumpDecision() {
 export async function exportDump(body = {}) {
   return wrap(await api("/api/v1/p3/dumps/export", { method: "POST", body }));
 }
+
+export async function exportWizardDecision() {
+  return wrap(await api("/api/v1/p3/exports/wizard/decision"));
+}
+
+export async function beginExportWizard(body = {}) {
+  return wrap(await api("/api/v1/p3/exports/wizard/begin", { method: "POST", body }));
+}
+
+export async function completeExportWizard(body = {}) {
+  return wrap(await api("/api/v1/p3/exports/wizard/complete", { method: "POST", body }));
+}

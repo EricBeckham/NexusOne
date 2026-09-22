@@ -92,6 +92,7 @@ public final class SurfaceGuardBypassAllowlist {
                             "nexus-p3-studio/src/main/java/one/nexus/p3/path/BusinessPathService.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/studio/api/FormController.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/report/ReportController.java",
+                            "nexus-p3-studio/src/main/java/one/nexus/p3/report/ExportWizardController.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/dump/DumpController.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/application/LedgerRecordService.java")),
             new Module(

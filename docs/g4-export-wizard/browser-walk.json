@@ -1,0 +1,8 @@
+{
+  "result": "SKIP",
+  "reason": "SKIP: browser export wizard not run yet; MockMvc/HTTP harness is the evidence",
+  "surface": "POST /api/v1/p3/exports/wizard/begin|/complete",
+  "product_g4_close": false,
+  "audit_port": "unchanged-same-tx",
+  "evidence": "scripts/g4-export-wizard.sh MockMvc/HTTP"
+}

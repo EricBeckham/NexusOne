@@ -13,6 +13,7 @@
       <router-link class="ghost" to="/p3/audit">审计</router-link>
       <router-link class="ghost" to="/p3/reports">报表</router-link>
       <router-link class="ghost" to="/p3/dumps">物理 dump</router-link>
+      <router-link class="ghost" to="/p3/exports/wizard">导出向导</router-link>
       <router-link class="ghost" to="/p2/permissions/roles">权限</router-link>
     </div>
     <div class="nx-grid kpi">

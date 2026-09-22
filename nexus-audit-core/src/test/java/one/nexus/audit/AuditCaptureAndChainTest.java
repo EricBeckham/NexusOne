@@ -127,6 +127,54 @@ class AuditCaptureAndChainTest {
     }
 
     @Test
+    void exportWizardBeginCompleteShareTraceOnExistingHashChain() {
+        var port = new InMemoryHashChainedAuditPort(JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL));
+        UUID tenant = UUID.fromString("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        UUID actor = UUID.fromString("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        String trace = "0199a1c0-0000-7000-8000-00000000c254";
+        port.append(AuditCaptures.export(
+                AuditCaptures.EXPORT_BEGUN,
+                true,
+                tenant,
+                actor,
+                IsolatedExportTask.TYPE,
+                "wizard-1",
+                "wizard.begin",
+                trace,
+                Map.of("step", "begin", "surface", "export.wizard")));
+        port.append(AuditCaptures.export(
+                AuditCaptures.EXPORT_SUBMITTED,
+                true,
+                tenant,
+                actor,
+                IsolatedExportTask.TYPE,
+                IsolatedExportTask.TYPE,
+                "export submit",
+                trace,
+                Map.of("action", "submit")));
+        port.append(AuditCaptures.export(
+                AuditCaptures.EXPORT_COMPLETED,
+                true,
+                tenant,
+                actor,
+                IsolatedExportTask.TYPE,
+                "wizard-1",
+                "wizard.complete",
+                trace,
+                Map.of("step", "complete", "surface", "export.wizard")));
+        List<ChainedAuditEvent> correlated = AuditTrace.correlate(port, trace);
+        assertEquals(3, correlated.size());
+        assertEquals(AuditCaptures.EXPORT_BEGUN, correlated.get(0).event().eventType());
+        assertEquals(AuditCaptures.EXPORT_COMPLETED, correlated.get(2).event().eventType());
+        assertTrue(correlated.stream().allMatch(event -> event.event().category() == AuditCategory.EXPORT));
+        assertTrue(port.verifyChain().intact(), port.verifyChain().failure());
+    }
+
+    private static final class IsolatedExportTask {
+        static final String TYPE = "ledger.export.csv";
+    }
+
+    @Test
     void gmDigestChainDetectsTamper() {
         var crypto = JcaCryptoPort.ephemeral(CryptoSuite.GM);
         var port = new InMemoryHashChainedAuditPort(crypto);
