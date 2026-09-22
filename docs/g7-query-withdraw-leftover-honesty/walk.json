@@ -10,6 +10,7 @@
     "g7-withdraw-expense-travel",
     "g15-h5-pkce-miniprogram-remainder-honesty",
     "g17-separation-leftover-honesty-remainder",
+    "g9-leftover-honesty-remainder",
     "g2-h5-every-page-form-write-report-remainder-honesty",
     "linux-arm-profile-remainder-honesty",
     "g4-hot-purge-staging-pkce-remainder-honesty",
@@ -25,6 +26,6 @@
   "live_jar_idp_browser_withdraw": "SKIP",
   "g7Close": "NOT_CLAIMED",
   "g18": "closed_unchanged",
-  "timestampUtc": "2026-09-22T22:48:52Z",
+  "timestampUtc": "2026-09-22T22:50:57Z",
   "evidence": "scripts/g7-query-withdraw-leftover-honesty.sh"
 }
