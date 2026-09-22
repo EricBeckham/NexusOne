@@ -295,7 +295,22 @@ Command:
 
 ```bash
 mvn -pl nexus-p3-studio -am test -Dtest=G3IdempotencyKeyTest,G18BusinessPathIT
+mvn -pl nexus-event-core -am test -Dtest=OutboxEventContractTest,EventCoreConfigurationTest
 ```
 
-Recorded run: fill after the agent test wave on this branch.
+Recorded on this agent **2026-09-22T15:31:06Z** (G3/G18) and **2026-09-22T15:31:42Z** (Outbox reuse). OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
+
+| Suite | Result |
+|---|---|
+| `G3IdempotencyKeyTest` | **2/2** (0.051 s) |
+| `G18BusinessPathIT` | **4/4** (7.028 s) — original happy path + rollback, plus duplicate submit-start and version conflict |
+| `OutboxEventContractTest` | **13/13** (not rebuilt) |
+| `EventCoreConfigurationTest` | **5/5** (not rebuilt) |
+| Reactor | **BUILD SUCCESS** 34.167 s / 3.890 s |
+
+`repeatedSubmitStartWithSameKeyDoesNotCreateSecondRow` (0.070 s): second `submit-start` with the same `Idempotency-Key` returned the same `record_id` / `submission_id` and `idempotent_replay=true`; physical table, `form_submission`, `process_instance`, and `exec_idempotency` counts stayed **1**.
+
+`concurrentRecordEditConflictsOnVersion` (0.067 s): PATCH with stale `version` → **409 `P3.RECORD.0002`**; two concurrent PATCHes on the same version → one **200** and one **409**; winner bumped `version` 2 → 3.
+
+`approvalAndLedgerRowRollBackTogether`: `g18-rollback-key` left **0** rows in `platform.exec_idempotency`.
 

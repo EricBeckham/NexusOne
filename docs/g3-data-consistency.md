@@ -50,7 +50,7 @@ At-least-once delivery + database keys. Keys are **not** stored in Redis.
 
 ## Evidence
 
-Zonky PostgreSQL **15.18**, Boot **4.1.1**, Java 21. See `nexus-p3-studio/EVIDENCE.md` (G3 section) after the recorded run.
+Zonky PostgreSQL **15.18**, Boot **4.1.1**, Java 21. Recorded **2026-09-22T15:31:06Z**: `G3IdempotencyKeyTest` **2/2**, `G18BusinessPathIT` **4/4**. Outbox reuse **2026-09-22T15:31:42Z**: `OutboxEventContractTest` **13/13**, `EventCoreConfigurationTest` **5/5**. See `nexus-p3-studio/EVIDENCE.md` (G3 section).
 
 | Case | Test |
 |---|---|
