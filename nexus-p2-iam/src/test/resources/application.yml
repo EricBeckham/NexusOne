@@ -1,0 +1,7 @@
+nexus:
+  iam:
+    persistence: memory
+    idp: stub
+    smtp:
+      enabled: true
+    platform-bootstrap-token: test-bootstrap

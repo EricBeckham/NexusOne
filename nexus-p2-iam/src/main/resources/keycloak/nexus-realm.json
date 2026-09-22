@@ -1,0 +1,28 @@
+{
+  "realm": "nexus",
+  "enabled": true,
+  "displayName": "NexusOne M0-04",
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "clients": [
+    {
+      "clientId": "nexus-platform",
+      "name": "NexusOne confidential platform client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "${NEXUS_KEYCLOAK_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "redirectUris": [
+        "http://127.0.0.1:8088/api/v1/auth/callback"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:8088"
+      ],
+      "defaultClientScopes": ["openid", "profile", "email"]
+    }
+  ]
+}

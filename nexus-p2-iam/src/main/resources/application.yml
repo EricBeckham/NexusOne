@@ -1,0 +1,17 @@
+nexus:
+  iam:
+    persistence: ${NEXUS_IAM_PERSISTENCE:memory}
+    idp: ${NEXUS_IAM_IDP:stub}
+    context-ttl: PT8H
+    jdbc:
+      url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexusone}
+      username: ${NEXUS_DB_USER:postgres}
+      password: ${NEXUS_DB_PASSWORD:}
+    keycloak:
+      issuer: ${NEXUS_KEYCLOAK_ISSUER:http://127.0.0.1:8080/realms/nexus}
+      client-id: ${NEXUS_KEYCLOAK_CLIENT_ID:nexus-platform}
+      client-secret: ${NEXUS_KEYCLOAK_CLIENT_SECRET:}
+      redirect-uri: ${NEXUS_KEYCLOAK_REDIRECT_URI:http://127.0.0.1:8080/api/v1/auth/callback}
+    smtp:
+      enabled: ${NEXUS_IAM_SMTP_ENABLED:false}
+    platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:}
