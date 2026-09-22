@@ -1,10 +1,12 @@
 {
   "realm": "nexus",
   "enabled": true,
+  "sslRequired": "none",
   "displayName": "NexusOne M0-04",
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
+  "registrationAllowed": false,
   "clients": [
     {
       "clientId": "nexus-platform",
@@ -12,17 +14,25 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "${NEXUS_KEYCLOAK_CLIENT_SECRET}",
+      "secret": "replace-at-import",
       "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
+      "consentRequired": false,
+      "fullScopeAllowed": true,
       "redirectUris": [
-        "http://127.0.0.1:8088/api/v1/auth/callback"
+        "http://127.0.0.1:18088/api/v1/auth/callback",
+        "http://127.0.0.1:8088/api/v1/auth/callback",
+        "http://127.0.0.1:8080/api/v1/auth/callback"
       ],
       "webOrigins": [
-        "http://127.0.0.1:8088"
+        "http://127.0.0.1:18088",
+        "http://127.0.0.1:8088",
+        "http://127.0.0.1:8080"
       ],
-      "defaultClientScopes": ["openid", "profile", "email"]
+      "defaultClientScopes": ["openid", "profile", "email"],
+      "optionalClientScopes": ["phone"]
     }
   ]
 }

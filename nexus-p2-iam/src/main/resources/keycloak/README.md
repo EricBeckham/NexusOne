@@ -1,5 +1,9 @@
 # Keycloak realm import (M0-04)
 
-Import `nexus-realm.json` into a **native** Keycloak 26.5.2 process. See `nexus-p2-iam/README.md` for the no-Docker run steps.
+Import `nexus-realm.json` into a **native** Keycloak **26.5.2** process. See `nexus-p2-iam/scripts/run-live-keycloak-smoke.sh` and `nexus-p2-iam/README.md`.
 
-The client secret in the JSON is a placeholder. Set the real secret via environment (`NEXUS_KEYCLOAK_CLIENT_SECRET`). Do not commit secrets. Direct-grant smoke clients from `poc/p0-03` are not part of this realm.
+The committed JSON uses a placeholder client secret. The smoke script substitutes a runtime secret from `NEXUS_KEYCLOAK_CLIENT_SECRET` into a **local** import file under `data/import/` (not committed). Direct-grant / `p0-smoke` clients are not part of this realm.
+
+`sslRequired` is `none` so loopback HTTP (`http://127.0.0.1:8180`) is allowed. Keycloak 26 still sets `AUTH_SESSION_ID` / `KC_RESTART` as `Secure; SameSite=None`; the live smoke HTTP driver sends those cookies on loopback despite the Secure flag. Do not copy that cookie handling into a browser product path.
+
+Redirect URIs are loopback-only for agent/local JAR smoke (`18088` live test, `8088` standalone, `8080` bootstrap).
