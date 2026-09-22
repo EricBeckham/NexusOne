@@ -4,7 +4,7 @@ S0+S1 PostgreSQL slice after #152. Not an M0 redo. **Product G18 stays closed.**
 
 #152 already landed begin / complete (and begin-deny) on the hash chain ([g4-export-wizard.md](./g4-export-wizard.md)). #156 P1 staging audit-events and #147 live Keycloak CA / SPA verifier are already on `main`. This leftover is the still-open **complete-deny after begin** remainder: revoke / `DENY` after a successful begin must 403, write the #136 pair, and skip IsolatedExport / `p3.export.completed`.
 
-Keep leftover rows in [docs/README.md](./README.md): `g4-export-wizard`, `g4-p1-staging-audit-events`, `g17-vue-otp-writeback`, `g17-gm-tls-nginx-handshake`, `g9-live-multi-jvm-replica`, `g6-recovery-port-honesty`, `g1-fieldpolicy-mask-second-auth`.
+Keep leftover rows in [docs/README.md](./README.md): `g4-export-wizard`, `g4-p1-staging-audit-events`, `g17-vue-otp-writeback`, `g17-gm-tls-nginx-handshake`, `g9-live-multi-jvm-replica`, `g6-recovery-port-honesty`, `g1-fieldpolicy-mask-second-auth`. Follow-on honest PASS/SKIP leftover (does **not** redo this leftover): [g4-export-wizard-deny-honesty.md](./g4-export-wizard-deny-honesty.md).
 
 ## What this slice covers
 

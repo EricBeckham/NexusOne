@@ -2,7 +2,7 @@
 
 S0+S1 PostgreSQL slice. Not an M0 redo. **Product G18 stays closed.** This package does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules and does **not** claim a product-wide G4 close.
 
-Login / permission-change / admin / accepted export / isolation `P1.M02.019` are already on `main` (#77 / #86 / #92). Desktop Playwright PKCE click is on `main` via #125 ([g4-pkce-browser-click.md](./g4-pkce-browser-click.md)). Orthogonal to that leftover.
+Login / permission-change / admin / accepted export / isolation `P1.M02.019` are already on `main` (#77 / #86 / #92). Desktop Playwright PKCE click is on `main` via #125 ([g4-pkce-browser-click.md](./g4-pkce-browser-click.md)). Orthogonal to that leftover. Follow-on honest PASS/SKIP leftover (does **not** redo this leftover): [g4-export-wizard-deny-honesty.md](./g4-export-wizard-deny-honesty.md).
 
 The gap here: product `FormSurfaceGuard` / `H5SurfaceGuard` / `ReportSurfaceGuard` / `PermissionDataScopeHook` / flow + submit-start / Job+Task `AuthorizedSubmit` still called `SurfaceGuard.require(service, resource, action)` and **threw without writing** `p2.permission.denied` + `isolation.guard.reject`.
 
