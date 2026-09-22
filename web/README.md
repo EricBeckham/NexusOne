@@ -56,6 +56,8 @@ npm run assert:h5-native-bridge
 npm run assert:h5-pkce
 npm run assert:g2-report-surface
 npm run assert:g7-withdraw-browser
+npm run test:g7-withdraw-browser-honesty
+npm run assert:g7-withdraw-browser-honesty
 npm test
 npm run test:g7-withdraw
 npm run test:g4-pkce
@@ -92,7 +94,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p3/ledgers/:id` | ledger + `.../records` + POST `.../fields` | No field PUT. G7 leftover list/detail/query for expense+travel: [docs/g7-query-expense-travel.md](../docs/g7-query-expense-travel.md) |
 | `/p3/forms` | GET list + POST create | Bind selected ledger field_code |
 | `/p3/forms/:id` | validate / publish / **submit-start** | Fill writes physical row + starts Flowable. Each click sends `Idempotency-Key` (G3) |
-| `/p3/todos` | `/api/v1/p3/todos` + `/api/v1/p3/path/tasks/*` + withdraw | 同意/驳回/「我发起」撤回 (`data-testid=todo-withdraw`). G7 leftover walk: [docs/g7-withdraw-browser.md](../docs/g7-withdraw-browser.md). Expense/travel todo query leftover: [docs/g7-query-expense-travel.md](../docs/g7-query-expense-travel.md) |
+| `/p3/todos` | `/api/v1/p3/todos` + `/api/v1/p3/path/tasks/*` + withdraw | 同意/驳回/「我发起」撤回 (`data-testid=todo-withdraw`). G7 leftover walk: [docs/g7-withdraw-browser.md](../docs/g7-withdraw-browser.md). Live JAR/IdP honesty leftover: [docs/g7-withdraw-browser-honesty.md](../docs/g7-withdraw-browser-honesty.md). Expense/travel todo query leftover: [docs/g7-query-expense-travel.md](../docs/g7-query-expense-travel.md) |
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |
 | `/p3/reports` | `GET/POST /api/v1/p3/reports/*` after `ledger/read` + `ledger.export.csv/submit` | G2 leftover. Not a physical dump; desktop ledger/form/todo pages unchanged |
