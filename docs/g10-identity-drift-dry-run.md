@@ -53,6 +53,8 @@ export NEXUS_KEYCLOAK_ISSUER=http://127.0.0.1:8080/realms/nexus
 
 See [engineering/g10-identity-drift-dry-run-EVIDENCE.md](./engineering/g10-identity-drift-dry-run-EVIDENCE.md). Live output is gitignored under `.local/g10-identity-drift-dry-run/`.
 
+Honesty leftover (live Keycloak 8080 PASS/SKIP; does **not** redo this leftover or the identity apply product path): [g10-identity-drift-honesty.md](./g10-identity-drift-honesty.md). Keep both leftover rows in `docs/README.md`.
+
 ## Honest leftovers (not claimed)
 
 | Still open | Why |
