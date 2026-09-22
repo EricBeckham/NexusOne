@@ -9,6 +9,10 @@ import one.nexus.common.error.NexusException;
  * S0 product {@link SecretPort}: in-process overlay first, then environment
  * variables. {@code put}/{@code delete} affect only the local overlay.
  *
+ * <p>Env-backed reads are live (no cache). A mutable env map rotates on the
+ * next {@code get} when there is no overlay. {@link #system(CryptoPort)}
+ * still uses {@code System::getenv} (Java 21 process-start snapshot).
+ *
  * <p>Does not introduce OpenBao or KMS. ARCH-007: an independent secret
  * platform is not required to start the app.
  */
