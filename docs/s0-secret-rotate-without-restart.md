@@ -34,7 +34,7 @@ Java **21** / Boot **4.1.1**. No Docker. No live `127.0.0.1:5432` required.
 
 See [engineering/s0-secret-rotate-without-restart-EVIDENCE.md](./engineering/s0-secret-rotate-without-restart-EVIDENCE.md).
 
-Keep **both** leftover rows in [docs/README.md](./README.md): this file (#143) and the OS `System.getenv` startup-snapshot honesty leftover ([s0-secret-getenv-snapshot-honesty.md](./s0-secret-getenv-snapshot-honesty.md)). That leftover does **not** redo this package.
+Keep **both** leftover rows in [docs/README.md](./README.md): this file (#143) and the OS `System.getenv` startup-snapshot honesty leftover ([s0-secret-getenv-snapshot-honesty.md](./s0-secret-getenv-snapshot-honesty.md)). Also keep the rotate-without-restart leftover honesty ([s0-secret-rotate-without-restart-honesty.md](./s0-secret-rotate-without-restart-honesty.md)). Those leftovers do **not** redo this package.
 
 ## What this does not claim
 
