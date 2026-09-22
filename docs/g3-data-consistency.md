@@ -48,7 +48,7 @@ Do not add a second Outbox. G3 consumes the M0-09 / G18 measurements already on 
 
 At-least-once delivery + database keys. Keys are **not** stored in Redis.
 
-Consume-idempotent **stress / duplicate-delivery** leftover (requeue storm, concurrent replay, handler `DUPLICATE` skip) is documented separately in [g3-outbox-consume-idempotent.md](./g3-outbox-consume-idempotent.md). Claim-then-write crash window / multi-node Dispatcher honesty leftover is [g3-claim-crash-window.md](./g3-claim-crash-window.md) (SIMULATED / SKIP). Those leftovers still do **not** rebuild Outbox / Dispatcher and do **not** close product G3.
+Consume-idempotent **stress / duplicate-delivery** leftover (requeue storm, concurrent replay, handler `DUPLICATE` skip) is documented separately in [g3-outbox-consume-idempotent.md](./g3-outbox-consume-idempotent.md). Claim-then-write crash window / multi-node Dispatcher honesty leftover is [g3-claim-crash-window.md](./g3-claim-crash-window.md) (SIMULATED / SKIP). PASS/SKIP honesty leftover beyond those is [g3-outbox-consume-crash-honesty.md](./g3-outbox-consume-crash-honesty.md). Those leftovers still do **not** rebuild Outbox / Dispatcher and do **not** close product G3.
 
 ## Evidence
 
