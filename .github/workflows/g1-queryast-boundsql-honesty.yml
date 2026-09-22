@@ -1,0 +1,107 @@
+name: g1-queryast-boundsql-honesty
+
+# Honesty gate for leftover BoundSql / COUNT beyond #146.
+# Does not start a product JAR. Does not redo #142/#146/#162/#168.
+# Not product G1 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g1-queryast-boundsql-honesty.sh"
+      - "scripts/g1-queryast-boundsql-honesty/**"
+      - ".github/workflows/g1-queryast-boundsql-honesty.yml"
+      - "docs/g1-queryast-boundsql-honesty.md"
+      - "docs/engineering/g1-queryast-boundsql-honesty-EVIDENCE.md"
+      - "nexus-permission-core/src/main/java/one/nexus/permission/scope/G1QueryAstBoundSqlHonesty.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/scope/G1QueryAstBoundSqlHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/g1-queryast-boundsql-honesty.sh"
+      - "scripts/g1-queryast-boundsql-honesty/**"
+      - ".github/workflows/g1-queryast-boundsql-honesty.yml"
+      - "docs/g1-queryast-boundsql-honesty.md"
+      - "docs/engineering/g1-queryast-boundsql-honesty-EVIDENCE.md"
+      - "nexus-permission-core/src/main/java/one/nexus/permission/scope/G1QueryAstBoundSqlHonesty.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/scope/G1QueryAstBoundSqlHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g1-queryast-boundsql-honesty.sh --verify-report scripts/g1-queryast-boundsql-honesty/fixtures/honest-skip.env
+      - name: Fake live product PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g1-queryast-boundsql-honesty.sh --verify-report \
+            scripts/g1-queryast-boundsql-honesty/fixtures/fake-live-product-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live product PASS without live_jar_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live product PASS rejected"
+      - name: Fake product G1 close is rejected
+        run: |
+          set +e
+          ./scripts/g1-queryast-boundsql-honesty.sh --verify-report \
+            scripts/g1-queryast-boundsql-honesty/fixtures/fake-g1-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g1_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G1 close rejected"
+      - name: Fake unguarded raw BoundSql is rejected
+        run: |
+          set +e
+          ./scripts/g1-queryast-boundsql-honesty.sh --verify-report \
+            scripts/g1-queryast-boundsql-honesty/fixtures/fake-raw-boundsql.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake raw BoundSql / unguarded leftover to fail"
+            exit 1
+          fi
+          echo "PASS: fake raw BoundSql rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest leftover BoundSql PASS / live product SKIP
+        run: |
+          chmod +x ./scripts/g1-queryast-boundsql-honesty.sh
+          ./scripts/g1-queryast-boundsql-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g1-queryast-boundsql-honesty"
+          ./scripts/g1-queryast-boundsql-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^leftover_boundsql_guard=PASS$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^leftover_count_guard=PASS$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^raw_boundsql_rejected=true$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^count_is_ast_node=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^live_product_walk=SKIP$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^live_list_observed=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^live_count_observed=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^g1_close=NOT_CLAIMED$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E 'g1-queryast-boundsql-guard' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E 'g1-fieldpolicy-mask-second-auth-honesty' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^redone_142=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^redone_146=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^redone_162=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^redone_168=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g1-queryast-boundsql-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g1-queryast-boundsql-honesty
+          path: ${{ runner.temp }}/g1-queryast-boundsql-honesty
