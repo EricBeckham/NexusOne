@@ -27,7 +27,7 @@ Runnable without Keycloak (`nexus.iam.persistence=memory`, `nexus.iam.idp=stub`)
 mvn -pl nexus-p2-iam -am test
 ```
 
-**13 tests, 0 failures** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**.
+**16 tests, 0 failures, 1 skipped** (`LiveKeycloakSmokeTest`) on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**. The skip is opt-in: set `NEXUS_KEYCLOAK_SMOKE=1` against a live 26.5.2 process.
 
 Covered by tests:
 
@@ -41,6 +41,7 @@ Covered by tests:
 - `X-Tenant-Id` is rejected on the HTTP path.
 - Flyway `V200__iam_identity.sql` in schema `iam`: tenant tables have `tenant_id UUID NOT NULL`; `iam.iam_global_account` is platform-scoped.
 - Invite / password-reset hooks record Keycloak execute-actions when SMTP is enabled.
+- HTTP login-form helper sends Keycloak 26 `Secure` loopback cookies (`AuthorizationCodeDriverTest`).
 
 `JdbcDualTenantIsolationTest` ran against **PostgreSQL 15.19** (`Ubuntu 15.19-1.pgdg24.04+2`):
 
@@ -50,13 +51,12 @@ PostgreSQL 15.19 (Ubuntu 15.19-1.pgdg24.04+2) on x86_64-pc-linux-gnu, compiled b
 
 That is PostgreSQL **15.x**, not 16.15. It is **not** a target Linux/ARM Profile acceptance. The JDBC test **fails** if a reachable server is not 15.x and skips only when the database is unreachable. Exact command log: `nexus-p2-iam/EVIDENCE.md`.
 
-**Live Keycloak 26.5.2 was not started and is still pending.**
+**Live Keycloak 26.5.2 smoke** ran on this VM (native `kc.sh start-dev` in tmux, Stub IdP off). Command, realm/client ids, and honest gaps: `nexus-p2-iam/EVIDENCE.md`. Opt-in: `NEXUS_KEYCLOAK_SMOKE=1` + `nexus-p2-iam/scripts/run-live-keycloak-smoke.sh`.
 
 ## Explicitly skipped / still pending
 
 These are **not** accepted:
 
-- **Live Keycloak 26.5.2 smoke** (authorization-code, JWKS, logout, execute-actions-email against a real process) — still pending
 - SAML
 - LDAP / Active Directory federation
 - SMS MFA (and TOTP/email MFA product acceptance)
@@ -79,10 +79,14 @@ Do not use `poc/p0-03/compose.yaml` for the product path. P0 notes already lock 
 ```bash
 export KC_BOOTSTRAP_ADMIN_USERNAME=...
 export KC_BOOTSTRAP_ADMIN_PASSWORD=...   # env only
+# 26.5.2 has no --hostname-port flag. Health is on the management port.
 bin/kc.sh start-dev \
-  --http-port=8080 \
+  --http-port=8180 \
+  --http-enabled=true \
+  --hostname=127.0.0.1 \
+  --hostname-strict=false \
   --health-enabled=true \
-  --hostname=localhost \
+  --http-management-port=9000 \
   --db=postgres \
   --db-url=jdbc:postgresql://127.0.0.1:5432/keycloak \
   --db-username="$KC_DB_USERNAME" \
@@ -90,11 +94,18 @@ bin/kc.sh start-dev \
   --import-realm
 ```
 
+Opt-in live smoke (Stub IdP off, secrets from env, writes `/tmp/keycloak-smoke.env` mode 0600 — not git):
+
+```bash
+# KEYCLOAK_HOME defaults to /home/ubuntu/keycloak-26.5.2
+./nexus-p2-iam/scripts/run-live-keycloak-smoke.sh
+```
+
 4. Point this module at that issuer:
 
 ```bash
 export NEXUS_IAM_IDP=keycloak
-export NEXUS_KEYCLOAK_ISSUER=http://127.0.0.1:8080/realms/nexus
+export NEXUS_KEYCLOAK_ISSUER=http://127.0.0.1:8180/realms/nexus
 export NEXUS_KEYCLOAK_CLIENT_ID=nexus-platform
 export NEXUS_KEYCLOAK_CLIENT_SECRET=...   # env only
 # optional product DB
