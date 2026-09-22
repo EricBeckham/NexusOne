@@ -50,7 +50,7 @@ Filled after the leftover honesty script on this VM. Do **not** treat an x86_64 
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** (`2026-09-22T22:22:16Z`) | honest SKIP accepted; fake live ARM/Linux JAR PASS / non-x86 PASS / QEMU-as-ARM / x86-as-ARM / Profile close / redo rejected |
+| Honesty fixtures | **PASS** (`2026-09-22T22:25:09Z`) | honest SKIP accepted; fake live ARM/Linux JAR PASS / non-x86 PASS / QEMU-as-ARM / x86-as-ARM / Profile close / redo rejected |
 | #157 / #193 stub/inventory harness | **PASS** | parent `--verify-report` only; not a product redo |
 | Platform-matrix inventory | **PASS** | `LOCAL-WIN-X64-POC` / `TARGET-X86-01` / `TARGET-ARM-01` |
 | `TARGET-ARM-01` / `TARGET-X86-01` | **not-tested** | `poc/p0-10/deployment-matrix.csv` |
