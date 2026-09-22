@@ -1,0 +1,18 @@
+{
+  "leftover": "g17-separation-leftover-honesty",
+  "siblings": [
+    "g17-separation-of-duties",
+    "g17-separation-honesty"
+  ],
+  "catalog_99_inventory": "PASS",
+  "no_admin_force_bypass_api": "true",
+  "live_admin_force_walk": "SKIP",
+  "live_dual_control_walk": "SKIP",
+  "product_dual_control_ui_status": "OPEN",
+  "g17Close": "NOT_CLAIMED",
+  "g17SodClose": "NOT_CLAIMED",
+  "productDualControlClose": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "timestampUtc": "2026-09-22T21:17:46Z",
+  "evidence": "scripts/g17-separation-leftover-honesty.sh"
+}
