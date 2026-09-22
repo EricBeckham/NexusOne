@@ -1,6 +1,6 @@
 # G4 leftover — human notebook + live Keycloak CA / SPA-generated PKCE verifier
 
-S0+S1 remainder after #108 / #120 / #125. **Not** a P0/M0 redo. Product **G18 stays closed**. This package does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules and does **not** claim a product-wide G4 close. Honesty leftover beyond this page (live Keycloak CA / SPA PKCE PASS only when observed; SKIP when unreachable) is [g4-pkce-spa-verifier-honesty.md](./g4-pkce-spa-verifier-honesty.md). This #147 leftover is not rewritten.
+S0+S1 remainder after #108 / #120 / #125. **Not** a P0/M0 redo. Product **G18 stays closed**. This package does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules and does **not** claim a product-wide G4 close. Honesty leftover beyond this page (live Keycloak CA / SPA PKCE PASS only when observed; SKIP when unreachable) is [g4-pkce-spa-verifier-honesty.md](./g4-pkce-spa-verifier-honesty.md). Remainder honesty leftover beyond #177/#147 is [g4-pkce-spa-verifier-remainder-honesty.md](./g4-pkce-spa-verifier-remainder-honesty.md). This #147 leftover is not rewritten.
 
 Already on `main` (do not redo):
 

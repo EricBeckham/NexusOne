@@ -1,0 +1,113 @@
+name: g4-pkce-spa-verifier-remainder-honesty
+
+# Honesty gate for the G4 live Keycloak CA / SPA PKCE remainder leftover
+# beyond #177 / #147. Does not start Keycloak.
+# Does not redo #108/#120/#125/#147/#152/#166/#177.
+# Not product G4 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g4-pkce-spa-verifier-remainder-honesty.sh"
+      - "scripts/g4-pkce-spa-verifier-remainder-honesty/**"
+      - ".github/workflows/g4-pkce-spa-verifier-remainder-honesty.yml"
+      - "docs/g4-pkce-spa-verifier-remainder-honesty.md"
+      - "docs/engineering/g4-pkce-spa-verifier-remainder-honesty-EVIDENCE.md"
+      - "nexus-p2-iam/src/main/java/one/nexus/p2/idp/G4PkceSpaVerifierRemainderHonesty.java"
+      - "nexus-p2-iam/src/test/java/one/nexus/p2/idp/G4PkceSpaVerifierRemainderHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/g4-pkce-spa-verifier-remainder-honesty.sh"
+      - "scripts/g4-pkce-spa-verifier-remainder-honesty/**"
+      - ".github/workflows/g4-pkce-spa-verifier-remainder-honesty.yml"
+      - "docs/g4-pkce-spa-verifier-remainder-honesty.md"
+      - "docs/engineering/g4-pkce-spa-verifier-remainder-honesty-EVIDENCE.md"
+      - "nexus-p2-iam/src/main/java/one/nexus/p2/idp/G4PkceSpaVerifierRemainderHonesty.java"
+      - "nexus-p2-iam/src/test/java/one/nexus/p2/idp/G4PkceSpaVerifierRemainderHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g4-pkce-spa-verifier-remainder-honesty.sh --verify-report scripts/g4-pkce-spa-verifier-remainder-honesty/fixtures/honest-skip.env
+      - name: Fake live Keycloak PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g4-pkce-spa-verifier-remainder-honesty.sh --verify-report \
+            scripts/g4-pkce-spa-verifier-remainder-honesty/fixtures/fake-live-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_keycloak_pkce=PASS without discovery/token exchange to fail"
+            exit 1
+          fi
+          echo "PASS: fake live Keycloak PASS rejected"
+      - name: Fake live CA trust PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g4-pkce-spa-verifier-remainder-honesty.sh --verify-report \
+            scripts/g4-pkce-spa-verifier-remainder-honesty/fixtures/fake-ca-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_ca_trust=PASS without ca_present/https discovery to fail"
+            exit 1
+          fi
+          echo "PASS: fake live CA PASS rejected"
+      - name: Fake product G4 close is rejected
+        run: |
+          set +e
+          ./scripts/g4-pkce-spa-verifier-remainder-honesty.sh --verify-report \
+            scripts/g4-pkce-spa-verifier-remainder-honesty/fixtures/fake-g4-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g4_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G4 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest live Keycloak CA / SPA PKCE SKIP
+        run: |
+          chmod +x ./scripts/g4-pkce-spa-verifier-remainder-honesty.sh
+          ./scripts/g4-pkce-spa-verifier-remainder-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty"
+          ./scripts/g4-pkce-spa-verifier-remainder-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^live_keycloak_pkce=SKIP$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^live_ca_trust=SKIP$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^human_laptop_click=SKIP$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^token_exchange_observed=false$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^discovery_is_not_live_exchange=true$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^honesty_177_is_not_live_exchange=true$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^honesty_177_harness=PASS$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E 'g4-pkce-spa-verifier-honesty' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E 'g17-gm-tls-nginx-handshake-honesty' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E 'g5-publishhook-ddl-honesty' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E 'g9-sentinel-cluster-remainder-honesty' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E 'g1-queryast-export-honesty' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E 'g15-wx-dt-native-bridge-remainder' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E 'g17-separation-leftover-honesty' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^g4_close=NOT_CLAIMED$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^redo_147=false$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^redo_177=false$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^kc_sh_started=false$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g4-pkce-spa-verifier-remainder-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g4-pkce-spa-verifier-remainder-honesty
+          path: ${{ runner.temp }}/g4-pkce-spa-verifier-remainder-honesty
