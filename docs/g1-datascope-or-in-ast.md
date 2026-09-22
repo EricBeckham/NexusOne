@@ -13,7 +13,7 @@ It does **not** invent a second tenant context. It does **not** change `AuditPor
 | `DEPT_AND_CHILDREN` / SPECIFIED lists | `QueryAstPolicyCompiler` + `QueryCompiler` | `department_id IN (?, …)` AND-ed after `tenant_id` | Mixed-column SELF∨DEPT |
 | Same-column OR of equalities | Collapsed to the same `IN` | `department_id = d1 OR department_id = d2` | Different-column OR stays leftover |
 | Empty / hostile `IN` | Fail-closed | Empty atom stays leftover `FALSE` on `PermissionQueryBinder`; empty/tenant `IN` on the AST is `INVALID_IDENTIFIER` / `CROSS_TENANT_READ` before JDBC | Callers must not skip `QueryCompiler` |
-| Product list / detail | `#130` `QueryAstScopedQuery` | Fully encoded `IN` now takes the `kernel.jdbc()` path | Mixed OR and `COUNT(*)` wrap still `BoundSql` |
+| Product list / detail | `#130` `QueryAstScopedQuery` | Fully encoded `IN` now takes the `kernel.jdbc()` path | Mixed OR leftover + `COUNT(*)` wrap are guarded ([g1-queryast-boundsql-guard.md](./g1-queryast-boundsql-guard.md)), not AST nodes |
 
 `tenant_id` stays on `TenantInjector` / `AccessContextHolder`. DataScope must not author it, including as `IN`.
 

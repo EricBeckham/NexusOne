@@ -1,16 +1,12 @@
 package one.nexus.p3.infra.jdbc;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -33,15 +29,16 @@ import one.nexus.p3.domain.SystemColumns;
 import one.nexus.p3.port.DataScopeHook;
 import one.nexus.p3.port.DataScopeHook.ScopedRead;
 import one.nexus.permission.engine.Decision;
-import one.nexus.permission.scope.BoundSql;
 import one.nexus.permission.scope.QueryAstScopedQuery;
 
 /**
  * Ledger row access. Writes go through Query AST + GuardedJdbc. List / detail
- * opt into {@link QueryAstScopedQuery} so SAFE SELF/DEPT + single-column
+ * / count opt into {@link QueryAstScopedQuery} so SAFE SELF/DEPT + single-column
  * multi-value {@code IN} + FieldPolicy visibility compile through
  * {@code QueryCompiler}. Mixed-column OR (SELF∨DEPT) leftovers still bind
- * beside the AST; mask / second-auth stay on {@code FieldPolicyProjector}.
+ * beside the AST, then execute as leftover-bound {@link RenderedSql} through
+ * {@code kernel.jdbc()} — raw {@code BoundSql} cannot bypass DataScope.
+ * Mask / second-auth stay on {@code FieldPolicyProjector}.
  */
 @Component
 public class GuardedLedgerStore {
@@ -169,10 +166,9 @@ public class GuardedLedgerStore {
         }
         ScopedRead scoped = dataScope.bind(requireTenant(), "ledger", "read");
         Map<String, Object> filters = readFilters(equalsFilters, fields);
-        BoundSql countSql = QueryAstScopedQuery.count(compileBound(
+        long total = readCount(compileRead(
                 QueryAst.select(ledger.physicalTable(), List.of(SystemColumns.ID), filters),
                 scoped.decision()));
-        long total = readCount(countSql);
         QueryAst pageAst = QueryAst.select(ledger.physicalTable(), projection(fields), filters)
                 .withSorts(List.of(QuerySort.asc(SystemColumns.ID)))
                 .withPage(QueryPage.of(size, page * size));
@@ -197,15 +193,7 @@ public class GuardedLedgerStore {
     }
 
     private List<Map<String, Object>> executeEncoded(QueryAst ast, Decision decision) {
-        QueryAstScopedQuery.CompiledRead compiled = compileRead(ast, decision);
-        if (compiled.scopeFullyEncoded()) {
-            return executeGuarded(compiled.compiled());
-        }
-        return executeRead(compiled.bound());
-    }
-
-    private BoundSql compileBound(QueryAst ast, Decision decision) {
-        return compileRead(ast, decision).bound();
+        return executeGuarded(QueryAstScopedQuery.executed(compileRead(ast, decision)));
     }
 
     private QueryAstScopedQuery.CompiledRead compileRead(QueryAst ast, Decision decision) {
@@ -228,43 +216,13 @@ public class GuardedLedgerStore {
         }
     }
 
-    private long readCount(BoundSql count) {
-        Map<String, Object> countRow = executeRead(count).getFirst();
+    private long readCount(QueryAstScopedQuery.CompiledRead compiled) {
+        Map<String, Object> countRow = executeGuarded(QueryAstScopedQuery.countExecuted(compiled)).getFirst();
         Object countValue = countRow.get("count");
         if (countValue == null) {
             countValue = countRow.get("COUNT");
         }
         return ((Number) countValue).longValue();
-    }
-
-    private List<Map<String, Object>> executeRead(BoundSql sql) {
-        if (sql.sql() == null || !sql.sql().toLowerCase(Locale.ROOT).contains("tenant_id")) {
-            throw P3Exception.missingTenant();
-        }
-        Connection connection = SearchPathConnections.open(dataSource);
-        try (PreparedStatement statement = connection.prepareStatement(sql.sql())) {
-            List<Object> params = sql.parameters();
-            for (int i = 0; i < params.size(); i++) {
-                statement.setObject(i + 1, params.get(i));
-            }
-            try (ResultSet rs = statement.executeQuery()) {
-                List<Map<String, Object>> rows = new ArrayList<>();
-                ResultSetMetaData meta = rs.getMetaData();
-                int columns = meta.getColumnCount();
-                while (rs.next()) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    for (int i = 1; i <= columns; i++) {
-                        row.put(meta.getColumnLabel(i), rs.getObject(i));
-                    }
-                    rows.add(row);
-                }
-                return rows;
-            }
-        } catch (SQLException ex) {
-            throw new IllegalStateException("ledger read failed", ex);
-        } finally {
-            SearchPathConnections.release(dataSource, connection);
-        }
     }
 
     private Map<String, Object> requireTenantRow(Map<String, Object> row) {

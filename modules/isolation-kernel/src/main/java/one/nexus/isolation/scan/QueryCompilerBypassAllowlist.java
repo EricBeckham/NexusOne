@@ -70,7 +70,7 @@ public final class QueryCompilerBypassAllowlist {
                             "nexus-notification-core/src/main/java/one/nexus/notification/NotificationConfiguration.java")),
             new Module(
                     "nexus-p3-studio",
-                    "catalog/metadata + SchemaService DDL + GuardedLedgerStore (kernel.jdbc writes)",
+                    "catalog/metadata + SchemaService DDL + GuardedLedgerStore (kernel.jdbc writes + leftover-bound reads)",
                     List.of(
                             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/jdbc/",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/schema/",

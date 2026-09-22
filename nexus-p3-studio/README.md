@@ -12,7 +12,7 @@ UI is **not** in this module (M0-12).
 - Identifiers: `^[a-z][a-z0-9_]{0,23}$` (ledgers) / `^[a-z][a-z0-9_]{0,62}$` (forms). Illegal names are refused before DDL.
 - Forms bind **`ledger_code` + `field_code` only**. Physical column/table keys are rejected (`P3.FORM.0004`).
 - Writes go through isolation-kernel Query AST + `GuardedJdbc` (mandatory `tenant_id`).
-- List / detail opt into M0-05 `QueryAstScopedQuery` (SELF/DEPT + single-column `IN` + FieldPolicy visibility through `QueryCompiler`). Mixed-column OR (SELF∨DEPT) leftovers and `COUNT(*)` still sit beside the AST on `PermissionQueryBinder` / `BoundSql`.
+- List / detail / count opt into M0-05 `QueryAstScopedQuery` (SELF/DEPT + single-column `IN` + FieldPolicy visibility through `QueryCompiler`). Mixed-column OR leftovers still bind beside the AST, then execute leftover-bound `RenderedSql` through `GuardedJdbc` — raw `BoundSql` cannot bypass DataScope.
 - P1 `QuotaService` is used when the bean exists (`APP` / `CUSTOM_LEDGER`).
 - Flowable 7.1.0 runs **in-process** on Boot 4.1.1 via `SpringProcessEngineConfiguration`. Engine tables live in schema `flowable` (engine-owned). Domain lists never read `act_*`.
 

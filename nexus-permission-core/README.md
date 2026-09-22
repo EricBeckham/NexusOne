@@ -12,7 +12,7 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | Principals: user, role (with inheritance), position, department | `PermissionEngine.principals` |
 | DataScope compile: SELF / DEPT / DEPT_AND_CHILDREN / SPECIFIED / ALL | `DataScopeCompiler` |
 | FieldPolicy projection / masking / second-auth | `FieldPolicyProjector` |
-| list / detail / total / pagination share one WHERE (`tenant_id` first) | `PermissionQueryBinder` / `ScopedQuery` (OR leftover); product list/detail opt-in is `QueryAstScopedQuery` |
+| list / detail / total / pagination share one WHERE (`tenant_id` first) | `PermissionQueryBinder` / `ScopedQuery` (OR leftover); product list/detail/count opt-in is `QueryAstScopedQuery` (leftover BoundSql cannot bypass) |
 | Isolation kernel seam: AND extra filters, never strip `tenant_id` | `IsolationDataScopeInjector` |
 | Query AST SELF/DEPT + single-column IN + FieldPolicy visibility (opt-in) | `QueryAstPolicyCompiler` / `QueryAstScopedQuery` |
 | PolicySnapshot version + LRU + fail-closed | `SnapshotManager` |
