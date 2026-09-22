@@ -90,6 +90,8 @@ jobs:
           grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E 'g17-separation-leftover-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E 'g17-mfa-recovery-vue-otp-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g2-h5-every-page-form-write-report-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'linux-arm-profile-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E 'g4-hot-purge-staging-pkce-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E 'g10-file-object-reconcile-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E 's0-secret-rotate-getenv-leftover-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
@@ -101,6 +103,8 @@ jobs:
           grep -E '^leftover_99_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E '^leftover_187_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E '^leftover_216_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_254_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_236_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E '^leftover_251_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E '^leftover_243_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E '^leftover_241_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
@@ -117,6 +121,8 @@ jobs:
           grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
           grep -F 'g17-mfa-recovery-vue-otp-remainder-honesty' docs/README.md
+          grep -F 'g2-h5-every-page-form-write-report-remainder-honesty' docs/README.md
+          grep -F 'linux-arm-profile-remainder-honesty' docs/README.md
           grep -F 'g4-hot-purge-staging-pkce-remainder-honesty' docs/README.md
           grep -F 'g10-file-object-reconcile-remainder-honesty' docs/README.md
           grep -F 's0-secret-rotate-getenv-leftover-honesty' docs/README.md
