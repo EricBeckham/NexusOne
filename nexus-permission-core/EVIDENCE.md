@@ -171,6 +171,24 @@ mvn -pl nexus-permission-core -am test
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down: evidenced in [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md). Redis Sentinel/Cluster still not claimed.
+- G9 fail-closed DENY after Redis-down / lost invalidate: [docs/g9-failover-remainder.md](../docs/g9-failover-remainder.md). Not a full G9 product close.
+
+## G9 leftover — fail-closed DENY when Redis is down
+
+Recorded **2026-09-22T17:50:40Z** on this agent VM after rebase onto `main@ec116a3`. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**. Zonky PostgreSQL **15.18**. No Docker. Not Sentinel / Cluster.
+
+```
+./scripts/g9-failover-remainder.sh
+# BUILD SUCCESS 2026-09-22T17:50:40Z — Tests run: 22, Failures: 0, Errors: 0, Skipped: 3
+```
+
+| Class | Count | What it proved |
+|---|---|---|
+| `G9FailoverRemainderTest` | 5/5 | Redis-down DENY after GRANT is `explicit_deny` == durable `PermissionEngine`; lost channel / poller tick fail-close; durable miss `P2.PERM.0005`; publish failure is not remote success |
+| `JdbcG9FailoverRemainderIT` | 1/1 | PG 15.18 lost-channel DENY does not silently allow |
+| `RedisInvalidationTest` | 1/1 (+3 skip) | Dead Redis `lastRemoteNotifySucceeded()` is false |
+| `G9PolicySnapshotFailoverTest` | 5/5 | Existing Redis-down GRANT path unchanged |
+| `PermissionEngineTest` | 7/7 | Truth table unchanged |
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
