@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { session } from "./api/session";
+import { isSafeMobileReturn, safeMobileReturn } from "./mobile/auth/safeReturn";
 
 const routes = [
   { path: "/login", name: "login", component: () => import("./views/LoginView.vue"), meta: { public: true, title: "登录" } },
@@ -18,11 +20,53 @@ const routes = [
   { path: "/p3/todos/:id", name: "todo-detail", component: () => import("./views/studio/TodoInboxView.vue"), meta: { title: "待办办理", product: "p3" } },
   { path: "/p3/notifications", name: "notifications", component: () => import("./views/studio/NotifyInboxView.vue"), meta: { title: "站内通知", product: "p3" } },
   { path: "/p3/audit", name: "audit", component: () => import("./views/studio/AuditTraceView.vue"), meta: { title: "审计哈希链", product: "p3" } },
+  { path: "/m", redirect: "/m/p3/home" },
+  {
+    path: "/m/login",
+    name: "m-login",
+    component: () => import("./mobile/products/p3-studio/pages/LoginPage.vue"),
+    meta: { mobile: true, public: true, tabs: false, title: "H5 登录" },
+  },
+  {
+    path: "/m/callback",
+    name: "m-callback",
+    component: () => import("./mobile/products/p3-studio/pages/CallbackPage.vue"),
+    meta: { mobile: true, public: true, tabs: false, title: "登录回跳" },
+  },
+  {
+    path: "/m/p3/home",
+    name: "m-home",
+    component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),
+    meta: { mobile: true, title: "星构", product: "p3" },
+  },
+  {
+    path: "/m/p3/files",
+    name: "m-files",
+    component: () => import("./mobile/products/p3-studio/pages/FilesPage.vue"),
+    meta: { mobile: true, title: "文件", product: "p3" },
+  },
+  {
+    path: "/m/p3/files/:id",
+    name: "m-file-detail",
+    component: () => import("./mobile/products/p3-studio/pages/FileDetailPage.vue"),
+    meta: { mobile: true, back: true, tabs: false, title: "文件详情", product: "p3" },
+  },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to) => {
+  if (!to.meta.mobile || to.meta.public) {
+    return true;
+  }
+  if (session.accessToken) {
+    return true;
+  }
+  const returnTo = isSafeMobileReturn(to.fullPath) ? to.fullPath : safeMobileReturn(to.path);
+  return { path: "/m/login", query: { return: returnTo } };
 });
 
 export default router;

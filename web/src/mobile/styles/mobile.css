@@ -1,0 +1,230 @@
+.nx-mobile {
+  --nx-mobile-shadow-card: 0 4px 16px rgba(31, 56, 88, 0.05);
+  --nx-mobile-shadow-bottom: 0 -8px 24px rgba(31, 56, 88, 0.08);
+  --nx-mobile-header: 56px;
+  --nx-mobile-tab: 56px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--nx-bg-page);
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+}
+
+.nx-mobile .m-appbar {
+  min-height: var(--nx-mobile-header);
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;
+  background: var(--nx-surface);
+  border-bottom: 1px solid var(--nx-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.nx-mobile .m-appbar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 24px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nx-mobile .m-back,
+.nx-mobile .m-icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--nx-primary);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.nx-mobile .m-tenant {
+  font-size: 11px;
+  color: var(--nx-text-secondary);
+  background: var(--nx-primary-light);
+  border-radius: 999px;
+  padding: 4px 8px;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nx-mobile .m-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 16px 24px;
+}
+
+.nx-mobile .m-hero {
+  background: linear-gradient(135deg, var(--nx-product), #13c2c2);
+  color: #fff;
+  border-radius: 16px;
+  padding: 20px 16px;
+  margin-bottom: 16px;
+}
+
+.nx-mobile .m-hero h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 34px;
+}
+
+.nx-mobile .m-hero p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.nx-mobile .m-card {
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  box-shadow: var(--nx-mobile-shadow-card);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.nx-mobile .m-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.nx-mobile .m-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.nx-mobile .m-field label {
+  color: var(--nx-text-secondary);
+  font-size: 12px;
+}
+
+.nx-mobile .m-field input,
+.nx-mobile .m-field select,
+.nx-mobile .m-field textarea {
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--nx-text-primary);
+  background: #fff;
+}
+
+.nx-mobile .m-btn {
+  min-height: 44px;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 15px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.nx-mobile .m-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nx-mobile .m-btn.primary {
+  background: var(--nx-product);
+  color: #fff;
+}
+
+.nx-mobile .m-btn.ghost {
+  background: #fff;
+  color: var(--nx-text-regular);
+  border: 1px solid var(--nx-border-strong);
+}
+
+.nx-mobile .m-btn.danger {
+  background: var(--nx-danger);
+  color: #fff;
+}
+
+.nx-mobile .m-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.nx-mobile .m-tabs button {
+  flex: 1;
+  min-height: 40px;
+  border: 1px solid var(--nx-border);
+  background: #fff;
+  border-radius: 8px;
+  color: var(--nx-text-secondary);
+}
+
+.nx-mobile .m-tabs button.active {
+  border-color: var(--nx-product);
+  color: var(--nx-product);
+  background: var(--nx-primary-light);
+  font-weight: 600;
+}
+
+.nx-mobile .m-bottom {
+  min-height: calc(var(--nx-mobile-tab) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--nx-surface);
+  border-top: 1px solid var(--nx-border);
+  box-shadow: var(--nx-mobile-shadow-bottom);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.nx-mobile .m-bottom a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  color: var(--nx-text-secondary);
+  font-size: 11px;
+  gap: 2px;
+}
+
+.nx-mobile .m-bottom a.router-link-active {
+  color: var(--nx-product);
+  font-weight: 600;
+}
+
+.nx-mobile .m-error { color: var(--nx-danger); font-size: 13px; }
+.nx-mobile .m-ok { color: var(--nx-success); font-size: 13px; }
+.nx-mobile .m-muted { color: var(--nx-text-secondary); font-size: 12px; line-height: 18px; }
+.nx-mobile .m-progress {
+  height: 8px;
+  background: var(--nx-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+.nx-mobile .m-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--nx-product);
+}
+.nx-mobile .m-file-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--nx-divider);
+  color: inherit;
+}
+.nx-mobile .m-file-row strong { font-size: 15px; }
