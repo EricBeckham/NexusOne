@@ -24,7 +24,7 @@ Wiring is the existing `SnapshotManager` + `PermissionModule.create`. No second 
 | Leftover | Why |
 |---|---|
 | Redis Sentinel / Cluster / replica promotion | Explicitly not this slice. |
-| Multi-node live partition | Timeout is proven in-process (latch + Zonky `pg_sleep`). |
+| Multi-node live partition | Timeout is proven in-process (latch + Zonky `pg_sleep`). Dual-reader / lost-invalidate version-poll is [g9-multinode-partition.md](./g9-multinode-partition.md). Live multi-JVM / Sentinel / Cluster is still not claimed. |
 | Redis-down ordinary fail-closed | Already recorded; not re-claimed. Fail-closed DENY after lost invalidate is [g9-failover-remainder.md](./g9-failover-remainder.md). |
 | G2 product-wide same engine | Unchanged from #73. |
 | G18 browser walk | Closed; not walked again. |

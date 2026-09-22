@@ -173,6 +173,7 @@ mvn -pl nexus-permission-core -am test
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down: evidenced in [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md). Redis Sentinel/Cluster still not claimed.
 - G9 fail-closed DENY after Redis-down / lost invalidate: [docs/g9-failover-remainder.md](../docs/g9-failover-remainder.md). Not a full G9 product close.
+- G9 in-process dual-reader / lost-invalidate version-poll: [docs/g9-multinode-partition.md](../docs/g9-multinode-partition.md). Not Sentinel / Cluster / replica promotion / live multi-JVM.
 
 ## G9 leftover — fail-closed DENY when Redis is down
 
@@ -190,7 +191,18 @@ Recorded **2026-09-22T17:50:40Z** on this agent VM after rebase onto `main@ec116
 | `RedisInvalidationTest` | 1/1 (+3 skip) | Dead Redis `lastRemoteNotifySucceeded()` is false |
 | `G9PolicySnapshotFailoverTest` | 5/5 | Existing Redis-down GRANT path unchanged |
 | `PermissionEngineTest` | 7/7 | Truth table unchanged |
+
+## G9 leftover — in-process dual-reader / partition fail-closed
+
+Harness and script are on this branch. Suite counts are recorded after `./scripts/g9-multinode-partition.sh` on this agent VM. Not Sentinel / Cluster / replica promotion. Not a live multi-JVM network partition.
+
+| Class | What it proves |
+|---|---|
+| `G9DualReaderPartitionTest` | Two readers, separate buses: lost invalidate leaves both LRU on GRANT; A's poll / `get` does not mutate B; both `explicit_deny` == durable `PermissionEngine`; Redis-down writer does not notify partitioned readers |
+| `JdbcG9DualReaderPartitionIT` | PG 15: `iam.perm_policy_version` bumps while both reader LRU stay stale; each node's poll converges independently |
+
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR / multi-value IN trees; SELF/DEPT equality + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler` ([docs/g1-datascope-fieldpolicy-ast.md](../docs/g1-datascope-fieldpolicy-ast.md)). Product list/detail still uses `PermissionQueryBinder` unless callers opt in.
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
 - Demo `tenant_member` ALL-scope seed remains for the closed G18 walk and is not permission-complete
+- Redis Sentinel / Cluster / replica promotion / live multi-JVM network partition remain open after the in-process dual-reader harness.
