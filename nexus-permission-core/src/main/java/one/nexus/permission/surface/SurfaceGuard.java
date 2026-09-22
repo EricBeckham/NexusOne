@@ -19,8 +19,8 @@ import one.nexus.permission.support.PermissionException;
 /**
  * Single interpretation of {@link Decision} for list, detail, flow, form studio,
  * form fill / POST submissions, path submit-start, H5 {@code /m/*}
- * list/detail/form/todo, report query/export, physical dump / raw export,
- * export, Job, and Task. Surfaces
+ * list/detail/form/todo, todo list HTTP, report query/export, physical dump /
+ * raw export, catalog definition HTTP, export, Job, and Task. Surfaces
  * must not invent a second allow/deny rule: {@code !allowed} is deny.
  */
 public final class SurfaceGuard {

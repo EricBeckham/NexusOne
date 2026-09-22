@@ -25,8 +25,8 @@ Isolation-only hosts with **no** P2 `TenantContext` still return `tenant_only` (
 
 | Item | Status |
 |---|---|
-| Product-wide G2 | Open. Todo HTTP stays leftover. Physical dump is the sibling leftover [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). |
-| Todo HTTP (`TodoController`) | Still tenant-person filter. Allowlisted leftover. H5 UI still gates via `/check`. |
+| Product-wide G2 | Open. Todo HTTP is the sibling leftover [g2-todo-http-surface.md](./g2-todo-http-surface.md). Physical dump is [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). |
+| Todo HTTP (`TodoController`) | Sibling leftover [g2-todo-http-surface.md](./g2-todo-http-surface.md). This package does not wire todo HTTP. |
 | `TenantOnlyDataScopeHook` with demo-bound P2 and no engine | Documented no-engine leftover. Product wrappers fail-close through `IsolationOnlyDecision`. |
 | Physical ledger dump | Sibling leftover on `main` (#137). `DumpSurfaceGuard` uses the same `IsolationOnlyDecision` constructor. |
 | Guard-deny audit / AuditPort same-TX | Unchanged (#136). This package does not rewrite `emitDenied`. |

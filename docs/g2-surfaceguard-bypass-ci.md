@@ -35,7 +35,7 @@ These files may call the engine, IsolatedExport sinks, or construct an allow `De
 | `IsolatedExport` | Isolation-only export; product callers use `AuthorizedExport` |
 | `IsolationOnlyDecision` + isolation-only `new Decision(true, "tenant_only")` | Single constructor; fail-closes when a P2 `TenantContext` exists |
 | `TenantOnlyDataScopeHook` | No-engine leftover when demo headers bind P2 without `PermissionModule` |
-| `TodoController` | Documented leftover: tenant-person filter; H5 UI gates via `/check` |
+| `TodoController` | Now `TodoSurfaceGuard` (`process.task`/`read`). See [g2-todo-http-surface.md](./g2-todo-http-surface.md). |
 
 **Not allowlisted** (must stay SurfaceGuard-free of raw engine / IsolatedExport): `nexus-p4-market`, `nexus-p5-connect`. Catalog controllers are product wrappers around `CatalogSurfaceGuard` (not `/records`).
 
@@ -72,7 +72,7 @@ This is **not** a product-wide G2 close.
 
 | Still open | Why |
 |---|---|
-| `TodoController` / `TodoQueryService` | HTTP stays tenant-person filter. Allowlisted leftover. H5 UI still gates via `/check`. |
+| `TodoController` / `TodoQueryService` | HTTP now `TodoSurfaceGuard` (`process.task`/`read`) when `PermissionModule` is present. See [g2-todo-http-surface.md](./g2-todo-http-surface.md). Isolation hosts without the bean stay the FormController-shaped skip. |
 | Ledger / application / business-type catalog HTTP | Definition HTTP now goes through `CatalogSurfaceGuard` when `PermissionModule` is present. Isolation hosts without the bean stay the FormController-shaped skip. |
 | Isolation-only `tenant_only` | Engine-backed wrappers use `IsolationOnlyDecision.allow()` and **fail-close** when a P2 `TenantContext` exists. See [g2-tenant-only-catalog.md](./g2-tenant-only-catalog.md). |
 | Physical dump HTTP | Product dump HTTP is the sibling leftover [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). The gate now also flags unguarded `/dumps` and raw `writeProjected`. `pg_dump` ops stay open. |

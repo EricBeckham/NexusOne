@@ -19,7 +19,8 @@ import org.springframework.stereotype.Component;
  * {@code tenant_only} — it fail-closes through {@link IsolationOnlyDecision}
  * then {@link SurfaceGuard}.
  *
- * <p>Not a physical dump. Not a product-wide G2 close. Todo HTTP stays leftover.
+ * <p>Not a physical dump. Not a product-wide G2 close. Todo HTTP is the
+ * sibling leftover {@link TodoSurfaceGuard}.
  */
 @Component
 @ConditionalOnClass(PermissionModule.class)
