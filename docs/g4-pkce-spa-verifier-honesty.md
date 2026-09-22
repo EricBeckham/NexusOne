@@ -2,7 +2,7 @@
 
 S0+S1 remainder after the #147 evidence path ([g4-pkce-spa-verifier.md](./g4-pkce-spa-verifier.md)). Rebased onto `origin/main` `ada0ede` (after #180 SecretPort getenv snapshot honesty / #171 G5 browser failed-publish honesty). **G18 stays closed.** This leftover does **not** redo #108 HTTP-driver PKCE, #120 HTTPS loopback, #125 desktop stub click, #147 SPA verifier leftover, #152 export wizard, or #166 complete-deny. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. It does **not** start `kc.sh`. It does **not** claim product G4 close. `g4_close=NOT_CLAIMED`.
 
-Keep **both** leftover rows in [docs/README.md](./README.md): `g4-pkce-spa-verifier` (#147) and this file.
+Keep **both** leftover rows in [docs/README.md](./README.md): `g4-pkce-spa-verifier` (#147) and this file. Remainder honesty leftover beyond this page is [g4-pkce-spa-verifier-remainder-honesty.md](./g4-pkce-spa-verifier-remainder-honesty.md). This #177 leftover is not rewritten.
 
 #147 already mints SPA S256, echoes a client-held `code_challenge`, and SKIPs live Keycloak when OIDC discovery is down. The leftover here is the **honesty gate** beyond that: live Keycloak CA / SPA-held token exchange is **PASS** only when discovery answers **and** the walk was actually observed. `#147` harness discovery is **not** a live token exchange. A CA file on disk is **not** a trusted laptop click. Missing Keycloak is honest **SKIP**. It never fabricates `PASS`.
 
