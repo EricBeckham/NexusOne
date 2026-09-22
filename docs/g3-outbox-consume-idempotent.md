@@ -25,7 +25,7 @@ Submit-start keys + record `version` already landed on `main` ([g3-data-consiste
 | Outbox / Dispatcher rebuild | Existing `OutboxDispatcher` / `JdbcOutboxStore` / lease poller stay as-is. |
 | Multi-node dispatcher / Kafka / bus | In-process Zonky PG 15 only. |
 | Production throughput / 30s soak | 32-replay storm and 16-way replay, not a load run. |
-| Crash after handler claim, before inbox `UPDATE` | Same claim-before-write order as [m0-09-outbox-api.md](./m0-09-outbox-api.md). A never-written inbox can stay `PENDING` if the first claim committed and the write did not. Honest leftover. |
+| Crash after handler claim, before inbox `UPDATE` | Honesty leftover is [g3-claim-crash-window.md](./g3-claim-crash-window.md). Same claim-before-write order. A never-written inbox can stay `PENDING` if the first claim committed and the write did not. |
 | Redis idempotency keys | Forbidden by ARCH-031. Not started. |
 | Submit-start redo | Already on `main`. Not re-tested here. |
 | G18 reopen | Closed; not walked again. |
