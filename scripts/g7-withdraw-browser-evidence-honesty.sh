@@ -129,7 +129,7 @@ verify_report_inner() {
 
   local rows
   rows="$(report_get "$file" leftover_rows_kept)"
-  for row in g7-withdraw-evidence g7-withdraw-expense-travel g7-withdraw-browser g7-withdraw-browser-honesty g7-query-expense-travel g7-query-expense-travel-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty; do
+  for row in g7-withdraw-evidence g7-withdraw-expense-travel g7-withdraw-browser g7-withdraw-browser-honesty g7-query-expense-travel g7-query-expense-travel-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty; do
     echo "$rows" | grep -Fq "$row" || { echo "FAIL: leftover_rows_kept must keep $row" >&2; return 1; }
   done
 
@@ -320,6 +320,7 @@ g7-business-types
 g2-h5-every-page-form-write-honesty
 g17-mfa-recovery-vue-otp-honesty
 g2-ops-pg-dump-honesty
+g9-sentinel-cluster-remainder-honesty
 g17-mfa-recovery-email-honesty
 g17-vue-otp-writeback
 g9-redis-down-invalidate-remainder
@@ -378,6 +379,8 @@ grep -Fq 'g17-mfa-recovery-vue-otp-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover g17-mfa-recovery-vue-otp-honesty (#205)"
 grep -Fq 'g2-ops-pg-dump-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover g2-ops-pg-dump-honesty (#188)"
+grep -Fq 'g9-sentinel-cluster-remainder-honesty.md' "$README" \
+  || fail "docs/README.md must keep sibling leftover g9-sentinel-cluster-remainder-honesty (#209)"
 
 echo
 echo "== Honesty fixtures (this leftover)"
@@ -496,7 +499,7 @@ REPORT="$OUT/report.env"
   kv stub_walk_travel "$STUB_TRAVEL"
   kv stub_walk_is_not_live "$STUB_NOT_LIVE"
   kv screenshot_artifacts "$SCREENSHOTS"
-  kv leftover_rows_kept "g7-withdraw-evidence,g7-withdraw-expense-travel,g7-withdraw-browser,g7-withdraw-browser-honesty,g7-query-expense-travel,g7-query-expense-travel-honesty,g2-h5-every-page-form-write-honesty,g9-redis-down-invalidate-remainder,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty"
+  kv leftover_rows_kept "g7-withdraw-evidence,g7-withdraw-expense-travel,g7-withdraw-browser,g7-withdraw-browser-honesty,g7-query-expense-travel,g7-query-expense-travel-honesty,g2-h5-every-page-form-write-honesty,g9-redis-down-invalidate-remainder,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty"
   kv leftover_rows_all "$LEFTOVER_ROWS_ALL"
   kv same_tx_append_unchanged "$SAME_TX"
   kv live_jar_endpoint_set "$LIVE_ENDPOINT_SET"
@@ -539,7 +542,7 @@ MATRIX="$OUT/matrix.md"
   echo "| #192 query leftover honesty | $LEFTOVER_192 | sibling leftover; withdraw paths not redone |"
   echo "| Browser-visible stub walk | $STUB_WALK | leave=$STUB_LEAVE expense=$STUB_EXPENSE travel=$STUB_TRAVEL; stub ≠ live |"
   echo "| Screenshot artifacts | $SCREENSHOTS | stub-login / 我发起 / todo-withdraw / WITHDRAWN |"
-  echo "| leftover rows kept | true | parents + #188 G2 ops pg_dump honesty + #205 G17 MFA recovery/OTP honesty + #197 G9 Redis-down remainder + #204 G2 H5/form.write honesty + all sibling leftover rows |"
+  echo "| leftover rows kept | true | parents + #209 G9 Sentinel/Cluster remainder honesty + #188 G2 ops pg_dump honesty + #205 G17 MFA recovery/OTP honesty + #197 G9 Redis-down remainder + #204 G2 H5/form.write honesty + all sibling leftover rows |"
   echo "| AuditPort same-TX | $SAME_TX | untouched |"
   echo "| Live JAR/IdP browser withdraw | $LIVE_WALK | ${LIVE_REASON} |"
   echo "| Live browser-visible withdraw | $LIVE_VISIBLE | ${VISIBLE_REASON} |"
