@@ -1,7 +1,7 @@
 {
   "leftover": "g17-vue-otp-writeback",
   "result": "SKIP",
-  "reason": "pending-this-run",
+  "reason": "keycloak_issuer_unreachable",
   "vueConfirmWritesKeycloak": false,
   "productWritebackEndpoint": false,
   "keycloakIssuerReachable": false,
@@ -12,6 +12,6 @@
   "g18": "closed_unchanged",
   "recoveryCodes": false,
   "emailMfa": false,
-  "timestampUtc": "pending-this-run",
+  "timestampUtc": "2026-09-22T19:14:00Z",
   "evidence": "scripts/g17-vue-otp-writeback.sh"
 }
