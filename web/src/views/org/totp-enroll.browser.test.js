@@ -56,6 +56,11 @@ describe("TOTP enrollment page", () => {
     expect(wrapper.get("[data-testid=totp-success]").text()).toContain("本页确认成功");
     expect(wrapper.get("[data-testid=totp-success]").text()).toContain("没有把 otp 凭据写入 Keycloak");
     expect(wrapper.get("[data-testid=goto-recovery-codes]").attributes("href")).toContain("/p2/mfa/recovery");
+    expect(wrapper.get("[data-testid=totp-writeback-panel]").text()).toContain("诚实 leftover");
+    expect(wrapper.get("[data-testid=totp-writeback-status]").text()).toContain("SKIP");
+    expect(wrapper.get("[data-testid=totp-writeback-reason]").text()).toMatch(
+      /keycloak_issuer_unreachable|product_vue_writeback_endpoint_absent|vue_confirm_is_local_only/,
+    );
 
     await wrapper.get("[data-testid=totp-code]").setValue(generate(SECRET));
     await wrapper.get("[data-testid=totp-confirm]").trigger("click");

@@ -1,0 +1,17 @@
+{
+  "leftover": "g17-vue-otp-writeback",
+  "result": "SKIP",
+  "reason": "pending-this-run",
+  "vueConfirmWritesKeycloak": false,
+  "productWritebackEndpoint": false,
+  "keycloakIssuerReachable": false,
+  "oidcDiscovery": "SKIP",
+  "otpCredentialStored": false,
+  "issuer": "http://127.0.0.1:8080/realms/nexus",
+  "g17Close": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "recoveryCodes": false,
+  "emailMfa": false,
+  "timestampUtc": "pending-this-run",
+  "evidence": "scripts/g17-vue-otp-writeback.sh"
+}

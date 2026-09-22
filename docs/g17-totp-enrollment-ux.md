@@ -58,7 +58,7 @@ Fill from `./scripts/g17/run-totp-enrollment-ux.sh`. Artifact: [g17-totp-enrollm
 
 | Still open | Why |
 |---|---|
-| Writing otp into Keycloak from this Vue page | #118 HTTP driver remains the credential walk. Loopback `Secure; SameSite=None` cookies still block a casual laptop click. |
+| Writing otp into Keycloak from this Vue page | Honesty leftover is [g17-vue-otp-writeback.md](./g17-vue-otp-writeback.md) (probe + honest SKIP). #118 HTTP driver remains the credential walk. |
 | Recovery codes | Sibling leftover [g17-admin-mfa-recovery-email.md](./g17-admin-mfa-recovery-email.md) issues local one-time codes. This page still does not write Keycloak recovery-authn-codes. |
 | Email MFA product acceptance | Sibling leftover [g17-admin-mfa-recovery-email.md](./g17-admin-mfa-recovery-email.md) is the request contract + honest SKIP. |
 | SMS MFA / WebAuthn / passkeys | Not implemented. |

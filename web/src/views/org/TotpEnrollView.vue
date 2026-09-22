@@ -11,6 +11,16 @@
       body="本页只改善注册文案与错误路径。产品门禁仍是 P2 AdminMfaPolicy。Keycloak otp 凭据走 #118 HTTP 走通。默认 Stub 登录仍带 acr=mfa，不重开 G18。"
     />
 
+    <div class="nx-card writeback" data-testid="totp-writeback-panel">
+      <h3>Keycloak otp 写回桥（诚实 leftover）</h3>
+      <p data-testid="totp-writeback-status">{{ writebackStatus }}</p>
+      <p class="nx-muted" data-testid="totp-writeback-reason">{{ writeback.reason || "vue_confirm_is_local_only" }}</p>
+      <p>
+        本页 confirm 成功 ≠ 写入 Keycloak otp。活 IdP 不可用或没有产品写回接口时诚实 SKIP。
+        不宣称等保 / 密评 / 完整 G17。恢复码 / 邮箱 MFA 不在本 leftover。
+      </p>
+    </div>
+
     <div v-if="reason === 'mfa_required'" class="nx-card reason" data-testid="enroll-mfa-reason">
       <h3>{{ MFA_REQUIRED_COPY.title }}</h3>
       <p>{{ MFA_REQUIRED_COPY.body }}</p>
@@ -89,6 +99,7 @@ import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { MFA_REQUIRED_COPY, confirmEnrollment, startEnrollment } from "../../auth/totpEnrollment";
+import { attemptVueOtpWriteback, formatWritebackStatus } from "../../auth/totpWriteback";
 
 const route = useRoute();
 const reason = computed(() => String(route.query.reason || ""));
@@ -96,6 +107,13 @@ const code = ref("");
 const error = ref("");
 const copied = ref("");
 const session = ref({ status: "idle" });
+const writeback = ref({
+  result: "SKIP",
+  reason: "vue_confirm_is_local_only",
+  vueConfirmWritesKeycloak: false,
+  otpCredentialStored: false,
+});
+const writebackStatus = computed(() => formatWritebackStatus(writeback.value));
 
 function onStart() {
   error.value = "";
@@ -112,7 +130,7 @@ function onStart() {
   session.value = started.session;
 }
 
-function onConfirm() {
+async function onConfirm() {
   const result = confirmEnrollment(session.value, code.value);
   if (!result.ok) {
     error.value = result.message;
@@ -120,6 +138,7 @@ function onConfirm() {
   }
   error.value = "";
   session.value = result.session;
+  writeback.value = await attemptVueOtpWriteback({ session: result.session });
 }
 
 async function copy(text) {
@@ -152,5 +171,8 @@ async function copy(text) {
 .ok {
   color: var(--nx-success);
   font-size: 13px;
+}
+.writeback {
+  margin-bottom: 16px;
 }
 </style>
