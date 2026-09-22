@@ -53,7 +53,7 @@ Failing-before / passing-after is `AdminMfaSessionTest`:
 
 | Item | Status |
 |---|---|
-| Full G17 (三权分立, 国密 TLS 双证书, 密码机, classified GM delivery) | Not this slice |
+| Full G17 (密码机, classified GM delivery) | Not this slice. 三权分立 is [g17-separation-of-duties.md](./g17-separation-of-duties.md). Local 国密 TLS 双证书 leftover is [g17-gm-tls-dual-cert.md](./g17-gm-tls-dual-cert.md) |
 | G18 reopen | **No.** Product G18 remains closed. |
 | SAML | Not run |
 | SMS MFA / hardware token / WebAuthn | Not implemented. `amr=sms` is recognized if an IdP sent it; no SMS SPI. |

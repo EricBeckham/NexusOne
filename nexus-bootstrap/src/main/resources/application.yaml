@@ -73,6 +73,11 @@ nexus:
     persistence: ${NEXUS_IAM_PERSISTENCE:memory}
     idp: ${NEXUS_IAM_IDP:stub}
     platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:${NEXUS_IAM_PLATFORM_BOOTSTRAP_TOKEN:}}
+  tls:
+    gm:
+      # Opt-in local dual-cert material. Default HTTP connector stays on. Not GM/T 0024 Nginx.
+      enabled: ${NEXUS_GM_TLS_ENABLED:false}
+      dir: ${NEXUS_GM_TLS_DIR:.local/g17-gm-tls}
   crypto:
     suite: ${NEXUS_CRYPTO_SUITE:INTERNATIONAL}
     key-source: ${NEXUS_CRYPTO_KEY_SOURCE:ephemeral}

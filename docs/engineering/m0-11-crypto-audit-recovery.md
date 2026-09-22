@@ -99,8 +99,8 @@ Runbook：
 | 把 `IsolationAuditSink` 接到 `AuditPort` | Product `AuditPortIsolationSink` persists `ISOLATION_REJECT` with `appendNewTransaction` (G1) and `EXPORT_ACCEPTED` with `append`. Kernel still only emits `IsolationAuditEvent`. Same-TX `append` joining is unchanged. |
 | G4 审计覆盖每个用户 / 热 90 天 + 归档 365 天 | 登录/权限/管理/守卫拒绝已接线（见 [g4-audit-coverage.md](./g4-audit-coverage.md)）。Export accepted + 90-day copy Job + 365-day same-PG archive purge: [g4-export-audit-archive.md](../g4-export-audit-archive.md)。Object-store cold copy: [g4-object-cold-archive.md](../g4-object-cold-archive.md)。Hot rows are not deleted. |
 | G6 整库与对象恢复演练、RPO/RTO | 产品 `RecoveryPort` 仍为 dry-run。S1 环境级演练（专用 PG 库 + 本地 MinIO）见 [g6-recovery-drill-EVIDENCE.md](./g6-recovery-drill-EVIDENCE.md)。分钟级 RPO / Profile / G17 仍不宣称 |
-| G17 等保与国密交付 | 无三权分立产品路径、无国密 TLS 双证书、无合格 GM/T Provider、无密码机 |
-| 国密 TLS（GM/T 0024）、Nginx 双证书 | P0-10 已声明未验 |
+| G17 等保与国密交付 | 三权分立见 [g17-separation-of-duties.md](../g17-separation-of-duties.md)；管理员 MFA 见 [g17-admin-mfa.md](../g17-admin-mfa.md)；本地国密 TLS 双证书切片见 [g17-gm-tls-dual-cert.md](../g17-gm-tls-dual-cert.md)。仍无合格 GM/T Provider、无密码机、无等保/涉密交付 |
+| 国密 TLS（GM/T 0024）、Nginx 双证书 | 本仓库证明 RFC 8998 TLS 1.3 SM2/SM3/SM4 + 双证书材料加载。GM/T 0024 协议双证书与 Nginx 国密发行版仍未验 |
 | RSA 签名、口令哈希（Keycloak PBKDF2-SM3） | 国际套件签名走 ECDSA P-256，与 P0-10 一致 |
 | KMS / OpenBao / 国密密码机 SecretPort 适配器 | ARCH-007：首期不得强制独立 Secret 平台。签名密钥仍为进程内 ephemeral |
 | 目标 Linux/ARM/离线包/SBOM Profile | 本机 JAR + PG 15.x 证据，不是 Profile 验收 |
