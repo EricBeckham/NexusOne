@@ -42,6 +42,8 @@ public class FlowEngineConfiguration {
         configuration.setDatabaseSchemaUpdate(SpringProcessEngineConfiguration.DB_SCHEMA_UPDATE_TRUE);
         configuration.setAsyncExecutorActivate(false);
         configuration.setDisableIdmEngine(true);
+        // Shared BPMN for every tenant. Isolation is business_meta.tenant_id, not Flowable tenantId.
+        configuration.setFallbackToDefaultTenant(true);
         configuration.setDeploymentResources(new Resource[]{
                 new ClassPathResource("processes/nexus-sequential-approval.bpmn20.xml")
         });

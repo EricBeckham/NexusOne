@@ -141,6 +141,67 @@ mvn -pl nexus-p3-studio test
 |---|---|
 | Write to `business_data` on submit | M0-06 CRUD; submissions stay in `business_meta.form_submission` |
 | Form designer UI | M0-12 sibling pages |
-| Flowable | M0-08 |
+| Flowable | M0-08 (below) |
 | G18 closed | Ledger/todo/approval still open |
 | Bootstrap Flyway history on this VM | no local PG 15 listener |
+
+# M0-08 sequential approval evidence
+
+Recorded on the agent VM **2026-09-22T11:13:08Z**, then rebased onto merged M0-06/M0-07 (`ff12b4d`, #58 then #57). Not a target Profile / Linux-ARM / offline-package acceptance. No Docker. No live PostgreSQL 15.19; tests use Zonky embedded **PostgreSQL 15.18**.
+
+## Compatibility spike (hard gate)
+
+| Item | Result |
+|---|---|
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
+| Maven | **3.9.9** |
+| Spring Boot parent | **4.1.1** (Spring Framework 7) |
+| Flowable | **7.1.0** (`ProcessEngine.VERSION` = `7.1.0.2`) |
+| Same JVM | Yes. `SpringProcessEngineConfiguration` is a Spring bean on the business `DataSource` / `PlatformTransactionManager` |
+| PostgreSQL | **15.18** (Zonky `embedded-postgres-binaries-bom`) |
+| Flyway | **13.7.0**, window **V550–V599**, history `platform.flyway_schema_history` |
+| Engine schema | `flowable.act_*` created by Flowable DDL, not Flyway |
+| Business metadata | `business_meta.process_instance` / `process_todo` / `process_action` (V550) |
+| Shared TX | Business insert + `runtimeService.startProcessInstance*` roll back together |
+
+**Official starter:** `flowable-spring-boot-starter-process` **7.1.0** is test-scoped only. It still `@AutoConfigureAfter` Boot 3 `org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration`, which is absent in Boot 4.1.1 (`DataSourceAutoConfiguration` moved to `org.springframework.boot.jdbc.autoconfigure`). Product wiring is `flowable-engine` + `flowable-spring`.
+
+**Recommended later pin** if a work package needs the Boot starter: Flowable **8.0.x** (first OSS line declared on Spring Boot 4 / Jackson 3). **Do not replace 7.1.0 in M0** — P0 froze 7.1.0 and the in-process engine path is proven.
+
+## Command
+
+```bash
+mvn -pl nexus-p3-studio -am test
+```
+
+## Results (pre-rebase M0-08 drop)
+
+`BUILD SUCCESS` at `2026-09-22T11:13:08Z`. Total time 12.905 s.
+
+| Module | Tests | Result |
+|---|---|---|
+| isolation-kernel | 17 | Failures 0, Errors 0, Skipped 0 |
+| nexus-common | 14 | Failures 0, Errors 0, Skipped 0 |
+| nexus-p2-iam | 16 | Failures 0, Errors 0, Skipped 2 (live Keycloak / live PG) |
+| nexus-permission-core | (module suite) | SUCCESS |
+| **nexus-p3-studio** | **11** | Failures 0, Errors 0, Skipped 0 |
+
+`nexus-p3-studio` breakdown (M0-08-only module at that time):
+
+| Class | Tests | Covers |
+|---|---|---|
+| `Flowable710Boot411CompatibilityIT` | 5 | pins, starter vs Boot 4 auto-config, `flowable.act_*`, sequential user task, joint rollback |
+| `SequentialApprovalIT` | 4 | health / reject `X-Tenant-Id`; start→approve/reject/withdraw + 待办/已办/我发起 + dual-tenant; PERSON/POSITION/ROLE; start+engine rollback |
+| `NoFlowableInternalTableScanTest` | 2 | no `act_*` SQL in product code; Flyway files only V550–V599 |
+
+Flyway log (SequentialApprovalIT): `Migrating schema "platform" to version "550 - process metadata"` against `PostgreSQL 15.18`. Engine log: `performing create on engine with resource org/flowable/db/create/flowable.postgres.create.engine.sql` into schema `flowable`.
+
+`NexusOnePostgresTest` expects V550 when a live PG is attached; this VM has no `nexusone` database, so that bootstrap test is not counted here.
+
+## Boundaries kept after rebase onto #57/#58
+
+- SchemaService / ledger physical tables remain M0-06 (`JdbcSchemaService`).
+- Form Draft→Validate→Publish→Running remains M0-07.
+- Domain lists read `business_meta.process_*` only; never `act_*`.
+- Tenant from M0-04 issued context; M0-02 `IsolationKernel.tenants().issue` on every mutating/list call; `X-Tenant-Id` → `P3.FLOW.0006`.
+- Shared BPMN (`fallbackToDefaultTenant`); instances are not started with Flowable `tenantId`. Isolation is `business_meta.tenant_id`.

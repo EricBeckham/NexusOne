@@ -15,6 +15,10 @@
 
 Recommended pin if a future work package needs the **Boot starter**: Flowable **8.0.x** (first OSS line declared on Spring Boot 4 / Jackson 3). Do not silently replace 7.1.0 in M0; P0 froze 7.1.0 and the engine path is proven.
 
+Tenant isolation for lists and actions is `business_meta.*.tenant_id` plus M0-04/M0-02 context. The BPMN is a single shared definition (Flowable `fallbackToDefaultTenant`); instances are not started with Flowable `tenantId` because that requires a per-tenant deployment. Domain code never reads `act_*`.
+
+See `nexus-p3-studio/EVIDENCE.md` for the recorded spike + IT run.
+
 ## Boundaries
 
 - No SchemaService / ledger physical tables (M0-06).

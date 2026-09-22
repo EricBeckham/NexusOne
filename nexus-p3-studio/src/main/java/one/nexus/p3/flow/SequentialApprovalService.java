@@ -67,7 +67,6 @@ public class SequentialApprovalService {
         ProcessInstance flowable = runtimeService.createProcessInstanceBuilder()
                 .processDefinitionKey(processKey)
                 .businessKey(command.businessKey())
-                .tenantId(tenant.tenantId().toString())
                 .variable("assignee", assignee.toString())
                 .variable("initiator", tenant.personId().toString())
                 .variable("assigneeType", command.assigneeType().name())
@@ -93,7 +92,6 @@ public class SequentialApprovalService {
         }
         Task task = taskService.createTaskQuery()
                 .processInstanceId(flowable.getId())
-                .taskTenantId(tenant.tenantId().toString())
                 .singleResult();
         if (task == null) {
             throw FlowException.conflict("sequential process did not create a user task");

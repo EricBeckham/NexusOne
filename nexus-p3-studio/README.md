@@ -52,4 +52,4 @@ Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md
 mvn -pl nexus-p3-studio -am test
 ```
 
-Uses embedded PostgreSQL **15.18** (Zonky) for M0-08 ITs. Compatibility spike: `Flowable710Boot411CompatibilityIT`.
+Uses embedded PostgreSQL **15.18** (Zonky) for M0-08 ITs. Compatibility spike: `Flowable710Boot411CompatibilityIT`. Recorded run: `EVIDENCE.md`.
