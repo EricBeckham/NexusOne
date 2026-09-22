@@ -10,3 +10,4 @@ nexus:
     redis:
       enabled: false
     snapshot-poll-interval: 0s
+    snapshot-load-timeout: 2s

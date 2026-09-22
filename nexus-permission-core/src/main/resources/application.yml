@@ -10,3 +10,4 @@ nexus:
       host: ${NEXUS_REDIS_HOST:127.0.0.1}
       port: ${NEXUS_REDIS_PORT:6379}
     snapshot-poll-interval: ${NEXUS_PERM_SNAPSHOT_POLL:2s}
+    snapshot-load-timeout: ${NEXUS_PERM_SNAPSHOT_LOAD_TIMEOUT:2s}

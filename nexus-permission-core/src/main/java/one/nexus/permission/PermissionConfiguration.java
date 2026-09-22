@@ -4,6 +4,7 @@ import java.time.Duration;
 import one.nexus.audit.AuditPort;
 import one.nexus.p2.IdentityModule;
 import one.nexus.permission.engine.PolicySnapshotPoller;
+import one.nexus.permission.engine.SnapshotManager;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.persist.JdbcPolicyRepository;
 import one.nexus.permission.persist.PolicyRepository;
@@ -62,10 +63,15 @@ public class PermissionConfiguration {
             PolicyRepository repository,
             IdentityModule identity,
             PolicyInvalidationPort invalidation,
-            ObjectProvider<AuditPort> audits
+            ObjectProvider<AuditPort> audits,
+            PermissionProperties properties
     ) {
         PermissionModule module = PermissionModule.create(
-                repository, identity.repository(), invalidation, audits.getIfAvailable());
+                repository,
+                identity.repository(),
+                invalidation,
+                audits.getIfAvailable(),
+                properties.snapshotLoadTimeout());
         invalidation.startListening();
         return module;
     }
@@ -78,7 +84,13 @@ public class PermissionConfiguration {
     }
 
     @ConfigurationProperties(prefix = "nexus.permission")
-    public record PermissionProperties(String persistence, Jdbc jdbc, Redis redis, Duration snapshotPollInterval) {
+    public record PermissionProperties(
+            String persistence,
+            Jdbc jdbc,
+            Redis redis,
+            Duration snapshotPollInterval,
+            Duration snapshotLoadTimeout
+    ) {
         public PermissionProperties {
             if (persistence == null) {
                 persistence = "memory";
@@ -91,6 +103,9 @@ public class PermissionConfiguration {
             }
             if (snapshotPollInterval == null) {
                 snapshotPollInterval = Duration.ofSeconds(2);
+            }
+            if (snapshotLoadTimeout == null || snapshotLoadTimeout.isZero() || snapshotLoadTimeout.isNegative()) {
+                snapshotLoadTimeout = SnapshotManager.DEFAULT_LOAD_TIMEOUT;
             }
         }
 

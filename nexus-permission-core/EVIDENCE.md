@@ -145,12 +145,32 @@ Recorded **2026-09-22T16:44:16Z** on this agent VM. OpenJDK **21.0.10**, Maven *
 
 Not a full product G2 close. Isolation reject-before-sink and AuditPort are unchanged.
 
+## G9 leftover — P2 timeout then reject
+
+Recorded **2026-09-22T17:09:12Z** on this agent VM after rebase onto `main@d7abf34`. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**. Zonky PostgreSQL **15.18**. No Docker. Not Sentinel / Cluster.
+
+```
+./scripts/g9-p2-timeout-reject.sh
+# BUILD SUCCESS 2026-09-22T17:09:12Z — Tests run: 23, Failures: 0, Errors: 0, Skipped: 0
+
+mvn -pl nexus-permission-core -am test
+# BUILD SUCCESS 2026-09-22T17:09:55Z — Tests run: 66, Failures: 0, Errors: 0, Skipped: 5
+```
+
+| Class | Count | What it proved |
+|---|---|---|
+| `G9P2TimeoutRejectTest` | 2/2 | Hang on version load → `decide` `P2.PERM.0005` after 150ms; healthy `decide` == durable `PermissionEngine` |
+| `JdbcP2TimeoutRejectIT` | 1/1 | PG 15.18 `pg_sleep(3)` rejects near 200ms; healthy JDBC `decide` still allowed |
+| `SnapshotManagerTest` | 8/8 | Clock on version + snapshot load; `pollCached` swallows timeout |
+| `G9PolicySnapshotFailoverTest` | 5/5 | Redis-down ordinary fail-closed unchanged |
+| `PermissionEngineTest` | 7/7 | Truth table unchanged |
+
 ## Honest leftover
 
 - Product-wide G2 (report / H5). Form studio + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache is not. form fill / submissions remain open.
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
-- G9 bounded timeout when P2 is down (ordinary query still fail-closes; no retry-deadline)
+- G9 bounded timeout when P2 is down: evidenced in [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md). Redis Sentinel/Cluster still not claimed.
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`

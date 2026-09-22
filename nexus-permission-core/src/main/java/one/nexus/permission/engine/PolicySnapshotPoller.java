@@ -11,7 +11,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Short-cycle DB version poll. Redis invalidate only accelerates; this loop is
  * why a lost pub/sub message cannot leave a process on an old snapshot forever.
- * Does not implement Redis Sentinel / Cluster failover or a P2-down timeout.
+ * Does not implement Redis Sentinel / Cluster failover. P2-down timeout-then-reject
+ * lives on request-path {@link SnapshotManager#get}; this loop still swallows
+ * background load failures.
  */
 public final class PolicySnapshotPoller implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(PolicySnapshotPoller.class);

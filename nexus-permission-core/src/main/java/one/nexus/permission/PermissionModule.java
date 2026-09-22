@@ -1,5 +1,6 @@
 package one.nexus.permission;
 
+import java.time.Duration;
 import java.util.UUID;
 import one.nexus.audit.AuditPort;
 import one.nexus.p2.domain.IdentityRepository;
@@ -63,10 +64,21 @@ public final class PermissionModule {
             PolicyInvalidationPort invalidation,
             AuditPort audits
     ) {
+        return create(repository, identity, invalidation, audits, SnapshotManager.DEFAULT_LOAD_TIMEOUT);
+    }
+
+    public static PermissionModule create(
+            PolicyRepository repository,
+            IdentityRepository identity,
+            PolicyInvalidationPort invalidation,
+            AuditPort audits,
+            Duration snapshotLoadTimeout
+    ) {
         SubjectDirectory directory = new IamSubjectDirectory(identity, repository);
         SnapshotManager manager = new SnapshotManager(
                 tenant -> repository.currentVersion(UUID.fromString(tenant)),
-                tenant -> repository.loadSnapshot(UUID.fromString(tenant)));
+                tenant -> repository.loadSnapshot(UUID.fromString(tenant)),
+                snapshotLoadTimeout);
         if (invalidation != null) {
             invalidation.addListener(manager::notifyInvalidated);
         }
