@@ -61,7 +61,11 @@ export function isAllowedWebViewSrc(src, win) {
     return false;
   }
   const path = `${url.pathname}${url.search}`;
-  if (url.pathname === "/m/mp-webview-harness" || url.pathname === "/m/host-harness") {
+  if (
+    url.pathname === "/m/mp-webview-harness"
+    || url.pathname === "/m/host-harness"
+    || url.pathname === "/m/native-bridge-harness"
+  ) {
     return false;
   }
   if (!url.pathname.startsWith("/m/")) {

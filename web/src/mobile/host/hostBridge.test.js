@@ -43,6 +43,8 @@ describe("F014 HostBridgePort contract", () => {
     expect(caps.otherHostsOpen).toEqual(["APP WebView", "WeChat/DingTalk 小程序 production"]);
     expect(caps.productionAccepted).toBe(false);
     expect(caps.nativeBinary).toBe(false);
+    expect(caps.storeReady).toBe(false);
+    expect(caps.storePackage).toBe(false);
   });
 
   it("treats an injected NexusAppWebView as the APP WebView host", () => {
@@ -65,6 +67,16 @@ describe("F014 HostBridgePort contract", () => {
     });
     expect(hostCapabilities(win).host).toBe("miniprogram-webview-sim");
     expect(hostCapabilities(win).fallback).toBeNull();
+  });
+
+  it("names the native-bridge stub from injected handlers and leaves store-ready open", () => {
+    const ios = createFakeWindow({ nativeBridge: "ios" });
+    const android = createFakeWindow({ nativeBridge: "android" });
+    expect(hostCapabilities(ios).host).toBe("native-bridge-stub");
+    expect(hostCapabilities(android).host).toBe("native-bridge-stub");
+    expect(hostCapabilities(ios).storeReady).toBe(false);
+    expect(hostCapabilities(ios).nativeBinary).toBe(false);
+    expect(hostCapabilities(android).storePackage).toBe(false);
   });
 
   it("names WeChat / DingTalk production stubs from query and leaves production open", () => {
@@ -108,6 +120,7 @@ describe("payload and origin guards", () => {
     expect(isSafeHostPath("/m/mp-webview-harness")).toBe(false);
     expect(isSafeHostPath("/m/app-webview-harness")).toBe(false);
     expect(isSafeHostPath("/m/wx-dt-harness")).toBe(false);
+    expect(isSafeHostPath("/m/native-bridge-harness")).toBe(false);
     expect(isSafeHostPath("/m/p3/files?tab=recent")).toBe(true);
     expect(encodeHostMessage({
       source: HOST_SOURCE,

@@ -33,7 +33,8 @@ Issued TenantContext is `X-Nexus-Context-Id` after membership checks. The UI nev
 | Item | Status |
 |---|---|
 | APP WebView web harness | Same HostBridge envelope: [g15-app-webview-host.md](./g15-app-webview-host.md). |
-| APP WebView native binary | **Not accepted.** No native host walk. |
+| APP WebView native-bridge stub | Same envelope: [g15-native-bridge-stub.md](./g15-native-bridge-stub.md). Not store-ready. |
+| APP WebView native binary | **Not accepted.** No store-ready native host walk. |
 | 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). Production-host **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). **WeChat / DingTalk production not accepted.** |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Other hosts stay open. |
 | H5 designer / BPMN | **Out of scope.** Desktop first (H5 规范 §52.8 / §91). |

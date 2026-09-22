@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "NexusOne Vue 3 shell: desktop M0-12 plus G15 H5 mobile login-redirect / files / routing / host-message / F010 runtime / simulated 小程序 web-view / APP WebView web-harness / WeChat-DingTalk production-host stub leftover.",
+  "description": "NexusOne Vue 3 shell: desktop M0-12 plus G15 H5 mobile login-redirect / files / routing / host-message / F010 runtime / simulated 小程序 web-view / APP WebView web-harness / WeChat-DingTalk production-host stub / native-bridge stub leftover.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -22,6 +22,7 @@
     "assert:h5-permission": "node scripts/assert-h5-permission.mjs",
     "assert:h5-app-webview": "node scripts/assert-h5-app-webview.mjs",
     "assert:h5-wx-dt": "node scripts/assert-h5-wx-dt.mjs",
+    "assert:h5-native-bridge": "node scripts/assert-h5-native-bridge.mjs",
     "assert:h5-pkce": "node scripts/assert-h5-pkce.mjs",
     "assert:g2-report-surface": "node scripts/assert-g2-report-surface.mjs",
     "assert:g2-physical-dump": "node scripts/assert-g2-physical-dump.mjs",

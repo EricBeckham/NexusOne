@@ -38,7 +38,7 @@ Envelope (unchanged from [g15-h5-mobile.md](./g15-h5-mobile.md)):
 
 | Item | Status |
 |---|---|
-| APP WebView native binary | **Open.** No iOS / Android project, no WKWebView / Android WebView wiring, no store package. |
+| APP WebView native binary | **Open.** No iOS / Android project, no WKWebView / Android WebView wiring, no store package. Native-bridge **stub** is [g15-native-bridge-stub.md](./g15-native-bridge-stub.md) (not store-ready). |
 | 小程序 web-view sim | Simulated parent is [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). |
 | WeChat / DingTalk production | **Open.** Contract **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). Production is not accepted. |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Not walked inside this APP harness. |

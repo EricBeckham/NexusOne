@@ -13,8 +13,11 @@
  * window.NexusAppWebView at /m/app-webview-harness uses the same envelope.
  * Production-host contract stub: /m/wx-dt-harness embeds the same H5 with
  * ?host=wechat-prod-stub or ?host=dingtalk-prod-stub. That stub does not
- * accept vendor production. Native iOS/Android WebView binary and
- * WeChat/DingTalk production stay open.
+ * accept vendor production. Native-bridge contract stub:
+ * /m/native-bridge-harness injects iOS WKScriptMessageHandler /
+ * Android JavascriptInterface-shaped handlers. That stub is not a
+ * store-ready IPA/APK. Store-ready native package and WeChat/DingTalk
+ * production stay open.
  */
 import { DEFAULT_MOBILE_HOME, isSafeMobileReturn, safeMobileReturn } from "../auth/safeReturn.js";
 
@@ -25,6 +28,10 @@ export const VENDOR_WECHAT_QUERY = "wechat-prod-stub";
 export const VENDOR_DINGTALK_QUERY = "dingtalk-prod-stub";
 export const VENDOR_WECHAT_HOST = "wechat-prod-stub";
 export const VENDOR_DINGTALK_HOST = "dingtalk-prod-stub";
+export const NATIVE_BRIDGE_QUERY = "native-bridge-stub";
+export const NATIVE_BRIDGE_HOST = "native-bridge-stub";
+export const NATIVE_IOS_HANDLER = "nexusHost";
+export const NATIVE_ANDROID_OBJECT = "NexusNativeBridge";
 export const OTHER_HOSTS_OPEN = Object.freeze([
   "APP WebView",
   "WeChat/DingTalk 小程序 production",
@@ -110,6 +117,48 @@ export function resolveAppWebViewTarget(win = defaultWindow()) {
   return null;
 }
 
+export function resolveIosNativeHandler(win = defaultWindow()) {
+  const handler = win?.webkit?.messageHandlers?.[NATIVE_IOS_HANDLER];
+  if (handler && typeof handler.postMessage === "function") {
+    return handler;
+  }
+  return null;
+}
+
+export function resolveAndroidNativeBridge(win = defaultWindow()) {
+  const bridge = win?.[NATIVE_ANDROID_OBJECT];
+  if (bridge && typeof bridge.postMessage === "function") {
+    return bridge;
+  }
+  return null;
+}
+
+export function resolveNativeBridgeTarget(win = defaultWindow()) {
+  const ios = resolveIosNativeHandler(win);
+  if (ios) {
+    return {
+      kind: "ios-wk-stub",
+      storeReady: false,
+      nativeBinary: false,
+      postMessage(data) {
+        ios.postMessage(data);
+      },
+    };
+  }
+  const android = resolveAndroidNativeBridge(win);
+  if (android) {
+    return {
+      kind: "android-jsinterface-stub",
+      storeReady: false,
+      nativeBinary: false,
+      postMessage(data) {
+        android.postMessage(typeof data === "string" ? data : JSON.stringify(data));
+      },
+    };
+  }
+  return null;
+}
+
 export function isMiniProgramWebViewEmbed(win = defaultWindow()) {
   if (!win || !isEmbedded(win)) {
     return false;
@@ -138,7 +187,25 @@ export function vendorProdStubQuery(win = defaultWindow()) {
   return null;
 }
 
+export function isNativeBridgeStub(win = defaultWindow()) {
+  if (resolveNativeBridgeTarget(win)) {
+    return true;
+  }
+  if (!win) {
+    return false;
+  }
+  try {
+    const params = new URLSearchParams(win.location?.search || "");
+    return params.get("host") === NATIVE_BRIDGE_QUERY;
+  } catch {
+    return false;
+  }
+}
+
 export function detectHostKind(win = defaultWindow()) {
+  if (resolveNativeBridgeTarget(win) || isNativeBridgeStub(win)) {
+    return NATIVE_BRIDGE_HOST;
+  }
   if (resolveAppWebViewTarget(win)) {
     return "app-webview";
   }
@@ -168,6 +235,8 @@ export function hostCapabilities(win = defaultWindow()) {
     origin: allowedHostOrigin(win),
     fallback: embedded ? null : "web",
     nativeBinary: false,
+    storeReady: false,
+    storePackage: false,
     otherHostsOpen: [...OTHER_HOSTS_OPEN],
   };
 }
@@ -187,6 +256,9 @@ export function isSafeHostPath(path) {
     return false;
   }
   if (clean === "/m/wx-dt-harness" || clean.startsWith("/m/wx-dt-harness/")) {
+    return false;
+  }
+  if (clean === "/m/native-bridge-harness" || clean.startsWith("/m/native-bridge-harness/")) {
     return false;
   }
   return true;
@@ -281,6 +353,10 @@ export function decodeHostMessage(event, win = defaultWindow()) {
 export function resolvePostTarget(win = defaultWindow()) {
   if (!win) {
     return null;
+  }
+  const native = resolveNativeBridgeTarget(win);
+  if (native) {
+    return native;
   }
   const app = resolveAppWebViewTarget(win);
   if (app) {

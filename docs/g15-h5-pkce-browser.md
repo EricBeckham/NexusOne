@@ -23,7 +23,7 @@ Stub login (`data-testid=mobile-stub-login`) and the confidential authorize butt
 | Item | Status |
 |---|---|
 | Product G15 | **Open.** This is one leftover walk on the mobile browser. |
-| APP WebView native binary | **Open.** Web harness is #114. Not re-walked here. |
+| APP WebView native binary | **Open.** Web harness is #114. Native-bridge stub is [g15-native-bridge-stub.md](./g15-native-bridge-stub.md). Not re-walked here. |
 | WeChat / DingTalk production | **Open.** Simulated 小程序 parent is #117. Production-host stub is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). |
 | Live Keycloak human laptop click | **Optional.** Needs #120 CA trust (or the insecure-origin flag). This leftover’s required evidence is Playwright + stub. G4 hash-chain LOGIN remains the HTTP/2 driver on main. |
 | SPA vs BFF on desktop | Desktop `/login` is still stub token. Not changed. |

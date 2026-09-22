@@ -52,6 +52,8 @@
       <router-link class="m-btn ghost" to="/m/app-webview-harness" data-testid="mobile-open-app-webview">打开 APP WebView 模拟宿主</router-link>
       <div style="height:8px" />
       <router-link class="m-btn ghost" to="/m/wx-dt-harness" data-testid="mobile-open-wx-dt">打开微信钉钉生产宿主契约桩</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/native-bridge-harness" data-testid="mobile-open-native-bridge">打开原生桥契约桩</router-link>
     </div>
   </div>
 </template>
