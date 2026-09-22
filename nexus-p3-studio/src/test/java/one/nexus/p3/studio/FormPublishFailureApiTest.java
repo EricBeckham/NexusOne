@@ -14,11 +14,14 @@ import one.nexus.p3.studio.form.SchemaServicePublishHook;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
@@ -221,7 +224,12 @@ class FormPublishFailureApiTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @ComponentScan(basePackages = "one.nexus.p3.studio")
+    @ComponentScan(
+            basePackages = "one.nexus.p3.studio",
+            excludeFilters = {
+                @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+                @ComponentScan.Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class)
+            })
     static class TestApp {
         @Bean
         @Primary
