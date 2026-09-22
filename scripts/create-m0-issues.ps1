@@ -31,7 +31,7 @@ foreach ($task in $tasks) {
     $body = @"
 ## 范围
 
-仅在 PostgreSQL 上实施与验证。来源：`实施任务拆解_V1.1.md` §3。M0 是 S0/S1 子集，正式 S1 的三类业务门禁另行验收。
+仅在 PostgreSQL 上实施与验证。来源：`docs/planning/实施任务拆解_V1.1.md` §3。M0 是 S0/S1 子集，正式 S1 的三类业务门禁另行验收。
 
 **前置依赖：** $($task.Depends)
 

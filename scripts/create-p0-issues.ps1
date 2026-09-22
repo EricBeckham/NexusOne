@@ -38,7 +38,7 @@ foreach ($task in $tasks) {
     $body = @"
 ## 执行范围
 
-仅在 PostgreSQL 上实施和验证。对应任务板：`实施任务拆解_V1.1.md`。
+仅在 PostgreSQL 上实施和验证。对应任务板：`docs/planning/实施任务拆解_V1.1.md`。
 
 **当前执行者：** $($task.Agent)
 **前置依赖：** $($task.Dependency)

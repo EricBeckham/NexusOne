@@ -2,7 +2,7 @@
 
 > **文档状态**：H5 / Mobile Web 统一设计与开发基线 / 待评审冻结  
 > **适用版本**：需求规格 V1.1、技术框架 V1.1  
-> **上位规范**：《星枢 NexusOne 页面设计与前端开发规范 V1.1》  
+> **上位规范**：[星枢 NexusOne WEB 页面设计与前端开发规范 V1.1](./星枢NexusOne_WEB页面设计与前端开发规范_V1.1.md)  
 > **视觉基线**：P1 星域、P2 星权、P3 星构、P4 星市、P5 星联五张最新 H5 首页效果图 + H5 设计规范视觉板  
 > **适用终端**：移动浏览器、企业 APP WebView、小程序 web-view、企业协同工具内嵌 H5  
 > **适用对象**：产品经理、UI/UX、前端开发、后端开发、测试、架构师、代码评审人  
@@ -78,16 +78,19 @@ P3 的中央“+”属于 **Floating Primary Action**，不计算为普通 Tab�
 
 # 1. H5 视觉参考基线
 
-V1.1 H5 视觉母版：
+V1.1 H5 视觉母版，文件在 [references/h5](./references/h5)：
 
-```text
-P1_星域_H5首页效果图_V1.1.png
-P2_星权_H5首页效果图_V1.1.png
-P3_星构_H5首页效果图_V1.1.png
-P4_星市_H5首页效果图_V1.1.png
-P5_星联_H5首页效果图_V1.1.png
-H5设计规范视觉板_V1.1.png
-```
+![P1 星域 H5 首页](./references/h5/星域h5.png)
+
+![P2 星权 H5 首页](./references/h5/星权h5.png)
+
+![P3 星构 H5 首页](./references/h5/星构h5.png)
+
+![P4 星市 H5 首页](./references/h5/星市h5.png)
+
+![P5 星联 H5 首页](./references/h5/星联h5.png)
+
+![H5 设计规范视觉板](./references/h5/h5.png)
 
 五张 H5 首页共同确定：
 

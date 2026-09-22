@@ -50,15 +50,17 @@
 
 # 1. 视觉参考基线
 
-以下 5 张图片是 V1.1 页面设计的首页视觉参考：
+以下 5 张图片是 V1.1 页面设计的首页视觉参考，文件在 [references/web](./references/web)：
 
-```text
-P1_星域_首页效果图_V1.1.png
-P2_星权_首页效果图_V1.1.png
-P3_星构_首页效果图_V1.1.png
-P4_星市_首页效果图_V1.1.png
-P5_星联_首页效果图_V1.1.png
-```
+![P1 星域首页](./references/web/星域web.png)
+
+![P2 星权首页](./references/web/星权web.png)
+
+![P3 星构首页](./references/web/星构web.png)
+
+![P4 星市首页](./references/web/星市web.png)
+
+![P5 星联首页](./references/web/星联web.png)
 
 子页面设计时必须继承：
 

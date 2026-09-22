@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $repo = 'EricBeckham/NexusOne'
-$source = Join-Path (Split-Path -Parent $PSScriptRoot) '团队领取任务清单_V1.1.md'
+$source = Join-Path (Split-Path -Parent $PSScriptRoot) 'docs/planning/团队领取任务清单_V1.1.md'
 
 $labels = @(
     @{ Name='type:leaf'; Color='bfdadc'; Description='Individually assignable task' },
