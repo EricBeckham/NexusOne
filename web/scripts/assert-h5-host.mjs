@@ -35,6 +35,7 @@ const standaloneCaps = hostCapabilities(standalone);
 check(standaloneCaps.accepted === true, "F014 postMessage contract must be accepted");
 check(standaloneCaps.host === "mobile-browser", "standalone host is mobile-browser");
 check(standaloneCaps.fallback === "web", "standalone must web-fallback");
+check(standaloneCaps.nativeBinary === false, "must not claim a native binary");
 check(standaloneCaps.otherHostsOpen.join(",") === "APP WebView,WeChat/DingTalk 小程序 production", "other hosts stay open");
 
 const noHost = postHost("close", { action: "close" }, standalone);

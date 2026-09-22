@@ -2,7 +2,7 @@
   <div>
     <div class="m-hero">
       <h2>宿主消息 F014</h2>
-      <p>受控通道 login / route / file / close。postMessage 同域契约。模拟小程序 web-view 父页已接线；不是微信 / 钉钉生产，也不是 APP WebView。</p>
+      <p>受控通道 login / route / file / close。postMessage 同域契约。网页模拟宿主已接线；原生 APP 包 / 微信钉钉生产仍开放。</p>
     </div>
     <div class="m-card">
       <h3>能力</h3>
@@ -47,10 +47,12 @@
     </div>
     <div class="m-card">
       <h3>验收宿主</h3>
-      <p class="m-muted">移动浏览器 iframe 与模拟小程序 web-view 父页走同一契约。打开后向本页 postMessage。</p>
+      <p class="m-muted">移动浏览器 iframe、模拟小程序 web-view 与 APP WebView 网页宿主走同一 envelope。原生包 / 微信钉钉生产未交付。</p>
       <router-link class="m-btn ghost" to="/m/host-harness" data-testid="host-open-harness">打开 iframe 宿主页</router-link>
       <div style="height:8px" />
       <router-link class="m-btn ghost" to="/m/mp-webview-harness" data-testid="host-open-mp-harness">打开模拟小程序 web-view</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/app-webview-harness" data-testid="host-open-app-webview">打开 APP WebView 模拟宿主</router-link>
     </div>
   </div>
 </template>

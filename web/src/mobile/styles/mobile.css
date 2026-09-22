@@ -455,3 +455,24 @@
   margin: 0;
   padding-left: 18px;
 }
+
+.app-webview-harness {
+  background: #1b1430;
+}
+
+.app-webview-badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #5b3cc4;
+  color: #f8f5ff;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.host-harness-leftover {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #f6e05e;
+}
