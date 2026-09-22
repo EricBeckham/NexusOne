@@ -33,3 +33,4 @@ echo
 echo "PASS: two in-process readers converge via version poll after lost invalidate; no silent allow"
 echo "See docs/g9-multinode-partition.md"
 echo "Not claimed: Sentinel / Cluster / replica promotion / live multi-JVM partition"
+echo "Honesty leftover (same snapshot store): ./scripts/g9-sentinel-cluster-honesty.sh"
