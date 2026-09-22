@@ -22,7 +22,7 @@ PROBE_TEST="$ROOT/nexus-crypto-core/src/test/java/one/nexus/crypto/tls/DualStack
 TPL_NGINX="$ROOT/scripts/g17-gm-tls-nginx-dual-stack/nginx/nginx.conf.template"
 TPL_DUAL="$ROOT/scripts/g17-gm-tls-nginx-dual-stack/nginx/tongsuo-dual-stack.conf.template"
 
-REQUIRED_LEFTOVER_ROWS="g17-gm-tls-dual-cert g17-gm-tls-nginx-dual-stack g17-gm-tls-nginx-handshake g17-gm-tls-nginx-handshake-honesty g17-separation-of-duties g17-separation-honesty g10-leftover-honesty g4-export-wizard-deny-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g4-export-wizard-deny g4-guard-deny-audit g10-identity-drift-dry-run g10-file-reconcile-honesty g10-identity-drift-honesty linux-arm-profile-honesty linux-arm-profile-leftover-honesty g7-query-expense-travel-honesty g7-withdraw-browser-honesty g4-hot-purge-90d g4-hot-purge-90d-honesty g4-p1-staging-audit-events g4-p1-staging-audit-events-honesty g6-recovery-port-dry-run g6-recovery-port-honesty g6-recovery-port-dry-run-honesty s0s1-live-redis-minio-isolation-honesty g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g1-queryast-boundsql-honesty g3-outbox-consume-crash-honesty g5-mid-publish-failure-honesty g15-native-bridge-honesty g15-wx-dt-native-bridge-honesty g4-pkce-spa-verifier-honesty s0-secret-getenv-snapshot-honesty s0-secret-rotate-without-restart-honesty g5-browser-failed-publish"
+REQUIRED_LEFTOVER_ROWS="g17-gm-tls-dual-cert g17-gm-tls-nginx-dual-stack g17-gm-tls-nginx-handshake g17-gm-tls-nginx-handshake-honesty g17-separation-of-duties g17-separation-honesty g10-leftover-honesty g4-export-wizard-deny-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty g4-export-wizard-deny g4-guard-deny-audit g10-identity-drift-dry-run g10-file-reconcile-honesty g10-identity-drift-honesty linux-arm-profile-honesty linux-arm-profile-leftover-honesty g7-query-expense-travel-honesty g7-withdraw-browser-honesty g4-hot-purge-90d g4-hot-purge-90d-honesty g4-p1-staging-audit-events g4-p1-staging-audit-events-honesty g6-recovery-port-dry-run g6-recovery-port-honesty g6-recovery-port-dry-run-honesty s0s1-live-redis-minio-isolation-honesty g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g1-queryast-boundsql-honesty g3-outbox-consume-crash-honesty g5-mid-publish-failure-honesty g15-native-bridge-honesty g15-wx-dt-native-bridge-honesty g4-pkce-spa-verifier-honesty s0-secret-getenv-snapshot-honesty s0-secret-rotate-without-restart-honesty g5-browser-failed-publish"
 
 usage() {
   cat <<'EOF'
@@ -65,7 +65,7 @@ artifact_get() {
 verify_report() {
   local file="$1"
   [ -f "$file" ] || fail "report not found: $file"
-  local required="schema_version timestamp_utc java_feature boot_parent_version boot_parent_match docker_used leftover_129_cells_honest leftover_160_cells_honest leftover_129_honesty_gate leftover_160_honesty_gate leftover_129_templates_present leftover_129_probe_source leftover_rows_kept leftover_rows leftover_129_kept leftover_160_kept leftover_202_kept leftover_203_kept leftover_204_kept leftover_197_kept leftover_205_kept dual_stack_probe nginx_present tongsuo_nginx tongsuo_cli handshake_observed nginx_gmtls_handshake nginx_gmtls_skip_reason gmtls_enc_cert_negotiated dual_cert_110_redone dual_stack_129_redone handshake_160_redone honesty_129_rerun honesty_160_rerun recovery_email_mfa vue_otp_writeback dengbao_claimed mipin_claimed hsm_claimed g17_close g18_status audit_port_changed p0_m0_redone"
+  local required="schema_version timestamp_utc java_feature boot_parent_version boot_parent_match docker_used leftover_129_cells_honest leftover_160_cells_honest leftover_129_honesty_gate leftover_160_honesty_gate leftover_129_templates_present leftover_129_probe_source leftover_rows_kept leftover_rows leftover_129_kept leftover_160_kept leftover_202_kept leftover_203_kept leftover_204_kept leftover_197_kept leftover_205_kept leftover_188_kept dual_stack_probe nginx_present tongsuo_nginx tongsuo_cli handshake_observed nginx_gmtls_handshake nginx_gmtls_skip_reason gmtls_enc_cert_negotiated dual_cert_110_redone dual_stack_129_redone handshake_160_redone honesty_129_rerun honesty_160_rerun recovery_email_mfa vue_otp_writeback dengbao_claimed mipin_claimed hsm_claimed g17_close g18_status audit_port_changed p0_m0_redone"
   local key
   for key in $required; do
     [ -n "$(report_get "$file" "$key")" ] || fail "missing key $key in $file"
@@ -92,6 +92,7 @@ verify_report() {
   [ "$(report_get "$file" leftover_204_kept)" = "true" ] || fail "leftover_204_kept must stay true (keep g2-h5-every-page-form-write-honesty)"
   [ "$(report_get "$file" leftover_197_kept)" = "true" ] || fail "leftover_197_kept must stay true (keep g9-redis-down-invalidate-remainder)"
   [ "$(report_get "$file" leftover_205_kept)" = "true" ] || fail "leftover_205_kept must stay true (keep g17-mfa-recovery-vue-otp-honesty)"
+  [ "$(report_get "$file" leftover_188_kept)" = "true" ] || fail "leftover_188_kept must stay true (keep g2-ops-pg-dump-honesty)"
   [ "$(report_get "$file" dual_stack_probe)" = "PASS" ] || fail "dual_stack_probe must be PASS (harness/probe that works)"
   [ "$(report_get "$file" dual_cert_110_redone)" = "false" ] || fail "must not redo #110"
   [ "$(report_get "$file" dual_stack_129_redone)" = "false" ] || fail "must not redo #129"
@@ -269,6 +270,7 @@ LEFTOVER_203_KEPT=false
 LEFTOVER_204_KEPT=false
 LEFTOVER_197_KEPT=false
 LEFTOVER_205_KEPT=false
+LEFTOVER_188_KEPT=false
 for required_row in $REQUIRED_LEFTOVER_ROWS; do
   if grep -Fq "[${required_row}](./${required_row}.md)" "$README"; then
     case "$required_row" in
@@ -279,6 +281,7 @@ for required_row in $REQUIRED_LEFTOVER_ROWS; do
       g2-h5-every-page-form-write-honesty) LEFTOVER_204_KEPT=true ;;
       g9-redis-down-invalidate-remainder) LEFTOVER_197_KEPT=true ;;
       g17-mfa-recovery-vue-otp-honesty) LEFTOVER_205_KEPT=true ;;
+      g2-ops-pg-dump-honesty) LEFTOVER_188_KEPT=true ;;
     esac
   else
     LEFTOVER_ROWS_KEPT=false
@@ -293,6 +296,7 @@ done
 [ "$LEFTOVER_204_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g2-h5-every-page-form-write-honesty (#204)"
 [ "$LEFTOVER_197_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g9-redis-down-invalidate-remainder (#197)"
 [ "$LEFTOVER_205_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g17-mfa-recovery-vue-otp-honesty (#205)"
+[ "$LEFTOVER_188_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g2-ops-pg-dump-honesty (#188)"
 if grep -Eiq '完整 G17 已关闭|product g17 closed|等保已关闭|密评已关闭' "$README"; then
   fail "docs/README.md must not claim 等保 / 密评 / 完整 G17 closed"
 fi
@@ -407,6 +411,7 @@ REPORT="$OUT/report.env"
   kv leftover_204_kept "$LEFTOVER_204_KEPT"
   kv leftover_197_kept "$LEFTOVER_197_KEPT"
   kv leftover_205_kept "$LEFTOVER_205_KEPT"
+  kv leftover_188_kept "$LEFTOVER_188_KEPT"
   kv dual_stack_probe PASS
   kv openssl_identity "$OPENSSL_IDENTITY"
   kv openssl_is_tongsuo "$OPENSSL_IS_TONGSUO"
