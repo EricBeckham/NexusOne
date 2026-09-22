@@ -88,4 +88,4 @@ G5（Draft/Running、校验、失败回滚）只验收 **表单发布**。失败
 mvn -pl nexus-p3-studio,nexus-common,nexus-bootstrap -am test
 ```
 
-Zonky 嵌入式 PostgreSQL **15.18**（`JdbcFormPublishRollbackIT`：校验失败保持 DRAFT；发布失败后 RUNNING 指针与 `snapshot_json` 不变），无 Docker。
+Zonky 嵌入式 PostgreSQL **15.18**（`JdbcFormPublishRollbackIT`：校验失败保持 DRAFT；Hook / SchemaService confirm miss / SchemaService evolve DDL abort 后 RUNNING 指针与 `snapshot_json` 不变），无 Docker。

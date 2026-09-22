@@ -265,7 +265,22 @@ Extends #70. Product publish now defaults to `SchemaServicePublishHook` → `Sch
 - Zonky PG 15: `JdbcSchemaService.evolvePhysicalTable` hits PostgreSQL `42701` (pre-created `drift_col`) → pointer/snapshot unchanged
 - HTTP / memory: same `SchemaServicePublishHook` + evolve-failed shape
 
-Not a full G5 close. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md). Script re-run evidence is recorded there after this PR's IT pass.
+Agent VM **2026-09-22T15:42:29Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
+
+```bash
+./scripts/g5-form-publish-rollback.sh
+```
+
+`BUILD SUCCESS`. **Tests run: 17, Failures: 0, Errors: 0, Skipped: 0**.
+
+| Suite | Result |
+|---|---|
+| `JdbcFormPublishRollbackIT` | **5/5** — #70 cases plus SchemaService confirm miss (drop `l_g5a_leave_request`) and `JdbcSchemaService.evolvePhysicalTable` DDL abort (`42701` / `SchemaService evolve failed`). Pointer + `snapshot_json` unchanged |
+| `FormPublishFailureApiTest` | **2/2** — HTTP via `SchemaServicePublishHook` |
+| `FormPublishStateMachineTest` | **8/8** |
+| `SchemaServicePublishHookTest` | **2/2** |
+
+`FormApiTest` **1/1** at **2026-09-22T15:42:48Z**. Not a full G5 close. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md).
 
 # G18 one real business path (backend)
 

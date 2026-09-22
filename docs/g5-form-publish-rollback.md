@@ -51,7 +51,25 @@ mvn -pl nexus-p3-studio -am test \
 
 ## 本次证据
 
-Agent VM run pending this PR. Previous #70 record (**2026-09-22T15:27:34Z**, Hook-only, 12 tests) remains the last merged evidence until the script below is re-run.
+Agent VM **2026-09-22T15:42:29Z**. `./scripts/g5-form-publish-rollback.sh` → `BUILD SUCCESS`. No Docker.
+
+| Item | Value |
+|---|---|
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
+| Maven | **3.8.7** |
+| Spring Boot | **4.1.1** |
+| PostgreSQL | Zonky **15.18** (IT asserts `server_version` starts with `15.`) |
+| Flyway | V100→…→**V530**→V531→V550 on schema `platform` |
+| Result | **Tests run: 17, Failures: 0, Errors: 0, Skipped: 0** |
+
+| Suite | Result |
+|---|---|
+| `JdbcFormPublishRollbackIT` | **5/5** — previous three #70 cases; `schemaServiceConfirmMissLeavesRunningPointerAndSnapshotUnchanged` (drop `l_g5a_leave_request` after v1); `schemaServiceDdlAbortLeavesRunningPointerAndSnapshotUnchanged` (`JdbcSchemaService.evolvePhysicalTable` + pre-created `drift_col`, cause `SchemaService evolve failed`) |
+| `FormPublishFailureApiTest` | **2/2** — HTTP `P3.FORM.0005` keeps DRAFT; HTTP `P3.FORM.0006` via `SchemaServicePublishHook` leaves Running v1 + snapshot + `ROLLED_BACK` |
+| `FormPublishStateMachineTest` | **8/8** — Hook regression + SchemaService-gate abort + success / tenant cases |
+| `SchemaServicePublishHookTest` | **2/2** — one confirm per ledger; evolve-failed / SQLState `42701` |
+
+`FormApiTest` (happy path + HTTP validate-fail) re-run **1/1** at **2026-09-22T15:42:48Z**.
 
 ## 诚实缺口（不宣称完整 G5 产品）
 
