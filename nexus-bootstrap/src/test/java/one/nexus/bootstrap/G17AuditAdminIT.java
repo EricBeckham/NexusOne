@@ -182,12 +182,15 @@ class G17AuditAdminIT {
                 .andExpect(jsonPath("$.code").value("P2.PERM.0014"));
 
         assertTrue(audits.verifyChain().intact(), audits.verifyChain().failure());
-        Integer deleted = jdbc.queryForObject(
-                "select count(*) from platform.audit_record where event_type = ? and resource_id = ?",
+        assertTrue(audits.findByTraceId(LOGIN_TRACE).stream()
+                        .anyMatch(event -> AuditCaptures.LOGIN_ACCEPTED.equals(event.event().eventType())),
+                "login event must remain on the hash chain after refused delete");
+        Integer remaining = jdbc.queryForObject(
+                "select count(*) from platform.audit_record where trace_id = ? and event_type = ?",
                 Integer.class,
-                AuditCaptures.LOGIN_ACCEPTED,
-                LOGIN_TRACE);
-        assertTrue(deleted != null && deleted >= 1, "login event must remain on the chain");
+                LOGIN_TRACE,
+                AuditCaptures.LOGIN_ACCEPTED);
+        assertTrue(remaining != null && remaining >= 1, "login event must remain on the chain");
     }
 
     private void assertDeniedOnChain(String traceId) {
