@@ -34,7 +34,7 @@ import javax.net.ssl.SSLContext;
  */
 public final class AuthorizationCodeDriver {
     private static final Pattern FORM_ACTION = Pattern.compile(
-            "(?i)<form[^>]*(?:id=\"kc-form-login\"|id=\"kc-otp-login-form\"|id=\"kc-totp-settings-form\"|id=\"kc-update-profile-form\")[^>]*action=\"([^\"]+)\""
+            "(?i)<form[^>]*(?:id=\"kc-form-login\"|id=\"kc-otp-login-form\"|id=\"kc-totp-settings-form\"|id=\"kc-update-profile-form\"|id=\"kc-recovery-code-login-form\"|id=\"kc-recovery-codes-setup-form\"|id=\"kc-email-code-login-form\")[^>]*action=\"([^\"]+)\""
                     + "|(?i)<form[^>]*action=\"([^\"]+)\"[^>]*method=\"post\""
                     + "|(?i)<form[^>]*method=\"post\"[^>]*action=\"([^\"]+)\"");
     private static final Pattern HIDDEN = Pattern.compile(
@@ -91,6 +91,8 @@ public final class AuthorizationCodeDriver {
         PASSWORD,
         OTP,
         TOTP_SETUP,
+        RECOVERY_CODE,
+        EMAIL_OTP,
         UPDATE_PROFILE,
         REDIRECT,
         UNKNOWN
@@ -215,6 +217,60 @@ public final class AuthorizationCodeDriver {
     }
 
     /**
+     * Password then recovery-code form. Leftover only: does not enroll
+     * Keycloak {@code recovery-authn-codes}. Live delivery is a harness SKIP
+     * unless a realm actually presents this form.
+     */
+    public CodeAndState completeLoginWithRecoveryCode(
+            String authorizationUrl,
+            String username,
+            String password,
+            String recoveryCode,
+            String expectedRedirectPrefix) throws Exception {
+        ChallengePage page = open(authorizationUrl, expectedRedirectPrefix);
+        if (page.kind() == FormKind.PASSWORD) {
+            page = submitPassword(page, username, password);
+        }
+        page = completeRequiredActions(page, username);
+        if (page.kind() != FormKind.RECOVERY_CODE) {
+            throw new IllegalStateException("expected recovery-code form after password, got " + page.kind()
+                    + " body=" + snippet(page.html()));
+        }
+        ChallengePage after = submitRecoveryCode(page, recoveryCode);
+        if (!after.isRedirect()) {
+            throw new IllegalStateException("expected redirect after recovery code, got " + after.kind()
+                    + " body=" + snippet(after.html()));
+        }
+        return after.redirect();
+    }
+
+    /**
+     * Password then email-OTP form. Leftover only: does not send mail.
+     */
+    public CodeAndState completeLoginWithEmailOtp(
+            String authorizationUrl,
+            String username,
+            String password,
+            String emailOtp,
+            String expectedRedirectPrefix) throws Exception {
+        ChallengePage page = open(authorizationUrl, expectedRedirectPrefix);
+        if (page.kind() == FormKind.PASSWORD) {
+            page = submitPassword(page, username, password);
+        }
+        page = completeRequiredActions(page, username);
+        if (page.kind() != FormKind.EMAIL_OTP) {
+            throw new IllegalStateException("expected email-OTP form after password, got " + page.kind()
+                    + " body=" + snippet(page.html()));
+        }
+        ChallengePage after = submitEmailOtp(page, emailOtp);
+        if (!after.isRedirect()) {
+            throw new IllegalStateException("expected redirect after email OTP, got " + after.kind()
+                    + " body=" + snippet(after.html()));
+        }
+        return after.redirect();
+    }
+
+    /**
      * Password then CONFIGURE_TOTP setup form. Parses the Keycloak secret,
      * generates a TOTP, and submits enrollment. The resulting code may still
      * be password-only for AMR (required actions run after authenticators).
@@ -266,6 +322,29 @@ public final class AuthorizationCodeDriver {
             throw new IllegalStateException("not an OTP form: " + page.kind());
         }
         String form = "otp=" + enc(otp)
+                + "&login=" + enc("Sign In")
+                + hiddenFields(page.html());
+        return postForm(page, form);
+    }
+
+    public ChallengePage submitRecoveryCode(ChallengePage page, String recoveryCode) throws Exception {
+        if (page.kind() != FormKind.RECOVERY_CODE) {
+            throw new IllegalStateException("not a recovery-code form: " + page.kind());
+        }
+        String form = "recoveryCodeInput=" + enc(recoveryCode)
+                + "&login=" + enc("Sign In")
+                + hiddenFields(page.html());
+        return postForm(page, form);
+    }
+
+    public ChallengePage submitEmailOtp(ChallengePage page, String emailOtp) throws Exception {
+        if (page.kind() != FormKind.EMAIL_OTP) {
+            throw new IllegalStateException("not an email-OTP form: " + page.kind());
+        }
+        String field = namedValue(page.html(), "emailCode") != null || page.html().contains("name=\"emailCode\"")
+                ? "emailCode"
+                : "otp";
+        String form = field + "=" + enc(emailOtp)
                 + "&login=" + enc("Sign In")
                 + hiddenFields(page.html());
         return postForm(page, form);
@@ -358,6 +437,22 @@ public final class AuthorizationCodeDriver {
                 || lower.contains("mobile authenticator")) {
             return FormKind.TOTP_SETUP;
         }
+        if (html.contains("kc-recovery-code-login-form")
+                || html.contains("kc-recovery-codes-setup-form")
+                || html.contains("kc-recovery-codes-list")
+                || html.contains("recoveryCodeInput")
+                || html.contains("CONFIGURE_RECOVERY_AUTHN_CODES")
+                || lower.contains("recovery-authn-code")) {
+            return FormKind.RECOVERY_CODE;
+        }
+        if (html.contains("kc-email-code-login-form")
+                || html.contains("kc-email-otp")
+                || html.contains("name=\"emailCode\"")
+                || html.contains("id=\"emailCode\"")
+                || lower.contains("email otp")
+                || lower.contains("email-otp")) {
+            return FormKind.EMAIL_OTP;
+        }
         if (html.contains("kc-otp-login-form")
                 || html.contains("id=\"otp\"")
                 || (html.contains("name=\"otp\"") && !html.contains("totpSecret"))) {
@@ -383,6 +478,24 @@ public final class AuthorizationCodeDriver {
             return encoded.group(1).replace(" ", "").trim();
         }
         return null;
+    }
+
+    public static List<String> extractRecoveryCodes(String html) {
+        List<String> codes = new ArrayList<>();
+        if (html == null || html.isBlank()) {
+            return codes;
+        }
+        Matcher list = Pattern.compile(
+                "(?is)id=\"kc-recovery-codes-list\"[^>]*>(.*?)</(?:ol|ul|div)>").matcher(html);
+        String body = list.find() ? list.group(1) : html;
+        Matcher item = Pattern.compile("(?i)([A-Z2-9]{4}-[A-Z2-9]{4})").matcher(body);
+        while (item.find()) {
+            String code = item.group(1).toUpperCase(Locale.ROOT);
+            if (!codes.contains(code)) {
+                codes.add(code);
+            }
+        }
+        return codes;
     }
 
     static String namedValue(String html, String name) {

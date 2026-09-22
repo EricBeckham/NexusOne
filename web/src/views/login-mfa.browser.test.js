@@ -48,6 +48,8 @@ async function mountLogin() {
     routes: [
       { path: "/login", component: LoginView },
       { path: "/p2/mfa/enroll", component: { template: "<div>enroll</div>" } },
+      { path: "/p2/mfa/recovery", component: { template: "<div>recovery</div>" } },
+      { path: "/p2/mfa/email", component: { template: "<div>email</div>" } },
     ],
   });
   await router.push("/login");

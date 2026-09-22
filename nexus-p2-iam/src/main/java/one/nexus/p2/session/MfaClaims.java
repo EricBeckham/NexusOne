@@ -42,7 +42,12 @@ public final class MfaClaims {
                     || "totp".equals(part)
                     || "hotp".equals(part)
                     || "hwk".equals(part)
-                    || "sms".equals(part)) {
+                    || "sms".equals(part)
+                    || "email".equals(part)
+                    || "mca".equals(part)
+                    || "recovery".equals(part)
+                    || "recovery-authn-code".equals(part)
+                    || "recovery-authn-codes".equals(part)) {
                 return true;
             }
         }

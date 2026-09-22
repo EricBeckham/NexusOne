@@ -70,6 +70,20 @@
       >
         {{ MFA_REQUIRED_COPY.cta }}
       </router-link>
+      <router-link
+        class="ghost"
+        :to="{ path: '/p2/mfa/recovery', query: { reason: 'mfa_required', account: email } }"
+        data-testid="goto-recovery-codes"
+      >
+        恢复码 leftover
+      </router-link>
+      <router-link
+        class="ghost"
+        :to="{ path: '/p2/mfa/email', query: { reason: 'mfa_required', account: email } }"
+        data-testid="goto-email-mfa"
+      >
+        邮箱 MFA leftover
+      </router-link>
     </div>
     <p v-if="error" class="nx-error" data-testid="login-error">{{ error }}</p>
     <p v-if="session.accountId" class="nx-muted">

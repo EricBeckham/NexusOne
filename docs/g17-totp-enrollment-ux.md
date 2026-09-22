@@ -59,8 +59,8 @@ Fill from `./scripts/g17/run-totp-enrollment-ux.sh`. Artifact: [g17-totp-enrollm
 | Still open | Why |
 |---|---|
 | Writing otp into Keycloak from this Vue page | #118 HTTP driver remains the credential walk. Loopback `Secure; SameSite=None` cookies still block a casual laptop click. |
-| Recovery codes | Not issued. |
-| Email MFA product acceptance | Not this slice. |
+| Recovery codes | Sibling leftover [g17-admin-mfa-recovery-email.md](./g17-admin-mfa-recovery-email.md) issues local one-time codes. This page still does not write Keycloak recovery-authn-codes. |
+| Email MFA product acceptance | Sibling leftover [g17-admin-mfa-recovery-email.md](./g17-admin-mfa-recovery-email.md) is the request contract + honest SKIP. |
 | SMS MFA / WebAuthn / passkeys | Not implemented. |
 | Forced OTP at the Keycloak flow layer | Same as #118: product gate is P2. |
 | Full G17 / 等保 / 密评 / 密码机 / 真实 Tongsuo 握手 | **Not claimed.** 三权 is [g17-separation-of-duties.md](./g17-separation-of-duties.md). Tongsuo leftover is [g17-gm-tls-nginx-dual-stack.md](./g17-gm-tls-nginx-dual-stack.md). |

@@ -17,6 +17,8 @@ async function mountEnroll(query = "") {
     history: createMemoryHistory(),
     routes: [
       { path: "/p2/mfa/enroll", component: TotpEnrollView },
+      { path: "/p2/mfa/recovery", component: { template: "<div>recovery</div>" } },
+      { path: "/p2/mfa/email", component: { template: "<div>email</div>" } },
       { path: "/login", component: { template: "<div>login</div>" } },
     ],
   });
@@ -52,7 +54,8 @@ describe("TOTP enrollment page", () => {
     await wrapper.get("[data-testid=totp-confirm]").trigger("click");
     await flushPromises();
     expect(wrapper.get("[data-testid=totp-success]").text()).toContain("本页确认成功");
-    expect(wrapper.get("[data-testid=totp-success]").text()).toContain("没有签发恢复码");
+    expect(wrapper.get("[data-testid=totp-success]").text()).toContain("没有把 otp 凭据写入 Keycloak");
+    expect(wrapper.get("[data-testid=goto-recovery-codes]").attributes("href")).toContain("/p2/mfa/recovery");
 
     await wrapper.get("[data-testid=totp-code]").setValue(generate(SECRET));
     await wrapper.get("[data-testid=totp-confirm]").trigger("click");

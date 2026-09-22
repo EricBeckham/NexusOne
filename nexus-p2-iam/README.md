@@ -48,7 +48,7 @@ Covered by tests:
 - Flyway `V200__iam_identity.sql` in schema `iam`: tenant tables have `tenant_id UUID NOT NULL`; `iam.iam_global_account` is platform-scoped.
 - Invite / password-reset hooks record Keycloak execute-actions when SMTP is enabled.
 - HTTP login-form helper sends Keycloak 26 `Secure` loopback cookies (`AuthorizationCodeDriverTest`).
-- Admin MFA gate: tenant/platform admin without MFA cannot issue a privileged session (`P2.IAM.MFA_REQUIRED`); non-admin password-only still can. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md). Live Keycloak TOTP enrollment / OTP challenge leftover: [docs/g17-admin-totp-enrollment.md](../docs/g17-admin-totp-enrollment.md). In-app enrollment UX leftover: [docs/g17-totp-enrollment-ux.md](../docs/g17-totp-enrollment-ux.md).
+- Admin MFA gate: tenant/platform admin without MFA cannot issue a privileged session (`P2.IAM.MFA_REQUIRED`); non-admin password-only still can. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md). Live Keycloak TOTP enrollment / OTP challenge leftover: [docs/g17-admin-totp-enrollment.md](../docs/g17-admin-totp-enrollment.md). In-app enrollment UX leftover: [docs/g17-totp-enrollment-ux.md](../docs/g17-totp-enrollment-ux.md). Recovery codes / email MFA leftover: [docs/g17-admin-mfa-recovery-email.md](../docs/g17-admin-mfa-recovery-email.md).
 
 `JdbcDualTenantIsolationTest` ran against **PostgreSQL 15.19** (`Ubuntu 15.19-1.pgdg24.04+2`):
 
@@ -66,7 +66,7 @@ These are **not** accepted:
 
 - SAML
 - LDAP / Active Directory federation
-- SMS MFA, hardware MFA / WebAuthn, recovery codes, email MFA product acceptance (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); native Keycloak admin TOTP leftover is [docs/g17-admin-totp-enrollment.md](../docs/g17-admin-totp-enrollment.md); in-app enrollment UX leftover is [docs/g17-totp-enrollment-ux.md](../docs/g17-totp-enrollment-ux.md); not a full G17 close)
+- SMS MFA, hardware MFA / WebAuthn, live email OTP delivery, writing otp from Vue (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); native Keycloak admin TOTP leftover is [docs/g17-admin-totp-enrollment.md](../docs/g17-admin-totp-enrollment.md); in-app enrollment UX leftover is [docs/g17-totp-enrollment-ux.md](../docs/g17-totp-enrollment-ux.md); recovery codes / email MFA leftover is [docs/g17-admin-mfa-recovery-email.md](../docs/g17-admin-mfa-recovery-email.md); not a full G17 close)
 - Human-laptop live Keycloak Authorization Code + PKCE as a product G4 close. HTTP-driver PKCE is [docs/g4-pkce-login-audit.md](../docs/g4-pkce-login-audit.md). Local self-signed HTTPS leftover is [docs/g4-pkce-https-browser.md](../docs/g4-pkce-https-browser.md). Desktop Playwright leftover (stub IdP, not a product close) is [docs/g4-pkce-browser-click.md](../docs/g4-pkce-browser-click.md). H5 `/m/*` Playwright/stub leftover is [docs/g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md). Product default authorize URL stays confidential-client without PKCE. `p0-smoke` direct-grant must not be copied into production.
 - Keycloak Organizations as Nexus org master data or acceptance evidence (Employment is not synced to Organizations)
 - File metadata ↔ object store reconcile (other G10 half; [g10-file-reconcile.md](../docs/g10-file-reconcile.md))

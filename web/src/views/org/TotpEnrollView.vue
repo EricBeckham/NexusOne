@@ -70,8 +70,16 @@
       <p v-if="error" class="nx-error" data-testid="totp-error">{{ error }}</p>
       <p v-if="session.status === 'enrolled'" class="ok" data-testid="totp-success">
         本页确认成功。产品特权会话仍要求 access token 带 <code>acr=mfa</code> / <code>amr=otp</code>。
-        本 leftover 没有把 otp 凭据写入 Keycloak，也没有签发恢复码。
+        本 leftover 没有把 otp 凭据写入 Keycloak。恢复码 / 邮箱 MFA 是 sibling leftover。
       </p>
+      <div v-if="session.status === 'enrolled'" class="nx-row" style="margin-top:12px;">
+        <router-link class="ghost" to="/p2/mfa/recovery" data-testid="goto-recovery-codes">
+          去签发本页恢复码
+        </router-link>
+        <router-link class="ghost" to="/p2/mfa/email" data-testid="goto-email-mfa">
+          邮箱 MFA leftover
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
