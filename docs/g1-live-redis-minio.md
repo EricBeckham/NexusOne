@@ -45,13 +45,42 @@ The product Redis adapter still only emits the Redis **3.2** command set (`GET` 
 
 ## Evidence
 
-Recorded on this agent VM after the implementation commit. Java **21**, Spring Boot **4.1.1**. Isolation-kernel / Task ITs still use in-process PostgreSQL **15.18** (Zonky) when those suites run. No Docker.
+Recorded on this agent VM. Java **21.0.10**, Maven **3.9.11**, Spring Boot **4.1.1**. No Docker. Live Redis is product **3.2.12** (`INFO server`). Live MinIO is community `RELEASE.2025-09-07T16-13-09Z` on `127.0.0.1:9000` with a pre-created `nexus-g1-live` bucket. Isolation-kernel / Task ITs still use in-process PostgreSQL **15.18** (Zonky) when those suites run. `AuditPort.append` was not modified.
+
+### Live pass — `2026-09-22T15:41:53Z`
 
 ```
 ./scripts/g1-live-redis-minio-drill.sh
+# redis_probe=UP 3.2.12
+# minio_probe=UP http://127.0.0.1:9000 bucket=nexus-g1-live
+# BUILD SUCCESS  Total time: 6.694 s
 ```
 
-See the commit that follows this file for the exact `BUILD SUCCESS` / skip vs live-pass lines. This page is not a product-wide G1 “zero leak” close and is not GaussDB.
+| Suite | Result | What it printed |
+|---|---|---|
+| `LiveRedisIsolationDrillTest` | **1/1** | `LIVE_REDIS_ISOLATION_DRILL version=3.2.12` |
+| `LiveRedis32OptionalTest` | **1/1** | capability ping on the same 3.2.12 |
+| `CachePortIsolationTest` | **5/5** | in-process reject-before Fake Redis (always-on) |
+| `LiveMinioIsolationDrillTest` | **1/1** | `LIVE_MINIO_ISOLATION_DRILL ... object=tenants/{A}/ledger/2026/09/...` |
+| `FileServiceIsolationTest` | **5/5** | in-process reject-before counting storage |
+| `LiveG1CacheFileDrillTest` | **2/2** | `LIVE_G1_REDIS_DRILL guard=P1.M02.014 newTx=2 append=0` ; `LIVE_G1_MINIO_DRILL guard=P1.M02.015 newTx=3 append=0` |
+| `G1IsolationSurfacesTest` | **1/1** | in-process four-surface close unchanged |
+
+### Clean skip — `2026-09-22T15:42:04Z`
+
+Same suites with `NEXUS_REDIS_PORT=1` and `S3_*` unset:
+
+```
+LiveRedisIsolationDrillTest     Tests run: 1, Skipped: 1   (127.0.0.1:1)
+LiveRedis32OptionalTest         Tests run: 1, Skipped: 1
+LiveMinioIsolationDrillTest     Tests run: 1, Skipped: 1   (S3_* missing)
+LiveG1CacheFileDrillTest        Tests run: 2, Skipped: 2
+BUILD SUCCESS
+```
+
+`mvn test` does not fail when live services are absent.
+
+This page is not a product-wide G1 “zero leak” close and is not GaussDB.
 
 ## Honest leftover
 
