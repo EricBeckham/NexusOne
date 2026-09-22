@@ -21,7 +21,7 @@ The wrapper packages `nexus-bootstrap`, starts it with:
 - `NEXUS_P1_DEMO_CONTEXT_ENABLED=true` (P1 platform demo headers; strip in production)
 - `NEXUS_IAM_IDP=stub` (Keycloak live login is M0-04, not this package)
 - `NEXUS_IAM_PERSISTENCE=memory` (avoid a second Flyway on `iam` while bootstrap already applies `V200`)
-- `NEXUS_PLATFORM_BOOTSTRAP_TOKEN` for `POST /api/v1/internal/tenants/{id}/admin-users`
+- `NEXUS_PLATFORM_BOOTSTRAP_TOKEN` (also bound as `NEXUS_IAM_PLATFORM_BOOTSTRAP_TOKEN`) for `POST /api/v1/internal/tenants/{id}/admin-users`
 
 Then it runs `scripts/m0-12/dual-tenant-isolation.py` and `web/scripts/assert-client-isolation.mjs`.
 
@@ -82,3 +82,9 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 - Docker / Compose
 - Browser Authorization Code + PKCE as accepted login
 - GaussDB
+
+## Evidence (this agent VM)
+
+Recorded against local PostgreSQL **15.19** (`Ubuntu 15.19-1.pgdg24.04+2`), OpenJDK 21.0.10, Spring Boot 4.1.1, Stub IdP, memory IAM. Command: `./scripts/m0-12/run-dual-tenant.sh`.
+
+`PASS=19 FAIL=0 SKIP=6`. G18 remains open (SKIP rows for M0-05/06/07/08/10). Vue `npm run build` and `npm run assert:isolation` succeeded.
