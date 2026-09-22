@@ -34,21 +34,21 @@ Live Redis 3.2 on `127.0.0.1:6379` is optional. `RedisInvalidationTest` skips th
 
 ## Evidence
 
-Recorded **2026-09-22T15:43:27Z** on this agent VM after rebase onto `main@5359e84` (G2 #73 + G4 #77). Java **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. No local Redis 3.2 / PostgreSQL listener (Redis-down uses a dead client on port `1`).
+Recorded **2026-09-22T15:55:05Z** on this agent VM after rebase onto `main@215308f` (G9 product wiring #89 + G7 #69 + G4 #77 + G2 #73). Java **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. No local Redis 3.2 / PostgreSQL listener (Redis-down uses a dead client on port `1`). `RedisInvalidationTest` is main's #89 copy (0 diff).
 
 ```
 ./scripts/g9-policysnapshot-invalidate.sh
-# Tests run: 19, Failures: 0, Errors: 0, Skipped: 2  BUILD SUCCESS  2026-09-22T15:43:27Z
+# Tests run: 21, Failures: 0, Errors: 0, Skipped: 3  BUILD SUCCESS  2026-09-22T15:55:05Z
 
 mvn -pl nexus-permission-core -am test
-# Tests run: 39, Failures: 0, Errors: 0, Skipped: 4  BUILD SUCCESS  2026-09-22T15:43:38Z
+# Tests run: 47, Failures: 0, Errors: 0, Skipped: 5  BUILD SUCCESS  2026-09-22T15:55:20Z
 ```
 
 | Suite | Count | What it proves |
 |---|---|---|
 | `G9PolicySnapshotFailoverTest` | **5/5** | Redis-down grant → `decide` matches durable `PermissionEngine`; lost channel still reloads; Redis snapshot key is not truth; durable failure stays `P2.PERM.0005`; missing issued context is `P2.PERM.0009` (no invented holder) |
-| `RedisInvalidationTest` | **2/4** (2 skip) | P0-05 key contract; publish failure is observed; Redis-down still loads durable version; DB version failure fail-closed; live PING/PUBLISH/SUBSCRIBE skip — no Redis 3.2 on this VM |
-| `SnapshotManagerTest` | **3/3** | Version poll without notify; stale / missing / regression fail-closed |
+| `RedisInvalidationTest` | **1/4** (3 skip) | Main/#89 contract: dead Redis publish is observed and is not truth; live PING/SUBSCRIBE skipped — no Redis 3.2 on this VM |
+| `SnapshotManagerTest` | **5/5** | Main/#89: poll-on-get; `pollCached` reloads LRU; background poll swallows load failure |
 | `PermissionEngineTest` | **7/7** | P0-02 truth table unchanged (G2 coordination) |
 
 ## Honest leftovers

@@ -50,14 +50,14 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 # p3-studio: PermissionDataScopeHook 4, G2SurfaceAgreement 3
 ```
 
-G9 after rebase onto `main@5359e84` (this VM, OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1**):
+G9 failover evidence after rebase onto `main@215308f` (this VM, OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1**):
 
 ```bash
 ./scripts/g9-policysnapshot-invalidate.sh
-# BUILD SUCCESS 2026-09-22T15:43:27Z — Tests run: 19, Failures: 0, Errors: 0, Skipped: 2
+# BUILD SUCCESS 2026-09-22T15:55:05Z — Tests run: 21, Failures: 0, Errors: 0, Skipped: 3
 
 mvn -pl nexus-permission-core -am test
-# BUILD SUCCESS 2026-09-22T15:43:38Z — Tests run: 39, Failures: 0, Errors: 0, Skipped: 4
+# BUILD SUCCESS 2026-09-22T15:55:20Z — Tests run: 47, Failures: 0, Errors: 0, Skipped: 5
 ```
 
 | Class | What it proved |
@@ -89,16 +89,16 @@ Flyway history on `nexus_p2_perm_test` (schema `iam`):
 
 Redis `INFO server`: `redis_version:3.2.13`, `redis_mode:standalone`. No Sentinel/replica was started.
 
-## G9 remainder (this PR)
+## G9 remainder
 
-PolicySnapshot version polling + Redis invalidate-only wiring. **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. G2 matrix is on `main` (#73). Redis-down / decide==durable evidence stays on open [#83](https://github.com/EricBeckham/NexusOne/pull/83) (`docs/g9-policysnapshot-invalidate.md`).
+Product poller + invalidate listener is on `main` (#89). **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. G2 matrix is on `main` (#73). Redis-down / decide==durable evidence stays on open [#83](https://github.com/EricBeckham/NexusOne/pull/83) (`docs/g9-policysnapshot-invalidate.md`).
 
-Recorded **2026-09-22T15:42:29Z** on this agent VM. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky in-process PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432` / Redis 3.2 listener.
+Recorded **2026-09-22T15:55:20Z** on this agent VM after rebase onto `main@215308f`. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky in-process PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432` / Redis 3.2 listener.
 
 ```
 mvn -pl nexus-permission-core -am test
-# BUILD SUCCESS  2026-09-22T15:42:29Z (pre-rebase) — Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
-# BUILD SUCCESS  2026-09-22T15:46:14Z (after rebase onto main@26d1f94) — Tests run: 42, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:46:14Z (on main@26d1f94, #89) — Tests run: 42, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:55:20Z (this PR + #89 on 215308f) — Tests run: 47, Failures: 0, Errors: 0, Skipped: 5
 ```
 
 Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataScopeTest` 1, `JdbcDualTenantPermissionTest` 1 (no live PG listener). JDBC poll proof is `JdbcPolicySnapshotPollIT` on Zonky **15.18** (Flyway V200 + V300, schema `iam`).
