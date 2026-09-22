@@ -76,12 +76,12 @@ class LiveG1CacheFileDrillTest {
             return;
         }
 
-        RecordingAuditPort port = RecordingAuditPort.ephemeral();
+        RecordingAuditPort audit = RecordingAuditPort.ephemeral();
         CollectingAuditSink collecting = new CollectingAuditSink();
         IsolationKernel kernel = IsolationKernel.create(
                 new TableRegistry(),
                 Set.of("cache.ops"),
-                IsolationAuditSink.tee(collecting, new AuditPortIsolationSink(port, event -> {})));
+                IsolationAuditSink.tee(collecting, new AuditPortIsolationSink(audit, event -> {})));
         IsolationSupport.bindTenant(kernel, "alpha", "user-a", "mem-alpha", "trace-g1-live-redis");
 
         CommandCountingRedis redis = new CommandCountingRedis(new JedisRedis32Commands(jedis));
@@ -108,15 +108,15 @@ class LiveG1CacheFileDrillTest {
         jedis.close();
 
         assertTrue(collecting.rejected(IsolationErrorCode.CROSS_TENANT_CACHE));
-        assertEquals(0, port.appendCalls.get(), "same-TX append must stay unused on reject");
-        assertTrue(port.newTxCalls.get() >= 2);
-        assertTrue(port.findByTraceId("trace-g1-live-redis").stream().anyMatch(event ->
+        assertEquals(0, audit.appendCalls.get(), "same-TX append must stay unused on reject");
+        assertTrue(audit.newTxCalls.get() >= 2);
+        assertTrue(audit.findByTraceId("trace-g1-live-redis").stream().anyMatch(event ->
                 event.event().category() == AuditCategory.GUARD_REJECT
                         && AuditCaptures.GUARD_REJECT.equals(event.event().eventType())
                         && "P1.M02.014".equals(event.event().resourceId())));
-        assertTrue(port.verifyChain().intact());
-        System.out.println("LIVE_G1_REDIS_DRILL guard=P1.M02.014 newTx=" + port.newTxCalls.get()
-                + " append=" + port.appendCalls.get());
+        assertTrue(audit.verifyChain().intact());
+        System.out.println("LIVE_G1_REDIS_DRILL guard=P1.M02.014 newTx=" + audit.newTxCalls.get()
+                + " append=" + audit.appendCalls.get());
     }
 
     @Test
