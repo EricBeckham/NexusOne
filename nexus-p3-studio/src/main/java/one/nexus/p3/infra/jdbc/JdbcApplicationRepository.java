@@ -3,7 +3,7 @@ package one.nexus.p3.infra.jdbc;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.context.annotation.DependsOn;
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import one.nexus.p3.domain.Application;
@@ -12,7 +12,7 @@ import one.nexus.p3.domain.ApplicationStatus;
 import one.nexus.p3.port.ApplicationRepository;
 
 @Repository
-@DependsOn("flyway")
+@DependsOnDatabaseInitialization
 public class JdbcApplicationRepository implements ApplicationRepository {
     private final JdbcClient jdbc;
 
