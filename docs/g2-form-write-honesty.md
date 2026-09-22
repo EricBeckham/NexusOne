@@ -1,6 +1,6 @@
 # G2 leftover — form.write / POST submissions + submit-start dual-check honesty
 
-S0+S1 remainder after [g2-form-submission-write.md](./g2-form-submission-write.md) (#106) and [g2-submit-start-form-write.md](./g2-submit-start-form-write.md) (#112). Rebased onto `origin/main` `8b6acd0` (after #172). **G18 stays closed.** This leftover does **not** redo #112 / #116 / #137 / #144 / #150 / #155 / #163. It does **not** claim product G2 close. `g2_close=NOT_CLAIMED`.
+S0+S1 remainder after [g2-form-submission-write.md](./g2-form-submission-write.md) (#106) and [g2-submit-start-form-write.md](./g2-submit-start-form-write.md) (#112). Rebased onto `origin/main` `183c837` (after #174). **G18 stays closed.** This leftover does **not** redo #112 / #116 / #137 / #144 / #150 / #155 / #163. It does **not** claim product G2 close. `g2_close=NOT_CLAIMED`.
 
 Keep both leftover rows in [docs/README.md](./README.md): `g2-form-submission-write` and `g2-submit-start-form-write`. This file is the honesty harness around those two leftovers.
 
