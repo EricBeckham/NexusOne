@@ -78,10 +78,10 @@ Platform context may read tenant prefixes (ops/reconciliation) but tenant contex
 
 ## 6. Export
 
-`ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`.
+`ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`. Accepted submit / writeFile / dispatch emit `EXPORT_ACCEPTED`; product `AuditPortIsolationSink` persists those with `AuditPort.append` on the existing hash chain.
 
 `IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. Cross-tenant INNER JOIN is `P1.M02.020` and must not reach JDBC.
 
 ## 7. Audit
 
-Every isolation reject (query, cache, file, export, async) and every `PlatformContext` issue is an `IsolationAuditEvent`. Static guards go through `IsolationAuditorHolder` installed by `IsolationKernel.create` — not a second tenant holder. Product `AuditPortIsolationSink` persists rejects with `AuditPort.appendNewTransaction`. Sensitive values are not logged — events carry actor, tenant/path, reason, trace, and error code.
+Every isolation reject (query, cache, file, export, async) and every `PlatformContext` issue is an `IsolationAuditEvent`. Static guards go through `IsolationAuditorHolder` installed by `IsolationKernel.create` — not a second tenant holder. Product `AuditPortIsolationSink` persists rejects with `AuditPort.appendNewTransaction` and accepted exports with `AuditPort.append`. Sensitive values are not logged — events carry actor, tenant/path, reason, trace, and error code.

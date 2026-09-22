@@ -135,6 +135,28 @@ class JdbcAuditChainTransactionTest {
     }
 
     @Test
+    void exportAppendJoinsSpringTransactionAndRollsBack() {
+        UUID tenant = UuidV7.generate();
+        String trace = "0199a1c0-0000-7000-8000-00000000b0e4";
+        assertThrows(IllegalStateException.class, () -> transactions.execute(status -> {
+            port.append(AuditCaptures.export(
+                    AuditCaptures.EXPORT_SUBMITTED,
+                    true,
+                    tenant,
+                    tenant,
+                    "export",
+                    "ledger.export.csv",
+                    "export submit",
+                    trace,
+                    Map.of("action", "submit")));
+            throw new IllegalStateException("force rollback");
+        }));
+        assertEquals(0, countByTrace(trace));
+        assertEquals(0, nextIndex());
+        assertTrue(port.verifyChain().intact());
+    }
+
+    @Test
     void committedAppendAfterRollbackContinuesGaplessChain() {
         UUID tenant = UuidV7.generate();
         String rolled = "0199a1c0-0000-7000-8000-00000000b004";

@@ -33,6 +33,27 @@ public final class IsolationAuditor {
         ));
     }
 
+    public void exportAccepted(AccessContext context, String action, String resourceTenantId, String resourceId) {
+        Objects.requireNonNull(context, "context");
+        String safeAction = action == null || action.isBlank() ? "submit" : action.trim();
+        sink.record(new IsolationAuditEvent(
+                UUID.randomUUID(),
+                Instant.now(),
+                IsolationAuditEvent.EXPORT_ACCEPTED,
+                null,
+                context.actor().actorId(),
+                resourceTenantId,
+                context instanceof PlatformContext platform ? platform.path() : null,
+                "export " + safeAction,
+                context.traceId(),
+                Map.of(
+                        "action",
+                        safeAction,
+                        "resourceId",
+                        resourceId == null ? "" : resourceId)
+        ));
+    }
+
     public IsolationException reject(IsolationErrorCode code, AccessContext context, String detail) {
         String traceId = context == null ? "missing-trace" : context.traceId();
         String actorId = context == null ? null : context.actor().actorId();

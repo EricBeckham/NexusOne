@@ -20,6 +20,7 @@ import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.TenantContext;
+import one.nexus.isolation.api.IsolationAuditEvent;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.isolation.query.TableRegistry;
@@ -51,6 +52,10 @@ class IsolatedExportTest {
         assertEquals("tenants/alpha/export/2026/note.csv", fileKey.get());
         assertEquals("nexus:dev:alpha:export:job-1", cacheKey.get());
         assertEquals(0, sink.rejectCount());
+        assertEquals(3, sink.exportAccepted().size());
+        assertTrue(sink.exportAccepted().stream().allMatch(event ->
+                "trace-alpha".equals(event.traceId())
+                        && IsolationAuditEvent.EXPORT_ACCEPTED.equals(event.type())));
     }
 
     @Test

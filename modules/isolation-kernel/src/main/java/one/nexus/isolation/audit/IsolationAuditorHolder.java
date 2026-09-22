@@ -24,6 +24,13 @@ public final class IsolationAuditorHolder {
         return INSTALLED.get();
     }
 
+    public static void exportAccepted(AccessContext context, String action, String resourceTenantId, String resourceId) {
+        IsolationAuditor auditor = INSTALLED.get();
+        if (auditor != null && context != null) {
+            auditor.exportAccepted(context, action, resourceTenantId, resourceId);
+        }
+    }
+
     public static IsolationException reject(IsolationErrorCode code, AccessContext context, String detail) {
         IsolationAuditor auditor = INSTALLED.get();
         if (auditor != null) {

@@ -23,6 +23,9 @@ public final class AuditCaptures {
     public static final String DATA_CHANGED = "p3.data.changed";
     public static final String APPROVAL_ACTION = "p3.approval.action";
     public static final String GUARD_REJECT = "isolation.guard.reject";
+    public static final String EXPORT_SUBMITTED = "p3.export.submitted";
+    public static final String EXPORT_FILE_WRITTEN = "p3.export.file.written";
+    public static final String EXPORT_DISPATCHED = "p3.export.dispatched";
 
     private AuditCaptures() {}
 
@@ -166,6 +169,31 @@ public final class AuditCaptures {
                 reason,
                 traceId,
                 "approval",
+                resourceId,
+                details);
+    }
+
+    public static AuditEvent export(
+            String eventType,
+            boolean accepted,
+            UUID tenantId,
+            UUID actorSubjectId,
+            String resourceType,
+            String resourceId,
+            String reason,
+            String traceId,
+            Map<String, ?> details) {
+        return capture(
+                accepted ? AuditEvent.OUTCOME_ACCEPTED : AuditEvent.OUTCOME_REJECTED,
+                AuditCategory.EXPORT,
+                eventType == null ? EXPORT_SUBMITTED : eventType,
+                tenantId,
+                actorSubjectId,
+                tenantId,
+                false,
+                reason,
+                traceId,
+                resourceType == null ? "export" : resourceType,
                 resourceId,
                 details);
     }
