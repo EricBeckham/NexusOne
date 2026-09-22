@@ -157,4 +157,49 @@ public final class FormPublishTestStubs {
             }
         };
     }
+
+    /**
+     * Leftover mid-publish shape beyond evolve DDL abort: the Nth
+     * {@code ensurePhysicalTable} finishes (CREATE / evolve / confirm), then
+     * throws so the publish transaction must roll back the Running pointer.
+     */
+    public static SchemaService abortAfterNthEnsure(SchemaService delegate, int n) {
+        AtomicInteger ensures = new AtomicInteger();
+        return new SchemaService() {
+            @Override
+            public LedgerDefinition createPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
+                return delegate.createPhysicalTable(ledger, fields);
+            }
+
+            @Override
+            public LedgerDefinition evolvePhysicalTable(
+                    LedgerDefinition ledger, List<LedgerField> currentFields, LedgerField added) {
+                return delegate.evolvePhysicalTable(ledger, currentFields, added);
+            }
+
+            @Override
+            public SchemaAst astOf(LedgerDefinition ledger, List<LedgerField> fields) {
+                return delegate.astOf(ledger, fields);
+            }
+
+            @Override
+            public void registerRuntime(LedgerDefinition ledger, List<LedgerField> fields) {
+                delegate.registerRuntime(ledger, fields);
+            }
+
+            @Override
+            public void confirmPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
+                delegate.confirmPhysicalTable(ledger, fields);
+            }
+
+            @Override
+            public void ensurePhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
+                delegate.ensurePhysicalTable(ledger, fields);
+                if (ensures.incrementAndGet() >= n) {
+                    throw new IllegalStateException(
+                            "mid-publish abort after SchemaService for " + ledger.physicalTable());
+                }
+            }
+        };
+    }
 }
