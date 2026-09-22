@@ -4,6 +4,8 @@ S0+S1 remainder after the dual-tenant whole-DB + MinIO drill ([g6-recovery-drill
 
 The product bean remains `DryRunRecoveryPort`. It describes runbooks and may probe `pg_dump --version`. It does **not** execute dump/restore, does **not** open JDBC, does **not** mutate a live / product-shaped database, and does **not** touch `haopan_platform`. This is **not** minute-level RPO and **not** product HA.
 
+Sibling honesty leftover (do **not** redo this #135 contract): [g6-recovery-port-honesty.md](./g6-recovery-port-honesty.md). Keep both leftover rows in [docs/README.md](./README.md): `g6-recovery-port-dry-run` and `g6-recovery-port-honesty`.
+
 ## What this slice delivers
 
 | Piece | Behaviour |
