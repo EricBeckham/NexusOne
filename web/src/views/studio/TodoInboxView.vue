@@ -59,7 +59,7 @@
           <div class="nx-row">
             <button v-if="box === 'inbox'" class="primary" type="button" data-testid="todo-approve" @click="act('approve')">同意</button>
             <button v-if="box === 'inbox'" class="danger" type="button" data-testid="todo-reject" @click="act('reject')">驳回</button>
-            <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" @click="act('withdraw')">撤回</button>
+            <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" data-testid="todo-withdraw" @click="act('withdraw')">撤回</button>
           </div>
           <p v-if="session.lastTraceId" class="nx-muted" style="margin-top:8px;">
             最近 trace

@@ -109,6 +109,13 @@ class TenantMemberGrantSeedApiTest {
                         .content("{\"resource\":\"process.task\",\"action\":\"reject\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.allowed").value(true));
+        mvc.perform(post("/api/v1/permission/check")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resource\":\"process.instance\",\"action\":\"withdraw\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(true));
 
         assertTrue(permission.repository().findRoleByCode(TENANT, TenantMemberGrantSeeder.ROLE_CODE).isPresent());
         long personAssignments = permission.repository().listAssignments(TENANT).stream()

@@ -39,9 +39,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * One real G18 business path: published form → SchemaService physical row →
- * Flowable sequential approval in the same Spring TX → Outbox {@code notify.inbox}
- * → M0-11 audit hash chain.
+ * Published form → SchemaService physical row → Flowable sequential approval
+ * in the same Spring TX → Outbox {@code notify.inbox} → M0-11 audit hash chain.
+ * Shared by G18 leave and the G7 catalog types.
  */
 @Service
 @ConditionalOnProperty(name = "nexus.flow.engine")

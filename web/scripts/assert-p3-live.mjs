@@ -41,6 +41,9 @@ if (!files.live.includes("/api/v1/p3/path/submit-start")) {
 if (!files.live.includes("Idempotency-Key")) {
   failures.push("p3-live.js must send Idempotency-Key on submit-start");
 }
+if (!files.live.includes("/api/v1/p3/business-types")) {
+  failures.push("p3-live.js must call /api/v1/p3/business-types");
+}
 if (!files.live.includes("/api/v1/p3/path/tasks/") || !files.live.includes("/approve")) {
   failures.push("p3-live.js must call path approve/reject");
 }
@@ -54,8 +57,11 @@ if (/headers\[["']X-Tenant-Id["']\]\s*=/.test(files.live + files.facade + files.
     || /["']X-Tenant-Id["']\s*:/.test(files.live + files.facade + files.client)) {
   failures.push("P3 adapters must not send X-Tenant-Id");
 }
-if (!files.ledgerList.includes("createLedger") || !files.ledgerList.includes("ledger-create")) {
+if (!files.ledgerList.includes("ledger-create")) {
   failures.push("LedgerListView must expose create-ledger UI");
+}
+if (!files.ledgerList.includes("createLedger") && !files.ledgerList.includes("provisionBusinessType")) {
+  failures.push("LedgerListView must create via ledger API or business-type provision");
 }
 if (!files.formList.includes("createForm") || !files.formStudio.includes("validateForm") || !files.formStudio.includes("publishForm")) {
   failures.push("form views must expose create / validate / publish");
@@ -65,6 +71,9 @@ if (!files.formStudio.includes("submitStart") || files.formStudio.includes("дЄНе
 }
 if (!files.todos.includes("approveTodo") || !files.todos.includes("todo-approve")) {
   failures.push("TodoInboxView must expose approve");
+}
+if (!files.todos.includes("withdrawTodo") || !files.todos.includes("todo-withdraw")) {
+  failures.push("TodoInboxView must expose withdraw on initiated");
 }
 if (!files.router.includes("/p3/notifications") || !files.router.includes("/p3/audit")) {
   failures.push("router must expose notification and audit pages");

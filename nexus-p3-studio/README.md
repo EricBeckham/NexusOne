@@ -45,13 +45,15 @@ UI is **not** in this module (M0-12).
 | PATCH | `/api/v1/p3/ledgers/{id}/records/{recordId}` | Body `{values, version}`. Stale / concurrent `version` → `409 P3.RECORD.0002` |
 | POST | `/api/v1/p3/path/tasks/{todoId}/approve` |
 | POST | `/api/v1/p3/path/tasks/{todoId}/reject` |
+| GET | `/api/v1/p3/business-types` |
+| POST | `/api/v1/p3/business-types/{code}/provision` |
 | POST | `/api/v1/p3/path/instances/{instanceId}/withdraw` |
 
 Demo tenant headers (test only, `nexus.p3.demo-context=true` and/or `nexus.studio.demo-context=true`): `X-Nexus-Demo-Tenant-Id`, `X-Nexus-Demo-Tenant-Code`, `X-Nexus-Demo-Actor-Id`.
 
 Flow mutating routes require `Authorization: Bearer` and `X-Nexus-Context-Id`. `X-Tenant-Id` is rejected (`P3.FLOW.0006`).
 
-Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md). G5 form failed-path rollback (validate→DRAFT, publish-fail→unchanged Running/snapshot): [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md). Sequential approval: [docs/engineering/m0-08-sequential-approval.md](../docs/engineering/m0-08-sequential-approval.md). One real backend path (publish → physical row → sequential approval → Outbox `notify.inbox` → audit hash chain): [docs/g18-business-path.md](../docs/g18-business-path.md). Product G18 is **closed** for that one slice; the browser record is [docs/g18-business-path.md](../docs/g18-business-path.md). G3 submit-start keys + record versions: [docs/g3-data-consistency.md](../docs/g3-data-consistency.md).
+Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md). G5 form failed-path rollback (validate→DRAFT, publish-fail→unchanged Running/snapshot): [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md). Sequential approval: [docs/engineering/m0-08-sequential-approval.md](../docs/engineering/m0-08-sequential-approval.md). One real backend path (publish → physical row → sequential approval → Outbox `notify.inbox` → audit hash chain): [docs/g18-business-path.md](../docs/g18-business-path.md). Product G18 is **closed** for that one leave slice. G7 three types + withdraw: [docs/g7-business-types.md](../docs/g7-business-types.md). G3 submit-start keys + record versions: [docs/g3-data-consistency.md](../docs/g3-data-consistency.md).
 
 ```bash
 mvn -pl nexus-p3-studio -am test

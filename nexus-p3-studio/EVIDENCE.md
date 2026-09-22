@@ -280,6 +280,8 @@ mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap
 
 `BUILD SUCCESS`. `JdbcAuditChainTransactionTest` **4/4**. `nexus-audit-core` **11** run / **1** skip (`JdbcAuditChainTest`). Dispatcher wave: `EventCoreConfigurationTest` **5/5**; `OutboxEventContractTest` **13/13** (P95 **238 ms**); `NexusOneOutboxDispatcherTest` **1/1** (product poller, start-of-delivery **25 ms**, inbox DELIVERED). `G18BusinessPathIT` **2/2** (dispatcher still off; happy path + audit/chain-head rollback). Product G18 close is the later browser record, which cites this run.
 
+G7 three types + withdraw (this branch): `BusinessTypeCatalogTest` + `G7BusinessTypesIT`. See `docs/g7-business-types.md`. Not a full S0+S1 close.
+
 Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox **and** `platform.audit_record` / `audit_chain_meta` roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the G18 IT (dispatcher off); product boot delivers that destination to DISPATCHED / `notify.inbox` DELIVERED; happy-path `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`) with `verifyChain()` intact. Product `OutboxPort` is M0-09 `EventCoreConfiguration` auto-config (`JdbcOutboxStore` after DataSource). Vue now exposes create ledger / form publish / submit-start / path todos / notify / audit-by-trace. The browser loop was re-run on `38f1a73` and closed product G18; see `docs/g18-business-path.md`.
 
 # G3 submit-start idempotency + record versions
