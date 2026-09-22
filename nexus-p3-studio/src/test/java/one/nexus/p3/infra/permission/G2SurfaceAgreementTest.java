@@ -23,6 +23,7 @@ import one.nexus.permission.engine.Subject;
 import one.nexus.permission.identity.SubjectDirectory;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.redis.InMemoryPolicyInvalidation;
+import one.nexus.permission.surface.SurfaceCatalog;
 import one.nexus.permission.surface.SurfaceGuard;
 import one.nexus.permission.support.PermissionException;
 import org.junit.jupiter.api.AfterEach;
@@ -30,8 +31,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * List/detail hook, form studio, and flow {@link SurfaceGuard} must agree on
- * the same {@code PermissionService} Decision. {@code tenant_member} is not installed.
+ * List/detail hook, form studio, flow, export, Job, and Task {@link SurfaceGuard}
+ * must agree on the same {@code PermissionService} Decision. {@code tenant_member}
+ * is not installed.
  */
 class G2SurfaceAgreementTest {
     @AfterEach
@@ -54,6 +56,11 @@ class G2SurfaceAgreementTest {
         assertEquals(list.getMessage(), flow.getMessage());
         assertEquals(list.getMessage(), form.getMessage());
         assertEquals("P2.PERM.0003", form.errorCode().code());
+        PermissionException export = assertThrows(
+                PermissionException.class,
+                () -> SurfaceGuard.require(harness.module.service(),
+                        SurfaceCatalog.EXPORT_RESOURCE, SurfaceCatalog.EXPORT_ACTION));
+        assertEquals(list.getMessage(), export.getMessage());
     }
 
     @Test
@@ -100,6 +107,26 @@ class G2SurfaceAgreementTest {
                 PermissionException.class, () -> harness.forms.requireWrite());
         assertEquals("no_grant", form.getMessage());
         assertEquals(read.getMessage(), form.getMessage());
+        PermissionException export = assertThrows(
+                PermissionException.class,
+                () -> SurfaceGuard.require(harness.module.service(),
+                        SurfaceCatalog.EXPORT_RESOURCE, SurfaceCatalog.EXPORT_ACTION));
+        assertEquals("no_grant", export.getMessage());
+    }
+
+    @Test
+    void deptManagerAllowsExportJobAndTaskOnSameEngine() {
+        Harness harness = Harness.open(Set.of(RoleMatrixCatalog.DEPT_MANAGER));
+        harness.module.matrix().installExample();
+        SurfaceGuard.require(harness.module.service(), SurfaceCatalog.EXPORT_RESOURCE, SurfaceCatalog.EXPORT_ACTION);
+        SurfaceGuard.require(harness.module.service(), SurfaceCatalog.JOB_RESOURCE, SurfaceCatalog.JOB_ACTION);
+        SurfaceGuard.require(harness.module.service(), SurfaceCatalog.TASK_RESOURCE, SurfaceCatalog.TASK_ACTION);
+        harness.forms.requireRead();
+        harness.forms.requireWrite();
+        PermissionException start = assertThrows(
+                PermissionException.class,
+                () -> SurfaceGuard.require(harness.module.service(), "process.instance", "start"));
+        assertEquals("no_grant", start.getMessage());
     }
 
     @Test

@@ -5,6 +5,7 @@ import java.util.Map;
 import one.nexus.permission.engine.DataScopeKind;
 import one.nexus.permission.engine.FieldRule;
 import one.nexus.permission.engine.Mask;
+import one.nexus.permission.surface.SurfaceCatalog;
 
 /**
  * G2 example role matrix. Distinct from the demo {@code tenant_member} ALL-scope
@@ -22,7 +23,8 @@ public final class RoleMatrixCatalog {
     public static final String COMPLETENESS_NOTE =
             "tenant_member ALL-scope seed is demo bootstrap only. G2 requires a role "
                     + "matrix with DataScope and field policy, evaluated by PermissionEngine "
-                    + "for list, detail, flow, and form studio. Report / export / H5 remain open.";
+                    + "for list, detail, flow, form studio, export Task type, Job/Task submit, "
+                    + "and export cache. Report / H5 remain open. Not full product G2.";
 
     private RoleMatrixCatalog() {}
 
@@ -58,6 +60,12 @@ public final class RoleMatrixCatalog {
                         Map.of(SALARY_FIELD, salaryMasked)),
                 new CellSpec(DEPT_MANAGER, "GRANT", "form", "read", DataScopeKind.DEPT_AND_CHILDREN, Map.of()),
                 new CellSpec(DEPT_MANAGER, "GRANT", "form", "write", DataScopeKind.DEPT_AND_CHILDREN, Map.of()),
+                new CellSpec(DEPT_MANAGER, "GRANT", SurfaceCatalog.EXPORT_RESOURCE, SurfaceCatalog.EXPORT_ACTION,
+                        DataScopeKind.DEPT_AND_CHILDREN, Map.of()),
+                new CellSpec(DEPT_MANAGER, "GRANT", SurfaceCatalog.JOB_RESOURCE, SurfaceCatalog.JOB_ACTION,
+                        DataScopeKind.DEPT_AND_CHILDREN, Map.of()),
+                new CellSpec(DEPT_MANAGER, "GRANT", SurfaceCatalog.TASK_RESOURCE, SurfaceCatalog.TASK_ACTION,
+                        DataScopeKind.DEPT_AND_CHILDREN, Map.of()),
                 new CellSpec(APPROVER, "GRANT", "process.task", "approve", DataScopeKind.ALL, Map.of()),
                 new CellSpec(APPROVER, "GRANT", "process.task", "reject", DataScopeKind.ALL, Map.of()),
                 new CellSpec(APPROVER, "GRANT", "process.instance", "start", DataScopeKind.ALL, Map.of()),

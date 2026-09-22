@@ -2,7 +2,7 @@
   <div>
     <div class="nx-page-header">
       <h1>{{ title }}</h1>
-      <p>同源 PermissionEngine：list / detail / flow 与本页 check 共用判定。禁止前端自行拼权限码或实现 DataScope。</p>
+      <p>同源 PermissionEngine：list / detail / flow / form / export / Job / Task 与本页 check 共用判定。禁止前端自行拼权限码或实现 DataScope。报表 / H5 仍未宣称。</p>
     </div>
     <NxSourceBanner :body="banner" />
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。矩阵 / snapshot / check 需要服务端签发的上下文。</p>

@@ -7,8 +7,9 @@ import one.nexus.permission.engine.Decision;
 import one.nexus.permission.support.PermissionException;
 
 /**
- * Single interpretation of {@link Decision} for list, detail, flow, and form studio.
- * Surfaces must not invent a second allow/deny rule: {@code !allowed} is deny.
+ * Single interpretation of {@link Decision} for list, detail, flow, form studio,
+ * export, Job, and Task. Surfaces must not invent a second allow/deny rule:
+ * {@code !allowed} is deny.
  */
 public final class SurfaceGuard {
     public static final String ENGINE = "PermissionEngine";

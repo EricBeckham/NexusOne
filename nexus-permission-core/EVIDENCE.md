@@ -4,7 +4,7 @@ Recorded on the agent VM against latest `main` (includes M0-01～04 + Keycloak s
 
 ## G2 (S0+S1) — role matrix + same engine
 
-G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio. Product-wide G2 (report / export / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
+G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio / export Task type / Job / Task submit. Product-wide G2 (report / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
 
 ## Versions
 
@@ -34,7 +34,7 @@ mvn -pl nexus-permission-core -am test
 
 Result (M0-05 baseline): **27 tests, 0 failures, 0 errors, 0 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**.
 
-G2 additions: `G2SameEngineTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3). Form studio remainder: `FormSurfaceGuardTest`, `FormStudioPermissionApiTest`.
+G2 additions: `G2SameEngineTest`, `G2ExportJobTaskEngineTest`, `G2AuthorizedExportTest`, `G2AuthorizedSubmitTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3). Form studio remainder: `FormSurfaceGuardTest`, `FormStudioPermissionApiTest`.
 
 Recorded **2026-09-22T15:29:11Z** on this agent VM (OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**). PostgreSQL was not listening; JDBC/golden tests skipped as designed.
 
@@ -87,6 +87,9 @@ mvn -pl nexus-permission-core -am test
 | `RedisInvalidationTest` | Redis 3.2.13 PING / SET EX / GET / DEL / PUBLISH when present; publish failure is not truth; Redis-down still loads durable version; DB version failure still fail-closed |
 | `PermissionApiTest` | Boot 4.1.1 MockMvc; `X-Tenant-Id` → `P2.PERM.0013`; check after grant allows `ledger.read` |
 | `G2SameEngineTest` | Role-matrix cells (SELF + hidden salary, DEPT + masked salary, approver, form designer). List/detail share WHERE; flow / form.write `no_grant` denied by `SurfaceGuard` |
+| `G2ExportJobTaskEngineTest` | Export Task type / Job / Task `no_grant` shares `P2.PERM.0003` + `engine=PermissionEngine` with list/flow; dept manager allowed on same Decision |
+| `G2AuthorizedExportTest` | `no_grant` never runs IsolatedExport file/cache/dispatch sinks; granted same-tenant runs them; cross-tenant is still `P1.M02.019` |
+| `G2AuthorizedSubmitTest` | Job/Task submit deny happens before `ExecutionIsolation` / JDBC / Quartz; granted Job reaches isolation |
 | `G2RoleMatrixApiTest` | `GET /matrix` notes tenant_member is not complete; example install is differentiated; check uses `engine=PermissionEngine`; `form.read` allowed for self_reader, `form.write` is `no_grant` |
 | `FormSurfaceGuardTest` / `FormStudioPermissionApiTest` (p3) | Form list/create 403 `P2.PERM.0003`/`0002`/`0001`; isolation-only stays tenant-only; `g2_form_designer` can write |
 | `SchemaContractTest` | V300 lives in schema `iam`; tenant tables have `tenant_id NOT NULL` |
@@ -123,9 +126,22 @@ Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataS
 | `JdbcPolicySnapshotPollIT` | 1/1 | Zonky PostgreSQL **15.18**: `iam.perm_policy_version` is the clock; reader without the channel reloads on poll tick |
 | `RedisInvalidationTest` | 1/1 (+3 skip) | Dead Redis publish is observed and is not truth; live PING/SUBSCRIBE skipped |
 
+## G2 remainder (export / Job / Task)
+
+Recorded **2026-09-22T16:44:16Z** on this agent VM. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker.
+
+```
+./scripts/g2-export-job-task.sh
+# BUILD SUCCESS  2026-09-22T16:44:16Z
+# permission-core specified: Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
+# p3-studio specified: Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+```
+
+Not a full product G2 close. Isolation reject-before-sink and AuditPort are unchanged.
+
 ## Honest leftover
 
-- Product-wide G2 (report / export / H5 / form-definition list)
+- Product-wide G2 (report / H5). Form studio + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache is not. form fill / submissions remain open.
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down (ordinary query still fail-closes; no retry-deadline)
