@@ -3,12 +3,15 @@
 # PostgreSQL full-database restore on a dedicated cluster/database + local MinIO object restore.
 #
 # Never touches haopan_platform.
-# Never performs single-tenant logical restore (no tenant-filtered dump/restore).
+# Dual-tenant whole-database restore (both tenants). Single-tenant leftover:
+# scripts/g6-recovery/run-single-tenant.sh
 # Does not change product runtime. Does not claim G17 or minute-level RPO.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
 PG15_BIN="${G6_PG15_BIN:-/usr/lib/postgresql/15/bin}"
 WORK="${G6_WORK_DIR:-$ROOT/.local/g6-recovery}"
 PGDATA="${G6_PGDATA:-$WORK/pgdata}"
@@ -30,23 +33,6 @@ export PATH="$PG15_BIN:$PATH"
 mkdir -p "$WORK"/{logs,backup,object-backup,objects,evidence}
 chmod 700 "$WORK" || true
 
-now_ms() { python3 -c 'import time; print(int(time.time() * 1000))'; }
-log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
-fail() { echo "FAIL: $*" >&2; exit 1; }
-
-refuse_forbidden_name() {
-  local name="$1"
-  local kind="$2"
-  if echo "$name" | grep -Eiq '(^|[^a-z0-9])haopan(_platform)?([^a-z0-9]|$)'; then
-    fail "refusing $kind name that mentions haopan: $name"
-  fi
-  case "$name" in
-    postgres|template0|template1)
-      fail "refusing system $kind name: $name"
-      ;;
-  esac
-}
-
 refuse_forbidden_name "$SRC_DB" database
 refuse_forbidden_name "$DST_DB" database
 refuse_forbidden_name "$SRC_BUCKET" bucket
@@ -57,13 +43,8 @@ fi
 if [ "$SRC_BUCKET" = "$DST_BUCKET" ]; then
   fail "source and restore buckets must differ"
 fi
-if [ "${PGPORT}" = "5432" ]; then
-  fail "refusing default product port 5432; G6 drill uses a dedicated cluster (default 55432)"
-fi
-
-if [ ! -x "$PG15_BIN/pg_dump" ] || [ ! -x "$PG15_BIN/pg_restore" ] || [ ! -x "$PG15_BIN/initdb" ]; then
-  fail "PostgreSQL 15 binaries missing under $PG15_BIN"
-fi
+refuse_dedicated_port
+require_pg15
 if [ ! -x "$MINIO_BIN" ]; then
   fail "MinIO binary missing at $MINIO_BIN"
 fi
@@ -88,25 +69,6 @@ export MINIO_ROOT_USER MINIO_ROOT_PASSWORD
 export PGHOST PGPORT
 export PGUSER="${G6_PGUSER:-$USER}"
 
-start_pg() {
-  if "$PG15_BIN/pg_isready" -h "$PGHOST" -p "$PGPORT" >/dev/null 2>&1; then
-    log "PostgreSQL already accepting on ${PGHOST}:${PGPORT}"
-    return
-  fi
-  if [ ! -f "$PGDATA/PG_VERSION" ]; then
-    log "initdb dedicated cluster at $PGDATA"
-    "$PG15_BIN/initdb" -D "$PGDATA" --username="$PGUSER" --auth-local=trust --auth-host=trust --no-instructions
-    cat >>"$PGDATA/postgresql.conf" <<EOF
-listen_addresses = '127.0.0.1'
-port = ${PGPORT}
-unix_socket_directories = '${PGDATA}'
-logging_collector = off
-EOF
-  fi
-  log "starting dedicated PostgreSQL 15 on ${PGHOST}:${PGPORT}"
-  "$PG15_BIN/pg_ctl" -D "$PGDATA" -l "$WORK/logs/postgres.log" -w start -o "-p ${PGPORT} -k ${PGDATA} -h 127.0.0.1"
-}
-
 start_minio() {
   if curl -fsS "http://${MINIO_ADDR}/minio/health/live" >/dev/null 2>&1; then
     log "MinIO already live on ${MINIO_ADDR}"
@@ -125,24 +87,6 @@ start_minio() {
     sleep 0.25
   done
   fail "MinIO did not become healthy on ${MINIO_ADDR}"
-}
-
-psql_q() {
-  "$PG15_BIN/psql" -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -v ON_ERROR_STOP=1 "$@"
-}
-
-assert_no_haopan() {
-  local found
-  found="$(psql_q -d postgres -Atc "SELECT datname FROM pg_database WHERE datname ILIKE '%haopan%';")"
-  if [ -n "$found" ]; then
-    fail "dedicated cluster unexpectedly contains haopan database(s): $found"
-  fi
-}
-
-table_sha() {
-  local db="$1" qual="$2" order="$3"
-  psql_q -d "$db" -Atc "COPY (SELECT * FROM ${qual} ORDER BY ${order}) TO STDOUT WITH CSV" \
-    | sha256sum | awk '{print $1}'
 }
 
 start_pg

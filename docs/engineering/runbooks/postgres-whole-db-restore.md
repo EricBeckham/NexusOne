@@ -1,8 +1,8 @@
 # PostgreSQL 整库恢复（逻辑备份）
 
-**状态：G6 S1 环境级整库恢复演练（专用库）。不是目标 Profile，不是分钟级 RPO，不是 G17，不是单租户逻辑恢复。**
+**状态：G6 S1 环境级整库恢复演练（专用库）。不是目标 Profile，不是分钟级 RPO，不是 G17。**
 
-适用：NexusOne 业务库形状的 PostgreSQL **15.x** 整库 `pg_dump` / `pg_restore`。不覆盖 GaussDB。V1.1 **不提供**单租户逻辑恢复。
+适用：NexusOne 业务库形状的 PostgreSQL **15.x** 整库 `pg_dump` / `pg_restore`。不覆盖 GaussDB。本 runbook **禁止**按 `tenant_id` 过滤；整库必须保留全部租户。单租户 leftover 是另一条运维演练，见 [postgres-single-tenant-logical-restore.md](./postgres-single-tenant-logical-restore.md)。它不是 V1.1 产品能力，也不改 `RecoveryPort`。
 
 可复现脚本：[`scripts/g6-recovery/run-drill.sh`](../../../scripts/g6-recovery/run-drill.sh)。实测记录：[`g6-recovery-drill-EVIDENCE.md`](../g6-recovery-drill-EVIDENCE.md)。
 
@@ -11,7 +11,7 @@
 - 恢复必须落到**独立实例 / 独立数据库**。备份命令成功不等于恢复通过。
 - G6 演练使用专用集群（默认 `127.0.0.1:55432`）和专用库名 `nexusone_g6_src` → `nexusone_g6_dst`。
 - **禁止**连接或创建 `haopan_platform`。脚本在名称含 `haopan` 或端口为 `5432` 时直接拒绝。
-- **禁止**按 `tenant_id` 过滤导出/导入。整库恢复必须保留源库全部租户行。
+- **禁止**按 `tenant_id` 过滤导出/导入。整库恢复必须保留源库全部租户行。单租户 leftover 不得走本 runbook。
 - 密码只走环境变量或本机 workdir（`.local/g6-recovery/`，已 gitignore）。不要把 dump 提交进 Git。
 - 审计表是 append-only；产品路径接线后应再跑 `AuditPort.verifyChain()`。本演练校验表级 SHA-256 与行数。
 

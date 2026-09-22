@@ -7,7 +7,7 @@ Recorded **2026-09-22T15:27:57Z** on the agent VM against `main` `34a45cb` + thi
 | PostgreSQL **full-database** restore on a **dedicated** cluster/database | **PASS** |
 | Local **MinIO** object restore to an isolated bucket/prefix | **PASS** |
 | `haopan_platform` touched | **No** (name refused; dedicated cluster has no such database) |
-| Single-tenant logical restore | **Not performed** (both tenants restored) |
+| Single-tenant logical restore | **Not performed in this dual-tenant run** (both tenants restored). Leftover later: [g6-single-tenant-logical-restore-EVIDENCE.md](./g6-single-tenant-logical-restore-EVIDENCE.md) |
 | G17 claimed | **No** |
 | Minute-level RPO / delivery-grade HA claimed | **No** |
 | Target Linux/ARM Profile claimed | **No** |
@@ -120,7 +120,7 @@ Object-key sets were identical (count 3). Backup **32 ms**, restore **30 ms**. E
 ## Explicitly out of scope
 
 - **`haopan_platform`** and any product database on `:5432` (`nexusone`, `nexus_g18_loop`, etc.).
-- **Single-tenant logical restore** (V1.1 deleted this capability; tenant export/import is migration only).
+- **Single-tenant logical restore as a V1.1 product capability** (tenant export/import is still migration only). The ops leftover drill is [g6-single-tenant-logical-restore-EVIDENCE.md](./g6-single-tenant-logical-restore-EVIDENCE.md); this file remains the dual-tenant whole-DB + MinIO record.
 - **Minute-level RPO** (WAL archive, streaming replica, delivery-grade HA). This drill is a logical dump + object mirror. Observed restore time is a fixture RTO, not a sales SLA.
 - **G17** (三权分立, 国密 TLS 双证书, qualified GM/T provider, 密码机).
 - **G4** audit coverage / 90+365 retention.
