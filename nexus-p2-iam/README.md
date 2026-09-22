@@ -33,7 +33,7 @@ mvn -pl nexus-p2-iam -am test
 
 **36 tests, 0 failures, 3 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0** (includes G17 admin-MFA slice). Skips: `LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest` (opt-in `NEXUS_KEYCLOAK_SMOKE=1`), and `JdbcDualTenantIsolationTest` when PostgreSQL 15 is unreachable.
 
-G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). Drift-fix dry-run leftover (detect + proposed fix, default no writes): [docs/g10-identity-drift-dry-run.md](../docs/g10-identity-drift-dry-run.md). Apply/dry-run honesty leftover (Keycloak 8080 unavailable → SKIP; not product G10 close): [docs/g10-identity-drift-honesty.md](../docs/g10-identity-drift-honesty.md). File/object reconcile is [docs/g10-file-reconcile.md](../docs/g10-file-reconcile.md).
+G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). Drift-fix dry-run leftover (detect + proposed fix, default no writes): [docs/g10-identity-drift-dry-run.md](../docs/g10-identity-drift-dry-run.md). Apply/dry-run honesty leftover (Keycloak 8080 unavailable → SKIP; not product G10 close): [docs/g10-identity-drift-honesty.md](../docs/g10-identity-drift-honesty.md). File/object reconcile is [docs/g10-file-reconcile.md](../docs/g10-file-reconcile.md). File/object leftover honesty remainder beyond #243/#228/#202 (not product G10 close): [docs/g10-file-object-reconcile-leftover-honesty.md](../docs/g10-file-object-reconcile-leftover-honesty.md).
 
 Covered by tests:
 
