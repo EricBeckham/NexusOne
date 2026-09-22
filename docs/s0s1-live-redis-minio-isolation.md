@@ -1,6 +1,6 @@
 # S0+S1 live Redis + MinIO isolation evidence
 
-Ops drill for `CacheKeyGuard` / `FileObjectKeyGuard` against live Redis and MinIO on **dedicated** ports. Not a P0/M0 redo. G18 stays closed. `AuditPort` same-TX `append` was not modified.
+Ops drill for `CacheKeyGuard` / `FileObjectKeyGuard` against live Redis and MinIO on **dedicated** ports. Not a P0/M0 redo. G18 stays closed. `AuditPort` same-TX `append` was not modified. Honesty leftover (live SKIP when Redis/MinIO are absent; not a product live-drill close) is [s0s1-live-redis-minio-isolation-honesty.md](./s0s1-live-redis-minio-isolation-honesty.md).
 
 Runbook: [engineering/runbooks/live-redis-minio-isolation.md](./engineering/runbooks/live-redis-minio-isolation.md).
 

@@ -1,0 +1,113 @@
+name: s0s1-live-redis-minio-isolation-honesty
+
+# Honesty gate for tenant-key / bucket-prefix isolation leftover.
+# Does not start Redis or MinIO. Does not redo #169/#174.
+# Not product G9/G10 close. Not a product live Redis/MinIO drill close.
+
+on:
+  push:
+    paths:
+      - "scripts/s0s1-live-redis-minio-isolation-honesty.sh"
+      - "scripts/s0s1-live-redis-minio-isolation-honesty/**"
+      - ".github/workflows/s0s1-live-redis-minio-isolation-honesty.yml"
+      - "docs/s0s1-live-redis-minio-isolation-honesty.md"
+      - "docs/engineering/s0s1-live-redis-minio-isolation-honesty-EVIDENCE.md"
+      - "modules/isolation-kernel/src/test/java/one/nexus/isolation/boundary/S0S1LiveRedisMinioIsolationHonesty.java"
+      - "modules/isolation-kernel/src/test/java/one/nexus/isolation/boundary/S0S1LiveRedisMinioIsolationHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/s0s1-live-redis-minio-isolation-honesty.sh"
+      - "scripts/s0s1-live-redis-minio-isolation-honesty/**"
+      - ".github/workflows/s0s1-live-redis-minio-isolation-honesty.yml"
+      - "docs/s0s1-live-redis-minio-isolation-honesty.md"
+      - "docs/engineering/s0s1-live-redis-minio-isolation-honesty-EVIDENCE.md"
+      - "modules/isolation-kernel/src/test/java/one/nexus/isolation/boundary/S0S1LiveRedisMinioIsolationHonesty.java"
+      - "modules/isolation-kernel/src/test/java/one/nexus/isolation/boundary/S0S1LiveRedisMinioIsolationHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/s0s1-live-redis-minio-isolation-honesty.sh --verify-report scripts/s0s1-live-redis-minio-isolation-honesty/fixtures/honest-skip.env
+      - name: Fake live Redis isolation PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/s0s1-live-redis-minio-isolation-honesty.sh --verify-report \
+            scripts/s0s1-live-redis-minio-isolation-honesty/fixtures/fake-live-redis-isolation-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live Redis isolation PASS without redis_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live Redis isolation PASS rejected"
+      - name: Fake live MinIO isolation PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/s0s1-live-redis-minio-isolation-honesty.sh --verify-report \
+            scripts/s0s1-live-redis-minio-isolation-honesty/fixtures/fake-live-minio-isolation-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live MinIO isolation PASS without minio_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live MinIO isolation PASS rejected"
+      - name: Fake product G9 close is rejected
+        run: |
+          set +e
+          ./scripts/s0s1-live-redis-minio-isolation-honesty.sh --verify-report \
+            scripts/s0s1-live-redis-minio-isolation-honesty/fixtures/fake-g9-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g9_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G9 close rejected"
+      - name: Fake product G10 close is rejected
+        run: |
+          set +e
+          ./scripts/s0s1-live-redis-minio-isolation-honesty.sh --verify-report \
+            scripts/s0s1-live-redis-minio-isolation-honesty/fixtures/fake-g10-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g10_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G10 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest live Redis / MinIO isolation SKIP
+        run: |
+          chmod +x ./scripts/s0s1-live-redis-minio-isolation-honesty.sh
+          ./scripts/s0s1-live-redis-minio-isolation-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty"
+          ./scripts/s0s1-live-redis-minio-isolation-honesty.sh \
+            --verify-report "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^live_redis_isolation=SKIP$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^live_minio_isolation=SKIP$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^live_redis_isolation_observed=false$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^live_minio_isolation_observed=false$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^g9_close=NOT_CLAIMED$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^g10_close=NOT_CLAIMED$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^live_drill_close=NOT_CLAIMED$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^g9_redis_down_174_redone=false$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^g10_file_reconcile_169_redone=false$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/s0s1-live-redis-minio-isolation-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: s0s1-live-redis-minio-isolation-honesty
+          path: ${{ runner.temp }}/s0s1-live-redis-minio-isolation-honesty
