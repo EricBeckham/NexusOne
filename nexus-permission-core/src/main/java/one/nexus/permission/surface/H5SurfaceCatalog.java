@@ -7,7 +7,8 @@ package one.nexus.permission.surface;
  * <p>Path {@code submit-start} stays the G18 walk ({@code process.instance} /
  * {@code start}). H5 form fill still decides {@code form.write} on the page
  * before that walk. Report query/export is the sibling leftover
- * {@code ReportSurfaceCatalog}. Physical ledger dump stays open.
+ * {@code ReportSurfaceCatalog}. Physical dump / raw export is
+ * {@code DumpSurfaceCatalog}.
  */
 public final class H5SurfaceCatalog {
     public static final String LIST_RESOURCE = "ledger";

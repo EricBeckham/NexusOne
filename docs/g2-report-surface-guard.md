@@ -24,7 +24,7 @@ Export submits the existing `ledger.export.csv` Task type. It is **not** a physi
 
 | Item | Status |
 |---|---|
-| Product-wide G2 | Open. Physical ledger dump and callers that skip `SurfaceGuard` stay off this engine. |
+| Product-wide G2 | Open. Physical ledger dump / raw export is the sibling leftover [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). |
 | Desktop `/p3/ledgers` `/p3/forms` `/p3/todos` | Unchanged. Do not import the report helper into those pages. |
 | Full report / BI (datasets, charts, subscriptions) | Out of V1.1. This leftover is permission wiring only. |
 | H5 list/detail/form/todo | Closed on main by #116 ([g2-h5-permission.md](./g2-h5-permission.md)). |

@@ -63,6 +63,20 @@ class SurfaceGuardBypassGateTest {
     }
 
     @Test
+    void intentionalUnguardedDumpAndRawProjectedDumpFailTheGate() throws Exception {
+        List<SurfaceGuardBypassGate.Violation> violations =
+                gate.scan(fixtures.resolve("negative/dump"), false);
+        assertTrue(
+                violations.stream().anyMatch(v -> SurfaceGuardBypassGate.UNGUARDED_P3.equals(v.rule())
+                        && v.file().getFileName().toString().equals("RawDumpController.java")),
+                violations::toString);
+        assertTrue(
+                violations.stream().anyMatch(v -> SurfaceGuardBypassGate.ISOLATED_EXPORT.equals(v.rule())
+                        && v.file().getFileName().toString().equals("RawProjectedDump.java")),
+                violations::toString);
+    }
+
+    @Test
     void allowlistAcceptsCatalogAndRejectsMarketDump() throws Exception {
         List<SurfaceGuardBypassGate.Violation> violations =
                 gate.scan(fixtures.resolve("mini-product"), true);

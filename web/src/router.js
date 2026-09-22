@@ -24,6 +24,7 @@ const routes = [
   { path: "/p3/notifications", name: "notifications", component: () => import("./views/studio/NotifyInboxView.vue"), meta: { title: "站内通知", product: "p3" } },
   { path: "/p3/audit", name: "audit", component: () => import("./views/studio/AuditTraceView.vue"), meta: { title: "审计哈希链", product: "p3" } },
   { path: "/p3/reports", name: "reports", component: () => import("./views/studio/ReportView.vue"), meta: { title: "报表表面", product: "p3" } },
+  { path: "/p3/dumps", name: "dumps", component: () => import("./views/studio/DumpView.vue"), meta: { title: "物理 dump", product: "p3" } },
   { path: "/m", redirect: "/m/p3/home" },
   {
     path: "/m/login",

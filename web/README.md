@@ -88,6 +88,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |
 | `/p3/reports` | `GET/POST /api/v1/p3/reports/*` after `ledger/read` + `ledger.export.csv/submit` | G2 leftover. Not a physical dump; desktop ledger/form/todo pages unchanged |
+| `/p3/dumps` | `GET/POST /api/v1/p3/dumps/*` after `ledger/read` + `ledger.export.csv/submit` | G2 leftover. Raw `writeProjected` CSV; not report Task submit; desktop ledger/form/todo/report unchanged |
 | `/login` | stub token **or** `authorize-url?pkce=s256` | Stub card unchanged. Desktop PKCE leftover: `data-testid=pkce-login` → [docs/g4-pkce-browser-click.md](../docs/g4-pkce-browser-click.md). Password-only admin leftover: `admin-password-login` → `P2.IAM.MFA_REQUIRED` → `/p2/mfa/enroll` |
 | `/callback` | `POST /api/v1/auth/login` with `code` + `code_verifier` | Desktop leftover only. Not `/m/callback`. Not product Keycloak acceptance |
 | `/m/login` | stub token + **PKCE** (`mobile-pkce-login`) + safe `return` | F011 stub hop stays; H5 PKCE leftover: [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) |

@@ -41,4 +41,6 @@ export const p3 = {
   reportDecision: (...args) => live.reportDecision(...args),
   queryReport: (...args) => live.queryReport(...args),
   exportReport: (...args) => live.exportReport(...args),
+  dumpDecision: (...args) => live.dumpDecision(...args),
+  exportDump: (...args) => live.exportDump(...args),
 };
