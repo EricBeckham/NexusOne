@@ -183,6 +183,26 @@ export async function createApplication(body) {
   );
 }
 
+export async function listBusinessTypes() {
+  const body = (await api("/api/v1/p3/business-types")) || {};
+  return wrap({
+    items: asList(body.items || body),
+    count: pick(body, "count") ?? asList(body.items || body).length,
+  });
+}
+
+export async function provisionBusinessType(code, body = {}) {
+  return wrap(
+    await api(`/api/v1/p3/business-types/${code}/provision`, {
+      method: "POST",
+      body: {
+        publish: body.publish !== false,
+        suffix: body.suffix,
+      },
+    }),
+  );
+}
+
 export async function createLedger(body) {
   const applicationId = body.application_id || body.applicationId;
   const fields = (body.fields || []).map((field) => ({

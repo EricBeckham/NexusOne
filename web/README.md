@@ -4,7 +4,7 @@ Vue 3 shell for tenant admin, org/identity, permission snapshot, and **P3 台账
 
 - Tenant / org pages talk to merged **M0-03** and **M0-04** HTTP APIs.
 - Permission pages talk to **M0-05** `/api/v1/permission` (health / snapshot / check).
-- Ledger / form / todo pages talk to live **M0-06/07/08** HTTP plus the G18 path (`/api/v1/p3/path/submit-start`).
+- Ledger / form / todo pages talk to live **M0-06/07/08** HTTP plus the G18/G7 path (`/api/v1/p3/path/submit-start`, `/api/v1/p3/business-types`).
 - Notify: `/api/v1/notifications`. Audit by trace (read-only): `/api/v1/audit/traces/{traceId}`.
 - Product G18 (one vertical slice) is closed by the 2026-09-22 browser record in [docs/g18-business-path.md](../docs/g18-business-path.md). The earlier `ace55ff` walk only reached tenant / org / permission snapshot.
 
@@ -64,11 +64,11 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p2/org` | `/api/v1/departments/tree` | |
 | `/p2/positions` | positions + employments | Position ≠ Role |
 | `/p2/permissions/*` | `/api/v1/permission/health\|snapshot\|check` | No GET role catalog |
-| `/p3/ledgers` | GET list + POST applications + POST ledgers | Create UI; quota from P1 if platform mode |
+| `/p3/ledgers` | GET list + POST `/api/v1/p3/business-types/{code}/provision` | G7 请假/报销/出差；quota from P1 if platform mode |
 | `/p3/ledgers/:id` | ledger + `.../records` + POST `.../fields` | No field PUT |
 | `/p3/forms` | GET list + POST create | Bind selected ledger field_code |
 | `/p3/forms/:id` | validate / publish / **submit-start** | Fill writes physical row + starts Flowable. Each click sends `Idempotency-Key` (G3) |
-| `/p3/todos` | `/api/v1/p3/todos` + `/api/v1/p3/path/tasks/*` | Approve/reject updates ledger approval_status |
+| `/p3/todos` | `/api/v1/p3/todos` + `/api/v1/p3/path/tasks/*` + withdraw | 同意/驳回/「我发起」撤回 |
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |
 

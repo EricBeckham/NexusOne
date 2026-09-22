@@ -2,9 +2,9 @@
   <div>
     <div class="nx-page-header">
       <h1>工作台</h1>
-        <p>M0-12 已接租户、组织、权限、台账、表单发布、submit-start、待办、通知与按 trace 审计。G18 纵向闭环已关闭。</p>
+        <p>P0+M0+G18 已在 main 关闭。当前 S0+S1 PG 门禁：台账页可开通请假 / 报销 / 出差三类业务，待办「我发起」可撤回。</p>
     </div>
-    <NxTodo body="G18 纵向闭环已于 2026-09-22 浏览器走通。需要服务端签发的 X-Nexus-Context-Id。G7 三类业务、G4 全路径审计、权限矩阵与 H5 仍单独验收。" />
+    <NxTodo body="G18 请假切片已关闭。G7 三类（请假/报销/出差）走同一套 ledger/form/path。G4 / G2 / G1 余量仍单独验收，不在本页宣称 S0+S1 整包通过。" />
     <div class="nx-row" style="margin-bottom:16px;">
       <router-link class="primary" to="/p3/ledgers">台账</router-link>
       <router-link class="ghost" to="/p3/forms">表单</router-link>

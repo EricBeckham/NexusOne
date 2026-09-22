@@ -340,7 +340,7 @@ public final class FormService {
             throw new NexusException(
                     ErrorCode.FORM_SUBMIT_INVALID,
                     400,
-                    "G18 submit requires exactly one ledger_code on the running form",
+                    "path submit requires exactly one ledger_code on the running form",
                     Map.of("ledger_codes", codes));
         }
         return codes.getFirst();

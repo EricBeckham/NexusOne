@@ -18,8 +18,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Demo-path bootstrap: role {@code tenant_member} with ledger/form read+write ALL
- * and process.task approve/reject, assigned to the current person id
+ * Demo-path bootstrap: role {@code tenant_member} with ledger/form read+write ALL,
+ * process.task approve/reject, and process.instance start/withdraw, assigned to
+ * the current person id
  * (M0-05 {@code IamSubjectDirectory} uses personId as userId; position
  * {@code TENANT_ADMIN} codes do not match).
  *
@@ -49,7 +50,8 @@ public class TenantMemberGrantSeeder {
             new String[] {"form", "write"},
             new String[] {"process.task", "approve"},
             new String[] {"process.task", "reject"},
-            new String[] {"process.instance", "start"});
+            new String[] {"process.instance", "start"},
+            new String[] {"process.instance", "withdraw"});
 
     private final PermissionModule permission;
     private final ConcurrentHashMap<UUID, Object> locks = new ConcurrentHashMap<>();
