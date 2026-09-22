@@ -61,6 +61,12 @@ const routes = [
     meta: { harness: true, public: true, title: "APP WebView 模拟宿主" },
   },
   {
+    path: "/m/wx-dt-harness",
+    name: "m-wx-dt-harness",
+    component: () => import("./mobile/products/p3-studio/pages/WeChatDingTalkHarnessPage.vue"),
+    meta: { harness: true, public: true, title: "微信钉钉生产宿主契约桩" },
+  },
+  {
     path: "/m/p3/home",
     name: "m-home",
     component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),

@@ -3,7 +3,7 @@
 Work package: **mobile** pages. First acceptance host is a **mobile browser**.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledger / form / todo pages are not part of this change.
 
-**This does not close product G15.** 需求规格 V1.1 §12 still requires other hosts (APP WebView native binary / WeChat/DingTalk production) on the same contract. A **simulated** 小程序 web-view parent is in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). The APP WebView *envelope* is walked by a web harness in [g15-app-webview-host.md](./g15-app-webview-host.md); the native package stays open. P0 / M0 / G18 are not redone.
+**This does not close product G15.** 需求规格 V1.1 §12 still requires other hosts (APP WebView native binary / WeChat/DingTalk production) on the same contract. A **simulated** 小程序 web-view parent is in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). The APP WebView *envelope* is walked by a web harness in [g15-app-webview-host.md](./g15-app-webview-host.md); the native package stays open. A WeChat / DingTalk **production-host contract stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md); production is not accepted. P0 / M0 / G18 are not redone.
 
 ## What is closed on the mobile browser
 
@@ -12,7 +12,7 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledg
 | F011 login redirect | `/m/login?return=…` → `/m/callback` | Unauthenticated `/m/*` is sent to login with a **safe** Return URL. Stub login (same `stub.` token as M0-12) returns to that path. Token / `tenant_id` / off-site returns are dropped. |
 | F012 files | `/m/p3/files`, `/m/p3/files/:id` | Client size (20 MB) and MIME checks, then `POST /api/v1/files`. Download is `POST .../signed-url` after metadata. Progress + cancel. Never MinIO admin APIs, never `X-Tenant-Id`. |
 | F013 routing | `/m/p3/home`, files + query `tab`, file deep link | History mode. Refresh keeps `sessionStorage` session. Tenant stays in the issued context, not the URL. Back uses `history.back`, else mobile home. |
-| F014 host messages | `/m/host`, `/m/host-harness`, `/m/mp-webview-harness`, `/m/app-webview-harness` | HostBridgePort exposes only `login` / `route` / `file` / `close` over same-origin `postMessage` (`nexus-h5` ↔ `nexus-host`). Standalone mobile browser uses the web fallback. The iframe parent at `/m/host-harness` is the mobile-browser acceptance host. `/m/mp-webview-harness` is the simulated 小程序 web-view parent (same channels; not WeChat / DingTalk production). `/m/app-webview-harness` is the APP WebView **web** simulation (injected `NexusAppWebView`). Tokens / `tenant_id` / unknown channels / off-site routes are rejected. |
+| F014 host messages | `/m/host`, `/m/host-harness`, `/m/mp-webview-harness`, `/m/app-webview-harness`, `/m/wx-dt-harness` | HostBridgePort exposes only `login` / `route` / `file` / `close` over same-origin `postMessage` (`nexus-h5` ↔ `nexus-host`). Standalone mobile browser uses the web fallback. The iframe parent at `/m/host-harness` is the mobile-browser acceptance host. `/m/mp-webview-harness` is the simulated 小程序 web-view parent (same channels; not WeChat / DingTalk production). `/m/app-webview-harness` is the APP WebView **web** simulation (injected `NexusAppWebView`). `/m/wx-dt-harness` is the WeChat / DingTalk **production-host stub** (same channels; production not accepted). Tokens / `tenant_id` / unknown channels / off-site routes are rejected. |
 | F010 runtime | `/m/p3/forms`, `/m/p3/lists`, `/m/p3/todos`, `/m/p3/query`, `/m/p3/notifications` | Published-app H5 runtime. Details and leftovers: [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). |
 
 Desktop `/p3/ledgers`, `/p3/forms`, `/p3/todos` (and their views) are unchanged.
@@ -50,7 +50,7 @@ Business pages do not branch on WeChat / DingTalk (H5 规范 §80.2). All host d
 |---|---|
 | APP WebView web harness | Same F014 envelope walked in [g15-app-webview-host.md](./g15-app-webview-host.md). |
 | APP WebView native binary | **Not accepted.** No iOS / Android package. |
-| 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). **WeChat / DingTalk production not accepted.** |
+| 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). Production-host **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). **WeChat / DingTalk production not accepted.** |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md) (Playwright/stub). Live Keycloak laptop click / other hosts stay open. |
 | F010 full H5 runtime | Mobile-browser pages now in [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). Other hosts / PKCE still open. |
 | Live S3 / MinIO download | Product default `nexus.files.storage=memory`. Signed URL against real S3 is M0-10, not re-run here. |
@@ -67,6 +67,7 @@ npm run assert:h5
 npm run assert:h5-host
 npm run assert:h5-mp-webview
 npm run assert:h5-app-webview
+npm run assert:h5-wx-dt
 npm run assert:h5-pkce
 npm run assert:isolation
 npm run assert:p3-live
@@ -74,7 +75,7 @@ npm run build
 npm run dev
 ```
 
-Open a mobile-width browser at `http://127.0.0.1:5173/m/host` (standalone web fallback), `http://127.0.0.1:5173/m/host-harness` (iframe parent), `http://127.0.0.1:5173/m/mp-webview-harness` (simulated 小程序 web-view parent), or `http://127.0.0.1:5173/m/app-webview-harness` (APP WebView web simulation).  
+Open a mobile-width browser at `http://127.0.0.1:5173/m/host` (standalone web fallback), `http://127.0.0.1:5173/m/host-harness` (iframe parent), `http://127.0.0.1:5173/m/mp-webview-harness` (simulated 小程序 web-view parent), `http://127.0.0.1:5173/m/app-webview-harness` (APP WebView web simulation), or `http://127.0.0.1:5173/m/wx-dt-harness` (WeChat / DingTalk production-host stub).  
 `/m/p3/files` still redirects to `/m/login?return=…` when logged out.
 
 Live upload needs the JAR + issued `X-Nexus-Context-Id` (tenant membership). Missing context is a **403**, not a fixture list.
@@ -90,6 +91,8 @@ Live upload needs the JAR + issued `X-Nexus-Context-Id` (tenant membership). Mis
 `npm run assert:h5-mp-webview` — simulated 小程序 web-view parent: same channels, origin/channel allowlist. Not WeChat / DingTalk production.
 
 `npm run assert:h5-app-webview` — same F014 envelope on the APP WebView web harness. Native binary stays open.
+
+`npm run assert:h5-wx-dt` — WeChat / DingTalk production-host stub: same channels, origin/channel allowlist. Production not accepted.
 
 ## Browser walk (F011 / F012 / F013 — #75, 2026-09-22)
 

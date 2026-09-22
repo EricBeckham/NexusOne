@@ -3,7 +3,7 @@
 Work package: **human PKCE login walk on `/m/*`**.  
 Baseline: Java 21, Spring Boot **4.1.1**, Node 22, system Chrome. No Docker. Desktop ledger / form / todo pages are unchanged. **G18 stays closed.** `AuditPort` is unchanged.
 
-Builds on G4 HTTP-driver PKCE ([g4-pkce-login-audit.md](./g4-pkce-login-audit.md), #108) and the loopback HTTPS leftover ([g4-pkce-https-browser.md](./g4-pkce-https-browser.md), #120). This does **not** close product G15. APP WebView **web** harness is already on main ([g15-app-webview-host.md](./g15-app-webview-host.md), #114) and is not duplicated. Simulated 小程序 web-view is [g15-miniprogram-webview.md](./g15-miniprogram-webview.md) (#117). Native APP / WeChat / DingTalk production stay open.
+Builds on G4 HTTP-driver PKCE ([g4-pkce-login-audit.md](./g4-pkce-login-audit.md), #108) and the loopback HTTPS leftover ([g4-pkce-https-browser.md](./g4-pkce-https-browser.md), #120). This does **not** close product G15. APP WebView **web** harness is already on main ([g15-app-webview-host.md](./g15-app-webview-host.md), #114) and is not duplicated. Simulated 小程序 web-view is [g15-miniprogram-webview.md](./g15-miniprogram-webview.md) (#117). Native APP / WeChat / DingTalk production stay open. The production-host **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md).
 
 ## What this leftover covers
 
@@ -24,7 +24,7 @@ Stub login (`data-testid=mobile-stub-login`) and the confidential authorize butt
 |---|---|
 | Product G15 | **Open.** This is one leftover walk on the mobile browser. |
 | APP WebView native binary | **Open.** Web harness is #114. Not re-walked here. |
-| WeChat / DingTalk production | **Open.** Simulated 小程序 parent is #117. |
+| WeChat / DingTalk production | **Open.** Simulated 小程序 parent is #117. Production-host stub is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). |
 | Live Keycloak human laptop click | **Optional.** Needs #120 CA trust (or the insecure-origin flag). This leftover’s required evidence is Playwright + stub. G4 hash-chain LOGIN remains the HTTP/2 driver on main. |
 | SPA vs BFF on desktop | Desktop `/login` is still stub token. Not changed. |
 | `GET /api/v1/auth/callback` | Still does not carry the verifier. H5 uses POST `/login`. |

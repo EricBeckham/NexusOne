@@ -476,3 +476,187 @@
   font-size: 12px;
   color: #f6e05e;
 }
+
+.wx-dt-harness {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #1a2330;
+  color: #f4f7fb;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+}
+
+.wx-dt-harness.wx-dt-wechat {
+  background: #14261c;
+}
+
+.wx-dt-harness.wx-dt-dingtalk {
+  background: #122033;
+}
+
+.wx-dt-banner {
+  padding: 12px 16px 8px;
+}
+
+.wx-dt-banner h1 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.wx-dt-banner p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  opacity: 0.88;
+}
+
+.wx-dt-badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #b45309;
+  color: #fff7ed;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.wx-dt-contract {
+  color: #9ae6b4;
+}
+
+.wx-dt-vendor-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.wx-dt-vendor-switch button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  background: #334155;
+  color: #fff;
+  font-size: 13px;
+}
+
+.wx-dt-vendor-switch button[aria-pressed="true"] {
+  background: #0f766e;
+}
+
+.wx-dt-dingtalk .wx-dt-vendor-switch button[aria-pressed="true"] {
+  background: #1d4ed8;
+}
+
+.wx-dt-phone {
+  width: min(375px, 100%);
+  margin: 0 auto;
+  background: #111;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.wx-dt-status,
+.wx-dt-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #f7f7f7;
+  color: #111;
+  font-size: 12px;
+}
+
+.wx-dt-wechat .wx-dt-nav {
+  background: #07c160;
+  color: #fff;
+}
+
+.wx-dt-dingtalk .wx-dt-nav {
+  background: #0089ff;
+  color: #fff;
+}
+
+.wx-dt-nav {
+  min-height: 44px;
+}
+
+.wx-dt-nav-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wx-dt-capsule {
+  min-width: 64px;
+  min-height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  text-align: center;
+  line-height: 22px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.wx-dt-webview {
+  display: block;
+  width: 100%;
+  height: 520px;
+  border: 0;
+  background: #fff;
+}
+
+.wx-dt-denied {
+  margin: 0;
+  padding: 24px;
+  color: #b91c1c;
+  background: #fff;
+}
+
+.wx-dt-console {
+  padding: 12px 16px 24px;
+  font-size: 12px;
+}
+
+.wx-dt-console h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.wx-dt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wx-dt-actions button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #0f766e;
+  color: #fff;
+  font-size: 13px;
+}
+
+.wx-dt-dingtalk .wx-dt-actions button {
+  background: #1d4ed8;
+}
+
+.wx-dt-status-line {
+  margin: 8px 0;
+  color: #9ae6b4;
+}
+
+.wx-dt-console ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.wx-dt-leftover {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #f6e05e;
+}

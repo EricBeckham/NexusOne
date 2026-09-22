@@ -31,6 +31,7 @@ const files = {
   harness: read("src/mobile/products/p3-studio/pages/HostHarnessPage.vue"),
   mpHarness: read("src/mobile/products/p3-studio/pages/MiniProgramWebViewHarnessPage.vue"),
   appWebViewHarness: read("src/mobile/products/p3-studio/pages/AppWebViewHarnessPage.vue"),
+  wxDtHarness: read("src/mobile/products/p3-studio/pages/WeChatDingTalkHarnessPage.vue"),
   shell: read("src/mobile/layouts/NxMobileShell.vue"),
   hostBridge: read("src/mobile/host/hostBridge.js"),
   ledger: read("src/views/studio/LedgerListView.vue"),
@@ -74,6 +75,7 @@ requireIncludes("router", files.router, [
   'path: "/m/host-harness"',
   'path: "/m/mp-webview-harness"',
   'path: "/m/app-webview-harness"',
+  'path: "/m/wx-dt-harness"',
   "beforeEach",
   'path: "/m/login"',
   'query: { return: returnTo }',
@@ -106,11 +108,13 @@ requireIncludes("host page", files.hostPage, ["host-out-login", "host-out-route"
 requireIncludes("harness", files.harness, ["host-iframe", "nexus-host", "/m/host?embedded=true"]);
 requireIncludes("mp harness", files.mpHarness, ["mp-webview", "mp-capsule", "MP_WEBVIEW_CHILD_SRC"]);
 requireIncludes("app WebView harness", files.appWebViewHarness, ["NexusAppWebView", "app-webview-send-login", "非原生"]);
+requireIncludes("wx-dt harness", files.wxDtHarness, ["wx-dt-harness", "wx-dt-pick-wechat", "wx-dt-pick-dingtalk", "不是生产验收"]);
 requireIncludes("hostBridge", files.hostBridge, ["HostBridgePort", "postMessage", "nexus-h5", "nexus-host"]);
 
 forbidIncludes("hostBridge", files.hostBridge, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
 forbidIncludes("host page", files.hostPage, ["isWeChat", "isDingTalk"]);
 forbidIncludes("mp harness", files.mpHarness, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
+forbidIncludes("wx-dt harness", files.wxDtHarness, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
 forbidIncludes("home", files.home, ["未在本切片验收"]);
 
 for (const [name, text] of Object.entries({
