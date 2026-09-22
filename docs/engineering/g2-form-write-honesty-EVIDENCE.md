@@ -1,6 +1,6 @@
 # G2 leftover: form.write / POST submissions + submit-start dual-check honesty evidence
 
-Recorded on this agent VM after rebase onto `origin/main` `e63d918` (Merge #168; also #170 at `f1b135c`). **Not** a product G2 close. **Not** a redo of #112 / #116 / #137 / #144 / #150 / #155 / #163. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded on this agent VM after rebase onto `origin/main` `8b6acd0` (Merge #172; also #168 at `e63d918`). **Not** a product G2 close. **Not** a redo of #112 / #116 / #137 / #144 / #150 / #155 / #163. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
 See [docs/g2-form-write-honesty.md](../g2-form-write-honesty.md). Keep both leftover rows: [g2-form-submission-write.md](../g2-form-submission-write.md) and [g2-submit-start-form-write.md](../g2-submit-start-form-write.md).
 
@@ -43,7 +43,7 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** / fake live PASS rejected / fake `g2_close=CLOSED` rejected / fake form.write-only rejected | `2026-09-22T19:39:51Z` |
+| Honesty fixtures | **PASS** / fake live PASS rejected / fake `g2_close=CLOSED` rejected / fake form.write-only rejected | `2026-09-22T19:43:39Z` |
 | FormSurfaceGuard form.write | **PASS** (gate) | collect `--skip-tests` on this VM (`mvn` not on PATH) |
 | submit-start dual-check | **PASS** (gate) | not `form.write` only |
 | leftover rows kept | **true** | both README leftover rows stay |
