@@ -18,10 +18,28 @@ import one.nexus.common.error.ErrorCode;
 import one.nexus.common.error.NexusException;
 import one.nexus.crypto.CryptoPort;
 import one.nexus.crypto.CryptoSuite;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 
 /**
  * PostgreSQL append-only store for {@code platform.audit_record}. Mutations other
  * than INSERT are not issued. Full business-path verification is still deferred.
+ *
+ * <p>{@link #append(AuditEvent)} uses {@link DataSourceUtils} so the chain-head
+ * {@code SELECT ... FOR UPDATE}, the record INSERT, and the
+ * {@code audit_chain_meta} head update join an ambient Spring transaction on the
+ * shared DataSource. There is no private commit on that path: business rollback
+ * rolls the chain writes back with the business row.
+ *
+ * <p>Trade-off: the single-row chain lock is held until the ambient transaction
+ * ends, so concurrent {@code append} callers serialize on
+ * {@code platform.audit_chain_meta}. That keeps hash-chain indexes gapless and
+ * append-only. Splitting the lock into a shorter private transaction would
+ * re-introduce chain/business divergence.
+ *
+ * <p>{@link #appendNewTransaction(AuditEvent)} still commits on a private
+ * connection so guard-reject records can survive a business rollback. Do not
+ * call it from a thread that already holds the chain lock via {@code append}
+ * (two connections waiting on the same {@code FOR UPDATE} deadlock).
  */
 public final class JdbcHashChainedAuditPort implements AuditPort {
     private static final String INSERT =
@@ -46,38 +64,55 @@ public final class JdbcHashChainedAuditPort implements AuditPort {
 
     @Override
     public ChainedAuditEvent append(AuditEvent event) {
-        return write(event);
+        Connection connection = DataSourceUtils.getConnection(dataSource);
+        try {
+            boolean own = !DataSourceUtils.isConnectionTransactional(connection, dataSource);
+            return write(connection, event, own);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("audit append failed", ex);
+        } finally {
+            DataSourceUtils.releaseConnection(connection, dataSource);
+        }
     }
 
     @Override
     public ChainedAuditEvent appendNewTransaction(AuditEvent event) {
-        return write(event);
-    }
-
-    private ChainedAuditEvent write(AuditEvent event) {
         try (Connection connection = dataSource.getConnection()) {
-            boolean previous = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-            try {
-                ChainHead head = lockHead(connection);
-                ChainedAuditEvent linked = chain.link(head.nextIndex(), head.lastHash(), event);
-                insert(connection, linked);
-                try (PreparedStatement update = connection.prepareStatement(
-                        "UPDATE platform.audit_chain_meta SET next_index = ?, last_hash = ? WHERE id = 1")) {
-                    update.setLong(1, linked.chainIndex() + 1);
-                    update.setBytes(2, linked.eventHash());
-                    update.executeUpdate();
-                }
-                connection.commit();
-                return linked;
-            } catch (RuntimeException | SQLException ex) {
-                connection.rollback();
-                throw ex;
-            } finally {
-                connection.setAutoCommit(previous);
-            }
+            return write(connection, event, true);
         } catch (SQLException ex) {
             throw new IllegalStateException("audit append failed", ex);
+        }
+    }
+
+    private ChainedAuditEvent write(Connection connection, AuditEvent event, boolean ownTransaction)
+            throws SQLException {
+        boolean previous = connection.getAutoCommit();
+        if (ownTransaction) {
+            connection.setAutoCommit(false);
+        }
+        try {
+            ChainHead head = lockHead(connection);
+            ChainedAuditEvent linked = chain.link(head.nextIndex(), head.lastHash(), event);
+            insert(connection, linked);
+            try (PreparedStatement update = connection.prepareStatement(
+                    "UPDATE platform.audit_chain_meta SET next_index = ?, last_hash = ? WHERE id = 1")) {
+                update.setLong(1, linked.chainIndex() + 1);
+                update.setBytes(2, linked.eventHash());
+                update.executeUpdate();
+            }
+            if (ownTransaction) {
+                connection.commit();
+            }
+            return linked;
+        } catch (RuntimeException | SQLException ex) {
+            if (ownTransaction) {
+                connection.rollback();
+            }
+            throw ex;
+        } finally {
+            if (ownTransaction) {
+                connection.setAutoCommit(previous);
+            }
         }
     }
 
@@ -168,8 +203,8 @@ public final class JdbcHashChainedAuditPort implements AuditPort {
     }
 
     private List<ChainedAuditEvent> query(String sql, Object... args) {
-        try (Connection connection = dataSource.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+        Connection connection = DataSourceUtils.getConnection(dataSource);
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < args.length; i++) {
                 statement.setObject(i + 1, args[i]);
             }
@@ -182,6 +217,8 @@ public final class JdbcHashChainedAuditPort implements AuditPort {
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("audit query failed", ex);
+        } finally {
+            DataSourceUtils.releaseConnection(connection, dataSource);
         }
     }
 
