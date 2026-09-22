@@ -38,7 +38,7 @@ Positive run allows `infrastructure/Adapter.java` (JDBC) because it sits under `
 
 ## QueryCompiler bypass gate (product `src/main`)
 
-Recorded **2026-09-22T17:38:10Z**. Allowlisted modules are `QueryCompilerBypassAllowlist` / [docs/g1-querycompiler-bypass-ci.md](../../../docs/g1-querycompiler-bypass-ci.md).
+Recorded **2026-09-22T17:42:01Z** after rebase onto `440a504` (#113). Allowlisted modules are `QueryCompilerBypassAllowlist` / [docs/g1-querycompiler-bypass-ci.md](../../../docs/g1-querycompiler-bypass-ci.md).
 
 ```
 PASS QueryCompiler bypass gate: /workspace

@@ -50,8 +50,9 @@ Recorded on this agent VM. Java **21.0.10**, Maven **3.9.16**, Spring Boot **4.1
 
 ```
 mvn -f modules/isolation-kernel/pom.xml test -Dtest=QueryCompilerBypassGateTest,SqlBypassScannerTest
-# Tests run: 9 (7 gate + 2 scanner), Failures: 0  BUILD SUCCESS  2026-09-22T17:37:12Z
-# full isolation-kernel suite: Tests run: 55, Failures: 0  BUILD SUCCESS  2026-09-22T17:39:35Z
+# Tests run: 9 (7 gate + 2 scanner), Failures: 0
+# full isolation-kernel suite: Tests run: 55, Failures: 0  BUILD SUCCESS  2026-09-22T17:41:54Z
+# rebased onto main@440a504 (#113 G7 browser withdraw)
 
 mvn -f modules/isolation-kernel/pom.xml -q exec:java@querycompiler-bypass -Dexec.args="--repo ."
 # PASS QueryCompiler bypass gate: /workspace
@@ -59,7 +60,7 @@ mvn -f modules/isolation-kernel/pom.xml -q exec:java@querycompiler-bypass -Dexec
 mvn -pl nexus-bootstrap -am test \
     -Dtest=G1QueryCompilerBypassTest,QueryCompilerBypassArchTest \
     -Dsurefire.failIfNoSpecifiedTests=false
-# BUILD SUCCESS  2026-09-22T17:38:10Z
+# BUILD SUCCESS  2026-09-22T17:42:01Z
 # G1QueryCompilerBypassTest 1/1; QueryCompilerBypassArchTest 2/2
 # (ArchUnit product layers pass; intentional RawTenantSqlFixture fails the rule)
 ```
