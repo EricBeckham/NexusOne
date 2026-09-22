@@ -47,7 +47,7 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** / fake real-DDL PASS rejected / fake PublishHook PASS rejected / fake memory-as-real-DDL rejected / fake `g5_close=CLOSED` rejected / fake redo rejected | `2026-09-22T21:01:23Z` |
+| Honesty fixtures | **PASS** / fake real-DDL PASS rejected / fake PublishHook PASS rejected / fake memory-as-real-DDL rejected / fake `g5_close=CLOSED` rejected / fake redo rejected | `2026-09-22T21:05:50Z` |
 | #196 mid-publish memory harness | **PASS** (inventory) | in-memory abort-after-SchemaService; **not** real DDL |
 | Memory harness is real DDL | **false** | honesty gate enforces `memory_harness_is_real_ddl=false` |
 | ConfirmThenAbortEvolve is real DDL | **false** | wrapper is not SchemaService DDL |
