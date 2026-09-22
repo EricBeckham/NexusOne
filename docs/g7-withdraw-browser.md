@@ -121,5 +121,6 @@ Expense / travel UI clicks here are the **same Vue button**. They are **not** ca
 | Expense / travel list / detail / todo query | leftover [g7-query-expense-travel.md](./g7-query-expense-travel.md); not this package |
 | Vue `todo-withdraw` + HTTP reachability | **this package** (Vitest against stub / mocked fetch) |
 | Live product-JAR + live IdP browser withdraw | **honest SKIP** unless JAR + issued context + live/Keycloak IdP + Chrome are present |
+| Live JAR/IdP honesty leftover | sibling [g7-withdraw-browser-honesty.md](./g7-withdraw-browser-honesty.md); does not redo this package |
 | G7 three-type product close | **not claimed** |
 | G18 | **stays closed** |
