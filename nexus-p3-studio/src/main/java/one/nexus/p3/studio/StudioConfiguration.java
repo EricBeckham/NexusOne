@@ -8,6 +8,7 @@ import one.nexus.isolation.query.TableRegistry;
 import one.nexus.p3.port.ApplicationRepository;
 import one.nexus.p3.port.FieldRepository;
 import one.nexus.p3.port.LedgerRepository;
+import one.nexus.p3.port.LedgerRecordSink;
 import one.nexus.p3.studio.form.FormService;
 import one.nexus.p3.studio.form.FormStore;
 import one.nexus.p3.studio.form.InMemoryFormStore;
@@ -83,7 +84,9 @@ public class StudioConfiguration {
             LedgerMetadataPort metadata,
             PublishHook hook,
             Clock clock,
-            ObjectProvider<PlatformTransactionManager> transactions) {
-        return new FormService(store, metadata, hook, clock, transactions.getIfAvailable());
+            ObjectProvider<PlatformTransactionManager> transactions,
+            ObjectProvider<LedgerRecordSink> ledgerRecords) {
+        return new FormService(
+                store, metadata, hook, clock, transactions.getIfAvailable(), ledgerRecords.getIfAvailable());
     }
 }

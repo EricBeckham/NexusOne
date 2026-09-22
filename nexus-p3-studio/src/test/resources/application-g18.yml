@@ -1,0 +1,38 @@
+nexus:
+  iam:
+    persistence: memory
+    idp: stub
+    platform-bootstrap-token: test-bootstrap
+  permission:
+    persistence: memory
+  p3:
+    demo-context: true
+  studio:
+    persistence: jdbc
+    demo-context: true
+    seed-demo-metadata: false
+  flow:
+    engine: flowable-7.1.0-in-process
+  notify:
+    persistence: jdbc
+    outbox: auto
+  execution:
+    dispatcher-enabled: false
+    worker-enabled: false
+    quartz-enabled: false
+    quartz-auto-startup: false
+
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: platform
+    default-schema: platform
+    table: flyway_schema_history
+    create-schemas: true
+  sql:
+    init:
+      mode: never

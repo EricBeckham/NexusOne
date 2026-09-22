@@ -81,6 +81,18 @@ public final class JdbcProcessStore {
                 UuidV7.generate(), tenantId, instanceId, todoId, actorId, action, key, ts(at));
     }
 
+    public List<TodoView> todosForInstance(UUID tenantId, UUID instanceId) {
+        return jdbc.query(
+                """
+                SELECT t.*, i.business_key, i.status AS instance_status
+                FROM business_meta.process_todo t
+                JOIN business_meta.process_instance i ON i.id = t.instance_id AND i.tenant_id = t.tenant_id
+                WHERE t.tenant_id = ? AND t.instance_id = ?
+                ORDER BY t.created_at
+                """,
+                todoMapper(), tenantId, instanceId);
+    }
+
     public Optional<ProcessInstanceView> findInstance(UUID tenantId, UUID instanceId) {
         List<ProcessInstanceView> rows = jdbc.query(
                 "SELECT * FROM business_meta.process_instance WHERE tenant_id = ? AND id = ?",

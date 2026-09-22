@@ -70,7 +70,7 @@ See [web/README.md](../web/README.md).
 | G18 | Sequential approval / todo | **SHELL + MOCK** | Inbox/done/initiated; M0-08 `/api/v1/p3/todos`; no G18 |
 | G18 | In-app notification | **SKIP** | TODO M0-10 |
 | G18 | Full audit hash chain | **SKIP** | P1 staging read only; M0-11 |
-| G18 | End-to-end real business walkthrough | **NOT CLOSED** | later packages |
+| G18 | End-to-end real business walkthrough | **NOT CLOSED** | Backend path is wired (`docs/g18-business-path.md`); Vue remains MOCK. This UI package does not close product G18. |
 
 Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (regressed).
 

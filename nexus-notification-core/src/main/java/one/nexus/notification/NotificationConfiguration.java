@@ -2,6 +2,7 @@ package one.nexus.notification;
 
 import java.time.Clock;
 import java.util.List;
+import javax.sql.DataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -44,7 +45,7 @@ public class NotificationConfiguration {
      * The monolith uses {@code JdbcOutboxStore} as {@link OutboxPort}.
      */
     @Bean
-    @ConditionalOnMissingBean(OutboxPort.class)
+    @ConditionalOnMissingBean({OutboxPort.class, DataSource.class})
     OutboxPort outboxPort(NotificationProperties properties, InAppDeliveryHandler handler) {
         if ("immediate".equalsIgnoreCase(properties.getOutbox())) {
             return new ImmediateOutboxPort(List.of(handler));

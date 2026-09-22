@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import javax.sql.DataSource;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 
 public final class Jdbc {
     @FunctionalInterface
@@ -32,8 +33,28 @@ public final class Jdbc {
         }
     }
 
+    /**
+     * Uses the Spring-transaction connection when one is bound so Outbox append
+     * commits or rolls back with the caller. Without an active transaction this
+     * obtains and releases a connection the same way as a plain JDBC call.
+     */
+    public static <T> T transactionalCall(DataSource dataSource, ConnectionWork<T> work) {
+        Connection connection = DataSourceUtils.getConnection(dataSource);
+        try {
+            return work.run(connection);
+        } catch (SQLException ex) {
+            throw new IllegalStateException(ex);
+        } finally {
+            DataSourceUtils.releaseConnection(connection, dataSource);
+        }
+    }
+
     public static void run(DataSource dataSource, ConnectionWork<Void> work) {
         call(dataSource, work);
+    }
+
+    public static void transactionalRun(DataSource dataSource, ConnectionWork<Void> work) {
+        transactionalCall(dataSource, work);
     }
 
     public static Timestamp ts(Instant instant) {

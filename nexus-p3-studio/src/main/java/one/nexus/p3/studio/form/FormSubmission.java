@@ -11,4 +11,6 @@ public record FormSubmission(
         int runningVersion,
         Map<String, Object> values,
         Instant submittedAt,
-        String submittedBy) {}
+        String submittedBy,
+        UUID ledgerId,
+        UUID ledgerRecordId) {}

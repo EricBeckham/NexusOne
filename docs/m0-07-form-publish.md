@@ -22,7 +22,7 @@ Optional<FieldRef>  findField(tenantId, ledgerCode, fieldCode)
 
 `LedgerRef` / `FieldRef` **不含**物理表名或列名。当 M0-06 `LedgerRepository` / `FieldRepository` 存在时，默认 bean 是 `JdbcLedgerMetadataPort`（只暴露逻辑码；`usable` = ledger `READY`）。无 JDBC 仓储时回退 `InMemoryLedgerMetadataCatalog`（`nexus.studio.seed-demo-metadata=true` 预置 `leave_request`）。
 
-发布后的业务行仍由 M0-06 CRUD 写入 `business_data`；填报只写 `business_meta.form_submission`。
+发布后的业务行仍由 M0-06 SchemaService / `GuardedLedgerStore` 写入 `business_data`。填报默认写 `business_meta.form_submission`；当 JDBC `LedgerRecordSink` 存在时（G18），同一次 submit 还会按运行快照的 `ledger_code`/`field_code` 插入物理台账行。没有第二条 DDL 路径。产品 G18 未关闭（见 `docs/g18-business-path.md`）。
 
 ## 状态机
 
@@ -57,7 +57,7 @@ G5（Draft/Running、校验、失败回滚）由模块测试覆盖；不宣称 G
 | POST | `/api/v1/p3/forms/{id}/submissions` | 按 **field_code** 填报运行版本 |
 | GET | `/api/v1/p3/forms/{id}/submissions` | 本租户提交 |
 
-填报写入 `business_meta.form_submission`，**不**写 `business_data` 物理台账（那是 M0-06）。
+填报写入 `business_meta.form_submission`。有 `LedgerRecordSink` 时同时写入 M0-06 物理台账（G18 路径）；无 sink 的内存测试仍只写提交表。
 
 ## 错误码
 
@@ -76,6 +76,7 @@ G5（Draft/Running、校验、失败回滚）由模块测试覆盖；不宣称 G
 ## Flyway
 
 - **V530** `business_meta.form*`。窗口 **V530–V549**。
+- **V531** `form_submission.ledger_id` / `ledger_record_id`（G18 指向物理行；不建 `l_*`）。
 - 不占用 V500（执行）、V501（审计）、V510（文件）、V520（通知）、V400–V499（M0-06 台账元数据）。
 - 禁止 `CREATE TABLE business_data` / `l_*` / `a_*`。
 

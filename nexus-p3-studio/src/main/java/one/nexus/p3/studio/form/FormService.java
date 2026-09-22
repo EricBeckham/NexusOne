@@ -16,6 +16,7 @@ import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.boundary.SideEffectGuard;
 import one.nexus.isolation.context.AccessContextHolder;
+import one.nexus.p3.port.LedgerRecordSink;
 import one.nexus.p3.studio.meta.LedgerMetadataPort;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -29,6 +30,7 @@ public final class FormService {
     private final PublishHook publishHook;
     private final Clock clock;
     private final PlatformTransactionManager transactions;
+    private final LedgerRecordSink ledgerRecords;
 
     public FormService(
             FormStore store,
@@ -36,11 +38,22 @@ public final class FormService {
             PublishHook publishHook,
             Clock clock,
             PlatformTransactionManager transactions) {
+        this(store, metadata, publishHook, clock, transactions, null);
+    }
+
+    public FormService(
+            FormStore store,
+            LedgerMetadataPort metadata,
+            PublishHook publishHook,
+            Clock clock,
+            PlatformTransactionManager transactions,
+            LedgerRecordSink ledgerRecords) {
         this.store = Objects.requireNonNull(store, "store");
         this.metadata = Objects.requireNonNull(metadata, "metadata");
         this.publishHook = publishHook == null ? PublishHook.noop() : publishHook;
         this.clock = Objects.requireNonNull(clock, "clock");
         this.transactions = transactions;
+        this.ledgerRecords = ledgerRecords;
     }
 
     public FormRecord create(String appCode, String formCode, String name, String description, List<FormBinding> bindings) {
@@ -174,42 +187,22 @@ public final class FormService {
 
     public FormSubmission submit(UUID formId, Map<String, Object> values) {
         TenantContext tenant = requireTenant();
-        FormRecord form = load(tenant, formId);
-        FormVersion running = store.findRunning(form.tenantId(), form.formId())
-                .orElseThrow(() -> new NexusException(ErrorCode.FORM_NOT_RUNNING, 409, "form has no running version"));
-        Map<String, Object> payload = values == null ? Map.of() : new LinkedHashMap<>(values);
-        List<Map<String, Object>> errors = new ArrayList<>();
-        for (FormBinding binding : running.snapshot().bindings()) {
-            Object value = payload.get(binding.fieldCode());
-            if (binding.required() && (value == null || String.valueOf(value).isBlank())) {
-                errors.add(Map.of("field_code", binding.fieldCode(), "reason", "required"));
-            }
+        if (transactions != null) {
+            TransactionTemplate template = new TransactionTemplate(transactions);
+            return template.execute(status -> persistSubmission(tenant, formId, values));
         }
-        for (String key : payload.keySet()) {
-            boolean known = running.snapshot().bindings().stream().anyMatch(binding -> binding.fieldCode().equals(key));
-            if (!known) {
-                errors.add(Map.of("field_code", key, "reason", "not bound on running form"));
-            }
-        }
-        if (!errors.isEmpty()) {
-            throw new NexusException(ErrorCode.FORM_SUBMIT_INVALID, 400, "submission rejected", Map.of("errors", errors));
-        }
-        FormSubmission submission = new FormSubmission(
-                UuidV7.generate(),
-                form.formId(),
-                form.tenantId(),
-                running.versionNo(),
-                Map.copyOf(payload),
-                Instant.now(clock),
-                tenant.actor().actorId());
-        store.insertSubmission(submission);
-        return submission;
+        return persistSubmission(tenant, formId, values);
     }
 
     public List<FormSubmission> submissions(UUID formId) {
         TenantContext tenant = requireTenant();
         FormRecord form = load(tenant, formId);
         return store.submissions(form.tenantId(), form.formId());
+    }
+
+    public java.util.Optional<FormSubmission> findByLedgerRecord(UUID ledgerRecordId) {
+        TenantContext tenant = requireTenant();
+        return store.findByLedgerRecord(UUID.fromString(tenant.tenantId()), ledgerRecordId);
     }
 
     private FormRecord activate(TenantContext tenant, UUID formId, String notes) {
@@ -297,6 +290,70 @@ public final class FormService {
                 details,
                 traceId,
                 at);
+    }
+
+    private FormSubmission persistSubmission(TenantContext tenant, UUID formId, Map<String, Object> values) {
+        FormRecord form = load(tenant, formId);
+        FormVersion running = store.findRunning(form.tenantId(), form.formId())
+                .orElseThrow(() -> new NexusException(ErrorCode.FORM_NOT_RUNNING, 409, "form has no running version"));
+        Map<String, Object> payload = values == null ? Map.of() : new LinkedHashMap<>(values);
+        List<Map<String, Object>> errors = new ArrayList<>();
+        for (FormBinding binding : running.snapshot().bindings()) {
+            Object value = payload.get(binding.fieldCode());
+            if (binding.required() && (value == null || String.valueOf(value).isBlank())) {
+                errors.add(Map.of("field_code", binding.fieldCode(), "reason", "required"));
+            }
+        }
+        for (String key : payload.keySet()) {
+            boolean known = running.snapshot().bindings().stream().anyMatch(binding -> binding.fieldCode().equals(key));
+            if (!known) {
+                errors.add(Map.of("field_code", key, "reason", "not bound on running form"));
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new NexusException(ErrorCode.FORM_SUBMIT_INVALID, 400, "submission rejected", Map.of("errors", errors));
+        }
+        UUID recordId = null;
+        UUID ledgerId = null;
+        if (ledgerRecords != null) {
+            String ledgerCode = uniqueLedgerCode(running.snapshot());
+            ledgerId = ledgerRecords.findLedgerId(form.tenantId(), ledgerCode).orElse(null);
+            recordId = ledgerRecords.insert(ledgerCode, ledgerValues(running.snapshot(), payload));
+        }
+        FormSubmission submission = new FormSubmission(
+                UuidV7.generate(),
+                form.formId(),
+                form.tenantId(),
+                running.versionNo(),
+                Map.copyOf(payload),
+                Instant.now(clock),
+                tenant.actor().actorId(),
+                ledgerId,
+                recordId);
+        store.insertSubmission(submission);
+        return submission;
+    }
+
+    public static String uniqueLedgerCode(FormSnapshot snapshot) {
+        List<String> codes = snapshot.bindings().stream().map(FormBinding::ledgerCode).distinct().toList();
+        if (codes.size() != 1) {
+            throw new NexusException(
+                    ErrorCode.FORM_SUBMIT_INVALID,
+                    400,
+                    "G18 submit requires exactly one ledger_code on the running form",
+                    Map.of("ledger_codes", codes));
+        }
+        return codes.getFirst();
+    }
+
+    static Map<String, Object> ledgerValues(FormSnapshot snapshot, Map<String, Object> payload) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        for (FormBinding binding : snapshot.bindings()) {
+            if (payload.containsKey(binding.fieldCode())) {
+                row.put(binding.fieldCode(), payload.get(binding.fieldCode()));
+            }
+        }
+        return row;
     }
 
     private FormRecord load(TenantContext tenant, UUID formId) {

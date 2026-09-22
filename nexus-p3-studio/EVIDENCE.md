@@ -234,3 +234,20 @@ mvn -pl nexus-p3-studio test
 | `LedgerCrudPostgresIT` | 2 skipped (no local PG listener) |
 
 Coordinator merges when GitHub is CLEAN/MERGEABLE; this drop does not self-merge.
+
+# G18 one real business path (backend)
+
+See `docs/g18-business-path.md`. Product G18 is **not** closed (Vue MOCK remains).
+
+Wire: form submit → SchemaService physical `l_*` row → sequential approval in the same Spring TX → `OutboxPort.append` destination `notify.inbox` → M0-11 `AuditPort.findByTraceId`.
+
+Flyway **V531** (window V530–V549) adds `form_submission.ledger_id` / `ledger_record_id`. No `business_data` / `l_*` DDL.
+
+Command:
+
+```bash
+mvn -pl nexus-event-core,nexus-p3-studio -am test -Dtest=OutboxEventContractTest,G18BusinessPathIT,FormPublishStateMachineTest
+```
+
+Runnable evidence is recorded after the IT run on this branch (Zonky PostgreSQL 15.18). Audit hash-chain commits on its own chain lock (M0-11); reject-path audits can survive a business rollback. Outbox INSERT joins the business TX via `DataSourceUtils`.
+

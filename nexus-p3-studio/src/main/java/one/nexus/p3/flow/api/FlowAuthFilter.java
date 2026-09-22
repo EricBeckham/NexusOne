@@ -103,7 +103,8 @@ public class FlowAuthFilter extends OncePerRequestFilter {
     static boolean isFlowPath(String path) {
         return path.startsWith("/api/v1/process")
                 || path.startsWith("/api/v1/todos")
-                || path.startsWith("/api/v1/p3/todos");
+                || path.startsWith("/api/v1/p3/todos")
+                || path.startsWith("/api/v1/p3/path");
     }
 
     private static boolean isPublic(String path) {

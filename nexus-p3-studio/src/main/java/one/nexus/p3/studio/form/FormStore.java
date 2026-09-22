@@ -35,6 +35,10 @@ public interface FormStore {
 
     List<FormSubmission> submissions(UUID tenantId, UUID formId);
 
+    default java.util.Optional<FormSubmission> findByLedgerRecord(UUID tenantId, UUID ledgerRecordId) {
+        return java.util.Optional.empty();
+    }
+
     /**
      * In-memory atomic section. JDBC stores rely on a Spring transaction around the same runnable.
      */
