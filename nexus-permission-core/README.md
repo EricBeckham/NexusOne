@@ -16,7 +16,9 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | Isolation kernel seam: AND extra filters, never strip `tenant_id` | `IsolationDataScopeInjector` |
 | PolicySnapshot version + LRU + fail-closed | `SnapshotManager` |
 | Redis 3.2 PUBLISH invalidation (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |
-| Role / assignment / grant writes (no full admin UI) | `PolicyAdminService` + `/api/v1/permission/*` |
+| Role / assignment / grant writes | `PolicyAdminService` + `/api/v1/permission/*` |
+| G2 role matrix (not `tenant_member` seed) | `RoleMatrixService` + `GET /matrix` + `POST /matrix/example` |
+| Same Decision for list / detail / flow | `SurfaceGuard` |
 
 `tenant_id` on the wire is **rejected** (`P2.PERM.0013`). Use `X-Nexus-Context-Id` from M0-04.
 
@@ -92,7 +94,7 @@ export NEXUS_REDIS_PORT=6379
 
 ## Explicitly out of scope
 
-- Full permission-matrix / simulation / governance admin UI (M0-12)
+- Product-wide G2 (report / export / H5); simulation / time-IP ABAC admin
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
 - Redis failover / Cluster / Sentinel

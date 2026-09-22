@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import one.nexus.permission.engine.FieldRule;
 import one.nexus.permission.engine.Mask;
@@ -28,5 +29,12 @@ class FieldPolicyProjectorTest {
         assertEquals("138****78", FieldPolicyProjector.project(row, fields, true).get("phone"));
         assertTrue(FieldPolicyProjector.canEdit("title", fields));
         assertFalse(FieldPolicyProjector.canEdit("phone", fields));
+        assertTrue(FieldPolicyProjector.canWrite("title", fields));
+        assertFalse(FieldPolicyProjector.canWrite("phone", fields));
+        assertTrue(FieldPolicyProjector.canWrite("title", Map.of()));
+        FieldPolicyProjector.assertWritable(fields, List.of("title"));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                one.nexus.permission.support.PermissionException.class,
+                () -> FieldPolicyProjector.assertWritable(fields, List.of("hidden")));
     }
 }

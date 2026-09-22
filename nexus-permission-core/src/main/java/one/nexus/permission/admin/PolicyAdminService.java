@@ -13,7 +13,7 @@ import one.nexus.permission.persist.PolicyRepository;
 import one.nexus.permission.redis.PolicyInvalidationPort;
 import one.nexus.permission.support.PermissionException;
 
-/** Role / assignment / grant writes. Full admin UI is M0-12. */
+/** Role / assignment / grant writes. G2 matrix UI reads the same repository. */
 public final class PolicyAdminService {
     private final PolicyRepository repository;
     private final PolicyInvalidationPort invalidation;

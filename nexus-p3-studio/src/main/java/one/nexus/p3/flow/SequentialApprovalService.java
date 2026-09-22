@@ -14,7 +14,8 @@ import one.nexus.p3.flow.ProcessRecords.TodoView;
 import one.nexus.p3.flow.engine.FlowEngineConfiguration;
 import one.nexus.p3.flow.persist.JdbcProcessStore;
 import one.nexus.permission.PermissionModule;
-import one.nexus.permission.engine.Decision;
+import one.nexus.permission.surface.SurfaceGuard;
+import one.nexus.permission.support.PermissionException;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.runtime.ProcessInstance;
@@ -185,9 +186,10 @@ public class SequentialApprovalService {
     }
 
     private void guard(String resource, String action) {
-        Decision decision = permission.service().decide(resource, action);
-        if ("explicit_deny".equals(decision.reason()) || "tenant_boundary".equals(decision.reason())) {
-            throw FlowException.forbidden(decision.reason());
+        try {
+            SurfaceGuard.require(permission.service(), resource, action);
+        } catch (PermissionException ex) {
+            throw FlowException.forbidden(ex.getMessage());
         }
     }
 

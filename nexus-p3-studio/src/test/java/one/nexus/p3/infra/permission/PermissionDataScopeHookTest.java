@@ -35,12 +35,12 @@ class PermissionDataScopeHookTest {
     }
 
     @Test
-    void noGrantFallsBackToTenantOnly() {
+    void noGrantIsDeniedLikeFlow() {
         bindIssued();
         PermissionDataScopeHook hook = hook(decision("ledger", "read", new Decision(false, "no_grant")), null);
-        ScopedRead scoped = hook.bind("tenant-a", "ledger", "read");
-        assertEquals("tenant_only", scoped.decision().reason());
-        assertTrue(scoped.decision().allowed());
+        PermissionException ex = assertThrows(
+                PermissionException.class, () -> hook.bind("tenant-a", "ledger", "read"));
+        assertEquals("P2.PERM.0003", ex.errorCode().code());
     }
 
     @Test

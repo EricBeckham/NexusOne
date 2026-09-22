@@ -137,11 +137,19 @@ export const p2 = {
     api(`/api/v1/internal/tenants/${tenantId}/admin-users`, { method: "POST", body, auth: false }),
 };
 
-/** M0-05 permission engine. No /api/v1/p2/roles — those stubs never shipped. */
+/** M0-05 / G2 permission engine. Role matrix lives here; no /api/v1/p2/roles. */
 export const perm = {
   health: () => api("/api/v1/permission/health", { auth: false }),
   snapshot: () => api("/api/v1/permission/snapshot"),
   check: (body) => api("/api/v1/permission/check", { method: "POST", body }),
+  matrix: () => api("/api/v1/permission/matrix"),
+  roles: () => api("/api/v1/permission/roles"),
+  assignments: () => api("/api/v1/permission/assignments"),
+  grants: () => api("/api/v1/permission/grants"),
+  installExample: () => api("/api/v1/permission/matrix/example", { method: "POST", body: {} }),
+  createRole: (body) => api("/api/v1/permission/roles", { method: "POST", body }),
+  assign: (body) => api("/api/v1/permission/assignments", { method: "POST", body }),
+  grant: (body) => api("/api/v1/permission/grants", { method: "POST", body }),
 };
 
 /** M0-10 in-app notify. List is empty without a server-issued TenantContext (403). */
