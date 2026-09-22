@@ -48,4 +48,4 @@ psql -d nexusone_g6_src \
 
 ## 本仓库接口
 
-`one.nexus.audit.recovery.RecoveryPort.dryRunPostgres()` 只探测 `pg_dump --version`，**不会**执行 dump、schema apply 或按租户 COPY。`profileAccepted` 恒为 false。本 leftover 走脚本 / 本 runbook，不改产品代码。
+`one.nexus.audit.recovery.RecoveryPort.dryRunPostgres()` 只探测 `pg_dump --version`，**不会**执行 dump、schema apply 或按租户 COPY。`profileAccepted` 恒为 false。本 leftover 走脚本 / 本 runbook，不改产品代码。dry-run 契约 leftover 见 [g6-recovery-port-dry-run.md](../../g6-recovery-port-dry-run.md)。
