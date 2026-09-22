@@ -15,10 +15,13 @@ public interface AuditArchivePort {
 
     List<ChainedAuditEvent> findArchivedByTraceId(String traceId);
 
+    /** All same-PG archive rows. Used as the source for object-store cold copy. */
+    List<ChainedAuditEvent> findArchived();
+
     /**
      * Remove archive-store rows whose {@code occurred_at} is older than
      * {@code now - archiveRetention}. Hot chain is untouched. Same-PG delete is
-     * the implemented path; object-store cold archive is out of scope.
+     * the implemented path. Object-store cold archive is a separate copy.
      */
     ArchiveRunResult purgeExpiredArchive(Duration archiveRetention, Instant now);
 }

@@ -84,6 +84,10 @@ nexus:
     archive:
       # Opt-in daily Quartz (02:30 UTC). Default off so ITs do not fire a platform Job.
       schedule-enabled: ${NEXUS_AUDIT_ARCHIVE_SCHEDULE_ENABLED:false}
+    cold-archive:
+      # Opt-in daily Quartz (02:45 UTC) after the same-PG copy. Default off.
+      # Object bytes go through ObjectStoragePort (Counting Fake or MinIO via SecretPort).
+      schedule-enabled: ${NEXUS_AUDIT_COLD_ARCHIVE_SCHEDULE_ENABLED:false}
   permission:
     persistence: ${NEXUS_PERMISSION_PERSISTENCE:memory}
     seed-tenant-member-grants: ${NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS:true}
