@@ -1,31 +1,34 @@
 package one.nexus.file;
 
 import java.time.Clock;
+import one.nexus.crypto.SecretPort;
+import one.nexus.file.infra.CountingObjectStorage;
+import one.nexus.file.infra.InMemoryFileObjectRepository;
+import one.nexus.file.infra.JdbcFileObjectRepository;
+import one.nexus.file.infra.MinioObjectStorage;
+import one.nexus.file.infra.OwnerOnlyAccessPolicy;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import one.nexus.file.infra.CountingObjectStorage;
-import one.nexus.file.infra.InMemoryFileObjectRepository;
-import one.nexus.file.infra.JdbcFileObjectRepository;
-import one.nexus.file.infra.MinioObjectStorage;
-import one.nexus.file.infra.OwnerOnlyAccessPolicy;
 
 @Configuration
 @EnableConfigurationProperties(FileProperties.class)
 public class FileConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    ObjectStoragePort objectStoragePort(FileProperties properties) {
+    ObjectStoragePort objectStoragePort(FileProperties properties, ObjectProvider<SecretPort> secrets) {
         if ("s3".equalsIgnoreCase(properties.getStorage())
                 && properties.getS3().getEndpoint() != null
                 && !properties.getS3().getEndpoint().isBlank()) {
-            return new MinioObjectStorage(
-                    properties.getS3().getEndpoint(),
-                    properties.getS3().getAccessKey(),
-                    properties.getS3().getSecretKey());
+            SecretPort port = secrets.getIfAvailable();
+            if (port == null) {
+                throw new IllegalStateException(
+                        "S3 storage retrieves credentials only via SecretPort (local+env; no OpenBao/KMS)");
+            }
+            return MinioObjectStorage.fromSecretPort(properties.getS3().getEndpoint(), port);
         }
         return new CountingObjectStorage();
     }

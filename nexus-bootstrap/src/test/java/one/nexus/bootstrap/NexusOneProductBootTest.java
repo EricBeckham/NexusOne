@@ -8,6 +8,8 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.List;
+import one.nexus.crypto.LocalThenEnvSecretPort;
+import one.nexus.crypto.SecretPort;
 import one.nexus.event.OutboxPort;
 import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.notification.NotificationService;
@@ -39,6 +41,9 @@ class NexusOneProductBootTest {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    SecretPort secretPort;
 
     @BeforeAll
     static void startPostgres() throws Exception {
@@ -88,5 +93,15 @@ class NexusOneProductBootTest {
                 "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'exec_outbox'",
                 Integer.class);
         assertEquals(1, outboxTable);
+    }
+
+    @Test
+    void productBootWiresLocalThenEnvSecretPort() {
+        assertTrue(secretPort instanceof LocalThenEnvSecretPort, () -> "expected LocalThenEnvSecretPort, got "
+                + (secretPort == null ? "null" : secretPort.getClass().getName()));
+        assertEquals("local+env", secretPort.backend());
+        secretPort.put("s0.probe", "not-for-git".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals("not-for-git", secretPort.getUtf8("s0.probe"));
+        secretPort.delete("s0.probe");
     }
 }

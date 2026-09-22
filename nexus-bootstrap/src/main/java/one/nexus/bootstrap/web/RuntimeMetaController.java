@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import one.nexus.common.trace.TraceIds;
 import one.nexus.crypto.CryptoPort;
+import one.nexus.crypto.SecretPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,14 +21,17 @@ public class RuntimeMetaController {
     private final JdbcTemplate jdbcTemplate;
     private final String springBootVersion;
     private final ObjectProvider<CryptoPort> crypto;
+    private final ObjectProvider<SecretPort> secrets;
 
     public RuntimeMetaController(
             JdbcTemplate jdbcTemplate,
             @Value("${info.app.spring-boot}") String springBootVersion,
-            ObjectProvider<CryptoPort> crypto) {
+            ObjectProvider<CryptoPort> crypto,
+            ObjectProvider<SecretPort> secrets) {
         this.jdbcTemplate = jdbcTemplate;
         this.springBootVersion = springBootVersion;
         this.crypto = crypto;
+        this.secrets = secrets;
     }
 
     @GetMapping("/runtime")
@@ -46,6 +50,12 @@ public class RuntimeMetaController {
             body.put("crypto_suite", port.suite().name());
             body.put("crypto_key_id", port.currentKey().keyId());
             body.put("crypto_key_version", port.currentKey().version());
+        }
+        SecretPort secretPort = secrets.getIfAvailable();
+        if (secretPort != null) {
+            body.put("secret_backend", secretPort.backend());
+            body.put("secret_openbao", false);
+            body.put("secret_kms", false);
         }
         log.info("runtime meta requested");
         return body;

@@ -11,7 +11,7 @@
 
 需求基准：[需求规格 V1.1](./docs/requirements/星枢企业业务平台_需求规格_V1.1.md)；技术基准：[技术框架 V1.1](./docs/architecture/星枢企业业务平台_技术框架_V1.1.md)。
 
-当前执行口径：数据库为本机 PostgreSQL 15，缓存为本机 Redis 3.2；Java 应用直接以本机 JAR/进程运行，**不使用 Docker**。凭据只通过本机环境变量或受控 Secret 提供，不写入仓库或 Issue。`poc/` 是此前验证资产，不能自动视为正式验收通过。
+当前执行口径：数据库为本机 PostgreSQL 15，缓存为本机 Redis 3.2；Java 应用直接以本机 JAR/进程运行，**不使用 Docker**。凭据只通过本机环境变量或受控 Secret 提供，不写入仓库或 Issue。业务代码只经 `SecretPort`（进程内 overlay + 环境变量）取凭据；**不引入 OpenBao / KMS**。说明见 [docs/engineering/s0-secret-port.md](./docs/engineering/s0-secret-port.md)。`poc/` 是此前验证资产，不能自动视为正式验收通过。
 
 M0-10（CachePort / File Service / 站内通知）见 [docs/m0-10-file-cache-notify.md](./docs/m0-10-file-cache-notify.md)。可选 live Redis / MinIO 跨租户拒绝钻见 [docs/g1-live-redis-minio.md](./docs/g1-live-redis-minio.md)。
 M0-07（基础表单与发布）见 [docs/m0-07-form-publish.md](./docs/m0-07-form-publish.md)。G5 表单失败回滚证据见 [docs/g5-form-publish-rollback.md](./docs/g5-form-publish-rollback.md)。

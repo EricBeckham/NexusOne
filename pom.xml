@@ -27,10 +27,10 @@
     <module>nexus-event-core</module>
     <module>nexus-task-core</module>
     <module>nexus-cache-core</module>
+    <module>nexus-crypto-core</module>
     <module>nexus-file-core</module>
     <module>nexus-notification-core</module>
     <module>nexus-audit-core</module>
-    <module>nexus-crypto-core</module>
     <module>nexus-p1-tenant</module>
     <module>nexus-p2-iam</module>
     <module>nexus-p3-studio</module>

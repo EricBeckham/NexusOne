@@ -38,6 +38,7 @@ public record ErrorCode(String product, String module, int number) {
     public static final ErrorCode CRYPTO_INTEGRITY = of("CORE", "CRYPTO", 3);
     public static final ErrorCode SECRET_NOT_FOUND = of("CORE", "SECRET", 1);
     public static final ErrorCode SECRET_PLAINTEXT_FORBIDDEN = of("CORE", "SECRET", 2);
+    public static final ErrorCode SECRET_BACKEND_READ_ONLY = of("CORE", "SECRET", 3);
     public static final ErrorCode AUDIT_CHAIN_BROKEN = of("CORE", "AUDIT", 1);
     public static final ErrorCode AUDIT_APPEND_ONLY = of("CORE", "AUDIT", 2);
     public static final ErrorCode RECOVERY_DRY_RUN_ONLY = of("CORE", "RECOVERY", 1);

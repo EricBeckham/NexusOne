@@ -18,6 +18,10 @@
     </dependency>
     <dependency>
       <groupId>one.nexus</groupId>
+      <artifactId>nexus-crypto-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
       <artifactId>nexus-cache-core</artifactId>
     </dependency>
     <dependency>

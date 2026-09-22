@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.jupiter.api.Test;
+import java.util.HashMap;
+import java.util.Map;
 import one.nexus.common.error.ErrorCode;
 import one.nexus.common.error.NexusException;
+import org.junit.jupiter.api.Test;
 
 class SecretPortTest {
     @Test
@@ -25,6 +27,25 @@ class SecretPortTest {
         NexusException thrown = assertThrows(NexusException.class, () -> secrets.get("datasource.password"));
         assertEquals(ErrorCode.SECRET_NOT_FOUND, thrown.errorCode());
         assertTrue(secrets.find("missing").isEmpty());
+    }
+
+    @Test
+    void localOverlayWinsOverEnvironment() {
+        Map<String, String> env = new HashMap<>();
+        env.put("S3_SECRET_KEY", "from-env");
+        env.put("S3_ACCESS_KEY", "env-user");
+        CryptoPort crypto = JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL);
+        SecretPort secrets = new LocalThenEnvSecretPort(
+                new LocalEncryptedSecretAdapter(crypto),
+                new EnvSecretAdapter(crypto.suite(), SecretNames.envBindings(), env::get));
+
+        assertEquals("local+env", secrets.backend());
+        assertEquals("from-env", secrets.getUtf8(SecretNames.S3_SECRET_KEY));
+        secrets.put(SecretNames.S3_SECRET_KEY, "from-local".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals("from-local", secrets.getUtf8(SecretNames.S3_SECRET_KEY));
+        secrets.delete(SecretNames.S3_SECRET_KEY);
+        assertEquals("from-env", secrets.getUtf8(SecretNames.S3_SECRET_KEY));
+        assertEquals("env-user", secrets.getUtf8(SecretNames.S3_ACCESS_KEY));
     }
 
     @Test

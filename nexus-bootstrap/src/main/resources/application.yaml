@@ -96,9 +96,8 @@ nexus:
     demo-context: false
     s3:
       endpoint: ${S3_ENDPOINT:}
-      access-key: ${S3_ACCESS_KEY:}
-      secret-key: ${S3_SECRET_KEY:}
       bucket: ${S3_TEST_BUCKET:nexus-files}
+      # access/secret keys: SecretPort only (S3_ACCESS_KEY / S3_SECRET_KEY). Not Spring properties.
   notify:
     persistence: jdbc
     outbox: auto
