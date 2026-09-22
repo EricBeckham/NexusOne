@@ -1,6 +1,6 @@
 # G6 leftover: RecoveryPort still dry-run / not product HA honesty evidence
 
-Recorded on this branch after rebase onto `origin/main` `0615095` (Merge #187 G17 SoD leftover honesty; includes #183 at `cf8fc8b`). **Not** a product RecoveryPort close. **Not** a product G6 close. **Not** minute-level RPO. **Not** product HA. **Not** delivery-grade HA. **Not** a redo of #135 or #164. **Not** a G18 reopen. **Not** a P0/M0 redo. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. `haopan_platform` was not touched. Product DB was not mutated.
+Recorded on this branch after rebase onto `origin/main` `f59f879` (Merge #185 live Redis+MinIO isolation honesty; includes #189 at `03e2a4a`). **Not** a product RecoveryPort close. **Not** a product G6 close. **Not** minute-level RPO. **Not** product HA. **Not** delivery-grade HA. **Not** a redo of #135 or #164. **Not** a G18 reopen. **Not** a P0/M0 redo. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. `haopan_platform` was not touched. Product DB was not mutated.
 
 See [docs/g6-recovery-port-dry-run-honesty.md](../g6-recovery-port-dry-run-honesty.md). Keep **both** leftover rows in [docs/README.md](../README.md): [g6-recovery-port-dry-run.md](../g6-recovery-port-dry-run.md) (#135) and [g6-recovery-port-honesty.md](../g6-recovery-port-honesty.md) (#164). Keep ALL sibling leftover rows.
 
