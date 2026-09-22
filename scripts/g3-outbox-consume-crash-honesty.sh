@@ -233,10 +233,11 @@ if grep -Fq '[g3-outbox-consume-idempotent](./g3-outbox-consume-idempotent.md)' 
   && grep -Fq '[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)' "$README" \
   && grep -Fq '[linux-arm-profile-leftover-honesty](./linux-arm-profile-leftover-honesty.md)' "$README" \
   && grep -Fq '[g7-query-expense-travel-honesty](./g7-query-expense-travel-honesty.md)' "$README" \
+  && grep -Fq '[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)' "$README" \
   && grep -Fq '[g4-hot-purge-90d-honesty](./g4-hot-purge-90d-honesty.md)' "$README"; then
   LEFTOVER_ROWS=true
 fi
-[ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep sibling leftover rows (g3-outbox-consume-idempotent, g3-claim-crash-window, g17-separation-honesty, s0s1-live-redis-minio-isolation-honesty, g6-recovery-port-dry-run-honesty, g4-p1-staging-audit-events-honesty, linux-arm-profile-leftover-honesty, g7-query-expense-travel-honesty, g4-hot-purge-90d-honesty)"
+[ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep sibling leftover rows (g3-outbox-consume-idempotent, g3-claim-crash-window, g17-separation-honesty, s0s1-live-redis-minio-isolation-honesty, g6-recovery-port-dry-run-honesty, g4-p1-staging-audit-events-honesty, linux-arm-profile-leftover-honesty, g7-query-expense-travel-honesty, s0-secret-rotate-without-restart-honesty, g4-hot-purge-90d-honesty)"
 
 TEST_SUMMARY=""
 if [ "$SKIP_TESTS" = "0" ]; then

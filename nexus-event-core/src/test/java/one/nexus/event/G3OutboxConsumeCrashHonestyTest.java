@@ -142,6 +142,7 @@ class G3OutboxConsumeCrashHonestyTest {
         assertTrue(readme.contains("[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)"));
         assertTrue(readme.contains("[linux-arm-profile-leftover-honesty](./linux-arm-profile-leftover-honesty.md)"));
         assertTrue(readme.contains("[g7-query-expense-travel-honesty](./g7-query-expense-travel-honesty.md)"));
+        assertTrue(readme.contains("[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)"));
         assertTrue(readme.contains("[g4-hot-purge-90d-honesty](./g4-hot-purge-90d-honesty.md)"));
         assertTrue(readme.contains("[g1-fieldpolicy-mask-second-auth-honesty](./g1-fieldpolicy-mask-second-auth-honesty.md)"));
         assertTrue(readme.contains("[g10-identity-drift-honesty](./g10-identity-drift-honesty.md)"));
@@ -181,6 +182,7 @@ class G3OutboxConsumeCrashHonestyTest {
         assertTrue(text.contains("g4-p1-staging-audit-events-honesty.md"));
         assertTrue(text.contains("linux-arm-profile-leftover-honesty.md"));
         assertTrue(text.contains("g7-query-expense-travel-honesty.md"));
+        assertTrue(text.contains("s0-secret-rotate-without-restart-honesty.md"));
         assertTrue(text.contains("g4-hot-purge-90d-honesty.md"));
         assertTrue(text.contains("不要重开 G18"));
         assertFalse(text.contains("产品 G3 已关闭"));
