@@ -70,7 +70,7 @@ mvn -pl nexus-permission-core -am test
 PostgreSQL 15.x golden + JDBC isolation (skips only when the database is unreachable; **fails** if a reachable server is not 15.x):
 
 ```bash
-export NEXUS_PERM_TEST_JDBC_URL='jdbc:postgresql:///nexus_p2_perm_test'
+export NEXUS_PERM_TEST_JDBC_URL='jdbc:postgresql://127.0.0.1:5432/nexus_p2_perm_test'
 export NEXUS_PERM_TEST_JDBC_USER='ubuntu'
 # password via env if the role has one
 mvn -pl nexus-permission-core -am test
