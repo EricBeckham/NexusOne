@@ -85,10 +85,7 @@ public class IssuedTenantIsolationFilter extends OncePerRequestFilter {
             if (iam != null && header != null && header.startsWith("Bearer ") && contextId != null && !contextId.isBlank()) {
                 SessionService.AuthenticatedIdentity session = iam.sessions().authenticate(header.substring(7));
                 var issued = iam.sessions().loadContext(UUID.fromString(contextId), session.claims().subject());
-                TenantMemberGrantSeeder seeder = grantSeeder.getIfAvailable();
-                if (seeder != null) {
-                    seeder.ensure();
-                }
+                TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
                 String actorId = issued.personId() == null
                         ? issued.accountId().toString()
                         : issued.personId().toString();

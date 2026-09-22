@@ -12,18 +12,24 @@ import one.nexus.permission.persist.PolicyRepository;
 import one.nexus.permission.persist.PolicyRepository.AssignmentRecord;
 import one.nexus.permission.persist.PolicyRepository.GrantRecord;
 import one.nexus.permission.persist.PolicyRepository.RoleRecord;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
  * Demo-path bootstrap: role {@code tenant_member} with ledger/form read+write ALL
- * and process.task approve/reject, assigned to the current person id (M0-05
- * {@code IamSubjectDirectory} uses personId as userId, not position codes).
+ * and process.task approve/reject, assigned to the current person id
+ * (M0-05 {@code IamSubjectDirectory} uses personId as userId; position
+ * {@code TENANT_ADMIN} codes do not match).
  *
- * <p>Enabled by {@code nexus.permission.seed-tenant-member-grants=true}. Off by
- * default so permission-core ITs keep observing {@code no_grant} until an
- * explicit grant is written.
+ * <p>Product default is {@code nexus.permission.seed-tenant-member-grants=true}.
+ * Permission-core ITs leave the property unset so they still observe
+ * {@code no_grant} until an explicit grant is written.
+ *
+ * <p>Must run after a server-issued TenantContext is bound — including the
+ * browser permission shell ({@code /api/v1/permission/snapshot|check}), not
+ * only P3 ledger hooks. Call {@link #ensure()} from those filters.
  */
 @Component
 @ConditionalOnBean(PermissionModule.class)
@@ -45,6 +51,20 @@ public class TenantMemberGrantSeeder {
 
     public TenantMemberGrantSeeder(PermissionModule permission) {
         this.permission = permission;
+    }
+
+    /**
+     * No-op when the seeder bean is off (permission-core ITs) or the provider
+     * is missing. Safe to call from every TenantContext binder.
+     */
+    public static void ensureIfPresent(ObjectProvider<TenantMemberGrantSeeder> grantSeeder) {
+        if (grantSeeder == null) {
+            return;
+        }
+        TenantMemberGrantSeeder seeder = grantSeeder.getIfAvailable();
+        if (seeder != null) {
+            seeder.ensure();
+        }
     }
 
     public void ensure() {

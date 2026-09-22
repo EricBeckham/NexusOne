@@ -40,10 +40,7 @@ public class PermissionDataScopeHook implements DataScopeHook {
         if (TenantContextHolder.get() == null) {
             return tenantOnly(tenantId);
         }
-        TenantMemberGrantSeeder seeder = grantSeeder.getIfAvailable();
-        if (seeder != null) {
-            seeder.ensure();
-        }
+        TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
         Decision decision = permission.service().decide(resource, action);
         if (decision.allowed()) {
             return new ScopedRead(PermissionQueryBinder.bind(tenantId, decision), decision);
