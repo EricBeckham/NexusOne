@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# G4 follow-up: export hash-chain audit + 90-day archive Job (Zonky PG 15).
+# G4 follow-up: export hash-chain audit + 90-day archive Job + 365-day purge (Zonky PG 15).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 exec mvn -pl nexus-common,nexus-audit-core,modules/isolation-kernel,nexus-bootstrap -am test \

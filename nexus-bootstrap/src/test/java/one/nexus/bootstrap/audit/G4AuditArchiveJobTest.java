@@ -1,7 +1,6 @@
 package one.nexus.bootstrap.audit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,11 +56,38 @@ class G4AuditArchiveJobTest {
 
         ArchiveRunResult result = runner.runOnce("trace-archive-g4");
         assertEquals(1, result.copied());
+        assertEquals(0, result.purged());
         assertEquals(1, archive.findArchivedByTraceId(oldTrace).size());
         assertEquals(1, hot.chain().size());
         assertTrue(hot.verifyChain().intact());
         assertTrue(handler.supports(AuditArchiveJob.TASK_TYPE));
-        assertFalse(result.purgeImplemented());
+        assertTrue(result.purgeImplemented());
+    }
+
+    @Test
+    void platformRunnerPurgesArchiveOlderThan365Days() {
+        var hot = new InMemoryHashChainedAuditPort(JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL));
+        UUID tenant = UuidV7.generate();
+        String expiredTrace = "0199a1c0-0000-7000-8000-00000000r365";
+        String keptTrace = "0199a1c0-0000-7000-8000-00000000r200";
+        hot.append(aged(tenant, expiredTrace, NOW.minus(AuditRetentionPolicy.ARCHIVE_RETENTION).minusSeconds(30)));
+        hot.append(aged(tenant, keptTrace, NOW.minus(AuditRetentionPolicy.ARCHIVE_RETENTION).plusSeconds(86_400)));
+        var archive = new InMemoryAuditArchivePort(hot);
+        var job = new AuditArchiveJob(archive, Clock.fixed(NOW, ZoneOffset.UTC));
+        var handler = new AuditArchiveTaskHandler(job);
+        IsolationKernel kernel = IsolationKernel.create(
+                new TableRegistry(), Set.of(AuditArchiveJob.PLATFORM_PATH), new CollectingAuditSink());
+        var runner = new AuditArchiveRunner(new ExecutionIsolation(kernel), handler, job);
+
+        ArchiveRunResult result = runner.runOnce("trace-archive-expiry-g4");
+        assertEquals(2, result.copied());
+        assertEquals(1, result.purged());
+        assertEquals(1, result.archiveSize());
+        assertTrue(result.purgeImplemented());
+        assertEquals(0, archive.findArchivedByTraceId(expiredTrace).size());
+        assertEquals(1, archive.findArchivedByTraceId(keptTrace).size());
+        assertEquals(2, hot.chain().size());
+        assertTrue(hot.verifyChain().intact());
     }
 
     @Test

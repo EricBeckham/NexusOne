@@ -1,13 +1,15 @@
 package one.nexus.audit;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Platform archive Job: copy hot rows older than 90 days. Not a tenant
- * {@code IsolatedQuartzJob} (that API requires membership). Product wires a
- * {@code TaskHandler} / opt-in Quartz trigger that issues {@code PlatformContext}
- * path {@link #PLATFORM_PATH} and calls {@link #run()}.
+ * Platform archive Job: copy hot rows older than 90 days, then purge archive
+ * rows older than 365 days. Not a tenant {@code IsolatedQuartzJob} (that API
+ * requires membership). Product wires a {@code TaskHandler} / opt-in Quartz
+ * trigger that issues {@code PlatformContext} path {@link #PLATFORM_PATH} and
+ * calls {@link #run()}.
  */
 public final class AuditArchiveJob {
     public static final String TASK_TYPE = "audit.archive.copy";
@@ -23,7 +25,10 @@ public final class AuditArchiveJob {
     }
 
     public ArchiveRunResult run() {
-        last = archive.copyHotOlderThan(AuditRetentionPolicy.HOT_RETENTION, clock.instant());
+        Instant now = clock.instant();
+        ArchiveRunResult copy = archive.copyHotOlderThan(AuditRetentionPolicy.HOT_RETENTION, now);
+        ArchiveRunResult purge = archive.purgeExpiredArchive(AuditRetentionPolicy.ARCHIVE_RETENTION, now);
+        last = copy.withPurge(purge);
         return last;
     }
 

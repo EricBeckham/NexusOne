@@ -6,7 +6,9 @@ import java.util.List;
 
 /**
  * Copy path from hot {@code platform.audit_record} toward a 365-day archive.
- * Implementations must INSERT only. They must not UPDATE or DELETE the hot chain.
+ * Implementations must INSERT only on the hot chain. They must not UPDATE or
+ * DELETE {@code platform.audit_record}. Archive expiry may DELETE (or equivalent
+ * remove) rows from the archive store only.
  */
 public interface AuditArchivePort {
     ArchiveRunResult copyHotOlderThan(Duration hotRetention, Instant now);
@@ -14,10 +16,9 @@ public interface AuditArchivePort {
     List<ChainedAuditEvent> findArchivedByTraceId(String traceId);
 
     /**
-     * 365-day archive expiry is not implemented. Default returns a zero-copy
-     * result with {@code purgeImplemented=false}.
+     * Remove archive-store rows whose {@code occurred_at} is older than
+     * {@code now - archiveRetention}. Hot chain is untouched. Same-PG delete is
+     * the implemented path; object-store cold archive is out of scope.
      */
-    default ArchiveRunResult purgeExpiredArchive(Duration archiveRetention, Instant now) {
-        return new ArchiveRunResult(0, 0, now.minus(archiveRetention), false);
-    }
+    ArchiveRunResult purgeExpiredArchive(Duration archiveRetention, Instant now);
 }

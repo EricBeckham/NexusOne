@@ -33,7 +33,7 @@ public final class AuditArchiveRunner {
         PlatformContext platform = isolation.restorePlatform(
                 AuditArchiveJob.PLATFORM_PATH,
                 Actor.system("audit-archive"),
-                "90-day hot copy",
+                "90-day copy + 365-day archive purge",
                 trace);
         return AccessContextHolder.call(platform, () -> {
             IsolatedEnvelope envelope = IsolatedEnvelope.fromCurrent(AuditArchiveJob.TASK_TYPE, "{}");

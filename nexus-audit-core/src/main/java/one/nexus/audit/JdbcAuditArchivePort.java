@@ -21,7 +21,8 @@ import org.springframework.jdbc.datasource.DataSourceUtils;
 /**
  * INSERT-only copy of aged {@code platform.audit_record} rows into
  * {@code platform.audit_record_archive}. Never issues UPDATE/DELETE on the hot
- * table. Re-runs are idempotent on {@code event_id}.
+ * table. Re-runs are idempotent on {@code event_id}. Archive expiry DELETEs
+ * copy-table rows older than 365 days; the hot chain stays append-only.
  */
 public final class JdbcAuditArchivePort implements AuditArchivePort {
     private static final String COPY =
@@ -40,6 +41,9 @@ public final class JdbcAuditArchivePort implements AuditArchivePort {
             WHERE occurred_at < ?
             ON CONFLICT (event_id) DO NOTHING
             """;
+
+    private static final String PURGE =
+            "DELETE FROM platform.audit_record_archive WHERE occurred_at < ?";
 
     private final DataSource dataSource;
 
@@ -86,6 +90,49 @@ public final class JdbcAuditArchivePort implements AuditArchivePort {
             }
         } catch (SQLException ex) {
             throw new IllegalStateException("audit archive copy failed", ex);
+        } finally {
+            DataSourceUtils.releaseConnection(connection, dataSource);
+        }
+    }
+
+    @Override
+    public ArchiveRunResult purgeExpiredArchive(Duration archiveRetention, Instant now) {
+        Objects.requireNonNull(archiveRetention, "archiveRetention");
+        Objects.requireNonNull(now, "now");
+        Instant cutoff = now.minus(archiveRetention);
+        Connection connection = DataSourceUtils.getConnection(dataSource);
+        try {
+            boolean own = !DataSourceUtils.isConnectionTransactional(connection, dataSource);
+            boolean previous = connection.getAutoCommit();
+            if (own) {
+                connection.setAutoCommit(false);
+            }
+            try {
+                int purged;
+                try (PreparedStatement statement = connection.prepareStatement(PURGE)) {
+                    statement.setObject(1, cutoff.atOffset(ZoneOffset.UTC));
+                    purged = statement.executeUpdate();
+                }
+                int archiveSize = countArchive(connection);
+                if (own) {
+                    connection.commit();
+                }
+                return ArchiveRunResult.purged(purged, archiveSize, cutoff);
+            } catch (RuntimeException | SQLException ex) {
+                if (own) {
+                    connection.rollback();
+                }
+                if (ex instanceof RuntimeException runtime) {
+                    throw runtime;
+                }
+                throw new IllegalStateException("audit archive purge failed", ex);
+            } finally {
+                if (own) {
+                    connection.setAutoCommit(previous);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("audit archive purge failed", ex);
         } finally {
             DataSourceUtils.releaseConnection(connection, dataSource);
         }
