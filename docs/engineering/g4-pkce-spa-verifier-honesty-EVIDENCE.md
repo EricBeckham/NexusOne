@@ -43,8 +43,8 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | pending record | fake live PASS / fake CA PASS / fake `g4_close=CLOSED` rejected |
-| SPA mint / RFC 7636 / client-held | **PASS** (gate) | same `Pkce` helper; no BFF verifier |
+| Honesty fixtures | **PASS** / fake live PASS rejected / fake CA PASS rejected / fake `g4_close=CLOSED` rejected | `2026-09-22T19:52:09Z` |
+| SPA mint / RFC 7636 / client-held | **PASS** (gate) | collect `--skip-tests` on this VM (`mvn` not on PATH) |
 | leftover rows kept | **true** | both README leftover rows stay |
 | Live Keycloak SPA-held token exchange | **SKIP** (expected) | discovery unreachable / walk not observed; #147 probe is not a live exchange |
 | Live CA trust | **SKIP** (expected) | CA file is not a trusted laptop walk |
