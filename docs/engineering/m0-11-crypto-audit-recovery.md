@@ -98,7 +98,7 @@ Runbook：
 | P1 `GET /tenants/{id}/audit-events` 切换到 M0-11 | P1 staging 表仍在；切换会改 M0-03 行为，留给接线 PR |
 | 把 `IsolationAuditSink` 接到 `AuditPort` | Product `AuditPortIsolationSink` now persists `ISOLATION_REJECT` with `appendNewTransaction`. Same-TX `append` joining is unchanged. G4 still needs login/permission/admin on the same real request. |
 | G4 审计覆盖每个用户 / 热 90 天 + 归档 365 天 | 无业务写入与归档 Job |
-| G6 整库与对象恢复演练、RPO/RTO | 仅 dry-run / 文档；未在独立实例上 restore 并校验 |
+| G6 整库与对象恢复演练、RPO/RTO | 产品 `RecoveryPort` 仍为 dry-run。S1 环境级演练（专用 PG 库 + 本地 MinIO）见 [g6-recovery-drill-EVIDENCE.md](./g6-recovery-drill-EVIDENCE.md)。分钟级 RPO / Profile / G17 仍不宣称 |
 | G17 等保与国密交付 | 无三权分立产品路径、无国密 TLS 双证书、无合格 GM/T Provider、无密码机 |
 | 国密 TLS（GM/T 0024）、Nginx 双证书 | P0-10 已声明未验 |
 | RSA 签名、口令哈希（Keycloak PBKDF2-SM3） | 国际套件签名走 ECDSA P-256，与 P0-10 一致 |
