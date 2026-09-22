@@ -1,0 +1,78 @@
+name: g2-h5-every-page-form-write-honesty
+
+# Honesty gate for the G2 H5 every-page / form.write leftover beyond
+# #163/#173. Does not start a product JAR. Does not redo
+# #112 / #116 / #137 / #144 / #150 / #155 / #163 / #173. Not product G2 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g2-h5-every-page-form-write-honesty.sh"
+      - "scripts/g2-h5-every-page-form-write-honesty/**"
+      - ".github/workflows/g2-h5-every-page-form-write-honesty.yml"
+      - "docs/g2-h5-every-page-form-write-honesty.md"
+      - "docs/engineering/g2-h5-every-page-form-write-honesty-EVIDENCE.md"
+      - "docs/README.md"
+  pull_request:
+    paths:
+      - "scripts/g2-h5-every-page-form-write-honesty.sh"
+      - "scripts/g2-h5-every-page-form-write-honesty/**"
+      - ".github/workflows/g2-h5-every-page-form-write-honesty.yml"
+      - "docs/g2-h5-every-page-form-write-honesty.md"
+      - "docs/engineering/g2-h5-every-page-form-write-honesty-EVIDENCE.md"
+      - "docs/README.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g2-h5-every-page-form-write-honesty.sh --verify-report \
+          scripts/g2-h5-every-page-form-write-honesty/fixtures/honest-skip.env
+      - name: Fake live JAR PASS without a walk is rejected
+        run: ./scripts/g2-h5-every-page-form-write-honesty.sh --verify-report \
+          scripts/g2-h5-every-page-form-write-honesty/fixtures/fake-live-jar-pass.env fail
+      - name: Fake product G2 close is rejected
+        run: ./scripts/g2-h5-every-page-form-write-honesty.sh --verify-report \
+          scripts/g2-h5-every-page-form-write-honesty/fixtures/fake-g2-close.env fail
+      - name: Fake #163/#173 redo is rejected
+        run: ./scripts/g2-h5-every-page-form-write-honesty.sh --verify-report \
+          scripts/g2-h5-every-page-form-write-honesty/fixtures/fake-redone.env fail
+      - name: Fake H5-open-as-covered is rejected
+        run: ./scripts/g2-h5-every-page-form-write-honesty.sh --verify-report \
+          scripts/g2-h5-every-page-form-write-honesty/fixtures/fake-h5-open-closed.env fail
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest live JAR SKIP
+        run: |
+          chmod +x ./scripts/g2-h5-every-page-form-write-honesty.sh
+          ./scripts/g2-h5-every-page-form-write-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty"
+          ./scripts/g2-h5-every-page-form-write-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^h5_every_page_harness=PASS$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^form_write_harness=PASS$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^live_jar_walk=SKIP$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^live_h5_walk=SKIP$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^g2_close=NOT_CLAIMED$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^h5_open_pages_still_open=true$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^leftover_rows_all=true$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^redone_163=false$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^redone_173=false$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g2-h5-every-page-form-write-honesty/report.env"
+          grep -F 'g1-queryast-boundsql-honesty' docs/README.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g2-h5-every-page-form-write-honesty
+          path: ${{ runner.temp }}/g2-h5-every-page-form-write-honesty

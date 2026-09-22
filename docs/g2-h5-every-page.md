@@ -4,7 +4,7 @@ S0+S1 leftover from [g2-permission.md](./g2-permission.md) and [g2-h5-permission
 
 It does **not** redo #116 H5 `/check`, #150 todo HTTP, #144 isolation-only `tenant_only` / catalog, or #137 physical dump. It does **not** put home / files / notify / login / host / harness on `SurfaceGuard`. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. **G18 stays closed.**
 
-Reuse only: the existing #116 Vue `useH5Surface` / `H5SurfaceGuard` twin. Java 21 / Boot **4.1.1**. No Docker. Orthogonal to #155 ops `pg_dump` honesty ([g2-ops-pg-dump.md](./g2-ops-pg-dump.md)) — that leftover row stays.
+Reuse only: the existing #116 Vue `useH5Surface` / `H5SurfaceGuard` twin. Java 21 / Boot **4.1.1**. No Docker. Orthogonal to #155 ops `pg_dump` honesty ([g2-ops-pg-dump.md](./g2-ops-pg-dump.md)) — that leftover row stays. Follow-on honest PASS/SKIP leftover (does **not** redo this leftover): [g2-h5-every-page-form-write-honesty.md](./g2-h5-every-page-form-write-honesty.md).
 
 ## What this leftover covers
 
