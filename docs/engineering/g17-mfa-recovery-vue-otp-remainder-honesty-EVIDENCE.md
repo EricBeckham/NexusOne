@@ -41,7 +41,7 @@ Do **not** treat `./scripts/g17-mfa-recovery-vue-otp-honesty.sh`, `./scripts/g17
 
 ## Results (agent VM)
 
-Filled after the leftover honesty remainder script on this VM at `2026-09-22T21:50:40Z`. Live output is gitignored under `.local/g17-mfa-recovery-vue-otp-remainder-honesty/`. A sanitized copy is [`g17-mfa-recovery-vue-otp-remainder-honesty/agent-vm.env`](./g17-mfa-recovery-vue-otp-remainder-honesty/agent-vm.env).
+Filled after the leftover honesty remainder script on this VM at `2026-09-22T22:17:33Z`. Live output is gitignored under `.local/g17-mfa-recovery-vue-otp-remainder-honesty/`. A sanitized copy is [`g17-mfa-recovery-vue-otp-remainder-honesty/agent-vm.env`](./g17-mfa-recovery-vue-otp-remainder-honesty/agent-vm.env).
 
 | Check | Result | Notes |
 |---|---|---|
