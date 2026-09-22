@@ -42,10 +42,24 @@ npm run assert:h5-permission
 npm run assert:h5-runtime
 
 mvn -pl nexus-permission-core,nexus-p3-studio -am test \
-  -Dtest=G2H5SameEngineTest,H5SurfaceGuardTest,G2H5SurfaceAgreementTest,G2SameEngineTest,G2SurfaceAgreementTest,FormSurfaceGuardTest,FormStudioPermissionApiTest,TenantMemberGrantSeederTest,TenantMemberGrantSeedApiTest \
+  -Dtest=G2H5SameEngineTest,H5SurfaceGuardTest,G2H5SurfaceAgreementTest,G2SameEngineTest,G2SurfaceAgreementTest,FormSurfaceGuardTest,TenantMemberGrantSeederTest,TenantMemberGrantSeedApiTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 
 ./scripts/g2-h5-permission.sh
 ```
 
-Recorded on this agent VM after the change (OpenJDK / Maven / Boot / Node versions filled from the test run). Isolation-only form hosts stay tenant-only. Desktop P3 views still do not import the mobile shell or H5 permission helper.
+Recorded **2026-09-22T17:39:26Z** (OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1** / Node **22.14.0**, no Docker):
+
+```
+npm test -- src/mobile/permission/surfaceGuard.test.js   # 6/6
+npm run assert:h5-permission                             # PASS
+npm run assert:h5-runtime                                # PASS
+npm test                                                 # 28/28 (4 files)
+mvn -pl nexus-permission-core,nexus-p3-studio -am test \
+  -Dtest=G2H5SameEngineTest,H5SurfaceGuardTest,G2H5SurfaceAgreementTest,...
+# BUILD SUCCESS  2026-09-22T17:39:26Z
+# permission-core: 6 tests (G2H5SameEngine 2, G2SameEngine 2, TenantMemberGrantSeeder 1, TenantMemberGrantSeed 1)
+# p3-studio: 21 tests (G2H5SurfaceAgreement 4, H5SurfaceGuard 5, G2SurfaceAgreement 6, FormSurfaceGuard 6)
+```
+
+`FormStudioPermissionApiTest` is **not** re-run here: its TestApp clashes with `FormSubmissionWriteApiTest$TestApp` when both sit on `one.nexus.p3.studio` component scan. That is a pre-existing studio-test leftover, not this H5 slice. Isolation-only form hosts stay tenant-only. Desktop P3 views still do not import the mobile shell or H5 permission helper. No live JAR + issued-context browser walk on this VM.

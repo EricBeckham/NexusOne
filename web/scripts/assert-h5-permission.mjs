@@ -62,8 +62,9 @@ requireIncludes("JS catalog", files.catalog, [
   "P2.PERM.0003",
   "P2.PERM.0002",
   "P2.PERM.0001",
+  "PermissionEngine",
 ]);
-requireIncludes("JS guard", files.guard, ["requireAllowed", "PermissionEngine", "no_grant"]);
+requireIncludes("JS guard", files.guard, ["requireAllowed", "ENGINE", "no_grant"]);
 requireIncludes("hook", files.hook, ["perm.check", "requireCell"]);
 requireIncludes("lists", files.lists, ["H5_SURFACES.listRead", "useH5Surface", "listLedgers"]);
 requireIncludes("list records", files.listRecords, ["H5_SURFACES.listRead", "listRecords"]);

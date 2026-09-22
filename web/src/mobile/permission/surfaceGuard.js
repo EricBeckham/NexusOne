@@ -2,7 +2,7 @@
  * Same Decision rule as Java SurfaceGuard: !allowed is deny.
  * Maps no_grant / explicit_deny / tenant_boundary to desktop P2.PERM codes.
  */
-import { DENY_CODES, ENGINE, denyCode } from "./surfaceCatalog";
+import { DENY_CODES, ENGINE, denyCode } from "./surfaceCatalog.js";
 
 export function requireAllowed(decision) {
   if (!decision || decision.allowed !== true) {

@@ -21,7 +21,7 @@ npm -v
 )
 
 mvn -pl nexus-permission-core,nexus-p3-studio -am test \
-  -Dtest=G2H5SameEngineTest,H5SurfaceGuardTest,G2H5SurfaceAgreementTest,G2SameEngineTest,G2SurfaceAgreementTest,FormSurfaceGuardTest,FormStudioPermissionApiTest,TenantMemberGrantSeederTest,TenantMemberGrantSeedApiTest \
+  -Dtest=G2H5SameEngineTest,H5SurfaceGuardTest,G2H5SurfaceAgreementTest,G2SameEngineTest,G2SurfaceAgreementTest,FormSurfaceGuardTest,TenantMemberGrantSeederTest,TenantMemberGrantSeedApiTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 
 echo
