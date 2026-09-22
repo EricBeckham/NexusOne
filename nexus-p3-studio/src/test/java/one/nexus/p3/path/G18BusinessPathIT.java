@@ -44,7 +44,8 @@ import tools.jackson.databind.ObjectMapper;
 class G18BusinessPathIT {
     private static final UUID TENANT = UUID.fromString("55555555-5555-4555-8555-555555555555");
     private static final String TENANT_CODE = "g18a";
-    private static final String TRACE = "g18-leave-trace";
+    /** {@link one.nexus.common.trace.TraceIds#resolve} only accepts UUID / OTEL traces. */
+    private static final String TRACE = "0199a1c0-0000-7000-8000-00000000a018";
     private static EmbeddedPostgres postgres;
 
     @Autowired MockMvc mvc;
@@ -174,7 +175,7 @@ class G18BusinessPathIT {
         JsonNode prepared = preparePublishedForm(tenant, "g18b", person.id());
         UUID formId = UUID.fromString(prepared.path("form_id").asText());
         String physicalTable = prepared.path("physical_table").asText();
-        String businessTrace = "g18-rollback-trace";
+        String businessTrace = "0199a1c0-0000-7000-8000-00000000a019";
 
         P3IsolationSupport.bind(isolationKernel, tenant, "g18b", person.id().toString(), businessTrace);
         identity.sessions().loadContext(UUID.fromString(admin.contextId), "g18-rollback");
@@ -279,7 +280,7 @@ class G18BusinessPathIT {
         headers.add(P3IsolationFilter.HEADER_DEMO_ACTOR, actor.toString());
         headers.add(FormIsolationFilter.HEADER_DEMO_TENANT, tenant.toString());
         headers.add(FormIsolationFilter.HEADER_DEMO_ACTOR, actor.toString());
-        headers.add("X-Trace-Id", "g18-setup");
+        headers.add("X-Trace-Id", "0199a1c0-0000-7000-8000-00000000a017");
         return headers;
     }
 
