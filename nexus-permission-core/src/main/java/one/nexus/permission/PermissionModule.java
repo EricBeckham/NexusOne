@@ -3,6 +3,7 @@ package one.nexus.permission;
 import java.util.UUID;
 import one.nexus.audit.AuditPort;
 import one.nexus.p2.domain.IdentityRepository;
+import one.nexus.permission.admin.PlatformDutyService;
 import one.nexus.permission.admin.PolicyAdminService;
 import one.nexus.permission.admin.RoleMatrixService;
 import one.nexus.permission.engine.SnapshotManager;
@@ -19,6 +20,7 @@ public final class PermissionModule {
     private final PolicyAdminService admin;
     private final PermissionService service;
     private final RoleMatrixService matrix;
+    private final PlatformDutyService duties;
     private final PolicyInvalidationPort invalidation;
 
     public PermissionModule(
@@ -44,6 +46,7 @@ public final class PermissionModule {
         this.admin = new PolicyAdminService(repository, invalidation, audits);
         this.service = new PermissionService(repository, subjects, snapshots);
         this.matrix = new RoleMatrixService(repository, admin, service);
+        this.duties = new PlatformDutyService(repository, admin, service);
     }
 
     public static PermissionModule create(
@@ -92,6 +95,10 @@ public final class PermissionModule {
 
     public RoleMatrixService matrix() {
         return matrix;
+    }
+
+    public PlatformDutyService duties() {
+        return duties;
     }
 
     public PolicyInvalidationPort invalidation() {

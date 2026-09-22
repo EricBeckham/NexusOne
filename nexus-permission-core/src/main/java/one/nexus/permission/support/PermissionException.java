@@ -18,6 +18,7 @@ public final class PermissionException extends NexusException {
     public static final ErrorCode NOT_FOUND = ErrorCode.of("P2", "PERM", 11);
     public static final ErrorCode CONFLICT = ErrorCode.of("P2", "PERM", 12);
     public static final ErrorCode CLIENT_TENANT = ErrorCode.of("P2", "PERM", 13);
+    public static final ErrorCode DUTY_CONFLICT = ErrorCode.of("P2", "PERM", 14);
 
     public PermissionException(ErrorCode errorCode, int httpStatus, String message) {
         super(errorCode, httpStatus, message);
@@ -33,6 +34,7 @@ public final class PermissionException extends NexusException {
             case "explicit_deny" -> EXPLICIT_DENY;
             case "no_grant" -> NO_GRANT;
             case "empty_scope" -> EMPTY_SCOPE;
+            case "duty_conflict" -> DUTY_CONFLICT;
             default -> NO_GRANT;
         };
         return new PermissionException(code, 403, reason);
@@ -60,6 +62,10 @@ public final class PermissionException extends NexusException {
 
     public static PermissionException conflict(String message) {
         return new PermissionException(CONFLICT, 409, message);
+    }
+
+    public static PermissionException dutyConflict(String message) {
+        return new PermissionException(DUTY_CONFLICT, 409, message);
     }
 
     public static PermissionException badRequest(String unusedCode, String message) {
