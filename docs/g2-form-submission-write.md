@@ -19,7 +19,7 @@ Granted `form.write` (`g2_form_designer` / `g2_dept_manager` example cells, or a
 
 | Item | Status |
 |---|---|
-| Product-wide G2 (physical dump) | Open. Report query/export is [g2-report-surface-guard.md](./g2-report-surface-guard.md). H5 `/m/*` list/detail/form/todo is [g2-h5-permission.md](./g2-h5-permission.md) |
+| Product-wide G2 (physical dump) | Open. Report query/export is [g2-report-surface-guard.md](./g2-report-surface-guard.md). Physical dump / raw export is [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). H5 `/m/*` list/detail/form/todo is [g2-h5-permission.md](./g2-h5-permission.md) |
 | Path `submit-start` as `form.write` only | Dual-check leftover: [g2-submit-start-form-write.md](./g2-submit-start-form-write.md). Process start stays required |
 | FormService.submit used by `BusinessPathService` | Path `submitAndStart` now requires `form.write` when `form_id` is present; HTTP `/submissions` stays `requireFill` |
 | Isolation-only `FormApiTest` (no P2 context) | Still tenant-only |

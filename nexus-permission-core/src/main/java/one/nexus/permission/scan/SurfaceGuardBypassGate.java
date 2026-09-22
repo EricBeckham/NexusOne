@@ -49,7 +49,7 @@ public final class SurfaceGuardBypassGate {
     static final Pattern REST_CONTROLLER = Pattern.compile("@RestController\\b");
 
     static final Pattern SURFACE_PATH = Pattern.compile(
-            "/(records|forms|process|path|todos)\\b|ledger\\.export");
+            "/(records|forms|process|path|todos|dumps)\\b|ledger\\.export|/dump");
 
     static final Pattern GUARD_TOKEN;
 

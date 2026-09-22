@@ -51,6 +51,8 @@ UI is **not** in this module (M0-12).
 | GET | `/api/v1/p3/reports/decision` | Both `ledger/read` and `ledger.export.csv/submit` Decisions; no throw |
 | POST | `/api/v1/p3/reports/query` | `ledger/read` via `ReportSurfaceGuard` **before** record list |
 | POST | `/api/v1/p3/reports/export` | `ledger.export.csv/submit` via `ReportSurfaceGuard` then `AuthorizedExport`. Not a physical dump |
+| GET | `/api/v1/p3/dumps/decision` | Both `ledger/read` and `ledger.export.csv/submit` Decisions; no throw |
+| POST | `/api/v1/p3/dumps/export` | `ledger.export.csv/submit` then `ledger/read` via `DumpSurfaceGuard` then `AuthorizedExport.writeProjected`. Not report Task submit |
 
 Demo tenant headers (test only, `nexus.p3.demo-context=true` and/or `nexus.studio.demo-context=true`): `X-Nexus-Demo-Tenant-Id`, `X-Nexus-Demo-Tenant-Code`, `X-Nexus-Demo-Actor-Id`.
 

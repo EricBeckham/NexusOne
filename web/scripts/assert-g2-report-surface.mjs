@@ -84,7 +84,7 @@ requireIncludes("Java catalog", files.javaCatalog, [
   "EXPORT_RESOURCE = SurfaceCatalog.EXPORT_RESOURCE",
 ]);
 requireIncludes("Java ReportSurfaceGuard", files.javaGuard, [
-  "SurfaceGuard.requireAllowed",
+  "SurfaceGuard.require(permission",
   "requireQuery",
   "requireExport",
 ]);

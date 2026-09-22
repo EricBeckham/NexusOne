@@ -511,3 +511,11 @@ export async function queryReport(body = {}) {
 export async function exportReport(body = {}) {
   return wrap(await api("/api/v1/p3/reports/export", { method: "POST", body }));
 }
+
+export async function dumpDecision() {
+  return wrap(await api("/api/v1/p3/dumps/decision"));
+}
+
+export async function exportDump(body = {}) {
+  return wrap(await api("/api/v1/p3/dumps/export", { method: "POST", body }));
+}

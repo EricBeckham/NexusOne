@@ -23,7 +23,8 @@
 | [g2-form-submission-write](./g2-form-submission-write.md) | G2 leftover：表单填报 / POST submissions 按 `form.write` 走 `FormSurfaceGuard`；不是产品级 G2 关闭 |
 | [g2-submit-start-form-write](./g2-submit-start-form-write.md) | G2 leftover：path submit-start 在有 `form_id` 时双检 `form.write` + `process.instance/start`；请假 seed 走通仍可用 |
 | [g2-h5-permission](./g2-h5-permission.md) | G2 leftover：H5 `/m/*` 列表/详情/表单/待办走同一 `SurfaceGuard`；桌面页未改；不是产品级 G2 关闭 |
-| [g2-report-surface-guard](./g2-report-surface-guard.md) | G2 leftover：报表 query/export 走同一 `SurfaceGuard`（`ledger/read` + `ledger.export.csv/submit`）；物理 dump 仍开放；不是产品级 G2 关闭 |
+| [g2-report-surface-guard](./g2-report-surface-guard.md) | G2 leftover：报表 query/export 走同一 `SurfaceGuard`（`ledger/read` + `ledger.export.csv/submit`）；不是产品级 G2 关闭 |
+| [g2-physical-dump-surface](./g2-physical-dump-surface.md) | G2 leftover：物理 dump / 原始导出走同一 `SurfaceGuard`（`AuthorizedExport.writeProjected`）；不是产品级 G2 关闭；不重做 #122/#124 |
 | [g1-queryast-product-optin](./g1-queryast-product-optin.md) | G1 leftover：产品 list/detail（`GuardedLedgerStore`）opt-in `QueryAstPolicyCompiler.encode`（#130）；OR/IN/mask/二次授权仍在 AST 旁；不宣称产品 G1 关闭 |
 | [g2-surfaceguard-bypass-ci](./g2-surfaceguard-bypass-ci.md) | G2 leftover：CI / ArchUnit 门禁拦截绕过 `SurfaceGuard` / `PermissionEngine` 的调用方；不是产品级 G2 关闭；与 G1 QueryCompiler JDBC 门禁正交 |
 | [g4-hot-purge-90d](./g4-hot-purge-90d.md) | G4 leftover：90 天热行 purge（已冷归档，或仍在 365 天归档窗的热前缀）。不 DROP 热表，不改 `AuditPort` 同事务入链，不宣称产品 G4 关闭 |

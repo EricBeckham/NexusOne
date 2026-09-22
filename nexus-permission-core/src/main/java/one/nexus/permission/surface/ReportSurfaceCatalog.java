@@ -5,8 +5,9 @@ package one.nexus.permission.surface;
  * ({@code ledger}/{@code read}) and {@link SurfaceCatalog} export
  * ({@code ledger.export.csv}/{@code submit}) — not a second engine.
  *
- * <p>Physical ledger dump (pg_dump / callers that skip
- * {@link AuthorizedExport}) stays open. Not a product-wide G2 close.
+ * <p>Physical ledger dump / raw export is the sibling leftover
+ * {@link DumpSurfaceCatalog}. {@code pg_dump} ops stay open. Not a
+ * product-wide G2 close.
  */
 public final class ReportSurfaceCatalog {
     public static final String QUERY_RESOURCE = "ledger";
