@@ -1,0 +1,113 @@
+package one.nexus.p2.api;
+
+import one.nexus.p2.IdentityConfiguration;
+import one.nexus.p2.IdentityModule;
+import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.p2.session.SessionService;
+import one.nexus.p2.support.DomainException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.UUID;
+
+@Component
+public class IdentityAuthFilter extends OncePerRequestFilter {
+    public static final String ATTR_IDENTITY = "nexus.identity";
+    public static final String HEADER_CONTEXT = "X-Nexus-Context-Id";
+    public static final String HEADER_TENANT = "X-Tenant-Id";
+    public static final String HEADER_BOOTSTRAP = "X-Nexus-Bootstrap-Token";
+
+    private final IdentityModule module;
+    private final IdentityConfiguration.IamProperties properties;
+
+    public IdentityAuthFilter(IdentityModule module, IdentityConfiguration.IamProperties properties) {
+        this.module = module;
+        this.properties = properties;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+        String traceId = request.getHeader("X-Trace-Id");
+        if (traceId == null || traceId.isBlank()) {
+            traceId = UUID.randomUUID().toString();
+        }
+        MDC.put("trace_id", traceId);
+        TenantContextHolder.clear();
+        try {
+            if (request.getHeader(HEADER_TENANT) != null) {
+                throw DomainException.badRequest(
+                        "P2.IAM.CLIENT_TENANT_REJECTED",
+                        "client-supplied tenant_id is rejected; use a server-issued context");
+            }
+            String path = request.getRequestURI();
+            if (isPublic(path, request.getMethod())) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            if (path.startsWith("/api/v1/internal/") && bootstrapAuthorized(request)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+            if (header == null || !header.startsWith("Bearer ")) {
+                throw DomainException.unauthorized("missing bearer token");
+            }
+            SessionService.AuthenticatedIdentity identity = module.sessions().authenticate(header.substring(7));
+            request.setAttribute(ATTR_IDENTITY, identity);
+            String contextId = request.getHeader(HEADER_CONTEXT);
+            if (contextId != null && !contextId.isBlank()) {
+                module.sessions().loadContext(UUID.fromString(contextId), identity.claims().subject());
+            }
+            filterChain.doFilter(request, response);
+        } catch (DomainException ex) {
+            writeError(response, ex, traceId);
+        } catch (IllegalArgumentException ex) {
+            writeError(response, DomainException.unauthorized(ex.getMessage()), traceId);
+        } finally {
+            TenantContextHolder.clear();
+            MDC.remove("trace_id");
+        }
+    }
+
+    private boolean bootstrapAuthorized(HttpServletRequest request) {
+        String expected = properties.platformBootstrapToken();
+        if (expected == null || expected.isBlank()) {
+            return false;
+        }
+        String provided = request.getHeader(HEADER_BOOTSTRAP);
+        return expected.equals(provided);
+    }
+
+    private static boolean isPublic(String path, String method) {
+        if ("/api/v1/health".equals(path)) {
+            return true;
+        }
+        if (!path.startsWith("/api/v1/auth/")) {
+            return false;
+        }
+        return path.equals("/api/v1/auth/authorize-url")
+                || path.equals("/api/v1/auth/login")
+                || path.equals("/api/v1/auth/callback")
+                || path.equals("/api/v1/auth/password-reset");
+    }
+
+    private static void writeError(HttpServletResponse response, DomainException ex, String traceId) throws IOException {
+        response.setStatus(ex.httpStatus());
+        response.setContentType("application/json");
+        String json = "{\"code\":\"" + ex.code() + "\",\"message\":\"" + escape(ex.getMessage())
+                + "\",\"trace_id\":\"" + traceId + "\",\"details\":{}}";
+        response.getWriter().write(json);
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+}
