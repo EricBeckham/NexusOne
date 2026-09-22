@@ -119,6 +119,7 @@ for row in \
   g15-native-bridge-honesty \
   g15-native-bridge-stub \
   g15-wx-dt-prod-host \
+  g4-p1-staging-audit-events-honesty \
   g6-recovery-port-dry-run-honesty \
   s0s1-live-redis-minio-isolation-honesty \
   g17-separation-honesty \
