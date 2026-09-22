@@ -184,6 +184,7 @@ class G1QueryAstBoundSqlHonestyTest {
         assertTrue(text.contains("[g5-browser-failed-publish](./g5-browser-failed-publish.md)"));
         assertTrue(text.contains("[s0s1-live-redis-minio-isolation-honesty](./s0s1-live-redis-minio-isolation-honesty.md)"));
         assertTrue(text.contains("[g6-recovery-port-dry-run-honesty](./g6-recovery-port-dry-run-honesty.md)"));
+        assertTrue(text.contains("[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)"));
         assertFalse(text.toLowerCase().contains("product g1 closed"));
         assertFalse(text.contains("产品 G1 已关闭"));
 
