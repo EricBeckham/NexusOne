@@ -34,17 +34,21 @@ class RedisInvalidationTest {
             return new PolicySnapshot(id, versions.get(id));
         });
         RedisPolicyInvalidation invalidation = new RedisPolicyInvalidation(client);
+        invalidation.addListener(manager::notifyInvalidated);
         assertEquals(1, manager.get(tenant).version());
         versions.put(tenant, 2L);
         invalidation.notifyTenant(tenant);
-        manager.notifyInvalidated(tenant);
+        assertTrue(manager.isMarkedInvalidated(tenant));
         assertEquals(2, manager.get(tenant).version());
         assertEquals(List.of(1L, 2L), loaded);
+        assertTrue(client.get(PolicyCacheKeys.snapshot(tenant)).isEmpty(),
+                "Redis must stay invalidate-only; snapshot body is never written");
 
         client.setEx(PolicyCacheKeys.version(tenant), "2", 5);
         assertEquals("2", client.get(PolicyCacheKeys.version(tenant)).orElseThrow());
         client.del(PolicyCacheKeys.version(tenant));
         assertTrue(client.get(PolicyCacheKeys.version(tenant)).isEmpty());
+        client.del(PolicyCacheKeys.snapshot(tenant));
     }
 
     @Test
@@ -77,6 +81,38 @@ class RedisInvalidationTest {
         var payload = client.subscribeOnce(PolicyCacheKeys.INVALIDATE_CHANNEL, Duration.ofSeconds(2));
         publisher.join(3000);
         assertEquals("t-notify", payload.orElse(""));
+    }
+
+    @Test
+    void startListeningDeliversPublishToSnapshotManager() throws Exception {
+        Redis32Client publisher = tryClient();
+        Assumptions.assumeTrue(publisher != null, "Redis 3.2 is not listening on 127.0.0.1:6379");
+        Redis32Client subscriber = tryClient();
+        Assumptions.assumeTrue(subscriber != null, "Redis 3.2 is not listening on 127.0.0.1:6379");
+        String tenant = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+        Map<String, Long> versions = new HashMap<>();
+        versions.put(tenant, 1L);
+        SnapshotManager manager = new SnapshotManager(versions::get, id -> new PolicySnapshot(id, versions.get(id)));
+        RedisPolicyInvalidation invalidation = new RedisPolicyInvalidation(subscriber);
+        invalidation.addListener(manager::notifyInvalidated);
+        invalidation.startListening();
+        try {
+            assertEquals(1, manager.get(tenant).version());
+            versions.put(tenant, 2L);
+            Thread.sleep(150);
+            publisher.publish(PolicyCacheKeys.INVALIDATE_CHANNEL, tenant);
+            boolean marked = false;
+            for (int i = 0; i < 40 && !marked; i++) {
+                marked = manager.isMarkedInvalidated(tenant);
+                if (!marked) {
+                    Thread.sleep(50);
+                }
+            }
+            assertTrue(marked, "SUBSCRIBE must mark the snapshot invalidated");
+            assertEquals(2, manager.get(tenant).version());
+        } finally {
+            invalidation.shutdown();
+        }
     }
 
     private static Redis32Client tryClient() {

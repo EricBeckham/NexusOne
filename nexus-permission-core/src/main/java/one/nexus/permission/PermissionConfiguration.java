@@ -1,7 +1,9 @@
 package one.nexus.permission;
 
+import java.time.Duration;
 import one.nexus.audit.AuditPort;
 import one.nexus.p2.IdentityModule;
+import one.nexus.permission.engine.PolicySnapshotPoller;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.persist.JdbcPolicyRepository;
 import one.nexus.permission.persist.PolicyRepository;
@@ -46,7 +48,7 @@ public class PermissionConfiguration {
         return new InMemoryPolicyRepository();
     }
 
-    @Bean
+    @Bean(destroyMethod = "shutdown")
     PolicyInvalidationPort policyInvalidationPort(PermissionProperties properties) {
         if (properties.redis() != null && properties.redis().enabled()) {
             Redis32Client client = new Redis32Client(properties.redis().host(), properties.redis().port());
@@ -62,11 +64,21 @@ public class PermissionConfiguration {
             PolicyInvalidationPort invalidation,
             ObjectProvider<AuditPort> audits
     ) {
-        return PermissionModule.create(repository, identity.repository(), invalidation, audits.getIfAvailable());
+        PermissionModule module = PermissionModule.create(
+                repository, identity.repository(), invalidation, audits.getIfAvailable());
+        invalidation.startListening();
+        return module;
+    }
+
+    @Bean(destroyMethod = "close")
+    PolicySnapshotPoller policySnapshotPoller(PermissionModule module, PermissionProperties properties) {
+        PolicySnapshotPoller poller = new PolicySnapshotPoller(module.snapshots(), properties.snapshotPollInterval());
+        poller.start();
+        return poller;
     }
 
     @ConfigurationProperties(prefix = "nexus.permission")
-    public record PermissionProperties(String persistence, Jdbc jdbc, Redis redis) {
+    public record PermissionProperties(String persistence, Jdbc jdbc, Redis redis, Duration snapshotPollInterval) {
         public PermissionProperties {
             if (persistence == null) {
                 persistence = "memory";
@@ -76,6 +88,9 @@ public class PermissionConfiguration {
             }
             if (redis == null) {
                 redis = new Redis(false, "127.0.0.1", 6379);
+            }
+            if (snapshotPollInterval == null) {
+                snapshotPollInterval = Duration.ofSeconds(2);
             }
         }
 

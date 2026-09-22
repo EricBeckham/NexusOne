@@ -64,6 +64,9 @@ public final class PermissionModule {
         SnapshotManager manager = new SnapshotManager(
                 tenant -> repository.currentVersion(UUID.fromString(tenant)),
                 tenant -> repository.loadSnapshot(UUID.fromString(tenant)));
+        if (invalidation != null) {
+            invalidation.addListener(manager::notifyInvalidated);
+        }
         return new PermissionModule(repository, directory, manager, invalidation, audits);
     }
 

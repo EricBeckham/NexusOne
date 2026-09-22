@@ -45,4 +45,33 @@ class SnapshotManagerTest {
         SnapshotManager manager = new SnapshotManager(tenant -> 1L, tenant -> new PolicySnapshot("t1", 3));
         assertThrows(SnapshotUnavailableException.class, () -> manager.get("t1"));
     }
+
+    @Test
+    void pollCachedReloadsWithoutACallerGet() {
+        Map<String, Long> versions = new HashMap<>();
+        versions.put("t1", 1L);
+        List<Long> loaded = new ArrayList<>();
+        SnapshotManager manager = new SnapshotManager(
+                versions::get,
+                tenant -> {
+                    loaded.add(versions.get(tenant));
+                    return new PolicySnapshot(tenant, versions.get(tenant));
+                });
+        assertEquals(1, manager.get("t1").version());
+        versions.put("t1", 2L);
+        assertEquals(1L, manager.cachedVersion("t1"));
+        assertEquals(1, manager.pollCached());
+        assertEquals(2L, manager.cachedVersion("t1"));
+        assertEquals(List.of(1L, 2L), loaded);
+    }
+
+    @Test
+    void pollCachedSwallowsLoadFailureSoBackgroundDoesNotFailClosed() {
+        SnapshotManager manager = new SnapshotManager(
+                tenant -> {
+                    throw new IllegalStateException("db version unavailable");
+                },
+                tenant -> new PolicySnapshot("t1", 1));
+        assertEquals(0, manager.pollCached());
+    }
 }

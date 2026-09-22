@@ -9,3 +9,4 @@ nexus:
     persistence: memory
     redis:
       enabled: false
+    snapshot-poll-interval: 0s

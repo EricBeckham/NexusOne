@@ -9,3 +9,4 @@ nexus:
       enabled: ${NEXUS_REDIS_ENABLED:false}
       host: ${NEXUS_REDIS_HOST:127.0.0.1}
       port: ${NEXUS_REDIS_PORT:6379}
+    snapshot-poll-interval: ${NEXUS_PERM_SNAPSHOT_POLL:2s}

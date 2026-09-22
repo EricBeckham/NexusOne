@@ -78,11 +78,35 @@ Flyway history on `nexus_p2_perm_test` (schema `iam`):
 
 Redis `INFO server`: `redis_version:3.2.13`, `redis_mode:standalone`. No Sentinel/replica was started.
 
+## G9 remainder (this PR)
+
+PolicySnapshot version polling + Redis invalidate-only wiring. **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. G2 matrix is on `main` (#73). Redis-down / decide==durable evidence stays on open [#83](https://github.com/EricBeckham/NexusOne/pull/83) (`docs/g9-policysnapshot-invalidate.md`).
+
+Recorded **2026-09-22T15:42:29Z** on this agent VM. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky in-process PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432` / Redis 3.2 listener.
+
+```
+mvn -pl nexus-permission-core -am test
+# BUILD SUCCESS  2026-09-22T15:42:29Z (pre-rebase) — Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:46:14Z (after rebase onto main@26d1f94) — Tests run: 42, Failures: 0, Errors: 0, Skipped: 5
+```
+
+Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataScopeTest` 1, `JdbcDualTenantPermissionTest` 1 (no live PG listener). JDBC poll proof is `JdbcPolicySnapshotPollIT` on Zonky **15.18** (Flyway V200 + V300, schema `iam`).
+
+| Class | Count | What it proved |
+|---|---|---|
+| `SnapshotManagerTest` | 5/5 | Poll-on-get; `pollCached` reloads LRU without a caller `get`; background poll swallows load failure |
+| `G9PolicySnapshotPropagationTest` | 4/4 | Two instances, shared repo: lost channel still converges on next `get`; shared invalidate marks the reader; poller tick reloads; role is `g9_self_reader` not `tenant_member` |
+| `G9PolicySnapshotApiTest` | 1/1 | Boot 4.1.1 MockMvc: grant bumps snapshot `version`; next `/check` allows `ledger/read` |
+| `JdbcPolicySnapshotPollIT` | 1/1 | Zonky PostgreSQL **15.18**: `iam.perm_policy_version` is the clock; reader without the channel reloads on poll tick |
+| `RedisInvalidationTest` | 1/1 (+3 skip) | Dead Redis publish is observed and is not truth; live PING/SUBSCRIBE skipped |
+
 ## Honest leftover
 
 - Product-wide G2 (report / export / H5 / form-definition list)
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round)
+- G9 bounded timeout when P2 is down (ordinary query still fail-closes; no retry-deadline)
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
+- Demo `tenant_member` ALL-scope seed remains for the closed G18 walk and is not permission-complete
