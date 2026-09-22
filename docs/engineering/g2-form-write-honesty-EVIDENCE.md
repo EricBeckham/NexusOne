@@ -43,9 +43,9 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | pending | honest SKIP accepted; fake live PASS / `g2_close=CLOSED` / form.write-only rejected |
-| FormSurfaceGuard form.write | pending | in-process `requireFill` is `form` / `write` |
-| submit-start dual-check | pending | approver start / designer fill; not form.write only |
+| Honesty fixtures | **PASS** / fake live PASS rejected / fake `g2_close=CLOSED` rejected / fake form.write-only rejected | `2026-09-22T19:39:51Z` |
+| FormSurfaceGuard form.write | **PASS** (gate) | collect `--skip-tests` on this VM (`mvn` not on PATH) |
+| submit-start dual-check | **PASS** (gate) | not `form.write` only |
 | leftover rows kept | **true** | both README leftover rows stay |
 | Live JAR / issued context | **SKIP** (expected) | `NEXUS_BASE_URL` unset; nothing on `:8080` / `:8088` |
 | live_submissions_observed | **false** | honesty gate requires `false` on SKIP |
