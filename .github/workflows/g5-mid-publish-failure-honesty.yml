@@ -1,0 +1,88 @@
+name: g5-mid-publish-failure-honesty
+
+# Honesty gate for the G5 mid-publish / browser failed-publish leftover.
+# Does not start a live JAR, IdP, or browser.
+# Does not redo #94/#145/#171. Not product G5 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g5-mid-publish-failure-honesty.sh"
+      - "scripts/g5-mid-publish-failure-honesty/**"
+      - ".github/workflows/g5-mid-publish-failure-honesty.yml"
+      - "docs/g5-mid-publish-failure-honesty.md"
+      - "docs/engineering/g5-mid-publish-failure-honesty-EVIDENCE.md"
+      - "nexus-p3-studio/src/test/java/one/nexus/p3/studio/form/G5MidPublishFailureHonesty.java"
+      - "nexus-p3-studio/src/test/java/one/nexus/p3/studio/form/G5MidPublishFailureHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/g5-mid-publish-failure-honesty.sh"
+      - "scripts/g5-mid-publish-failure-honesty/**"
+      - ".github/workflows/g5-mid-publish-failure-honesty.yml"
+      - "docs/g5-mid-publish-failure-honesty.md"
+      - "docs/engineering/g5-mid-publish-failure-honesty-EVIDENCE.md"
+      - "nexus-p3-studio/src/test/java/one/nexus/p3/studio/form/G5MidPublishFailureHonesty.java"
+      - "nexus-p3-studio/src/test/java/one/nexus/p3/studio/form/G5MidPublishFailureHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g5-mid-publish-failure-honesty.sh --verify-report scripts/g5-mid-publish-failure-honesty/fixtures/honest-skip.env
+      - name: Fake browser PASS without a live walk is rejected
+        run: |
+          set +e
+          ./scripts/g5-mid-publish-failure-honesty.sh --verify-report \
+            scripts/g5-mid-publish-failure-honesty/fixtures/fake-browser-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake browser_failed_publish=PASS without live surfaces to fail"
+            exit 1
+          fi
+          echo "PASS: fake browser PASS rejected"
+      - name: Fake product G5 close is rejected
+        run: |
+          set +e
+          ./scripts/g5-mid-publish-failure-honesty.sh --verify-report \
+            scripts/g5-mid-publish-failure-honesty/fixtures/fake-g5-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g5_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G5 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest mid-publish PASS / browser SKIP
+        run: |
+          chmod +x ./scripts/g5-mid-publish-failure-honesty.sh
+          ./scripts/g5-mid-publish-failure-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g5-mid-publish-failure-honesty"
+          ./scripts/g5-mid-publish-failure-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^mid_publish_harness=PASS$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^browser_failed_publish=SKIP$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^g5_close=NOT_CLAIMED$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^redone_94=false$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^redone_145=false$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^redone_171=false$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E 'g5-mid-publish-failure' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+          grep -E 'g5-browser-failed-publish' "$RUNNER_TEMP/g5-mid-publish-failure-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g5-mid-publish-failure-honesty
+          path: ${{ runner.temp }}/g5-mid-publish-failure-honesty
