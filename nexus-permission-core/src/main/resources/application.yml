@@ -1,0 +1,11 @@
+nexus:
+  permission:
+    persistence: ${NEXUS_PERM_PERSISTENCE:memory}
+    jdbc:
+      url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexusone}
+      username: ${NEXUS_DB_USER:postgres}
+      password: ${NEXUS_DB_PASSWORD:}
+    redis:
+      enabled: ${NEXUS_REDIS_ENABLED:false}
+      host: ${NEXUS_REDIS_HOST:127.0.0.1}
+      port: ${NEXUS_REDIS_PORT:6379}

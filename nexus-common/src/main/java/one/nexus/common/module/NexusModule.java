@@ -6,6 +6,7 @@ package one.nexus.common.module;
 public final class NexusModule {
     public static final String BOOTSTRAP = "nexus-bootstrap";
     public static final String DATA_CORE = "nexus-data-core";
+    public static final String PERMISSION_CORE = "nexus-permission-core";
     public static final String P1_TENANT = "nexus-p1-tenant";
     public static final String P2_IAM = "nexus-p2-iam";
     public static final String P3_STUDIO = "nexus-p3-studio";

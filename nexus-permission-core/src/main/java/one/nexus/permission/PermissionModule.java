@@ -1,0 +1,70 @@
+package one.nexus.permission;
+
+import java.util.UUID;
+import one.nexus.p2.domain.IdentityRepository;
+import one.nexus.permission.admin.PolicyAdminService;
+import one.nexus.permission.engine.SnapshotManager;
+import one.nexus.permission.identity.IamSubjectDirectory;
+import one.nexus.permission.identity.SubjectDirectory;
+import one.nexus.permission.persist.PolicyRepository;
+import one.nexus.permission.redis.PolicyInvalidationPort;
+
+/** Composition root so tests and Spring share the same wiring. */
+public final class PermissionModule {
+    private final PolicyRepository repository;
+    private final SubjectDirectory subjects;
+    private final SnapshotManager snapshots;
+    private final PolicyAdminService admin;
+    private final PermissionService service;
+    private final PolicyInvalidationPort invalidation;
+
+    public PermissionModule(
+            PolicyRepository repository,
+            SubjectDirectory subjects,
+            SnapshotManager snapshots,
+            PolicyInvalidationPort invalidation
+    ) {
+        this.repository = repository;
+        this.subjects = subjects;
+        this.snapshots = snapshots;
+        this.invalidation = invalidation;
+        this.admin = new PolicyAdminService(repository, invalidation);
+        this.service = new PermissionService(repository, subjects, snapshots);
+    }
+
+    public static PermissionModule create(
+            PolicyRepository repository,
+            IdentityRepository identity,
+            PolicyInvalidationPort invalidation
+    ) {
+        SubjectDirectory directory = new IamSubjectDirectory(identity, repository);
+        SnapshotManager manager = new SnapshotManager(
+                tenant -> repository.currentVersion(UUID.fromString(tenant)),
+                tenant -> repository.loadSnapshot(UUID.fromString(tenant)));
+        return new PermissionModule(repository, directory, manager, invalidation);
+    }
+
+    public PolicyRepository repository() {
+        return repository;
+    }
+
+    public SubjectDirectory subjects() {
+        return subjects;
+    }
+
+    public SnapshotManager snapshots() {
+        return snapshots;
+    }
+
+    public PolicyAdminService admin() {
+        return admin;
+    }
+
+    public PermissionService service() {
+        return service;
+    }
+
+    public PolicyInvalidationPort invalidation() {
+        return invalidation;
+    }
+}
