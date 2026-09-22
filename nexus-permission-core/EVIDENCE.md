@@ -85,7 +85,8 @@ mvn -pl nexus-permission-core -am test
 | `DataScopeCompilerTest` | SELF / DEPT / DEPT_AND_CHILDREN / SPECIFIED / ALL |
 | `PredicateSqlCompilerTest` | Golden parameterized SQL; unknown column rejected |
 | `ListDetailTotalPaginationTest` | list / detail / total / page share `tenant_id = ? AND (scope)` |
-| `IsolationDataScopeInjectorTest` | Extra AND filters; refuses missing/replaced `tenant_id` |
+| `IsolationDataScopeInjectorTest` | Extra AND filters; refuses missing/replaced `tenant_id`; Query AST injector ANDs SELF without stripping tenant |
+| `QueryAstPolicyCompilerTest` | SELF/DEPT equality + hidden drop onto Query AST; OR / multi-value IN leftover |
 | `FieldPolicyProjectorTest` | Drop hidden; FULL mask without second auth |
 | `GoldenPostgresDataScopeTest` | Rows Alpha + Beta; r4/r9 excluded; cross-tenant UPDATE of r9 rejected |
 | `DualTenantIsolationTest` | Tenant A grants do not appear in B snapshot; evaluate(A, B) is `tenant_boundary` |
