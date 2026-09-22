@@ -122,5 +122,6 @@ Expense / travel UI clicks here are the **same Vue button**. They are **not** ca
 | Vue `todo-withdraw` + HTTP reachability | **this package** (Vitest against stub / mocked fetch) |
 | Live product-JAR + live IdP browser withdraw | **honest SKIP** unless JAR + issued context + live/Keycloak IdP + Chrome are present |
 | Live JAR/IdP honesty leftover | sibling [g7-withdraw-browser-honesty.md](./g7-withdraw-browser-honesty.md); does not redo this package |
+| Browser-visible withdraw evidence honesty | sibling [g7-withdraw-browser-evidence-honesty.md](./g7-withdraw-browser-evidence-honesty.md); stub walk PASS, live JAR/IdP SKIP |
 | G7 three-type product close | **not claimed** |
 | G18 | **stays closed** |
