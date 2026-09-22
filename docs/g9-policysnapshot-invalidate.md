@@ -1,0 +1,60 @@
+# G9 PolicySnapshot invalidate / Redis-down failover
+
+门禁 G9（需求规格 V1.1 §12 / ARCH-011）：**实例按策略版本轮询。缓存频道丢失或 P2 短时不可用时，普通查询重新加载快照；超过时限无法加载则拒绝。**
+
+S0+S1 overnight slice. G18 stays closed. This package does **not** redo P0/M0, does **not** add a second `TenantContext`, and does **not** change `PermissionEngine` (coordinate with G2 matrix #73: same `PermissionService.decide` → `PermissionEngine.evaluate`).
+
+## 口径
+
+| Path | Must keep |
+|---|---|
+| Redis invalidate | `PUBLISH nexus:v1:permission:invalidate` + `SET EX` version marker only. Redis is **not** a policy payload store. |
+| Redis down / publish fail | Grant writes still bump `iam.perm_policy_version` (or the in-memory durable map). `PermissionService.decide` reloads from that store. Decision equals `PermissionEngine.evaluate` on `PolicyRepository.loadSnapshot`. |
+| Lost pub/sub | Next `SnapshotManager.get` re-reads the durable version. Channel loss cannot leave a process on the old snapshot. |
+| Durable version / load failure | Fail-closed `P2.PERM.0005` / `SnapshotUnavailable`. Redis notify must not substitute a decision. |
+| Tenant context | Issued `one.nexus.p2.kernel.TenantContext` via `TenantContextHolder` only. Client `X-Tenant-Id` stays `P2.PERM.0013`. |
+
+Implementation is the existing M0-05 `SnapshotManager` + `RedisPolicyInvalidation`. This package adds measurable evidence, not a second engine.
+
+## How to run
+
+```bash
+./scripts/g9-policysnapshot-invalidate.sh
+```
+
+Equivalent:
+
+```bash
+mvn -pl nexus-permission-core -am test \
+  -Dtest=G9PolicySnapshotFailoverTest,RedisInvalidationTest,SnapshotManagerTest,PermissionEngineTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+Live Redis 3.2 on `127.0.0.1:6379` is optional. `RedisInvalidationTest` skips the PING/SUBSCRIBE cases when it is not listening. Redis-down cases always run (dead client on port `1`).
+
+## Evidence
+
+Recorded on this agent VM after the suite below. Java **21**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. No local Redis 3.2 / PostgreSQL listener required for the G9 Redis-down path.
+
+```
+./scripts/g9-policysnapshot-invalidate.sh
+# result filled after the pre-testing revision is pushed
+```
+
+| Suite | What it proves |
+|---|---|
+| `G9PolicySnapshotFailoverTest` | Redis-down grant → `decide` matches durable `PermissionEngine`; lost channel still reloads; Redis snapshot key is not truth; durable failure stays `P2.PERM.0005`; missing issued context is `P2.PERM.0009` (no invented holder) |
+| `RedisInvalidationTest` | P0-05 key contract; publish failure is observed; Redis-down still loads durable version; DB version failure fail-closed; live PING/PUBLISH/SUBSCRIBE skip if Redis 3.2 is absent |
+| `SnapshotManagerTest` | Version poll without notify; stale / missing / regression fail-closed |
+| `PermissionEngineTest` | P0-02 truth table unchanged (G2 coordination) |
+
+## Honest leftovers
+
+| Still open | Why |
+|---|---|
+| Redis Sentinel / Cluster / replica promotion | Explicitly not this slice (same as M0-05). |
+| Multi-node live partition | This VM is single-process. Lost-channel is simulated by writing the durable store without `PUBLISH`. |
+| Production poll interval / bounded-stale window | Product poller is on `main` (#89). This package only proves Redis-down / lost-channel `decide` == durable `PermissionEngine`. |
+| G2 product-wide matrix / UI / H5 / report / export | G2 list/detail/flow + role matrix is on `main` (#73). This package does not edit `PermissionEngine`, `SurfaceGuard`, or the role-matrix APIs. |
+| Live JAR + browser snapshot walk | G18 already recorded `GET /api/v1/permission/snapshot`. This package is invalidate + Redis-down evidence, not a second G18 walk. |
+| GaussDB | Same as M0-05: in-memory durable store for the failover path. |
