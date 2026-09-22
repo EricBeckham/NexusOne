@@ -1,0 +1,28 @@
+# Sanitized agent-VM lifecycle leftover output
+# Host: Ubuntu x86_64 (not ARM). Docker not used.
+# Rebased onto origin/main 3be6d11 / #126.
+# profile_acceptance=NOT_CLAIMED
+# Numbers below are filled after the first lifecycle.sh run on this branch.
+
+schema_version=1
+timestamp_utc=pending-first-run
+host_uname_m=x86_64
+host_arch_family=x86_64
+java_feature=21
+boot_parent_version=4.1.1
+boot_parent_match=PASS
+docker_used=false
+x86_64_install=pending-first-run
+x86_64_upgrade=pending-first-run
+x86_64_rollback=pending-first-run
+x86_64_offline=pending-first-run
+x86_64_sbom=pending-first-run
+aarch64_install=SKIP
+aarch64_upgrade=SKIP
+aarch64_rollback=SKIP
+aarch64_offline=SKIP
+aarch64_sbom=SKIP
+aarch64_skip_reason=host uname -m=x86_64; no aarch64/arm64 CPU; Docker/QEMU user-mode not used (S0+S1 leftover forbids Docker). Cannot execute native aarch64 install/upgrade/rollback/offline/SBOM on this VM.
+profile_acceptance=NOT_CLAIMED
+g18_status=closed_unchanged
+audit_port_changed=false
