@@ -17,6 +17,7 @@ PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **K
 | SMTP hooks for invite / password reset only | Keycloak `execute-actions-email`; disabled unless `nexus.iam.smtp.enabled=true` |
 | Dual-tenant membership isolation at the data model | tenant-scoped tables + tests |
 | G10 person ↔ Keycloak match + repair | `account/PersonIdentityReconciler`, `GET\|POST /api/v1/identity/reconcile` |
+| G10 leftover: Keycloak 8080 drift-fix dry-run | proposed `repairs` on preview; `./scripts/g10-identity-drift-dry-run.sh` (default no writes) |
 | Admin MFA policy (platform + tenant admin, default forced) | `session/AdminMfaPolicy`, login / switch / load-context gate; `GET /api/v1/auth/authorize-url?acr=mfa` |
 
 `tenant_id` on the wire is **rejected**. Send `X-Tenant-Id` and the API returns `P2.IAM.CLIENT_TENANT_REJECTED`. Context is issued only after P2 membership is checked.
@@ -31,12 +32,12 @@ mvn -pl nexus-p2-iam -am test
 
 **36 tests, 0 failures, 3 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0** (includes G17 admin-MFA slice). Skips: `LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest` (opt-in `NEXUS_KEYCLOAK_SMOKE=1`), and `JdbcDualTenantIsolationTest` when PostgreSQL 15 is unreachable.
 
-G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). File/object reconcile is [docs/g10-file-reconcile.md](../docs/g10-file-reconcile.md).
+G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). Drift-fix dry-run leftover (detect + proposed fix, default no writes): [docs/g10-identity-drift-dry-run.md](../docs/g10-identity-drift-dry-run.md). File/object reconcile is [docs/g10-file-reconcile.md](../docs/g10-file-reconcile.md).
 
 Covered by tests:
 
 - Login reconciles a global account from IdP claims.
-- G10 preview matches persons to IdP users; apply repairs email drift, stale `keycloak_user_id`, and missing IdP users. Unmatched IdP users are reported only.
+- G10 preview matches persons to IdP users and now lists **proposed** repairs (`SYNC_P2` / `REBIND` / `PROVISION_IDP`) without writing. Apply still repairs email drift, stale `keycloak_user_id`, and missing IdP users. Unmatched IdP users are reported only.
 - No context is issued until the account has an active tenant membership (auto-issue when there is exactly one).
 - Dual-tenant membership: same natural person has distinct Person rows; listing persons in tenant A never returns tenant B rows.
 - Tenant switch to a non-member tenant is forbidden.
