@@ -91,3 +91,5 @@ See [engineering/g15-h5-pkce-miniprogram-remainder-honesty-EVIDENCE.md](./engine
 - DingTalk 小程序 production accept (DingTalk JSAPI / h5.dingtalk.com walk)
 - Store-ready IPA / APK / TestFlight / Play
 - Product-wide G15 close
+
+Follow-on leftover honesty remainder (does **not** close product G15): [g15-h5-pkce-miniprogram-leftover-honesty-remainder.md](./g15-h5-pkce-miniprogram-leftover-honesty-remainder.md).

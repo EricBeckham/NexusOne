@@ -1,0 +1,131 @@
+name: g15-h5-pkce-miniprogram-leftover-honesty-remainder
+
+# Honesty leftover remainder beyond #240/#220/#198.
+# Parent leftover harness fixtures stay PASS.
+# #240 harness PASS is not a live Keycloak H5 PKCE / WeChat / DingTalk / IPA walk.
+# Live hosts stay SKIP unless observed.
+# Does not redo #117/#120/#126/#198/#220/#240. Not product G15 close.
+# G18 stays closed. No P0/M0 redo. AuditPort same-TX untouched.
+
+on:
+  push:
+    paths:
+      - "scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh"
+      - "scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/**"
+      - ".github/workflows/g15-h5-pkce-miniprogram-leftover-honesty-remainder.yml"
+      - "docs/g15-h5-pkce-miniprogram-leftover-honesty-remainder.md"
+      - "docs/engineering/g15-h5-pkce-miniprogram-leftover-honesty-remainder-EVIDENCE.md"
+      - "docs/engineering/g15-h5-pkce-miniprogram-leftover-honesty-remainder/agent-vm.env"
+      - "docs/README.md"
+  pull_request:
+    paths:
+      - "scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh"
+      - "scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/**"
+      - ".github/workflows/g15-h5-pkce-miniprogram-leftover-honesty-remainder.yml"
+      - "docs/g15-h5-pkce-miniprogram-leftover-honesty-remainder.md"
+      - "docs/engineering/g15-h5-pkce-miniprogram-leftover-honesty-remainder-EVIDENCE.md"
+      - "docs/engineering/g15-h5-pkce-miniprogram-leftover-honesty-remainder/agent-vm.env"
+      - "docs/README.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh --verify-report \
+          scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/fixtures/honest-skip.env
+      - name: Fake product G15 close is rejected
+        run: ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh --verify-report \
+          scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/fixtures/fake-g15-close.env fail
+      - name: Fake live H5 PKCE PASS without a walk is rejected
+        run: ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh --verify-report \
+          scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/fixtures/fake-live-pkce-pass.env fail
+      - name: Fake WeChat PASS without a walk is rejected
+        run: ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh --verify-report \
+          scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/fixtures/fake-wechat-pass.env fail
+      - name: Fake IPA PASS without a walk is rejected
+        run: ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh --verify-report \
+          scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/fixtures/fake-ipa-pass.env fail
+      - name: Fake #117/#126/#198/#220/#240 redo is rejected
+        run: ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh --verify-report \
+          scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/fixtures/fake-redone.env fail
+      - name: Fake #240 harness as live walk is rejected
+        run: ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh --verify-report \
+          scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder/fixtures/fake-harness-as-live.env fail
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Collect honest leftover #240/#220/#198 PASS / live SKIP
+        run: |
+          chmod +x ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh
+          ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh \
+            --out "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder"
+          ./scripts/g15-h5-pkce-miniprogram-leftover-honesty-remainder.sh \
+            --verify-report "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_harness=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_220_harness=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_198_harness=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_honesty_gate=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_is_not_live_h5_pkce=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_is_not_wechat_production=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_is_not_ipa_apk=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_is_not_product_g15=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^live_h5_keycloak_pkce=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^wechat_miniprogram_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^dingtalk_miniprogram_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^ios_ipa_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^android_apk_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^g15_close=NOT_CLAIMED$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g15-h5-pkce-miniprogram-remainder-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g15-wx-dt-native-bridge-remainder' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g15-wx-dt-native-bridge-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g17-separation-leftover-honesty-remainder' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g10-file-object-reconcile-leftover-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g9-leftover-honesty-remainder' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'linux-arm-profile-leftover-remainder-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g2-h5-every-page-form-write-report-remainder-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'linux-arm-profile-remainder-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g4-hot-purge-staging-pkce-remainder-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 'g10-file-object-reconcile-remainder-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E 's0-secret-rotate-getenv-leftover-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_220_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_198_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_249_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_262_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_259_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_263_kept=true$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_240_redone=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^redone_198=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^redone_220=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-leftover-honesty-remainder/report.env"
+          grep -F 'g15-h5-pkce-miniprogram-leftover-honesty-remainder' docs/README.md
+          grep -F 'g15-h5-pkce-miniprogram-remainder-honesty' docs/README.md
+          grep -F 'g17-separation-leftover-honesty-remainder' docs/README.md
+          grep -F 'g10-file-object-reconcile-leftover-honesty' docs/README.md
+          grep -F 'g9-leftover-honesty-remainder' docs/README.md
+          grep -F 'linux-arm-profile-leftover-remainder-honesty' docs/README.md
+          grep -F 'g15-wx-dt-native-bridge-remainder' docs/README.md
+          grep -F 'g15-wx-dt-native-bridge-honesty' docs/README.md
+          grep -F 'g2-h5-every-page-form-write-report-remainder-honesty' docs/README.md
+          grep -F 'linux-arm-profile-remainder-honesty' docs/README.md
+          grep -F 'g4-hot-purge-staging-pkce-remainder-honesty' docs/README.md
+          grep -F 'g10-file-object-reconcile-remainder-honesty' docs/README.md
+          grep -F 's0-secret-rotate-getenv-leftover-honesty' docs/README.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g15-h5-pkce-miniprogram-leftover-honesty-remainder
+          path: ${{ runner.temp }}/g15-h5-pkce-miniprogram-leftover-honesty-remainder
