@@ -39,6 +39,18 @@ management:
     env:
       enabled: true
 
+nexus:
+  execution:
+    dispatcher-enabled: true
+    worker-enabled: true
+    quartz-enabled: true
+    quartz-auto-startup: true
+    poll-interval: 500ms
+    lease-duration: 30s
+    lag-warn-after: 30s
+    batch-size: 16
+    max-attempts: 5
+
 info:
   app:
     name: NexusOne

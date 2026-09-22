@@ -18,6 +18,10 @@ public record ErrorCode(String product, String module, int number) {
     public static final ErrorCode CTX_MISSING_TENANT = of("CORE", "CTX", 1);
     public static final ErrorCode CTX_INVALID_PLATFORM = of("CORE", "CTX", 2);
     public static final ErrorCode CTX_MISSING_ACTOR = of("CORE", "CTX", 3);
+    public static final ErrorCode JOB_UNKNOWN_TYPE = of("CORE", "JOB", 1);
+    public static final ErrorCode JOB_DEAD = of("CORE", "JOB", 2);
+    public static final ErrorCode EVT_UNKNOWN_DESTINATION = of("CORE", "EVT", 1);
+    public static final ErrorCode EVT_DISPATCH_FAILED = of("CORE", "EVT", 2);
 
     public ErrorCode {
         Objects.requireNonNull(product, "product");
