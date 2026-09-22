@@ -66,6 +66,7 @@ class NexusOnePostgresTest {
         assertTrue(versions.contains("500"), "M0-09 V500 execution channel must be applied, got " + versions);
         assertTrue(versions.contains("501"), "M0-11 V501 audit hash chain must be applied, got " + versions);
         assertTrue(versions.contains("502"), "G4 V502 audit export/archive must be applied, got " + versions);
+        assertTrue(versions.contains("503"), "G4 V503 archive expiry grant must be applied, got " + versions);
         assertTrue(versions.contains("510"), "M0-10 V510 files must be applied, got " + versions);
         assertTrue(versions.contains("520"), "M0-10 V520 notify must be applied, got " + versions);
         assertTrue(versions.contains("530"), "M0-07 V530 form metadata must be applied, got " + versions);

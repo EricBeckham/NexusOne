@@ -97,7 +97,7 @@ Runbook：
 | 全路径哈希校验作为产品门禁 | 内存与 JDBC 测试可验证**已写入**的链，不能代表真实业务闭环 |
 | P1 `GET /tenants/{id}/audit-events` 切换到 M0-11 | P1 staging 表仍在；切换会改 M0-03 行为，留给接线 PR |
 | 把 `IsolationAuditSink` 接到 `AuditPort` | Product `AuditPortIsolationSink` persists `ISOLATION_REJECT` with `appendNewTransaction` (G1) and `EXPORT_ACCEPTED` with `append`. Kernel still only emits `IsolationAuditEvent`. Same-TX `append` joining is unchanged. |
-| G4 审计覆盖每个用户 / 热 90 天 + 归档 365 天 | 登录/权限/管理/守卫拒绝已接线（见 [g4-audit-coverage.md](./g4-audit-coverage.md)）。Export accepted + 90-day copy Job: [g4-export-audit-archive.md](../g4-export-audit-archive.md)。Hot rows are not deleted. 365-day purge and object-store cold path are not implemented. |
+| G4 审计覆盖每个用户 / 热 90 天 + 归档 365 天 | 登录/权限/管理/守卫拒绝已接线（见 [g4-audit-coverage.md](./g4-audit-coverage.md)）。Export accepted + 90-day copy Job + 365-day same-PG archive purge: [g4-export-audit-archive.md](../g4-export-audit-archive.md)。Hot rows are not deleted. Object-store cold path is not implemented. |
 | G6 整库与对象恢复演练、RPO/RTO | 产品 `RecoveryPort` 仍为 dry-run。S1 环境级演练（专用 PG 库 + 本地 MinIO）见 [g6-recovery-drill-EVIDENCE.md](./g6-recovery-drill-EVIDENCE.md)。分钟级 RPO / Profile / G17 仍不宣称 |
 | G17 等保与国密交付 | 无三权分立产品路径、无国密 TLS 双证书、无合格 GM/T Provider、无密码机 |
 | 国密 TLS（GM/T 0024）、Nginx 双证书 | P0-10 已声明未验 |

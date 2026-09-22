@@ -35,4 +35,18 @@ class AuditFlywayContractTest {
         assertFalse(text.contains("create table l_"));
         assertFalse(text.contains("create table a_"));
     }
+
+    @Test
+    void v503GrantsArchiveDeleteOnlyAndLeavesHotAppendOnly() throws IOException {
+        Path file = Path.of("src/main/resources/db/migration/V503__audit_archive_expiry.sql");
+        assertTrue(Files.isRegularFile(file), file.toAbsolutePath().toString());
+        String text = Files.readString(file).toLowerCase(Locale.ROOT);
+        assertTrue(text.contains("grant delete on table platform.audit_record_archive"));
+        assertFalse(text.contains("delete from platform.audit_record"));
+        assertFalse(text.contains("grant delete on table platform.audit_record "));
+        assertFalse(text.contains("grant delete on platform.audit_record"));
+        assertFalse(text.contains("create table business_data."));
+        assertFalse(text.contains("create table l_"));
+        assertFalse(text.contains("create table a_"));
+    }
 }

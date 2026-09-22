@@ -29,7 +29,7 @@ public final class PlatformAuditArchiveQuartzJob implements Job {
         PlatformContext platform = isolation.restorePlatform(
                 AuditArchiveJob.PLATFORM_PATH,
                 Actor.system("audit-archive"),
-                "90-day hot copy",
+                "90-day copy + 365-day archive purge",
                 trace);
         try {
             AccessContextHolder.run(platform, () -> {

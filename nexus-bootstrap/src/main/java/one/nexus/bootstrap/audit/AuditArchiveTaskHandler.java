@@ -10,7 +10,7 @@ import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.task.TaskHandler;
 
 /**
- * Job path for the 90-day hot copy. Requires a bound {@code PlatformContext}
+ * Job path for the 90-day hot copy and 365-day archive purge. Requires a bound {@code PlatformContext}
  * ({@link AuditArchiveJob#PLATFORM_PATH}); tenant TaskQueue submit is not used
  * because IsolatedJobScheduler requires membership.
  */

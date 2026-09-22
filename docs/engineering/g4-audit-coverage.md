@@ -34,7 +34,7 @@ P1 `GET /tenants/{id}/audit-events` still reads staging `platform.audit_event` (
 
 | Proven | Still open |
 |---|---|
-| Login accepted / rejected / logout append to the hash chain and are findable by `trace_id` | Full G4: 90-day hot + 365-day archive Job |
+| Login accepted / rejected / logout append to the hash chain and are findable by `trace_id` | Full G4 product close (same-request browser chain / object-store cold / hot-row purge). 90-day copy + 365-day same-PG purge: [g4-export-audit-archive.md](../g4-export-audit-archive.md) |
 | Permission grant / role assignment append (`append` joins ambient TX) | Export / file-download audit |
 | Admin tenant create (and other P1 admin writes) land on the same chain; `append` rolls back with the business TX | One real request that is login→permission→admin→data→approval→guard-reject (G18 is data/approval; G4 events are wired but not one browser walk) |
 | Guard-reject from `IsolationAuditor` / `RequestIsolationPolicy` uses `appendNewTransaction` and survives a surrounding rollback | Switching P1 `GET /tenants/{id}/audit-events` off staging |

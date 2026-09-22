@@ -11,7 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-/** Test double: copies aged hot events without mutating the in-memory chain. */
+/** Test double: copies aged hot events and purges expired archive rows without mutating the in-memory chain. */
 public final class InMemoryAuditArchivePort implements AuditArchivePort {
     private final AuditPort hot;
     private final Map<UUID, ChainedAuditEvent> archived = new LinkedHashMap<>();
@@ -40,6 +40,21 @@ public final class InMemoryAuditArchivePort implements AuditArchivePort {
                 }
             }
             return ArchiveRunResult.copied(copied, archived.size(), cutoff);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public ArchiveRunResult purgeExpiredArchive(Duration archiveRetention, Instant now) {
+        Objects.requireNonNull(archiveRetention, "archiveRetention");
+        Objects.requireNonNull(now, "now");
+        Instant cutoff = now.minus(archiveRetention);
+        lock.lock();
+        try {
+            int before = archived.size();
+            archived.values().removeIf(event -> event.event().occurredAt().isBefore(cutoff));
+            return ArchiveRunResult.purged(before - archived.size(), archived.size(), cutoff);
         } finally {
             lock.unlock();
         }
