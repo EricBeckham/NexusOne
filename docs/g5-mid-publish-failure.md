@@ -6,7 +6,7 @@ This package only adds **mid-publish failure** evidence **beyond** the existing 
 
 **Not claimed:** product G5 close, P4/app-package publish, form designer, G7/G2/G4/G1 remainder, G18 reopen.
 
-Browser failed-publish click / PublishHook honesty leftover is the sibling [g5-browser-failed-publish.md](./g5-browser-failed-publish.md) (live browser/IdP/JAR **SKIP**). Keep both leftover rows.
+Browser failed-publish click / PublishHook honesty leftover is the sibling [g5-browser-failed-publish.md](./g5-browser-failed-publish.md) (live browser/IdP/JAR **SKIP**). PASS/SKIP honesty leftover beyond this file and #171 is [g5-mid-publish-failure-honesty.md](./g5-mid-publish-failure-honesty.md). Keep both leftover rows, plus the honesty leftover.
 
 Existing evolve-abort / validate-fail / CREATE-success evidence stays on [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). This leftover does not rewrite `FormService` / `SchemaService` / `AuditPort`.
 
