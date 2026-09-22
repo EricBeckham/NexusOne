@@ -8,6 +8,11 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.UUID;
+import one.nexus.audit.AuditCaptures;
+import one.nexus.audit.InMemoryHashChainedAuditPort;
+import one.nexus.common.trace.TraceIds;
+import one.nexus.crypto.CryptoSuite;
+import one.nexus.crypto.JcaCryptoPort;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.PermissionModule;
@@ -23,6 +28,7 @@ class FormSurfaceGuardTest {
     @AfterEach
     void clear() {
         TenantContextHolder.clear();
+        TraceIds.clearMdc();
     }
 
     @Test
@@ -91,6 +97,21 @@ class FormSurfaceGuardTest {
         assertEquals(decision.reason(), guard.requireWrite().reason());
     }
 
+    @Test
+    void noGrantEmitsPermissionDeniedAndGuardReject() {
+        bindIssued();
+        TraceIds.putMdc("0199a1c0-0000-7000-8000-00000000c234");
+        InMemoryHashChainedAuditPort audits =
+                new InMemoryHashChainedAuditPort(JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL));
+        FormSurfaceGuard guard = guard(decision("form", "read", new Decision(false, "no_grant")), null, audits);
+        assertThrows(PermissionException.class, guard::requireRead);
+        assertTrue(audits.findByTraceId("0199a1c0-0000-7000-8000-00000000c234").stream()
+                .anyMatch(event -> AuditCaptures.PERMISSION_DENIED.equals(event.event().eventType())));
+        assertTrue(audits.findByTraceId("0199a1c0-0000-7000-8000-00000000c234").stream()
+                .anyMatch(event -> AuditCaptures.GUARD_REJECT.equals(event.event().eventType())));
+        assertTrue(audits.verifyChain().intact());
+    }
+
     private static void bindIssued() {
         UUID id = UUID.fromString("11111111-1111-4111-8111-111111111111");
         TenantContextHolder.set(new TenantContext(
@@ -98,8 +119,14 @@ class FormSurfaceGuardTest {
     }
 
     private static FormSurfaceGuard guard(PermissionService service, TenantMemberGrantSeeder seeder) {
+        return guard(service, seeder, null);
+    }
+
+    private static FormSurfaceGuard guard(
+            PermissionService service, TenantMemberGrantSeeder seeder, InMemoryHashChainedAuditPort audits) {
         PermissionModule module = mock(PermissionModule.class);
         when(module.service()).thenReturn(service);
+        when(module.audits()).thenReturn(audits);
         return new FormSurfaceGuard(module, provider(seeder));
     }
 

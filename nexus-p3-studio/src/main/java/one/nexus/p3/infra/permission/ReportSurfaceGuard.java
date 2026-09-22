@@ -52,7 +52,11 @@ public class ReportSurfaceGuard {
     }
 
     public Decision require(String resource, String action) {
-        return SurfaceGuard.requireAllowed(decide(resource, action));
+        if (TenantContextHolder.get() == null) {
+            return isolationOnly();
+        }
+        TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
+        return SurfaceGuard.require(permission, resource, action);
     }
 
     public Decision decide(String resource, String action) {

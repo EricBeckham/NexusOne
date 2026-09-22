@@ -132,7 +132,7 @@ public class BusinessPathService {
             return;
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
-        SurfaceGuard.require(permission.service(), FormSurfaceGuard.RESOURCE, FormSurfaceGuard.WRITE);
+        SurfaceGuard.require(permission, FormSurfaceGuard.RESOURCE, FormSurfaceGuard.WRITE);
     }
 
     private PathView startFresh(SubmitStartCommand command, one.nexus.p2.kernel.TenantContext iam) {

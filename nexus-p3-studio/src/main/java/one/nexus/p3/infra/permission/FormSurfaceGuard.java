@@ -55,6 +55,6 @@ public class FormSurfaceGuard {
             return new Decision(true, "tenant_only");
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
-        return SurfaceGuard.require(permission.service(), RESOURCE, action);
+        return SurfaceGuard.require(permission, RESOURCE, action);
     }
 }

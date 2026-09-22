@@ -41,6 +41,7 @@ P1 `GET /tenants/{id}/audit-events` still reads staging `platform.audit_event` (
 | `JdbcAuditChainTransactionTest` 4/4 — library same-TX rules unchanged | HTTP export wizard / report UI |
 | `GET /api/v1/audit/traces/{traceId}` returns tenant-scoped G4 events | Full G4 product close (human laptop PKCE click / hot-row purge). HTTPS loopback driver is [g4-pkce-https-browser.md](../g4-pkce-https-browser.md) |
 | Same-trace MockMvc walk login→permission→admin→export→guard-reject ([g4-same-trace-walk.md](../g4-same-trace-walk.md)) | 90-day copy + 365-day same-PG purge already on `main` ([g4-export-audit-archive.md](../g4-export-audit-archive.md)) |
+| SurfaceGuard form/H5/report/Job/Task deny on the same chain ([g4-guard-deny-audit.md](../g4-guard-deny-audit.md)) | Isolation-only `tenant_only` skip; silent `require(service, resource, action)` fixtures |
 
 ## Tests
 

@@ -196,7 +196,7 @@ public class SequentialApprovalService {
             // FlowAuthFilter. In-process start (G18 rollback probe) never hits
             // those HTTP filters.
             TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
-            SurfaceGuard.require(permission.service(), resource, action);
+            SurfaceGuard.require(permission, resource, action);
         } catch (PermissionException ex) {
             throw FlowException.forbidden(ex.getMessage());
         }

@@ -72,6 +72,6 @@ public class H5SurfaceGuard {
             return new Decision(true, "tenant_only");
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
-        return SurfaceGuard.require(permission.service(), resource, action);
+        return SurfaceGuard.require(permission, resource, action);
     }
 }
