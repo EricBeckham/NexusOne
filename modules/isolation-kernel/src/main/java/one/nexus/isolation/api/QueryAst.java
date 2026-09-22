@@ -1,5 +1,6 @@
 package one.nexus.isolation.api;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +24,12 @@ public final class QueryAst {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.table = Objects.requireNonNull(table, "table");
         this.projection = List.copyOf(projection);
-        this.values = Map.copyOf(new LinkedHashMap<>(values));
-        this.filters = Map.copyOf(new LinkedHashMap<>(filters));
+        this.values = copyAllowingNulls(values);
+        this.filters = copyAllowingNulls(filters);
+    }
+
+    private static Map<String, Object> copyAllowingNulls(Map<String, Object> source) {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(source));
     }
 
     public static QueryAst select(String table, List<String> projection, Map<String, Object> filters) {
