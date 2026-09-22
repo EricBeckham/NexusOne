@@ -111,15 +111,42 @@ mvn -pl nexus-p2-iam -am test
 
 ## G10 identity half (this PR)
 
-Person ↔ Keycloak match + repair on M0-04 IAM. File/object reconcile is not in this evidence.
+Person ↔ Keycloak match + repair on M0-04 IAM. File/object reconcile is not in this evidence. Recorded **2026-09-22T15:31:58Z** on the agent VM. Secrets stayed in `/tmp/keycloak-smoke.env` (`0600`); none committed.
 
-Default Stub IdP (no Keycloak process):
+### Default Stub IdP
 
 ```bash
 mvn -pl nexus-p2-iam -am test
 ```
 
-Recorded after the test run in this PR. Live Keycloak on **8080** is opt-in (`NEXUS_KEYCLOAK_SMOKE=1`); see [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md).
+`nexus-p2-iam`: **Tests run: 25, Failures: 0, Errors: 0, Skipped: 3** (`LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest`, `JdbcDualTenantIsolationTest` — PostgreSQL 15 was not listening). `PersonIdentityReconcileTest` **8/8** (match, dry-run, email repair, rebind, provision, unmatched-IdP report-only, tenant-scoped repair, collision). `IdentityApiTest` **4/4** includes HTTP preview + tenant apply.
+
+### Live Keycloak 26.5.2 on :8080
+
+This VM had no PostgreSQL listener, so Keycloak was started **native** `kc.sh start-dev` with the bundled **H2** (not the product Keycloak-on-PG path). HTTP **8080**, management **9000**. Realm import `nexus`. Confidential client `nexus-platform`. Service-account roles `manage-users` / `view-users` / `query-users`.
+
+```
+Keycloak 26.5.2 on JVM (powered by Quarkus 3.27.2) started in 7.341s.
+Listening on: http://0.0.0.0:8080. Management interface listening on http://0.0.0.0:9000.
+GET http://127.0.0.1:9000/health/ready → UP
+issuer http://127.0.0.1:8080/realms/nexus
+```
+
+```bash
+export NEXUS_KEYCLOAK_SMOKE=1
+export NEXUS_KEYCLOAK_ISSUER=http://127.0.0.1:8080/realms/nexus
+mvn -pl nexus-p2-iam -am test -Dtest=LiveKeycloakPersonReconcileTest
+```
+
+Result: **Tests run: 1, Failures: 0, Errors: 0, Skipped: 0**. `nexus.iam.idp=keycloak`. Provisioned person **MATCHED**; drifted email dry-run left stale; apply **SYNC_P2** restored `g10-admin@example.com`; extra Keycloak user `g10-orphan` stayed **UNMATCHED_IDP** (no P2 person created).
+
+| Check | Result |
+|---|---|
+| Persons match Keycloak users | yes |
+| Inconsistency repair (email drift) | yes |
+| Unmatched IdP user not created as Person | yes |
+| SAML / LDAP / SMS MFA / browser PKCE | not run (excluded) |
+| File metadata ↔ object | not this PR |
 
 ## Honest gaps (not verified here)
 
