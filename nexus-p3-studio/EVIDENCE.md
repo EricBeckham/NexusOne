@@ -239,6 +239,8 @@ Coordinator merges when GitHub is CLEAN/MERGEABLE; this drop does not self-merge
 
 See `docs/g18-business-path.md`. Product G18 is **not** closed (browser E2E still open).
 
+Eric’s browser on `ace55ff`: stub login「浏览器管理员」, tenant `ui2205`, tenant/org/permission snapshot only. Health UP, **`grant_count=0`**, `ledger/read` **`no_grant`**. Further G18 steps were not reached. Do **not** claim product G18 closed.
+
 Wire: form submit → SchemaService physical `l_*` row → sequential approval in the same Spring TX → `OutboxPort.append` destination `notify.inbox` → M0-11 `AuditPort.findByTraceId`.
 
 Flyway **V531** (window V530–V549) adds `form_submission.ledger_id` / `ledger_record_id`. No `business_data` / `l_*` DDL.

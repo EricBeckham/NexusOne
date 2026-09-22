@@ -4,6 +4,22 @@ Work package for **tenant/org/permission shells** plus **dual-tenant adversarial
 
 This package **does not close G18**. Ledger, form, and todo **UI** in `web/` call live HTTP (`/api/v1/p3/ledgers`, `/api/v1/p3/forms`, `/api/v1/p3/todos` + `/api/v1/process/*`). Permission shells call `/api/v1/permission`. MOCK adapters for 台账 / 表单 / 待办 are removed.
 
+## Eric browser walkthrough (`ace55ff`) — G18 NOT CLOSED
+
+Recorded against `main` @ `ace55ff`. Stub login「浏览器管理员」, tenant `ui2205`, tenant admin initialized, person ACTIVE, org Root/`ROOT` + position `TENANT_ADMIN`.
+
+| Reached | Blocked |
+|---|---|
+| Tenant create / tenant admin | Ledger records / form publish |
+| Org (person, Root, `TENANT_ADMIN`) | Sequential approval / todo |
+| Permission health **UP** | Notify / audit hash chain |
+| Permission snapshot **`grant_count=0`** | Any further G18 step |
+| `ledger/read` check **`allowed=false`, `no_grant`** | |
+
+The HTTP dual-tenant / P3 live scripts and `G18BusinessPathIT` are a different path: they hit `/api/v1/p3/*`, which already seeded `tenant_member`. The browser permission page did not. Product G18 is **NOT CLOSED** via browser. Do not treat a later non-zero snapshot as a G18 close.
+
+IT on this branch (`TenantMemberGrantSeedApiTest`, **2026-09-22T14:17:57Z**): stub login + issued context → snapshot `grant_count > 0` and `ledger/read` is not `no_grant`. That is the permission-shell path, not a browser G18 close.
+
 ## How to run
 
 PostgreSQL **15.x** on localhost, credentials from the environment, no Docker.
@@ -61,21 +77,21 @@ TenantContext for `/api/v1/notifications` and `/api/v1/p3/*` (except todos) is b
 | G1 | In-app notifications do not leak across tenants | **PASS** | enqueue in A, list in B empty |
 | G1 | Query AST / export / file / cache / Job / Task full path | **DEFERRED** | M0-02 kernel + later modules |
 | G1 | Guard-reject logs “zero leak” product claim | **DEFERRED** | isolation kernel evidence, not this UI |
-| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | no GET role catalog; G2 product-wide not closed |
+| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | On `ace55ff` health UP but `grant_count=0` / `ledger/read` `no_grant`. This PR seeds person-id `tenant_member` on the permission filter. G2 product-wide not closed |
 | G5 | Draft/Validate/Publish | **LIVE API** | M0-07 HTTP + Vue fill/publish; G5 rollback is server-side, not a G18 walkthrough |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **LIVE API** | `GET /api/v1/permission/snapshot` with issued context |
 | G15 | H5 | **DEFERRED** | S1 |
 | G18 | Tenant create | **PASS** | P1 API + tenant admin UI |
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
-| G18 | Permission views | **LIVE SHELL** | snapshot + check; no full matrix UI |
-| G18 | Ledger | **LIVE API** | Vue list/detail → `/api/v1/p3/ledgers` + records. No field PUT. |
-| G18 | Form / publish | **LIVE API** | Fill → submissions; Validate/Publish live. G5 not claimed closed here. |
+| G18 | Permission views | **LIVE SHELL / BLOCKED ON ace55ff** | Snapshot + check only. Browser on `ace55ff`: `grant_count=0`, `ledger/read` `no_grant`. No full matrix UI |
+| G18 | Ledger | **LIVE API** | Vue list/detail → `/api/v1/p3/ledgers` + records. No field PUT. Browser G18 did not reach this on `ace55ff` |
+| G18 | Form / publish | **LIVE API** | Fill → submissions; Validate/Publish live. G5 not claimed closed here. Browser G18 did not reach this on `ace55ff` |
 | G18 | Business data / query | **LIVE LIST** | record APIs exist; no end-to-end expense-claim walkthrough |
-| G18 | Sequential approval / todo | **LIVE API** | inbox/done/initiated + process approve/reject/withdraw |
-| G18 | In-app notification | **LIVE API** | 403 without TenantContext; list succeeds with issued context |
+| G18 | Sequential approval / todo | **LIVE API** | inbox/done/initiated + process approve/reject/withdraw. Browser G18 did not reach this on `ace55ff` |
+| G18 | In-app notification | **LIVE API** | 403 without TenantContext; list succeeds with issued context. Browser G18 did not reach this on `ace55ff` |
 | G18 | Full audit hash chain | **SKIP** | P1 staging read only; M0-11 |
-| G18 | End-to-end real business walkthrough | **NOT CLOSED** | Backend path is wired (`docs/g18-business-path.md`); Vue now calls live P3 APIs. Product G18 is still not evidenced as one tenant→org→ledger→form→publish→data→approval→todo→query→notify→audit walkthrough. |
+| G18 | End-to-end real business walkthrough | **NOT CLOSED** | Backend path is wired (`docs/g18-business-path.md`). Browser on `ace55ff` reached only tenant / org / permission snapshot and stopped on `grant_count=0` / `no_grant`. Product G18 is **not** closed. |
 
 Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (regressed).
 
@@ -102,4 +118,4 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 
 See the PR for `npm run build`, `npm run assert:isolation`, `npm run assert:p3-live`, and dual-tenant script output when PostgreSQL 15.x is available.
 
-G18 remains **NOT CLOSED**.
+Browser on `ace55ff`: tenant / org / permission snapshot only; `grant_count=0` / `no_grant`. G18 remains **NOT CLOSED**. Do not claim closed.

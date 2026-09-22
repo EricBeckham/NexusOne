@@ -59,6 +59,11 @@ class TenantMemberGrantSeederTest {
         Decision decision = module.service().decide("ledger", "read");
         assertTrue(decision.allowed(), decision.reason());
         assertTrue(module.service().decide("ledger", "write").allowed());
+        assertTrue(module.service().decide("form", "read").allowed());
+        assertTrue(module.service().decide("form", "write").allowed());
         assertTrue(module.service().decide("process.task", "approve").allowed());
+        assertTrue(module.service().decide("process.task", "reject").allowed());
+        assertTrue(policies.listAssignments(tenant).stream()
+                .noneMatch(item -> "TENANT_ADMIN".equals(item.principalId())));
     }
 }

@@ -3,7 +3,35 @@
 Work package: wire **one** vertical path so publish → physical ledger row → sequential approval → Outbox in-app notify → audit hash chain run in the same Spring / PostgreSQL transaction model.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.1.0**, Flyway **13.7.0**. No Docker. Platform versions unchanged.
 
-**This does not close product G18.** Vue ledger/form/todo now call live HTTP (`/api/v1/p3/*`; MOCK adapters removed). Permission UI, H5, and a browser end-to-end walkthrough are still open.
+**This does not close product G18.** Vue ledger/form/todo now call live HTTP (`/api/v1/p3/*`; MOCK adapters removed). Permission UI, H5, and a browser end-to-end walkthrough are still open. **Do not claim product G18 closed.**
+
+## Browser walkthrough on `ace55ff` (not a G18 close)
+
+Eric’s browser path on `main` @ `ace55ff` (stub login「浏览器管理员」, tenant `ui2205`, tenant admin initialized, person ACTIVE, org Root/`ROOT` + position `TENANT_ADMIN`):
+
+| Step reached | Result |
+|---|---|
+| Stub / browser login + tenant context | Issued `X-Nexus-Context-Id` |
+| Tenant create / admin init | Reached |
+| Org (person / Root / `TENANT_ADMIN`) | Reached |
+| Permission health | `UP` |
+| `GET /api/v1/permission/snapshot` | **`grant_count=0`** |
+| `POST /api/v1/permission/check` `ledger`/`read` | **`allowed=false`, reason `no_grant`** |
+| Ledger records / form publish / sequential approval / todo / notify / audit | **Not reached** — blocked by `no_grant` |
+
+HTTP E2E / `G18BusinessPathIT` already seeded `tenant_member` because they hit `/api/v1/p3/*` (`IssuedTenantIsolationFilter`). The permission shell used by the browser (`/api/v1/permission/snapshot|check`) went through `PermissionAuthFilter`, which bound TenantContext but **did not seed**. Product G18 is **NOT CLOSED** via browser.
+
+This branch extends the same seed (`nexus.permission.seed-tenant-member-grants=true`) so `PermissionAuthFilter` and `FlowAuthFilter` assign role `tenant_member` to the current **person id** (not position code `TENANT_ADMIN`) after stub/browser login + issued context. `TenantMemberGrantSeedApiTest` is the IT for that browser-shaped path. It does **not** close product G18.
+
+IT on this branch at **2026-09-22T14:17:57Z** (agent VM, OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**):
+
+```bash
+mvn -pl nexus-permission-core -am test \
+  -Dtest=TenantMemberGrantSeedApiTest,PermissionApiTest,TenantMemberGrantSeederTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+`BUILD SUCCESS` — 4 tests. Seed API: stub login + issued context → snapshot `grant_count > 0`; `ledger/read|write`, `form/read`, `process.task` approve/reject allowed (not `no_grant`); assignment is `user` + person id. `PermissionApiTest` still observes `no_grant` with the seed property unset. P3 `IssuedTenantIsolationFilterTest` **5/5** and `PermissionDataScopeHookTest` **4/4**. Product G18 is **not** closed.
 
 ## Runtime gates (ledger 403 / notify 403 / empty `audit_record`)
 
@@ -11,7 +39,8 @@ Fixes for the live path Eric hit. Product G18 is still not closed.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `POST/GET /api/v1/p3/ledgers/{id}/records` → 403 `P2.PERM.0003` `no_grant` | `PermissionDataScopeHook` called `PermissionService.check("ledger","read")` which throws when the snapshot has no grant. Javadoc already said tenant-only fallback. `IamSubjectDirectory` userId is **personId**; assigning role `TENANT_ADMIN` to a position **code** does not match. | `decide()` + tenant-only fallback for `no_grant` (explicit deny / tenant boundary still 403). Demo seed: `nexus.permission.seed-tenant-member-grants=true` (product default) creates role `tenant_member` with ledger/form `read`+`write` ALL and `process.task` approve/reject, assigned to the current **person id**. |
+| Permission snapshot `grant_count=0`; `ledger/read` check → `no_grant` (browser on `ace55ff`) | Seeder ran only on P3 isolation / data-scope hooks. Browser permission page never called `TenantMemberGrantSeeder.ensure()`. `IamSubjectDirectory` userId is **personId**; assigning a role to position **code** `TENANT_ADMIN` does not match. | Product default `nexus.permission.seed-tenant-member-grants=true` creates role `tenant_member` (ledger/form `read`+`write` ALL, `process.task` approve/reject) assigned to the current **person id**. `PermissionAuthFilter` (snapshot/check), `FlowAuthFilter` (todos/path), and existing P3 hooks all call `ensure()` after TenantContext is bound. |
+| `POST/GET /api/v1/p3/ledgers/{id}/records` → 403 `P2.PERM.0003` `no_grant` | `PermissionDataScopeHook` called `PermissionService.check("ledger","read")` which throws when the snapshot has no grant. Javadoc already said tenant-only fallback. | `decide()` + tenant-only fallback for leftover `no_grant` (explicit deny / tenant boundary still 403), plus the person-id seed above. |
 | `GET /api/v1/notifications` → 403 `P1.M02.001` | `NotifyIsolationFilter` only binds demo headers (`nexus.notify.demo-context=false` in product). Login `Bearer` + `X-Nexus-Context-Id` never reached the isolation kernel. | Same binder as PR #60: `IssuedTenantIsolationFilter` (`HIGHEST_PRECEDENCE+19`) on `/api/v1/notifications` and `/api/v1/p3/*` except todos. Todos stay `FlowAuthFilter`. Tenant code: P1 `Tenant.code`, else existing `ledger.tenant_code` (G18 IT has no P1 tenant). |
 | `platform.audit_record` = 0 rows | Product `nexus.audit.persistence` defaulted to **memory** (`InMemoryHashChainedAuditPort`). | Default is **jdbc**. `AuditPort.append` joins the ambient Spring TX (`DataSourceUtils`); `appendNewTransaction` still commits privately for guard-reject. |
 
@@ -109,7 +138,7 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 - One running form binds a single `ledger_code`. The G18 ledger includes optional `approval_status`.
 - In-process Flowable 7.1.0 on the application `DataSource` / `PlatformTransactionManager` (already proven in M0-08).
 - Demo P3 headers are test-only for ledger/form **metadata** setup; record write/query, path API, and notify use server-issued IAM context (`Bearer` + `X-Nexus-Context-Id`).
-- `nexus.permission.seed-tenant-member-grants=true` seeds role `tenant_member` onto the current person id. `PermissionDataScopeHook` still falls back to tenant-only on leftover `no_grant`.
+- `nexus.permission.seed-tenant-member-grants=true` seeds role `tenant_member` onto the current **person id** (not position code). Binders: `PermissionAuthFilter`, `FlowAuthFilter`, `IssuedTenantIsolationFilter`, `PermissionDataScopeHook`. `PermissionDataScopeHook` still falls back to tenant-only on leftover `no_grant`.
 - `X-Trace-Id` must be a UUID / OTEL trace (`TraceIds.resolve`). The IT uses UUIDv7-shaped ids.
 - `nexus.notify.outbox=auto` uses M0-09 `JdbcOutboxStore`. In-memory `RecordingOutboxPort` is only for `outbox=record`.
 - `nexus.audit.persistence=jdbc` writes `platform.audit_record`. `append` joins the ambient Spring TX; the chain lock is held until that TX ends (concurrent appends serialize on one meta row). `appendNewTransaction` remains a private commit.
@@ -119,8 +148,8 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 | Item | Status |
 |---|---|
 | Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); MOCK toggle retired |
-| Live UI clicking this path | Not a G18 close; Vue no longer uses MOCK |
-| Product-wide G18 / G7 three-business | Open |
+| Live UI clicking this path | **NOT CLOSED.** On `ace55ff` the browser stopped at permission snapshot (`grant_count=0` / `no_grant`). This PR seeds the browser subject; it is still not a tenant→…→audit walkthrough |
+| Product-wide G18 / G7 three-business | Open — **do not claim closed** |
 | Outbox dispatcher P95 / 30s alarm | Product dispatcher is **on** (`dispatcher-enabled=true`). Delivery + lag alarm: `docs/m0-09-outbox-api.md`, `OutboxEventContractTest`, `NexusOneOutboxDispatcherTest`. G18 IT still leaves dispatcher off to assert PENDING. **Not** a product G18 close |
 | Concurrent G18 submits holding the chain lock for the whole business TX | Accepted trade-off vs private commit (keeps gapless hash indexes + rollback atomicity) |
 | `appendNewTransaction` from a TX that already called `append` | Deadlock on `audit_chain_meta`; G18 path does not do this |

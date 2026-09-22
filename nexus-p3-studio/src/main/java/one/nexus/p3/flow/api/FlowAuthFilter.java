@@ -14,11 +14,13 @@ import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p2.session.SessionService;
 import one.nexus.p2.support.DomainException;
 import one.nexus.p3.flow.FlowException;
+import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -28,6 +30,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Binds M0-04 issued context and M0-02 isolation TenantContext. Rejects client tenant_id.
+ * Seeds {@code tenant_member} onto the current person id when the demo grant flag is on.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 25)
@@ -38,10 +41,15 @@ public class FlowAuthFilter extends OncePerRequestFilter {
 
     private final IdentityModule identity;
     private final IsolationKernel isolation;
+    private final ObjectProvider<TenantMemberGrantSeeder> grantSeeder;
 
-    public FlowAuthFilter(IdentityModule identity, IsolationKernel isolation) {
+    public FlowAuthFilter(
+            IdentityModule identity,
+            IsolationKernel isolation,
+            ObjectProvider<TenantMemberGrantSeeder> grantSeeder) {
         this.identity = identity;
         this.isolation = isolation;
+        this.grantSeeder = grantSeeder;
     }
 
     @Override
@@ -82,6 +90,7 @@ public class FlowAuthFilter extends OncePerRequestFilter {
                 throw FlowException.missingContext();
             }
             var issued = identity.sessions().loadContext(UUID.fromString(contextId), session.claims().subject());
+            TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
             TenantContext isolationContext = isolation.tenants().issue(
                     new AuthenticatedMembership(
                             Actor.person(issued.personId().toString()),

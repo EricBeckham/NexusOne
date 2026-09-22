@@ -7,18 +7,22 @@ import one.nexus.p2.IdentityModule;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p2.session.SessionService;
 import one.nexus.p2.support.DomainException;
+import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import one.nexus.permission.support.PermissionException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Binds the M0-04 issued TenantContext. Does not accept client tenant_id.
+ * After the context is loaded, seeds {@code tenant_member} onto the current
+ * person id when {@code nexus.permission.seed-tenant-member-grants=true}.
  */
 @Component
 public class PermissionAuthFilter extends OncePerRequestFilter {
@@ -26,9 +30,12 @@ public class PermissionAuthFilter extends OncePerRequestFilter {
     public static final String HEADER_TENANT = "X-Tenant-Id";
 
     private final IdentityModule identity;
+    private final ObjectProvider<TenantMemberGrantSeeder> grantSeeder;
 
-    public PermissionAuthFilter(IdentityModule identity) {
+    public PermissionAuthFilter(
+            IdentityModule identity, ObjectProvider<TenantMemberGrantSeeder> grantSeeder) {
         this.identity = identity;
+        this.grantSeeder = grantSeeder;
     }
 
     @Override
@@ -60,6 +67,7 @@ public class PermissionAuthFilter extends OncePerRequestFilter {
             String contextId = request.getHeader(HEADER_CONTEXT);
             if (contextId != null && !contextId.isBlank()) {
                 identity.sessions().loadContext(UUID.fromString(contextId), session.claims().subject());
+                TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
             }
             chain.doFilter(request, response);
         } catch (PermissionException ex) {
