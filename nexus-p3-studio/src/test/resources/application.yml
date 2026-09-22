@@ -1,0 +1,18 @@
+# Keep Flowable 7.1.0 Boot starter auto-config off for every studio test.
+# Product wiring is flowable-spring SpringProcessEngineConfiguration, gated by nexus.flow.engine.
+spring:
+  autoconfigure:
+    exclude:
+      - org.flowable.spring.boot.ProcessEngineAutoConfiguration
+      - org.flowable.spring.boot.ProcessEngineServicesAutoConfiguration
+      - org.flowable.spring.boot.eventregistry.EventRegistryAutoConfiguration
+      - org.flowable.spring.boot.eventregistry.EventRegistryServicesAutoConfiguration
+      - org.flowable.spring.boot.idm.IdmEngineAutoConfiguration
+      - org.flowable.spring.boot.idm.IdmEngineServicesAutoConfiguration
+      - org.flowable.spring.boot.app.AppEngineAutoConfiguration
+      - org.flowable.spring.boot.app.AppEngineServicesAutoConfiguration
+      - org.flowable.spring.boot.RestApiAutoConfiguration
+      - org.flowable.spring.boot.FlowableSecurityAutoConfiguration
+      - org.flowable.spring.boot.FlowableJpaAutoConfiguration
+      - org.flowable.spring.boot.EndpointAutoConfiguration
+      - org.flowable.spring.boot.actuate.info.FlowableInfoAutoConfiguration

@@ -15,7 +15,7 @@
 
 未宣称：目标 Linux/ARM Profile、安装/升级/回滚/离线包、SBOM、GaussDB、容量阈值、1000 租户上限。
 
-Flowable 7.1.0 在 P0 与 Spring Boot 3.3 PoC 组合验证。M0-08 接入同进程引擎时需单独确认对 Boot 4.1.1 的官方兼容；本骨架不引入 Flowable。
+Flowable 7.1.0 在 P0 与 Spring Boot 3.3 PoC 组合验证。M0-08 在 `nexus-p3-studio` 以 `flowable-spring` `SpringProcessEngineConfiguration` 证明 **7.1.0 可与 Boot 4.1.1 同 JVM 进程内运行**；产品不使用 7.1.0 Boot starter（仍引用 Boot 3 Kafka auto-config）。官方 Boot 4 线为 Flowable 8.0.x，本工作包不改 P0 钉扎。
 
 ## 模块地图
 
@@ -37,7 +37,7 @@ nexusone (pom)
 ├─ nexus-crypto-core         M0-11 CryptoPort / SecretPort
 ├─ nexus-p1-tenant           M0-03
 ├─ nexus-p2-iam              M0-04
-├─ nexus-p3-studio           M0-06/07
+├─ nexus-p3-studio           M0-06/07 台账与表单；M0-08 顺序审批 / 待办
 ├─ nexus-p4-market           M0 范围外，仅占位
 └─ nexus-p5-connect          M0 范围外，仅占位
 ```
@@ -63,8 +63,8 @@ Flyway 版本窗：
 - `V100–V199`：M0-03 P1
 - `V200–V299`：M0-04 P2
 - `V300–V399`：M0-05 权限静态表
-- `V400–V499`：M0-06 P3 **台账/字段元数据**（不是台账物理表；尚未占用）
-- `V500+`：其余静态表（M0-09 **V500** 执行通道；M0-11 **V501** 审计；M0-10 **V510** 文件 / **V520** 通知；M0-07 **V530–V549** 表单元数据）
+- `V400–V499`：M0-06 P3 **台账/字段元数据**（不是台账物理表）
+- `V500+`：其余静态表（M0-09 **V500** 执行通道；M0-11 **V501** 审计；M0-10 **V510** 文件 / **V520** 通知；M0-07 **V530–V549** 表单元数据；**M0-08 V550–V599** 流程元数据）
 
 历史表：`platform.flyway_schema_history`。
 
