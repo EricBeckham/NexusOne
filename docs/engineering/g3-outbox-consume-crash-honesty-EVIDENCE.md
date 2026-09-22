@@ -39,7 +39,7 @@ Honesty fixtures (must reject fakes):
 
 ## Results (agent VM)
 
-Filled after collect on this VM (`d30c841` rebased onto `25c3454`). Live output is gitignored under `.local/g3-outbox-consume-crash-honesty/`. Sanitized copy: [`g3-outbox-consume-crash-honesty/agent-vm.env`](./g3-outbox-consume-crash-honesty/agent-vm.env).
+Filled after collect on this VM (`a55e243` rebased onto `eb8a151`). Live output is gitignored under `.local/g3-outbox-consume-crash-honesty/`. Sanitized copy: [`g3-outbox-consume-crash-honesty/agent-vm.env`](./g3-outbox-consume-crash-honesty/agent-vm.env).
 
 | Check | Result | Notes |
 |---|---|---|
@@ -48,7 +48,7 @@ Filled after collect on this VM (`d30c841` rebased onto `25c3454`). Live output 
 | Claim-then-write crash window | **SIMULATED** | first claim committed; inbox UPDATE did not; replay DUPLICATE skips write |
 | Live process-kill crash | **SKIP** | `live_crash_observed=false` |
 | Multi-node Dispatcher | **SKIP** | one application JVM; no Kafka/bus |
-| Both leftover rows | **kept** | `g3-outbox-consume-idempotent` + `g3-claim-crash-window` (siblings including #185/#186/#187/#190/#194 stay) |
+| Both leftover rows | **kept** | `g3-outbox-consume-idempotent` + `g3-claim-crash-window` (siblings including #185/#186/#187/#190/#193/#194 stay) |
 | Java honesty tests | **9/9** | `G3OutboxConsumeCrashHonestyTest` only; #139/#170 not rerun |
 | #139/#170 redo | **false** | sibling leftovers |
 | Product G3 close | **NOT_CLAIMED** | honesty gate enforces `NOT_CLAIMED` |
