@@ -1,6 +1,6 @@
 # G2 leftover — report query / export on PermissionEngine
 
-S0+S1 leftover from [g2-permission.md](./g2-permission.md): report UI / report HTTP were not on this engine. This package wires existing report-like query and export entry points through the **same** `PermissionService.decide` `Decision` as list/detail/flow (`SurfaceGuard` / `POST /api/v1/permission/check`). **This is not a product-wide G2 close.** Desktop ledger / form / todo pages are unchanged. **G18 stays closed.** AuditPort is unchanged.
+S0+S1 leftover from [g2-permission.md](./g2-permission.md): report UI / report HTTP were not on this engine. This package wires existing report-like query and export entry points through the **same** `PermissionService.decide` `Decision` as list/detail/flow (`SurfaceGuard` / `POST /api/v1/permission/check`). **This is not a product-wide G2 close.** Desktop ledger / form / todo pages are unchanged. **G18 stays closed.** AuditPort is unchanged. Honesty leftover beyond this page (report + dump SurfaceGuard harness PASS; live JAR honest SKIP) is [g2-report-physical-dump-honesty.md](./g2-report-physical-dump-honesty.md). This #124 leftover is not rewritten.
 
 Reuse only: M0-05 `PermissionEngine` and the existing list (`ledger` / `read`) plus AuthorizedExport (`ledger.export.csv` / `submit`) cells. Java 21 / Boot **4.1.1**. No Docker. Orthogonal to G15 APP WebView (#114), G1 DataScope AST (#115), G9 failover (#121).
 
