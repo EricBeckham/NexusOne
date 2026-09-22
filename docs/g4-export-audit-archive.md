@@ -44,9 +44,22 @@ Recorded **2026-09-22T15:43:00Z** on this agent VM. `./scripts/g4-export-audit-a
 
 ### Remainder: 365-day archive expiry
 
-Pending `./scripts/g4-archive-expiry.sh` on this branch (Zonky PG 15, Boot 4.1.1, Java 21, no Docker). Chosen design: **hard DELETE** of archive rows with `occurred_at < now - 365 days`. Hot count stays unchanged. Second purge deletes 0.
+Recorded **2026-09-22T16:43:56Z** on this agent VM. `./scripts/g4-archive-expiry.sh` → **BUILD SUCCESS**. No Docker. No live `127.0.0.1:5432`. Chosen design: **hard DELETE** of archive rows with `occurred_at < now - 365 days`. Newer archive rows stay. Hot count stays unchanged. Second purge deletes 0.
 
-| Suite | Expected | What it proves |
+| Item | Value |
+|---|---|
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
+| Maven | **3.8.7** |
+| Spring Boot | **4.1.1** |
+| PostgreSQL | Zonky **15.18** (`starting PostgreSQL 15.18 on x86_64-pc-linux-gnu`) |
+| Flyway | V501 + V502 + **V503** on schema `platform` (`now at version v503`) |
+
+```
+./scripts/g4-archive-expiry.sh
+# BUILD SUCCESS  2026-09-22T16:43:56Z
+```
+
+| Suite | Result | What it proved |
 |---|---|---|
 | `JdbcAuditArchiveIT` | **2/2** | 366-day archive row removed on PG 15; 200-day kept; 10-day never archived; hot count stays 3; V503 applied; second purge 0 |
 | `AuditArchiveJobTest` | **2/2** | In-memory copy + purge; `purgeImplemented=true`; expired gone, newer kept, hot chain intact |
@@ -62,7 +75,7 @@ This is **not** a product-wide G4 close.
 |---|---|
 | Login / permission / admin / guard-reject wiring | Already on `main` via #77 ([g4-audit-coverage.md](./engineering/g4-audit-coverage.md)); this PR does not redo it |
 | Same-request login→permission→admin→export→guard-reject | Categories are wired; one real browser request is still open |
-| Hot purge after 90 days | `platform.audit_record` is append-only (`REVOKE DELETE`). Archive is a **copy**; expiry deletes the copy after 365 days, not the hot chain |
+| Hot purge after 90 days | `platform.audit_record` is append-only (`REVOKE DELETE`). Archive is a **copy**; expiry deletes the copy after 365 days, not the hot chain. A still-hot expired row may be copied again and immediately purged on the next Job run |
 | 365-day archive expiry | **Closed this remainder.** `purgeExpiredArchive` deletes same-PG archive rows older than 365 days (`purgeImplemented=true`). `AuditArchiveJob.run()` copies then purges |
 | Object-store / cold archive | Same-PG table only |
 | Tenant TaskQueue / IsolatedQuartzJob for archive | Those APIs require membership; archive is a platform Job |

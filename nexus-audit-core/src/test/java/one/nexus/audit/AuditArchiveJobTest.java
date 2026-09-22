@@ -77,10 +77,14 @@ class AuditArchiveJobTest {
         assertEquals(3, port.chain().size());
         assertTrue(port.verifyChain().intact());
 
+        // Hot is append-only, so the expired row is still copied then immediately
+        // purged. Deleting the hot row is a leftover, not this remainder.
         ArchiveRunResult second = job.run();
-        assertEquals(0, second.copied());
-        assertEquals(0, second.purged());
+        assertEquals(1, second.copied());
+        assertEquals(1, second.purged());
         assertEquals(1, second.archiveSize());
+        assertEquals(0, archive.findArchivedByTraceId(expiredTrace).size());
+        assertEquals(1, archive.findArchivedByTraceId(keptTrace).size());
         assertEquals(3, port.chain().size());
     }
 
