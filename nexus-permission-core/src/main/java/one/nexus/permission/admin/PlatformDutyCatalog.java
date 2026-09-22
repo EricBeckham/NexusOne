@@ -11,7 +11,8 @@ import one.nexus.permission.engine.DataScopeKind;
  * are mutually exclusive in one tenant / platform scope.
  *
  * <p>This is a G17 <strong>slice</strong> (separation of duties). It does not
- * close classified / GM TLS / MFA / password-policy G17.
+ * close classified / GM TLS / password-policy G17. Admin MFA is a separate
+ * slice.
  */
 public final class PlatformDutyCatalog {
     public static final String SYSTEM_ADMIN = "platform_system_admin";

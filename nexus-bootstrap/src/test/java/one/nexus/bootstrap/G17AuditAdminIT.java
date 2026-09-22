@@ -136,8 +136,8 @@ class G17AuditAdminIT {
                         .header("Authorization", "Bearer " + token)
                         .header("X-Nexus-Context-Id", contextId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"principalType\":\"user\",\"principalId\":\"" + person.id()
-                                + "\",\"roleId\":\"" + auditRoleId + "\"}"))
+                        .content("{\"principal_type\":\"user\",\"principal_id\":\"" + person.id()
+                                + "\",\"role_id\":\"" + auditRoleId + "\"}"))
                 .andExpect(status().isOk());
 
         mvc.perform(get("/api/v1/audit/traces/" + LOGIN_TRACE)
@@ -176,8 +176,8 @@ class G17AuditAdminIT {
                         .header("Authorization", "Bearer " + token)
                         .header("X-Nexus-Context-Id", contextId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"principalType\":\"user\",\"principalId\":\"" + person.id()
-                                + "\",\"roleId\":\"" + systemRoleId + "\"}"))
+                        .content("{\"principal_type\":\"user\",\"principal_id\":\"" + person.id()
+                                + "\",\"role_id\":\"" + systemRoleId + "\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("P2.PERM.0014"));
 
