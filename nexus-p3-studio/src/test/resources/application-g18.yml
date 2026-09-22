@@ -20,6 +20,8 @@ nexus:
     persistence: jdbc
     outbox: auto
   execution:
+    # Observe PENDING outbox in the same TX. Product boot leaves dispatcher on
+    # (nexus-bootstrap application.yaml). Delivery SLO is NexusOneOutboxDispatcherTest.
     dispatcher-enabled: false
     worker-enabled: false
     quartz-enabled: false

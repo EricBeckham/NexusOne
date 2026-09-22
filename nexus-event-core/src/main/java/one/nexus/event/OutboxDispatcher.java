@@ -22,6 +22,7 @@ import org.springframework.context.SmartLifecycle;
 /**
  * Independent dispatcher: SKIP LOCKED lease poll, at-least-once delivery, restore
  * tenant via {@link one.nexus.isolation.context.RequestIsolationPolicy}.
+ * Product {@code nexus.execution.dispatcher-enabled=true} makes {@link #isAutoStartup()} true.
  */
 public final class OutboxDispatcher implements SmartLifecycle {
     private static final Logger LOG = LoggerFactory.getLogger(OutboxDispatcher.class);
@@ -38,6 +39,7 @@ public final class OutboxDispatcher implements SmartLifecycle {
     private final String workerId;
     private final boolean autoStartup;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean lastCycleLagAlarm = new AtomicBoolean(false);
     private ScheduledExecutorService executor;
 
     public OutboxDispatcher(
@@ -82,15 +84,29 @@ public final class OutboxDispatcher implements SmartLifecycle {
     }
 
     public int dispatchOnce() {
-        lagProbe.warnIfLagging(store.oldestPendingCreatedAt(), Instant.now(clock));
+        Instant now = Instant.now(clock);
+        lastCycleLagAlarm.set(lagProbe.warnIfLagging(store.oldestPendingCreatedAt(), now));
         List<OutboxRecord> batch = store.leaseBatch(workerId, settings.batchSize());
         int delivered = 0;
         for (OutboxRecord record : batch) {
+            lagProbe.recordStartOfDelivery(record.createdAt(), Instant.now(clock));
             if (dispatchOne(record)) {
                 delivered++;
             }
         }
         return delivered;
+    }
+
+    public boolean lastCycleLagAlarm() {
+        return lastCycleLagAlarm.get();
+    }
+
+    public DeliveryLagProbe lagProbe() {
+        return lagProbe;
+    }
+
+    public List<OutboxHandler> handlers() {
+        return List.copyOf(handlers);
     }
 
     public boolean dispatchOne(OutboxRecord record) {
@@ -102,7 +118,7 @@ public final class OutboxDispatcher implements SmartLifecycle {
             return true;
         }
         try {
-            isolation.runRestored(record.membership(), envelope, this::deliver);
+            isolation.runRestored(record.membership(), envelope, env -> deliver(record, env));
             idempotency.claim("outbox-dispatched", dispatchKey, record.tenantId(), record.traceId());
             store.markDispatched(record.id());
             log(record, "DISPATCHED", null);
@@ -127,14 +143,15 @@ public final class OutboxDispatcher implements SmartLifecycle {
         }
     }
 
-    private void deliver(IsolatedEnvelope envelope) {
+    private void deliver(OutboxRecord record, IsolatedEnvelope envelope) {
+        String destination = record.destination();
         OutboxHandler handler = handlers.stream()
-                .filter(candidate -> candidate.supports(envelope.payloadType()))
+                .filter(candidate -> candidate.supports(destination))
                 .findFirst()
                 .orElseThrow(() -> new NexusException(
                         ErrorCode.EVT_UNKNOWN_DESTINATION,
                         500,
-                        "no outbox handler for " + envelope.payloadType()));
+                        "no outbox handler for " + destination));
         handler.onDispatch(envelope);
     }
 

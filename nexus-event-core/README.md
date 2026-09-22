@@ -8,6 +8,8 @@ Depends on merged **M0-02** (`one.nexus:isolation-kernel`) and the P0-07 Quartz/
 
 See [docs/m0-09-outbox-api.md](../docs/m0-09-outbox-api.md). Destination `notify.inbox` is reserved.
 
+Product boot (`nexus-bootstrap` `application.yaml`) sets `nexus.execution.dispatcher-enabled=true`. G18 ITs that must observe PENDING turn it off. Start-of-delivery P95 ≤ 5s; `OUTBOX_LAG_ALARM` if the oldest PENDING/FAILED row is older than 30s.
+
 ## Run tests
 
 Zonky embedded PostgreSQL **15.18** (no Docker):

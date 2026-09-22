@@ -32,7 +32,7 @@ This unblocks empty-DB product boot / E2E. It does **not** close product G18.
 
 ## What is proven (runnable)
 
-Recorded on this branch at **2026-09-22T13:36:12Z**. Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` / `JdbcAuditChainTest` skipped).
+Recorded on this branch at **2026-09-22T13:39:16Z** (dispatcher SLO) after #64 same-TX audit (**2026-09-22T13:36:12Z**). Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` / `JdbcAuditChainTest` skipped). G18 IT still leaves the poller **off**. Product G18 is **not** closed.
 
 | Component | Version |
 |---|---|
@@ -47,8 +47,12 @@ Recorded on this branch at **2026-09-22T13:36:12Z**. Agent VM, no Docker. Live `
 |---|---|
 | `JdbcAuditChainTransactionTest` | **4/4** — `append` joins Spring TX; rollback clears record + `next_index`; happy commit intact; `appendNewTransaction` survives |
 | `nexus-audit-core` | **11** run, **0** fail, **1** skip (`JdbcAuditChainTest`, no live PG) |
-| `NexusOneProductBootTest` | **1/1** — product `NexusOneApplication` on empty Zonky PG 15 |
-| `G18BusinessPathIT` | **2/2** (happy path + rollback includes `audit_record` / chain head) |
+| `EventCoreConfigurationTest` | **5/5** (DS → `JdbcOutboxStore`; no DS → no Outbox; two `Clock` beans still register Outbox; **default starts dispatcher**) |
+| `OutboxEventContractTest` | **13/13** (poller delivers; lag alarm; start-of-delivery P95 **238 ms** / 20 samples) |
+| `NexusOneOutboxDispatcherTest` | **1/1** — product `NexusOneApplication`, dispatcher **on**, PENDING → DISPATCHED, `notify.inbox` DELIVERED, list readable; `dispatched_at - created_at` **25 ms** |
+| `NexusOneProductBootTest` | **1/1** — product `NexusOneApplication` on empty Zonky PG 15 (dispatcher **off** in that wiring check) |
+| `G18BusinessPathIT` | **2/2** (dispatcher still off; happy path + rollback includes `audit_record` / chain head) |
+| `NotificationApiTest` | **1/1** (`outbox=record` still works without DataSource) |
 
 | Behavior | Evidence |
 |---|---|
@@ -56,7 +60,7 @@ Recorded on this branch at **2026-09-22T13:36:12Z**. Agent VM, no Docker. Live `
 | Logged-in IAM context can **write and query** ledger records (no `P2.PERM.0003`) | `POST/GET /api/v1/p3/ledgers/{id}/records` with Bearer + `X-Nexus-Context-Id` after grant seed / tenant-only fallback |
 | In-app notify accepts the same issued context (no `P1.M02.001`) | `GET /api/v1/notifications` with Bearer + `X-Nexus-Context-Id` returns 200 (dispatcher off, so the list may be empty) |
 | Approval + that row share one Spring TX | `G18RollbackProbe.submitStartThenFail`: form_submission, physical row, `process_instance`, and `platform.exec_outbox` are all 0 after the forced failure |
-| Approval completion enqueues `notify.inbox` via M0-09 Outbox **in the same TX** | `OutboxPort.append` through M0-10 `ApprovalNotificationPublisher` / `NotificationService`; row `destination = notify.inbox`, `status = PENDING`. Dispatcher is **off** in the IT so the row is observed, not a private thread pool |
+| Approval completion enqueues `notify.inbox` via M0-09 Outbox **in the same TX** | `OutboxPort.append` through M0-10 `ApprovalNotificationPublisher` / `NotificationService`; row `destination = notify.inbox`, `status = PENDING`. Dispatcher is **off** in this IT so the row is observed, not a private thread pool. Product boot leaves dispatcher **on** (`NexusOneOutboxDispatcherTest`) |
 | Repeat approve is idempotent | Second approve does not insert another Outbox row |
 | Actions land on `platform.audit_record` and are queryable by trace | `select count(*) from platform.audit_record where trace_id = ?` ≥ 3; `AuditPort.findByTraceId` returns `p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`; `verifyChain()` intact |
 | Forced submit failure rolls back audit + chain head with the business row | `G18RollbackProbe.submitStartThenFail`: form_submission, physical row, process_instance, `exec_outbox`, and `platform.audit_record` for that trace are 0; `audit_chain_meta.next_index` unchanged |
@@ -65,11 +69,12 @@ Command:
 
 ```bash
 mvn -pl nexus-audit-core -am test
-mvn -pl nexus-p3-studio -am test -Dtest=G18BusinessPathIT -Dsurefire.failIfNoSpecifiedTests=false
-mvn -pl nexus-bootstrap -am test -Dtest=NexusOneProductBootTest,NexusOnePostgresTest -Dsurefire.failIfNoSpecifiedTests=false
+mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap -am test \
+    -Dtest=EventCoreConfigurationTest,OutboxEventContractTest,NotificationApiTest,G18BusinessPathIT,NexusOneOutboxDispatcherTest,NexusOneProductBootTest,NexusOnePostgresTest \
+    -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS` at **2026-09-22T13:36:12Z**. `NexusOnePostgresTest` and `JdbcAuditChainTest` skipped (no local PG listener).
+`BUILD SUCCESS` for the suites listed above (audit same-TX **2026-09-22T13:36:12Z**, event-core **2026-09-22T13:37:34Z**, product dispatcher **2026-09-22T13:39:16Z**, G18 **2026-09-22T13:38:46Z**). Re-run after rebase onto #64 `f1dc329` at **2026-09-22T14:00:18Z**: EventCore **5/5**, OutboxEvent **13/13** (P95 **221 ms**), product dispatcher **1/1** (39 ms), G18 **2/2**. `NexusOnePostgresTest` and `JdbcAuditChainTest` skipped (no local PG listener).
 
 ## API (IAM session + M0-02 isolation)
 
@@ -116,7 +121,7 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 | Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); MOCK toggle retired |
 | Live UI clicking this path | Not a G18 close; Vue no longer uses MOCK |
 | Product-wide G18 / G7 three-business | Open |
-| Outbox dispatcher P95 / 30s alarm | M0-09; IT leaves dispatcher off to assert the row |
+| Outbox dispatcher P95 / 30s alarm | Product dispatcher is **on** (`dispatcher-enabled=true`). Delivery + lag alarm: `docs/m0-09-outbox-api.md`, `OutboxEventContractTest`, `NexusOneOutboxDispatcherTest`. G18 IT still leaves dispatcher off to assert PENDING. **Not** a product G18 close |
 | Concurrent G18 submits holding the chain lock for the whole business TX | Accepted trade-off vs private commit (keeps gapless hash indexes + rollback atomicity) |
 | `appendNewTransaction` from a TX that already called `append` | Deadlock on `audit_chain_meta`; G18 path does not do this |
 | Full G4/G6/G17 | Unchanged |

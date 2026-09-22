@@ -245,15 +245,16 @@ Flyway **V531** (window V530–V549) adds `form_submission.ledger_id` / `ledger_
 
 ## Runnable evidence (this branch)
 
-Agent VM, **2026-09-22T13:36:12Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, Flowable **7.1.0**. No Docker. No live `127.0.0.1:5432`.
+Agent VM, **2026-09-22T13:39:16Z** (dispatcher SLO) after #64 same-TX audit (**2026-09-22T13:36:12Z**). OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, Flowable **7.1.0**. No Docker. No live `127.0.0.1:5432`.
 
 ```bash
 mvn -pl nexus-audit-core -am test
-mvn -pl nexus-p3-studio -am test -Dtest=G18BusinessPathIT -Dsurefire.failIfNoSpecifiedTests=false
-mvn -pl nexus-bootstrap -am test -Dtest=NexusOneProductBootTest,NexusOnePostgresTest -Dsurefire.failIfNoSpecifiedTests=false
+mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap -am test \
+  -Dtest=EventCoreConfigurationTest,OutboxEventContractTest,NotificationApiTest,G18BusinessPathIT,NexusOneOutboxDispatcherTest,NexusOneProductBootTest,NexusOnePostgresTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS`. `JdbcAuditChainTransactionTest` **4/4**. `nexus-audit-core` **11** run / **1** skip (`JdbcAuditChainTest`). `G18BusinessPathIT` **2/2** (happy path + audit/chain-head rollback). `NexusOneProductBootTest` **1/1**. `NexusOnePostgresTest` skipped (no local listener).
+`BUILD SUCCESS`. `JdbcAuditChainTransactionTest` **4/4**. `nexus-audit-core` **11** run / **1** skip (`JdbcAuditChainTest`). Dispatcher wave: `EventCoreConfigurationTest` **5/5**; `OutboxEventContractTest` **13/13** (P95 **238 ms**); `NexusOneOutboxDispatcherTest` **1/1** (product poller, start-of-delivery **25 ms**, inbox DELIVERED). `G18BusinessPathIT` **2/2** (dispatcher still off; happy path + audit/chain-head rollback). Product G18 is **not** closed.
 
-Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox **and** `platform.audit_record` / `audit_chain_meta` roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the same TX; happy-path `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`) with `verifyChain()` intact. Product `OutboxPort` is M0-09 `EventCoreConfiguration` auto-config (`JdbcOutboxStore` after DataSource). Vue live P3 APIs landed in #60. Product G18 is **not** closed until Eric re-runs the loop.
+Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox **and** `platform.audit_record` / `audit_chain_meta` roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the G18 IT (dispatcher off); product boot delivers that destination to DISPATCHED / `notify.inbox` DELIVERED; happy-path `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`) with `verifyChain()` intact. Product `OutboxPort` is M0-09 `EventCoreConfiguration` auto-config (`JdbcOutboxStore` after DataSource). Vue live P3 APIs landed in #60. Product G18 is **not** closed until Eric re-runs the loop.
 

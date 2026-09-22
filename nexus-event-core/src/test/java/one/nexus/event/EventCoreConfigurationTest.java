@@ -26,6 +26,19 @@ class EventCoreConfigurationTest {
                     assertThat(ctx).hasSingleBean(OutboxPort.class);
                     assertThat(ctx.getBean(OutboxPort.class)).isSameAs(ctx.getBean(JdbcOutboxStore.class));
                     assertThat(ctx).hasSingleBean(OutboxDispatcher.class);
+                    assertThat(ctx.getBean(OutboxDispatcher.class).isAutoStartup()).isFalse();
+                });
+    }
+
+    @Test
+    void productDefaultStartsDispatcher() {
+        runner.withUserConfiguration(StubDataSourceConfig.class)
+                .run(ctx -> {
+                    assertThat(ctx).hasNotFailed();
+                    OutboxDispatcher dispatcher = ctx.getBean(OutboxDispatcher.class);
+                    assertThat(dispatcher.isAutoStartup()).isTrue();
+                    assertThat(dispatcher.isRunning()).isTrue();
+                    assertThat(ctx.getBean(ExecutionProperties.class).dispatcherEnabled()).isTrue();
                 });
     }
 
