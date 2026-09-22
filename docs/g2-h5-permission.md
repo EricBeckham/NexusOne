@@ -28,7 +28,7 @@ Vue calls `perm.check` → `POST /api/v1/permission/check` and interprets `!allo
 | Path `submit-start` as `form.write` | Closed on main by #112 ([g2-submit-start-form-write.md](./g2-submit-start-form-write.md)). H5 fill still **checks** `form.write` then calls that dual-check walk. |
 | Todo list HTTP (`GET /api/v1/p3/todos`) | Sibling leftover [g2-todo-http-surface.md](./g2-todo-http-surface.md). H5 UI still gates via `/check`. Flow writes stay `SequentialApprovalService.guard`. |
 | Ledger definition list HTTP (`GET /api/v1/p3/ledgers`) | Catalog leftover [g2-tenant-only-catalog.md](./g2-tenant-only-catalog.md). Record list/detail remain `PermissionDataScopeHook`. H5 UI gates definition list via `/check`. |
-| Files / notify / host / login | Out of this leftover. |
+| Files / notify / host / login | Out of this leftover. Honesty inventory: [g2-h5-every-page.md](./g2-h5-every-page.md). |
 | APP WebView / 小程序 / PKCE | G15 leftovers. |
 | AuditPort same-TX / hash-chain rewrite | Unchanged |
 | G18 reopen | No |

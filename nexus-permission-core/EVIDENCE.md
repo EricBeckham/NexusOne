@@ -168,7 +168,7 @@ mvn -pl nexus-permission-core -am test
 
 ## Honest leftover
 
-- Product-wide G2. Form studio + form fill / POST submissions + path submit-start dual-check + H5 `/m/*` + report query/export + physical dump / raw export HTTP + catalog definition HTTP + todo list HTTP + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache, H5 every page, and `pg_dump` ops are not.
+- Product-wide G2. Form studio + form fill / POST submissions + path submit-start dual-check + H5 `/m/*` list/detail/form/todo/query + report query/export + physical dump / raw export HTTP + catalog definition HTTP + todo list HTTP + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache, H5 home/files/notify/login/host, and `pg_dump` ops are not. Honesty inventory: [docs/g2-h5-every-page.md](../docs/g2-h5-every-page.md).
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down: evidenced in [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md). Redis Sentinel/Cluster still not claimed.

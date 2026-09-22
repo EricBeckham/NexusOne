@@ -24,7 +24,7 @@ An intentional fixture (`ProcessBuilder("pg_dump", "--format=custom")`) fails th
 
 | Item | Status |
 |---|---|
-| Product-wide G2 | Open. H5 every page stays off this close. |
+| Product-wide G2 | Open. H5 every-page inventory is the sibling leftover [g2-h5-every-page.md](./g2-h5-every-page.md). |
 | Physical dump HTTP (#137) | Sibling leftover on `main`. This leftover does not rewrite `DumpController`. |
 | Isolation-only `tenant_only` / catalog (#144) | Sibling leftover. Not rewritten. |
 | Todo list HTTP (#150) | Sibling leftover. Not rewritten. |
