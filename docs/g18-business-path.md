@@ -56,7 +56,7 @@ Recorded on this branch at **2026-09-22T13:36:12Z**. Agent VM, no Docker. Live `
 | Logged-in IAM context can **write and query** ledger records (no `P2.PERM.0003`) | `POST/GET /api/v1/p3/ledgers/{id}/records` with Bearer + `X-Nexus-Context-Id` after grant seed / tenant-only fallback |
 | In-app notify accepts the same issued context (no `P1.M02.001`) | `GET /api/v1/notifications` with Bearer + `X-Nexus-Context-Id` returns 200 (dispatcher off, so the list may be empty) |
 | Approval + that row share one Spring TX | `G18RollbackProbe.submitStartThenFail`: form_submission, physical row, `process_instance`, and `platform.exec_outbox` are all 0 after the forced failure |
-| Approval completion enqueues `notify.inbox` via M0-09 Outbox **in the same TX** | `OutboxPort.append` through M0-10 `ApprovalNotificationPublisher` / `NotificationService`; row `destination = notify.inbox`, `status = PENDING`. Dispatcher is **off** in the IT so the row is observed, not a private thread pool |
+| Approval completion enqueues `notify.inbox` via M0-09 Outbox **in the same TX** | `OutboxPort.append` through M0-10 `ApprovalNotificationPublisher` / `NotificationService`; row `destination = notify.inbox`, `status = PENDING`. Dispatcher is **off** in this IT so the row is observed, not a private thread pool. Product boot leaves dispatcher **on** (`NexusOneOutboxDispatcherTest`) |
 | Repeat approve is idempotent | Second approve does not insert another Outbox row |
 | Actions land on `platform.audit_record` and are queryable by trace | `select count(*) from platform.audit_record where trace_id = ?` ≥ 3; `AuditPort.findByTraceId` returns `p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`; `verifyChain()` intact |
 | Forced submit failure rolls back audit + chain head with the business row | `G18RollbackProbe.submitStartThenFail`: form_submission, physical row, process_instance, `exec_outbox`, and `platform.audit_record` for that trace are 0; `audit_chain_meta.next_index` unchanged |
@@ -116,7 +116,7 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 | Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); MOCK toggle retired |
 | Live UI clicking this path | Not a G18 close; Vue no longer uses MOCK |
 | Product-wide G18 / G7 three-business | Open |
-| Outbox dispatcher P95 / 30s alarm | M0-09; IT leaves dispatcher off to assert the row |
+| Outbox dispatcher P95 / 30s alarm | Product dispatcher is **on** (`dispatcher-enabled=true`). Delivery + lag alarm: `docs/m0-09-outbox-api.md`, `OutboxEventContractTest`, `NexusOneOutboxDispatcherTest`. G18 IT still leaves dispatcher off to assert PENDING. **Not** a product G18 close |
 | Concurrent G18 submits holding the chain lock for the whole business TX | Accepted trade-off vs private commit (keeps gapless hash indexes + rollback atomicity) |
 | `appendNewTransaction` from a TX that already called `append` | Deadlock on `audit_chain_meta`; G18 path does not do this |
 | Full G4/G6/G17 | Unchanged |

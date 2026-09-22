@@ -209,7 +209,78 @@ class OutboxEventContractTest {
     void lagProbeAlarmsWhenOldestPendingExceeds30s() {
         DeliveryLagProbe probe = new DeliveryLagProbe(java.time.Duration.ofSeconds(30));
         assertTrue(probe.warnIfLagging(java.util.Optional.of(Instant.now().minusSeconds(40)), Instant.now()));
+        assertTrue(probe.lastAlarmAge().orElseThrow().toSeconds() >= 30);
         assertFalse(probe.warnIfLagging(java.util.Optional.of(Instant.now().minusSeconds(2)), Instant.now()));
+        assertTrue(probe.lastAlarmAge().isEmpty());
+        for (int i = 0; i < 20; i++) {
+            probe.recordStartOfDelivery(Instant.now().minusMillis(12), Instant.now());
+        }
+        assertTrue(probe.p95Ms().orElseThrow() <= DeliveryLagProbe.TARGET_P95_MS);
+        assertEquals(20, probe.sampleCount());
+    }
+
+    @Test
+    void dispatchOnceAlarmsWhenOldestPendingOrFailedExceeds30s() {
+        Harness h = harness();
+        EmbeddedExecutionSupport.bind(h.isolation, "alpha", "trace-lag");
+        UUID id = h.store.append(OutboxAppendCommand.notifyInbox("notify.created", "{\"lag\":true}"));
+        Jdbc.run(dataSource, connection -> {
+            connection.createStatement().execute("""
+                    UPDATE platform.exec_outbox
+                    SET created_at = now() - interval '40 seconds',
+                        available_at = now() + interval '1 hour'
+                    WHERE id = '%s'
+                    """.formatted(id));
+            return null;
+        });
+        assertEquals(0, h.dispatcher.dispatchOnce());
+        assertTrue(h.dispatcher.lastCycleLagAlarm());
+        assertEquals("PENDING", h.store.find(id).orElseThrow().status());
+        assertTrue(h.dispatcher.lagProbe().lastAlarmAge().orElseThrow().toSeconds() >= 30);
+    }
+
+    @Test
+    void startOfDeliveryP95StaysUnder5sOnEmbeddedPg15() {
+        Harness h = harness();
+        EmbeddedExecutionSupport.bind(h.isolation, "alpha", "trace-p95");
+        java.util.List<UUID> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            ids.add(h.store.append(OutboxAppendCommand.notifyInbox(
+                    "notify.created", "{\"n\":" + i + "}")));
+        }
+        assertEquals(8, h.dispatcher.dispatchOnce());
+        assertEquals(8, h.dispatcher.dispatchOnce());
+        assertEquals(4, h.dispatcher.dispatchOnce());
+        assertFalse(h.dispatcher.lastCycleLagAlarm());
+        long p95 = h.dispatcher.lagProbe().p95Ms().orElseThrow();
+        assertTrue(p95 <= DeliveryLagProbe.TARGET_P95_MS,
+                "start-of-delivery P95 " + p95 + "ms exceeds 5000ms (Zonky PG 15, in-process)");
+        for (UUID id : ids) {
+            assertEquals("DISPATCHED", h.store.find(id).orElseThrow().status());
+        }
+    }
+
+    @Test
+    void pollerDeliversNotifyInboxWithoutCallingDispatchOnce() throws Exception {
+        Harness h = harness();
+        EmbeddedExecutionSupport.bind(h.isolation, "alpha", "trace-poll");
+        UUID id = h.store.append(OutboxAppendCommand.notifyInbox("notify.created", "{\"poll\":true}"));
+        h.dispatcher.start();
+        try {
+            Instant deadline = Instant.now().plusSeconds(5);
+            String status = "PENDING";
+            while (Instant.now().isBefore(deadline)) {
+                status = h.store.find(id).orElseThrow().status();
+                if ("DISPATCHED".equals(status)) {
+                    break;
+                }
+                Thread.sleep(20);
+            }
+            assertEquals("DISPATCHED", status);
+            assertEquals(List.of("alpha:{\"poll\":true}"), h.seen);
+        } finally {
+            h.dispatcher.stop();
+        }
     }
 
     @Test

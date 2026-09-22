@@ -71,7 +71,7 @@ Rules:
 | handler throws | `FAILED` + backoff | retry |
 | `attempt >= max_attempts` | `DEAD` + `platform.exec_dead_letter` | `ReconciliationPort.replayDead` |
 
-Lag: if the oldest `PENDING`/`FAILED` row is older than 30s the dispatcher logs `OUTBOX_LAG_ALARM` (target start-of-delivery P95 ≤ 5s).
+Lag: if the oldest `PENDING`/`FAILED` row is older than `nexus.execution.lag-warn-after` (product **30s**) the dispatcher logs `OUTBOX_LAG_ALARM`. Start-of-delivery target is P95 ≤ 5s (`DeliveryLagProbe.TARGET_P95_MS`). The probe records lease-to-created age on every poll cycle.
 
 ## 4. What M0-10 must not do
 
@@ -94,3 +94,29 @@ Lag: if the oldest `PENDING`/`FAILED` row is older than 30s the dispatcher logs 
 `EventCoreConfiguration` is Spring Boot **auto-configuration** (`after = DataSourceAutoConfiguration`), registered in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
 
 A component-scanned `@Configuration` with `@ConditionalOnBean(DataSource)` is evaluated **before** the DataSource exists, so `JdbcOutboxStore` / `OutboxPort` never register and `NotificationService` fails at monolith startup. Notify-only tests use `nexus.notify.outbox=record|immediate`. Product `nexus.notify.outbox=auto` must not create an in-memory Outbox.
+
+### Dispatcher on product boot
+
+`nexus-bootstrap/src/main/resources/application.yaml` sets `nexus.execution.dispatcher-enabled=true`. `OutboxDispatcher` is a `SmartLifecycle` whose `isAutoStartup()` follows that flag. M0-10 `InAppDeliveryHandler` is a Spring bean collected by the dispatcher; after restore it marks `notify.inbox` `DELIVERED`.
+
+ITs that must **observe** the Outbox row in the business TX (G18 `application-g18.yml`) set `dispatcher-enabled=false` and assert `PENDING`. That is not product boot.
+
+| Knob | Product | Meaning |
+|---|---|---|
+| `nexus.execution.dispatcher-enabled` | `true` | Start the Outbox poller |
+| `nexus.execution.poll-interval` | `500ms` | SKIP LOCKED lease cadence (P95 start-of-delivery ≤ 5s) |
+| `nexus.execution.lag-warn-after` | `30s` | `OUTBOX_LAG_ALARM` if oldest `PENDING`/`FAILED` is older |
+| `nexus.execution.batch-size` | `16` | Rows leased per cycle |
+| `nexus.execution.max-attempts` | `5` | Then `DEAD` + dead-letter |
+| `nexus.execution.lease-duration` | `30s` | `DISPATCHING` lease |
+| `nexus.notify.outbox` | `auto` | M0-09 `JdbcOutboxStore`, not `record`/`immediate` |
+
+Worker / Quartz knobs (`worker-enabled`, `quartz-enabled`, `quartz-auto-startup`) are the task channel, not notify retry.
+
+### Evidence
+
+- `EventCoreConfigurationTest.productDefaultStartsDispatcher` — default properties start the poller.
+- `OutboxEventContractTest` — poller delivers `notify.inbox`; start-of-delivery P95 on 20 rows; lag alarm when oldest `PENDING` is aged 40s and not yet leasable.
+- `NexusOneOutboxDispatcherTest` — product `NexusOneApplication` on Zonky PG 15; PENDING → DISPATCHED; `notify.inbox` DELIVERED and `GET /api/v1/notifications` readable.
+
+Measurements are in-process Zonky PostgreSQL 15, not a multi-node load run. Product poll-interval 500ms is well under the 5s P95 cap; the 30s alarm is a log (`OUTBOX_LAG_ALARM`), not a pager webhook.

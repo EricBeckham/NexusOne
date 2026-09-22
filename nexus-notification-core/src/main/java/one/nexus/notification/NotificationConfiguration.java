@@ -33,6 +33,11 @@ public class NotificationConfiguration {
         return new InMemoryNotificationRepository();
     }
 
+    /**
+     * Product {@link one.nexus.event.OutboxHandler} for {@code notify.inbox}. {@code OutboxDispatcher}
+     * collects this bean after M0-02 restore. Notify-only tests that lack a dispatcher
+     * still use {@code ImmediateOutboxPort}.
+     */
     @Bean
     @ConditionalOnMissingBean
     InAppDeliveryHandler inAppDeliveryHandler(

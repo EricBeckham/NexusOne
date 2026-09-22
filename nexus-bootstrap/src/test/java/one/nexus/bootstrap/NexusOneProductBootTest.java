@@ -24,6 +24,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * Product {@link NexusOneApplication} against empty PostgreSQL 15. Proves
  * {@code OutboxPort} is M0-09 {@link JdbcOutboxStore} after Flyway, not a
  * G18-only bean and not {@code nexus.notify.outbox=record}.
+ * Dispatcher is off here so boot stays a wiring check; delivery SLO is
+ * {@link NexusOneOutboxDispatcherTest} with the product default (on).
  */
 @SpringBootTest(classes = NexusOneApplication.class)
 class NexusOneProductBootTest {
