@@ -20,5 +20,9 @@ class MfaClaimsTest {
         assertTrue(MfaClaims.satisfied("aal2", "pwd"));
         assertTrue(MfaClaims.satisfied(null, "pwd otp"));
         assertTrue(MfaClaims.satisfied(null, "[\"otp\"]"));
+        assertTrue(MfaClaims.satisfied(null, "email"));
+        assertTrue(MfaClaims.satisfied(null, "mca"));
+        assertTrue(MfaClaims.satisfied(null, "recovery-authn-code"));
+        assertFalse(MfaClaims.satisfied("1", "pwd"));
     }
 }

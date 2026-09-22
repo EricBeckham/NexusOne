@@ -18,6 +18,8 @@
         <router-link to="/p2/org">组织架构</router-link>
         <router-link to="/p2/positions">岗位任职</router-link>
         <router-link to="/p2/mfa/enroll">TOTP 注册</router-link>
+        <router-link to="/p2/mfa/recovery">恢复码 leftover</router-link>
+        <router-link to="/p2/mfa/email">邮箱 MFA leftover</router-link>
         <p class="group">权限 · G2</p>
         <router-link to="/p2/permissions/roles">角色授权</router-link>
         <router-link to="/p2/permissions/datascope">数据范围</router-link>

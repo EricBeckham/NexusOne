@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -79,6 +80,20 @@ class AuthorizationCodeDriverTest {
                 AuthorizationCodeDriver.detectKind(
                         "<form id=\"kc-update-profile-form\" action=\"/required-action\" method=\"post\">"
                                 + "<input name=\"firstName\"/><input name=\"lastName\"/></form>"));
+        assertEquals(
+                AuthorizationCodeDriver.FormKind.RECOVERY_CODE,
+                AuthorizationCodeDriver.detectKind(
+                        "<form id=\"kc-recovery-code-login-form\" action=\"/recovery\" method=\"post\">"
+                                + "<input id=\"recoveryCodeInput\" name=\"recoveryCodeInput\"/></form>"));
+        assertEquals(
+                AuthorizationCodeDriver.FormKind.EMAIL_OTP,
+                AuthorizationCodeDriver.detectKind(
+                        "<form id=\"kc-email-code-login-form\" action=\"/email-otp\" method=\"post\">"
+                                + "<input id=\"emailCode\" name=\"emailCode\"/></form>"));
+        assertEquals(
+                List.of("AB2D-EF3G", "K7NP-4W2M"),
+                AuthorizationCodeDriver.extractRecoveryCodes(
+                        "<ol id=\"kc-recovery-codes-list\"><li>AB2D-EF3G</li><li>K7NP-4W2M</li></ol>"));
     }
 
     @Test
@@ -203,6 +218,89 @@ class AuthorizationCodeDriverTest {
                     Totp.generate(secret),
                     redirect);
             assertEquals("otp-code", otp.code());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void completesRecoveryCodeThenEmailOtpFixtures() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        int port = server.getAddress().getPort();
+        String redirect = "http://127.0.0.1:" + port + "/callback";
+        server.createContext("/recovery-auth", exchange -> {
+            byte[] body = ("<form id=\"kc-form-login\" action=\"http://127.0.0.1:" + port
+                    + "/login-actions/password-then-recovery\" method=\"post\">"
+                    + "<button name=\"login\" type=\"submit\">Sign In</button></form>")
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.createContext("/login-actions/password-then-recovery", exchange -> {
+            byte[] body = ("<form id=\"kc-recovery-code-login-form\" action=\"http://127.0.0.1:" + port
+                    + "/login-actions/recovery\" method=\"post\">"
+                    + "<input id=\"recoveryCodeInput\" name=\"recoveryCodeInput\"/></form>")
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.createContext("/login-actions/recovery", exchange -> {
+            String posted = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            if (posted.contains("recoveryCodeInput=AB2D-EF3G")) {
+                exchange.getResponseHeaders().add("Location", redirect + "?code=recovery-code&state=s");
+                exchange.sendResponseHeaders(302, -1);
+            } else {
+                exchange.sendResponseHeaders(400, -1);
+            }
+            exchange.close();
+        });
+        server.createContext("/email-auth", exchange -> {
+            byte[] body = ("<form id=\"kc-form-login\" action=\"http://127.0.0.1:" + port
+                    + "/login-actions/password-then-email\" method=\"post\">"
+                    + "<button name=\"login\" type=\"submit\">Sign In</button></form>")
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.createContext("/login-actions/password-then-email", exchange -> {
+            byte[] body = ("<form id=\"kc-email-code-login-form\" action=\"http://127.0.0.1:" + port
+                    + "/login-actions/email-otp\" method=\"post\">"
+                    + "<input id=\"emailCode\" name=\"emailCode\"/></form>")
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.createContext("/login-actions/email-otp", exchange -> {
+            String posted = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            if (posted.contains("emailCode=654321")) {
+                exchange.getResponseHeaders().add("Location", redirect + "?code=email-code&state=s");
+                exchange.sendResponseHeaders(302, -1);
+            } else {
+                exchange.sendResponseHeaders(400, -1);
+            }
+            exchange.close();
+        });
+        server.start();
+        try {
+            AuthorizationCodeDriver driver = new AuthorizationCodeDriver();
+            AuthorizationCodeDriver.CodeAndState recovery = driver.completeLoginWithRecoveryCode(
+                    "http://127.0.0.1:" + port + "/recovery-auth",
+                    "tenant-admin",
+                    "secret",
+                    "AB2D-EF3G",
+                    redirect);
+            assertEquals("recovery-code", recovery.code());
+            AuthorizationCodeDriver.CodeAndState email = driver.completeLoginWithEmailOtp(
+                    "http://127.0.0.1:" + port + "/email-auth",
+                    "tenant-admin",
+                    "secret",
+                    "654321",
+                    redirect);
+            assertEquals("email-code", email.code());
         } finally {
             server.stop(0);
         }
