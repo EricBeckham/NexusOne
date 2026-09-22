@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
-import one.nexus.isolation.api.IsolationException;
+import one.nexus.isolation.audit.IsolationAuditorHolder;
 
 /** Immutable capture of a server-issued context for async / queue hop. */
 public final class ContextSnapshot {
@@ -16,7 +16,8 @@ public final class ContextSnapshot {
 
     public static ContextSnapshot of(AccessContext context) {
         if (context == null) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, null, "snapshot missing context");
         }
         return new ContextSnapshot(context);
     }

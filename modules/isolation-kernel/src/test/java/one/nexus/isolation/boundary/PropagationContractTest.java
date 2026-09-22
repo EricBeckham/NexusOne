@@ -22,8 +22,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PropagationContractTest {
-    private IsolationKernel kernel() {
-        return IsolationKernel.create(new TableRegistry(), Set.of("ops.summary"), new CollectingAuditSink());
+    private record KernelSink(IsolationKernel kernel, CollectingAuditSink sink) {}
+
+    private KernelSink kernel() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        return new KernelSink(
+                IsolationKernel.create(new TableRegistry(), Set.of("ops.summary"), sink),
+                sink);
     }
 
     private TenantContext tenant(IsolationKernel kernel, String tenantId) {
@@ -38,7 +43,7 @@ class PropagationContractTest {
 
     @Test
     void asyncTaskCarriesCapturedContext() {
-        IsolationKernel kernel = kernel();
+        IsolationKernel kernel = kernel().kernel();
         TenantContext alpha = tenant(kernel, "alpha");
         AccessContextHolder.set(alpha);
         List<String> seen = new ArrayList<>();
@@ -58,12 +63,13 @@ class PropagationContractTest {
 
     @Test
     void cachePutRejectsForeignKeyBeforeSink() {
-        IsolationKernel kernel = kernel();
-        AccessContextHolder.set(tenant(kernel, "alpha"));
+        KernelSink created = kernel();
+        AccessContextHolder.set(tenant(created.kernel(), "alpha"));
         AtomicBoolean written = new AtomicBoolean(false);
         IsolationException ex = assertThrows(IsolationException.class, () ->
                 CacheKeyGuard.assertMatches(AccessContextHolder.current(), "nexus:dev:beta:p3:row"));
         assertEquals(IsolationErrorCode.CROSS_TENANT_CACHE, ex.error());
+        assertTrue(created.sink().rejected(IsolationErrorCode.CROSS_TENANT_CACHE));
         CacheKeyGuard.put("dev", "p3", "row", "v", (k, v) -> written.set(true));
         assertTrue(written.get());
         assertEquals("nexus:dev:alpha:p3:row", CacheKeyGuard.key("dev", AccessContextHolder.current(), "p3", "row"));
@@ -71,12 +77,13 @@ class PropagationContractTest {
 
     @Test
     void fileKeyRejectsCrossTenantBeforeSink() {
-        IsolationKernel kernel = kernel();
-        AccessContextHolder.set(tenant(kernel, "alpha"));
+        KernelSink created = kernel();
+        AccessContextHolder.set(tenant(created.kernel(), "alpha"));
         AtomicBoolean stored = new AtomicBoolean(false);
         IsolationException ex = assertThrows(IsolationException.class, () ->
                 FileObjectKeyGuard.assertOwned(AccessContextHolder.current(), "tenants/beta/doc.pdf"));
         assertEquals(IsolationErrorCode.CROSS_TENANT_FILE, ex.error());
+        assertTrue(created.sink().rejected(IsolationErrorCode.CROSS_TENANT_FILE));
         FileObjectKeyGuard.putObject("docs/a.pdf", new byte[] {1}, key -> stored.set(true));
         assertTrue(stored.get());
         assertEquals("tenants/alpha/docs/a.pdf", FileObjectKeyGuard.objectKey(AccessContextHolder.current(), "docs/a.pdf"));
@@ -84,16 +91,17 @@ class PropagationContractTest {
 
     @Test
     void outboxDispatchRejectsCrossTenantBeforeDispatcher() {
-        IsolationKernel kernel = kernel();
-        AccessContextHolder.set(tenant(kernel, "alpha"));
+        KernelSink created = kernel();
+        AccessContextHolder.set(tenant(created.kernel(), "alpha"));
         IsolatedEnvelope envelope = IsolatedEnvelope.fromCurrent("ledger.created", "{}");
         AtomicBoolean dispatched = new AtomicBoolean(false);
         envelope.dispatch(item -> dispatched.set(true));
         assertTrue(dispatched.get());
-        AccessContextHolder.set(tenant(kernel, "beta"));
+        AccessContextHolder.set(tenant(created.kernel(), "beta"));
         AtomicBoolean again = new AtomicBoolean(false);
         IsolationException ex = assertThrows(IsolationException.class, () -> envelope.dispatch(item -> again.set(true)));
         assertEquals(IsolationErrorCode.CROSS_TENANT_ASYNC, ex.error());
         assertFalse(again.get());
+        assertTrue(created.sink().rejected(IsolationErrorCode.CROSS_TENANT_ASYNC));
     }
 }

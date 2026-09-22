@@ -1,13 +1,18 @@
 package one.nexus.event;
 
 import java.time.Clock;
+import java.util.Set;
 import javax.sql.DataSource;
 import one.nexus.event.isolation.ExecutionIsolation;
+import one.nexus.event.isolation.Slf4jIsolationAuditSink;
 import one.nexus.event.jdbc.JdbcDeadLetterStore;
 import one.nexus.event.jdbc.JdbcIdempotencyStore;
 import one.nexus.event.jdbc.JdbcJobLogWriter;
 import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.event.jdbc.JdbcReconciliation;
+import one.nexus.isolation.IsolationKernel;
+import one.nexus.isolation.api.IsolationAuditSink;
+import one.nexus.isolation.query.TableRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -29,8 +34,26 @@ import org.springframework.context.annotation.Bean;
 public class EventCoreConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    ExecutionIsolation executionIsolation() {
-        return ExecutionIsolation.create();
+    IsolationKernel isolationKernel(ObjectProvider<IsolationAuditSink> sinks) {
+        return IsolationKernel.create(
+                new TableRegistry(),
+                Set.of(
+                        ExecutionIsolation.RECONCILE_PATH,
+                        ExecutionIsolation.QUARTZ_PATH,
+                        ExecutionIsolation.OUTBOX_PATH,
+                        "files.reconcile",
+                        "notify.ops",
+                        "cache.ops",
+                        "p3.schema",
+                        "p3.studio",
+                        "flow.ops"),
+                sinks.getIfAvailable(Slf4jIsolationAuditSink::new));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    ExecutionIsolation executionIsolation(IsolationKernel kernel) {
+        return new ExecutionIsolation(kernel);
     }
 
     @Bean

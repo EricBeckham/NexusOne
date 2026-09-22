@@ -3,9 +3,9 @@ package one.nexus.isolation.boundary;
 import java.util.function.Consumer;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
-import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.TenantContext;
+import one.nexus.isolation.audit.IsolationAuditorHolder;
 import one.nexus.isolation.context.AccessContextHolder;
 
 /**
@@ -17,7 +17,8 @@ public final class FileObjectKeyGuard {
 
     public static String objectKey(AccessContext context, String relativePath) {
         if (context == null) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, null, "file key missing context");
         }
         String relative = requireRelative(relativePath);
         if (context instanceof PlatformContext) {
@@ -26,30 +27,36 @@ public final class FileObjectKeyGuard {
         if (context instanceof TenantContext tenant) {
             return "tenants/" + tenant.tenantId() + "/" + relative;
         }
-        throw new IsolationException(IsolationErrorCode.MISSING_CONTEXT, context.traceId());
+        throw IsolationAuditorHolder.reject(
+                IsolationErrorCode.MISSING_CONTEXT, context, "file requires tenant or platform context");
     }
 
     public static void assertOwned(AccessContext context, String objectKey) {
         if (context == null) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, null, "file assert missing context");
         }
         if (objectKey == null || objectKey.isBlank() || objectKey.contains("..")) {
-            throw new IsolationException(IsolationErrorCode.CROSS_TENANT_FILE, context.traceId());
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CROSS_TENANT_FILE, context, "blank or traversal object key");
         }
         if (context instanceof TenantContext tenant) {
             String prefix = "tenants/" + tenant.tenantId() + "/";
             if (!objectKey.startsWith(prefix)) {
-                throw new IsolationException(IsolationErrorCode.CROSS_TENANT_FILE, context.traceId());
+                throw IsolationAuditorHolder.reject(
+                        IsolationErrorCode.CROSS_TENANT_FILE, context, "foreign file prefix");
             }
             return;
         }
         if (context instanceof PlatformContext) {
             if (!(objectKey.startsWith("platform/") || objectKey.startsWith("tenants/"))) {
-                throw new IsolationException(IsolationErrorCode.CROSS_TENANT_FILE, context.traceId());
+                throw IsolationAuditorHolder.reject(
+                        IsolationErrorCode.CROSS_TENANT_FILE, context, "platform file key not owned");
             }
             return;
         }
-        throw new IsolationException(IsolationErrorCode.MISSING_CONTEXT, context.traceId());
+        throw IsolationAuditorHolder.reject(
+                IsolationErrorCode.MISSING_CONTEXT, context, "file requires tenant or platform context");
     }
 
     public static void putObject(String relativePath, byte[] body, Consumer<String> sink) {
@@ -61,7 +68,8 @@ public final class FileObjectKeyGuard {
 
     private static String requireRelative(String relativePath) {
         if (relativePath == null || relativePath.isBlank() || relativePath.startsWith("/") || relativePath.contains("..")) {
-            throw new IsolationException(IsolationErrorCode.CROSS_TENANT_FILE, "missing-trace");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CROSS_TENANT_FILE, "missing-trace", null, "invalid relative object path");
         }
         return relativePath;
     }

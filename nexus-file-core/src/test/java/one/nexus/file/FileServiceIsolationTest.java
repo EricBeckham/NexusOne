@@ -31,8 +31,9 @@ class FileServiceIsolationTest {
     private static final String TENANT_A = "11111111-1111-4111-8111-111111111111";
     private static final String TENANT_B = "22222222-2222-4222-8222-222222222222";
 
+    private final CollectingAuditSink sink = new CollectingAuditSink();
     private final IsolationKernel kernel = IsolationKernel.create(
-            new TableRegistry(), Set.of("files.reconcile"), new CollectingAuditSink());
+            new TableRegistry(), Set.of("files.reconcile"), sink);
     private final Clock clock = Clock.fixed(Instant.parse("2026-09-22T00:00:00Z"), ZoneOffset.UTC);
 
     @AfterEach
@@ -69,6 +70,7 @@ class FileServiceIsolationTest {
         IsolationException ex = assertThrows(IsolationException.class, () ->
                 service.signDownload(ref.fileId(), "user-a"));
         assertEquals(IsolationErrorCode.CROSS_TENANT_FILE, ex.error());
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_FILE));
         assertEquals(0, storage.signs());
         IsolationException prefix = assertThrows(IsolationException.class, () ->
                 FileObjectKeyGuard.assertOwned(AccessContextHolder.current(), ref.objectKey()));

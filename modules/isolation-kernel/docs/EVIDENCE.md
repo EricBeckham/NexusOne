@@ -14,8 +14,11 @@ BUILD SUCCESS
 | `SqlBypassScannerTest` | 2 |
 | `QueryCompilerTest` | 4 |
 | `PostgresIsolationIT` | 1 (dual-tenant CRUD on PG 15; denies use an unusable Connection so rejects cannot reach JDBC) |
-| `PropagationContractTest` | 5 |
+| `PropagationContractTest` | 5 (cache / file / async rejects now assert `IsolationAuditEvent`) |
 | `RequestIsolationPolicyTest` | 5 |
+| `IsolatedExportTest` | 2 (same-tenant sinks run; cross-tenant export/file/cache/task rejected with `P1.M02.019` records) |
+
+S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md).
 
 ## Static SQL-bypass gate
 
