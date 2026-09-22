@@ -54,7 +54,7 @@ This is **not** a product-wide G4 close.
 |---|---|
 | Human laptop + live Keycloak CA / SPA-generated verifier | #125 is stub-IdP Playwright. HTTP-driver + HTTPS loopback remain on `main`. |
 | HTTP export wizard / report UI | Leftover implementation is [g4-export-wizard.md](./g4-export-wizard.md). Not a product export UI |
-| Switching P1 `GET /tenants/{id}/audit-events` off staging | Unchanged from #77 |
+| Switching P1 `GET /tenants/{id}/audit-events` off staging | Honesty leftover is [g4-p1-staging-audit-events.md](./g4-p1-staging-audit-events.md). GET still reads staging. |
 | Isolation-only `tenant_only` skip | No P2 context still skips this engine (G2 leftover) |
 | Callers that still use `SurfaceGuard.require(service, resource, action)` without `AuditPort` | Tests / fixtures / silent overload. Product wrappers now pass the module port. |
 | G6 `RecoveryPort` / G17 classified | Not this package |

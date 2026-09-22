@@ -44,7 +44,7 @@ This is **not** a product-wide G4 close.
 | Still open | Why |
 |---|---|
 | Human laptop + live Keycloak CA / SPA-generated verifier | #125 is stub-IdP Playwright. HTTP-driver + HTTPS loopback remain on `main`. |
-| Switching P1 `GET /tenants/{id}/audit-events` off staging | Unchanged from #77 |
+| Switching P1 `GET /tenants/{id}/audit-events` off staging | Honesty leftover is [g4-p1-staging-audit-events.md](./g4-p1-staging-audit-events.md). GET still reads staging. |
 | Isolation-only `tenant_only` skip | No P2 context still skips wizard audit writes (G2 leftover) |
 | Full product export UI / report BI / physical dump | Narrow HTTP begin/complete only |
 | Browser click of `/p3/exports/wizard` | Honest SKIP unless Playwright + issued context are present |

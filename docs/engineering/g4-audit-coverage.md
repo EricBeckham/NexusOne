@@ -35,7 +35,7 @@ P1 `GET /tenants/{id}/audit-events` still reads staging `platform.audit_event` (
 | Proven | Still open |
 |---|---|
 | Login accepted / rejected / logout append to the hash chain and are findable by `trace_id` | Desktop Playwright leftover (stub IdP) is [g4-pkce-browser-click.md](../g4-pkce-browser-click.md). Human laptop + live Keycloak still open. HTTP-driver is [g4-pkce-login-audit.md](../g4-pkce-login-audit.md); HTTPS loopback leftover is [g4-pkce-https-browser.md](../g4-pkce-https-browser.md) |
-| Permission grant / role assignment append (`append` joins ambient TX) | Switching P1 `GET /tenants/{id}/audit-events` off staging |
+| Permission grant / role assignment append (`append` joins ambient TX) | Switching P1 `GET /tenants/{id}/audit-events` off staging (honesty leftover: [g4-p1-staging-audit-events.md](../g4-p1-staging-audit-events.md)) |
 | Admin tenant create (and other P1 admin writes) land on the same chain; `append` rolls back with the business TX | Hot purge after 90 days (archive is a copy). Object-store cold archive: [g4-object-cold-archive.md](../g4-object-cold-archive.md) |
 | Guard-reject from `IsolationAuditor` / `RequestIsolationPolicy` uses `appendNewTransaction` and survives a surrounding rollback | G6 restore drill, G17 classified / GM delivery, target Linux/ARM Profile |
 | `JdbcAuditChainTransactionTest` 4/4 — library same-TX rules unchanged | HTTP export wizard leftover is [g4-export-wizard.md](../g4-export-wizard.md). Not a product export UI |

@@ -51,7 +51,7 @@ This is **not** a product-wide G4 close.
 |---|---|
 | Human laptop Authorization Code + PKCE click | HTTP-driver + HTTPS loopback leftover are on `main`. An operator still has to trust the local CA (or use an insecure-origin exception). |
 | HTTP export wizard / report UI | `ledger.export.csv` is the guarded surface, not a physical ledger dump |
-| Switching P1 `GET /tenants/{id}/audit-events` off staging | Unchanged from #77 |
+| Switching P1 `GET /tenants/{id}/audit-events` off staging | Honesty leftover is [g4-p1-staging-audit-events.md](./g4-p1-staging-audit-events.md). GET still reads staging. |
 | Live MinIO cold drill | Fake / counting storage is the required evidence for cold copy; live S3 stays SecretPort |
 | Tenant TaskQueue / IsolatedQuartzJob for archive or purge | Those APIs require membership; this Job is platform-only |
 | Hot `verifyChain()` after purge is suffix-only | Purged prefix hashes are not re-proved from `GENESIS` on the hot table. Full history is archive / cold. |
