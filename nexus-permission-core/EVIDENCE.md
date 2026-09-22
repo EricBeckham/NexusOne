@@ -10,7 +10,7 @@ Recorded **2026-09-22T16:55:50Z** (permission-core G17 suite **6/0/0**), **2026-
 
 ## G2 (S0+S1) — role matrix + same engine
 
-G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio / form fill / path submit-start / H5 `/m/*` list/detail/form/todo / export Task type / Job / Task submit. Product-wide G2 (report UI / physical dump) stays open. See [docs/g2-permission.md](../docs/g2-permission.md), [docs/g2-form-submission-write.md](../docs/g2-form-submission-write.md), [docs/g2-submit-start-form-write.md](../docs/g2-submit-start-form-write.md), and [docs/g2-h5-permission.md](../docs/g2-h5-permission.md).
+G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio / form fill / path submit-start / H5 `/m/*` list/detail/form/todo / export Task type / Job / Task submit. Product-wide G2 (report UI / physical dump) stays open. Callers that skip `SurfaceGuard` / `PermissionEngine` fail the static gate in [docs/g2-surfaceguard-bypass-ci.md](../docs/g2-surfaceguard-bypass-ci.md). See [docs/g2-permission.md](../docs/g2-permission.md), [docs/g2-form-submission-write.md](../docs/g2-form-submission-write.md), [docs/g2-submit-start-form-write.md](../docs/g2-submit-start-form-write.md), and [docs/g2-h5-permission.md](../docs/g2-h5-permission.md).
 
 ## Versions
 

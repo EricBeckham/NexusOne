@@ -44,7 +44,7 @@ This remainder does **not** close product-wide G2.
 - Report UI / physical ledger dump are **not** on this engine. H5 `/m/*` list/detail/form/todo is the sibling leftover [g2-h5-permission.md](./g2-h5-permission.md) (not a product-wide G2 close).
 - Isolation-only jobs with no P2 `TenantContext` still skip `AuthorizedSubmit` / list-detail tenant-only fallback (including studio-only form hosts that never bind P2). Form fill HTTP without P2 still stays tenant-only (`FormApiTest`).
 - General cache (`CacheKeyGuard` / Redis) is still isolation-only; only IsolatedExport `cacheStatus` rides the export Task grant.
-- Direct `IsolatedExport` / `JdbcTaskQueue` callers that skip `AuthorizedExport` / `TaskSubmitGuard` are not a platform-wide “every API” close.
+- Direct `IsolatedExport` / `JdbcTaskQueue` callers that skip `AuthorizedExport` / `TaskSubmitGuard` are not a platform-wide “every API” close. New raw engine / IsolatedExport / unguarded P3 surface callers fail the static gate in [g2-surfaceguard-bypass-ci.md](./g2-surfaceguard-bypass-ci.md) (orthogonal to the G1 QueryCompiler JDBC gate).
 - Isolation Query AST still cannot encode OR trees; OR DataScope stays on `PermissionQueryBinder`.
 - G9 stale-snapshot / Redis-down evidence is the parallel package [g9-policysnapshot-invalidate.md](./g9-policysnapshot-invalidate.md). Sentinel/Cluster is still not claimed.
 - Full simulation / governance admin (time-bound, IP, ABAC DSL) is out of scope.
