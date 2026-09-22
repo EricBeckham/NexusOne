@@ -323,7 +323,7 @@ Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POS
 
 # G3 submit-start idempotency + record versions
 
-See [docs/g3-data-consistency.md](../docs/g3-data-consistency.md). Outbox consumer idempotency is **not** rebuilt; it reuses the M0-09 measurements above (`docs/m0-09-outbox-api.md`).
+See [docs/g3-data-consistency.md](../docs/g3-data-consistency.md). Outbox consumer idempotency is **not** rebuilt; it reuses the M0-09 measurements above (`docs/m0-09-outbox-api.md`). Consume-idempotent **stress / duplicate-delivery** leftover is [docs/g3-outbox-consume-idempotent.md](../docs/g3-outbox-consume-idempotent.md) (not a product G3 close).
 
 | Case | Test | Expected |
 |---|---|---|
