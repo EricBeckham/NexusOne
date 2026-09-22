@@ -4,7 +4,7 @@
 
 目录说明见 [docs/README.md](./docs/README.md)。
 
-- [团队领取任务清单 V1.1](./docs/planning/团队领取任务清单_V1.1.md)：P0+M0+G18 已在 `main`；S0+S1 切片已大量落地。只领取清单里「仍开放」的产品余量，不要重做 P0 叶子或 M0 实现，不要重开 G18，不要宣称完整 S0/S1 通过。
+- [团队领取任务清单 V1.1](./docs/planning/团队领取任务清单_V1.1.md)：P0+M0+G18 已在 `main`；S0+S1 wave4 切片（#111～#123 / #124 / #125 / #126 / #127 / #128 / #129，对齐 `47d04c7`）已落地。只领取清单里「仍开放」的产品余量，不要重做 P0 叶子或 M0 实现，不要重开 G18，不要宣称产品 G1/G2/G4/G7/G9/G15/G17 或完整 S0/S1 通过。
 - [实施任务拆解 V1.1](./docs/planning/实施任务拆解_V1.1.md)：阶段、父任务、历史 PoC 证据与验收门禁。
 - [P0 叶子 Issues](https://github.com/EricBeckham/NexusOne/issues?q=is%3Aissue+label%3Atype%3Aleaf)：历史追溯，勿再领实现。
 - [M0 父 Issues](https://github.com/EricBeckham/NexusOne/issues?q=is%3Aissue+label%3Aphase%3AM0)：历史追溯，勿再领实现。
