@@ -3,7 +3,11 @@
     <div class="nx-page-header nx-row" style="justify-content:space-between;">
       <div>
         <h1>{{ form.name }}</h1>
-        <p>Draft / Published / Running 必须分开。填报写入 <code>form_submission</code>，不写物理台账。</p>
+        <p>
+          Draft / Published / Running 必须分开。G18 填报走
+          <code>POST /api/v1/p3/path/submit-start</code>
+          （物理台账行 + Flowable），不是只写 form_submission。
+        </p>
       </div>
       <div class="nx-row">
         <NxStatus :label="form.draft_status" tone="warning" />
@@ -11,11 +15,11 @@
         <router-link class="ghost" to="/p3/forms">返回列表</router-link>
       </div>
     </div>
-    <NxSourceBanner body="Live M0-07：validate / publish / submissions。校验失败保持 DRAFT。G5 回滚由服务端事务覆盖，UI 不再 MOCK 失败。" />
+    <NxSourceBanner body="Live M0-07 validate / publish。填报默认 submit-start。G5 回滚由服务端事务覆盖。产品 G18 仍待浏览器复走。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-tabs">
-      <button :class="{ active: tab === 'fill' }" type="button" data-testid="form-fill-tab" @click="tab = 'fill'">填报</button>
+      <button :class="{ active: tab === 'fill' }" type="button" data-testid="form-fill-tab" @click="tab = 'fill'">填报 / 启动审批</button>
       <button :class="{ active: tab === 'designer' }" type="button" @click="tab = 'designer'">设计壳</button>
       <button :class="{ active: tab === 'publish' }" type="button" data-testid="form-publish-tab" @click="tab = 'publish'">发布</button>
     </div>
@@ -32,7 +36,25 @@
           :required="field.required"
         />
       </div>
-      <button class="primary" type="submit" data-testid="form-fill-submit" :disabled="!runningFields.length">提交填报</button>
+      <div class="nx-row">
+        <div class="nx-field">
+          <label>审批人（PERSON）</label>
+          <select v-model="assigneeRef" data-testid="form-assignee">
+            <option value="">当前登录人</option>
+            <option v-for="person in persons" :key="person.id" :value="person.id">
+              {{ person.display_name || person.displayName || person.email }} ({{ person.id }})
+            </option>
+          </select>
+        </div>
+        <div class="nx-field">
+          <label>process_key</label>
+          <input v-model="processKey" class="nx-code" />
+        </div>
+      </div>
+      <button class="primary" type="submit" data-testid="form-fill-submit" :disabled="!runningFields.length">
+        提交并启动审批
+      </button>
+      <pre v-if="pathResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(pathResult, null, 2) }}</pre>
     </form>
 
     <div v-else-if="tab === 'designer'" class="nx-designer">
@@ -65,7 +87,7 @@
           <li>Running</li>
         </ol>
         <div class="nx-row" style="margin-top:12px;">
-          <button class="ghost" type="button" @click="onValidate">Validate</button>
+          <button class="ghost" type="button" data-testid="form-validate" @click="onValidate">Validate</button>
           <button class="primary" type="button" data-testid="form-publish" @click="onPublish">Publish</button>
           <button class="ghost" type="button" @click="onLog">查看 publish-log</button>
         </div>
@@ -93,6 +115,8 @@ import { useRoute } from "vue-router";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
+import { p2 } from "../../api/client";
+import { session } from "../../api/session";
 
 const route = useRoute();
 const form = ref(null);
@@ -101,7 +125,11 @@ const error = ref("");
 const notice = ref("");
 const validation = ref(null);
 const publishResult = ref(null);
+const pathResult = ref(null);
 const values = reactive({});
+const persons = ref([]);
+const assigneeRef = ref("");
+const processKey = ref("nexusSequentialApproval");
 
 const runningFields = computed(() => form.value?.running_fields || []);
 
@@ -128,6 +156,14 @@ async function reload() {
 onMounted(async () => {
   try {
     await reload();
+    try {
+      persons.value = (await p2.persons()) || [];
+    } catch {
+      persons.value = [];
+    }
+    if (!assigneeRef.value && session.personId) {
+      assigneeRef.value = session.personId;
+    }
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
   }
@@ -139,8 +175,14 @@ async function submitFill() {
     for (const field of runningFields.value) {
       payload[field.code] = values[field.code];
     }
-    const result = await p3.fillForm(route.params.id, { values: payload });
-    notice.value = `已提交 ${result.record?.submission_id || result.record?.submissionId || "submission"}。${result.note || ""}`;
+    const result = await p3.submitStart(route.params.id, {
+      values: payload,
+      process_key: processKey.value,
+      assignee_type: "PERSON",
+      assignee_ref: assigneeRef.value || session.personId,
+    });
+    pathResult.value = result;
+    notice.value = `submit-start 完成。record ${result.record_id || "?"} · todo ${result.todo?.id || "?"} · trace ${result.trace_id || ""}。${result.note || ""}`;
     error.value = "";
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;

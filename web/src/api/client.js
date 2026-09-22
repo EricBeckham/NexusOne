@@ -29,7 +29,14 @@ export function stubAccessToken({ sub, email, username, name }) {
   return `stub.${b64}`;
 }
 
-export async function api(path, { method = "GET", body, headers = {}, auth = true, platform = false } = {}) {
+export function newTraceId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return "0199a1c0-0000-7000-8000-00000000a000";
+}
+
+export async function api(path, { method = "GET", body, headers = {}, auth = true, platform = false, traceId } = {}) {
   const settings = loadSettings();
   const nextHeaders = { Accept: "application/json", ...headers };
   for (const key of Object.keys(nextHeaders)) {
@@ -45,6 +52,9 @@ export async function api(path, { method = "GET", body, headers = {}, auth = tru
   }
   if (auth && settings.contextId) {
     nextHeaders["X-Nexus-Context-Id"] = settings.contextId;
+  }
+  if (traceId) {
+    nextHeaders["X-Trace-Id"] = traceId;
   }
   if (platform || settings.platformMode) {
     nextHeaders["X-Nexus-Demo-Actor-Id"] =
@@ -139,4 +149,9 @@ export const notify = {
   list: () => api("/api/v1/notifications"),
   enqueue: (body) => api("/api/v1/notifications", { method: "POST", body }),
   read: (id) => api(`/api/v1/notifications/${id}/read`, { method: "POST", body: {} }),
+};
+
+/** M0-11 hash chain, read-only by trace. Tenant-filtered. Never X-Tenant-Id. */
+export const audit = {
+  byTrace: (traceId) => api(`/api/v1/audit/traces/${encodeURIComponent(traceId)}`),
 };

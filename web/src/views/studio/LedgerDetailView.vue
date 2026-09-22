@@ -10,7 +10,7 @@
         <router-link class="ghost" to="/p3/ledgers">返回列表</router-link>
       </div>
     </div>
-    <NxSourceBanner body="记录走 GET /api/v1/p3/ledgers/{id}/records。新增字段走 POST .../fields（M0-06 无 PUT 改字段）。列来自现场 metadata，不再假设费用报销夹具。" />
+    <NxSourceBanner body="记录走 GET /api/v1/p3/ledgers/{id}/records。新增字段走 POST .../fields。G18 业务行由已发布表单的 submit-start 写入。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <div class="nx-tabs">
       <button :class="{ active: tab === 'records' }" type="button" @click="tab = 'records'">记录</button>
