@@ -20,7 +20,7 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | Role / assignment / grant writes | `PolicyAdminService` + `/api/v1/permission/*` |
 | G2 role matrix (not `tenant_member` seed) | `RoleMatrixService` + `GET /matrix` + `POST /matrix/example` |
 | G17 three-power duties (system / security / audit) | `PlatformDutyCatalog` + `GET /duties` + `POST /duties/example` |
-| Same Decision for list / detail / flow / form studio / form fill / export / Job / Task | `SurfaceGuard` / `AuthorizedExport` / `AuthorizedSubmit` |
+| Same Decision for list / detail / flow / form studio / form fill / submit-start / export / Job / Task | `SurfaceGuard` / `AuthorizedExport` / `AuthorizedSubmit` |
 
 `tenant_id` on the wire is **rejected** (`P2.PERM.0013`). Use `X-Nexus-Context-Id` from M0-04.
 
@@ -104,7 +104,7 @@ export NEXUS_REDIS_PORT=6379
 ## Explicitly out of scope
 
 - Full G17 (GM TLS / classified / 密码机). Duty catalog is one slice; admin MFA is a separate slice on main ([docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md))
-- Product-wide G2 (report / H5). Form studio + form fill / POST submissions + export Task type + Job/Task submit + export cacheStatus are on SurfaceGuard; general cache and report UI are not. Path submit-start stays the G18 walk.
+- Product-wide G2 (report / H5). Form studio + form fill / POST submissions + path submit-start dual-check (`form.write` + process start) + export Task type + Job/Task submit + export cacheStatus are on SurfaceGuard; general cache and report UI are not.
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
 - Redis failover / Cluster / Sentinel (P2-down timeout-then-reject is on `SnapshotManager`, not Sentinel)

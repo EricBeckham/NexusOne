@@ -31,9 +31,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * List/detail hook, form studio, flow, export, Job, and Task {@link SurfaceGuard}
- * must agree on the same {@code PermissionService} Decision. {@code tenant_member}
- * is not installed.
+ * List/detail hook, form studio, flow, form fill, submit-start, export, Job, and
+ * Task {@link SurfaceGuard} must agree on the same {@code PermissionService}
+ * Decision. {@code tenant_member} is not installed.
  */
 class G2SurfaceAgreementTest {
     @AfterEach
@@ -148,6 +148,26 @@ class G2SurfaceAgreementTest {
                 () -> SurfaceGuard.require(harness.module.service(), "process.instance", "start"));
         assertEquals("no_grant", start.getMessage());
         assertEquals(ledger.getMessage(), start.getMessage());
+    }
+
+    @Test
+    void submitStartNeedsFormWriteAndProcessStartOnTheSameEngine() {
+        Harness approver = Harness.open(Set.of(RoleMatrixCatalog.APPROVER));
+        approver.module.matrix().installExample();
+        SurfaceGuard.require(approver.module.service(), "process.instance", "start");
+        PermissionException approverFill = assertThrows(
+                PermissionException.class, () -> approver.forms.requireFill());
+        assertEquals("no_grant", approverFill.getMessage());
+        assertEquals("P2.PERM.0003", approverFill.errorCode().code());
+
+        Harness designer = Harness.open(Set.of(RoleMatrixCatalog.FORM_DESIGNER));
+        designer.module.matrix().installExample();
+        designer.forms.requireFill();
+        PermissionException designerStart = assertThrows(
+                PermissionException.class,
+                () -> SurfaceGuard.require(designer.module.service(), "process.instance", "start"));
+        assertEquals("no_grant", designerStart.getMessage());
+        assertEquals(approverFill.getMessage(), designerStart.getMessage());
     }
 
     @Test

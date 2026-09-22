@@ -46,8 +46,9 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * POST {@code /forms/{id}/submissions} is {@code form.write} through
- * {@link FormSurfaceGuard}. Path {@code submit-start} remains the G18 walk.
- * Isolation-only {@link FormApiTest} still has no P2 context.
+ * {@link FormSurfaceGuard}. Path {@code submit-start} with a {@code form_id}
+ * is the same cell plus process start. Isolation-only {@link FormApiTest}
+ * still has no P2 context.
  */
 @SpringBootTest(classes = FormSubmissionWriteApiTest.TestApp.class)
 @AutoConfigureMockMvc

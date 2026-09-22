@@ -16,8 +16,9 @@ import org.springframework.stereotype.Component;
  * {@code POST …/submissions} are {@code form.write}. {@code no_grant},
  * {@code explicit_deny}, and {@code tenant_boundary} are deny. Isolation-only
  * jobs with no P2 {@code TenantContext} stay tenant-only, like
- * {@link PermissionDataScopeHook}. Path {@code submit-start} stays the
- * runtime walk and is not claimed here.
+ * {@link PermissionDataScopeHook}. Path {@code submit-start} with a
+ * {@code form_id} also requires {@code form.write} (dual-check with
+ * {@code process.instance}/{@code start}).
  */
 @Component
 @ConditionalOnClass(PermissionModule.class)

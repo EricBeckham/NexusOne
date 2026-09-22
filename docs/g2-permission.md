@@ -14,7 +14,8 @@ List, detail, flow, form studio, form fill, export, Job, and Task interpret the 
 | Flow start / approve / reject / withdraw | `SequentialApprovalService.guard` → `SurfaceGuard.require` | 403 (`P3.FLOW.0004`, same reason string) |
 | Form definition list / detail | `FormSurfaceGuard.requireRead` → `form` / `read` | 403 (`P2.PERM.0003` / `0002` / `0001`) |
 | Form create / update / validate / publish | `FormSurfaceGuard.requireWrite` → `form` / `write` | 403 (same codes) |
-| Form fill / `POST …/submissions` | `FormSurfaceGuard.requireFill` → `form` / `write` | 403 (same codes) **before** `form_submission` insert. Path `submit-start` stays the G18 walk. |
+| Form fill / `POST …/submissions` | `FormSurfaceGuard.requireFill` → `form` / `write` | 403 (same codes) **before** `form_submission` insert |
+| Path submit-start with `form_id` | `BusinessPathService` → `requireFill` then `SequentialApprovalService.guard` → `process.instance` / `start` | 403 (`P2.PERM.*` for missing `form.write`) **before** submit / start. G18 leave seed still works. |
 | Form submission list | `FormSurfaceGuard.requireRead` → `form` / `read` | 403 (same codes) |
 | Export Task type `ledger.export.csv` | `AuthorizedExport` → `SurfaceGuard` then `IsolatedExport` | 403 (`P2.PERM.0003`) **before** file / cache / dispatch sinks. Cross-tenant remains `P1.M02.019`. |
 | Job / Task submit | `TaskSubmitGuard` → `AuthorizedSubmit` then enqueue | 403 **before** `ExecutionIsolation` / JDBC / Quartz. Isolation-only (no P2 context) still skips this engine. |
@@ -54,7 +55,7 @@ This remainder does **not** close product-wide G2.
 
 ```bash
 mvn -pl nexus-permission-core,nexus-p3-studio -am test \
-  -Dtest=G2SameEngineTest,G2ExportJobTaskEngineTest,G2AuthorizedExportTest,G2AuthorizedSubmitTest,G2RoleMatrixApiTest,G2SurfaceAgreementTest,PermissionDataScopeHookTest,FormSurfaceGuardTest,FormStudioPermissionApiTest,FormSubmissionWriteApiTest,FieldPolicyProjectorTest,PermissionApiTest,TenantMemberGrantSeedApiTest \
+  -Dtest=G2SameEngineTest,G2ExportJobTaskEngineTest,G2AuthorizedExportTest,G2AuthorizedSubmitTest,G2RoleMatrixApiTest,G2SurfaceAgreementTest,PermissionDataScopeHookTest,FormSurfaceGuardTest,FormStudioPermissionApiTest,FormSubmissionWriteApiTest,G2SubmitStartFormWriteIT,FieldPolicyProjectorTest,PermissionApiTest,TenantMemberGrantSeedApiTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
@@ -70,4 +71,4 @@ Export / Job / Task remainder on this branch (Boot **4.1.1** / OpenJDK **21.0.10
 # p3-studio: 8 tests (PermissionDataScopeHook 4, G2SurfaceAgreement 4)
 ```
 
-Form fill / POST submissions remainder: [g2-form-submission-write.md](./g2-form-submission-write.md). See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.
+Form fill / POST submissions remainder: [g2-form-submission-write.md](./g2-form-submission-write.md). Path submit-start dual-check: [g2-submit-start-form-write.md](./g2-submit-start-form-write.md) (`G2SubmitStartFormWriteIT` **3/3** at **2026-09-22T17:38:56Z**; `G18BusinessPathIT` **4/4** at **2026-09-22T17:39:09Z**). See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.

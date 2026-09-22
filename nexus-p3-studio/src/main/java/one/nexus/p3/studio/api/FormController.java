@@ -122,7 +122,7 @@ public class FormController {
         }
     }
 
-    /** Fill / POST submissions are {@code form.write}. Path submit-start stays the G18 walk. */
+    /** Fill / POST submissions are {@code form.write}. Path submit-start with a form_id is the same cell plus process start. */
     private void requireFill() {
         FormSurfaceGuard guard = surfaces.getIfAvailable();
         if (guard != null) {

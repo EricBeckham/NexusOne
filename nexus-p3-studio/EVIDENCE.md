@@ -2,7 +2,7 @@
 
 Recorded after PostgreSQL 15.x test run. **Forms / Flowable / UI were not built** in the M0-06 drop.
 
-G2 list/detail/flow/form-studio/form-fill/export/Job/Task agreement (`G2SurfaceAgreementTest`, `PermissionDataScopeHook`, `FormSurfaceGuard`, `FormSubmissionWriteApiTest`) is recorded in [docs/g2-permission.md](../docs/g2-permission.md) and [docs/g2-form-submission-write.md](../docs/g2-form-submission-write.md). This file stays the M0-06 ledger evidence. Report / H5 remain open.
+G2 list/detail/flow/form-studio/form-fill/submit-start/export/Job/Task agreement (`G2SurfaceAgreementTest`, `PermissionDataScopeHook`, `FormSurfaceGuard`, `FormSubmissionWriteApiTest`, `G2SubmitStartFormWriteIT`) is recorded in [docs/g2-permission.md](../docs/g2-permission.md), [docs/g2-form-submission-write.md](../docs/g2-form-submission-write.md), and [docs/g2-submit-start-form-write.md](../docs/g2-submit-start-form-write.md). This file stays the M0-06 ledger evidence. Report / H5 remain open.
 
 ## Exact versions
 
@@ -374,4 +374,16 @@ Agent VM **2026-09-22T15:40:16Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **
 | `web npm run assert:p3-live` | **PASS** (`data-testid=todo-withdraw`) |
 
 G7 leftover Vue click of that control (stub login, not a three-type close, G18 stays closed): [docs/g7-withdraw-browser.md](../docs/g7-withdraw-browser.md).
+
+# G2 submit-start form.write dual-check
+
+Path `POST /api/v1/p3/path/submit-start` with `form_id` requires `form.write` before start, then `process.instance`/`start`. See [docs/g2-submit-start-form-write.md](../docs/g2-submit-start-form-write.md).
+
+Agent VM after rebase onto `main@440a504` (**#113**). **2026-09-22T17:43:30Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
+
+```bash
+./scripts/g2-submit-start-form-write.sh
+```
+
+`G2SubmitStartFormWriteIT` **3/3** — missing `form.write` is `403 P2.PERM.0003` with zero `form_submission` / process / physical row; `tenant_member` seed cells still start leave; explicit deny is `P2.PERM.0002`. `G18BusinessPathIT` **4/4**. Reactor **Tests run: 20, Failures: 0** at **2026-09-22T17:43:30Z**.
 

@@ -10,7 +10,7 @@ Recorded **2026-09-22T16:55:50Z** (permission-core G17 suite **6/0/0**), **2026-
 
 ## G2 (S0+S1) — role matrix + same engine
 
-G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio / form fill / export Task type / Job / Task submit. Product-wide G2 (report / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md) and [docs/g2-form-submission-write.md](../docs/g2-form-submission-write.md).
+G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio / form fill / path submit-start / export Task type / Job / Task submit. Product-wide G2 (report / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md), [docs/g2-form-submission-write.md](../docs/g2-form-submission-write.md), and [docs/g2-submit-start-form-write.md](../docs/g2-submit-start-form-write.md).
 
 ## Versions
 
@@ -167,7 +167,7 @@ mvn -pl nexus-permission-core -am test
 
 ## Honest leftover
 
-- Product-wide G2 (report / H5). Form studio + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache is not. form fill / submissions remain open.
+- Product-wide G2 (report / H5). Form studio + form fill / POST submissions + path submit-start dual-check + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache is not.
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down: evidenced in [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md). Redis Sentinel/Cluster still not claimed.

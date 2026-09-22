@@ -32,7 +32,7 @@ UI is **not** in this module (M0-12).
 | POST | `/api/v1/p3/forms/{id}/validate` |
 | POST | `/api/v1/p3/forms/{id}/publish` |
 | GET | `/api/v1/p3/forms/{id}/running` |
-| POST/GET | `/api/v1/p3/forms/{id}/submissions` | POST is `form.write` via `FormSurfaceGuard` when P2 context is bound; GET is `form.read`. Path `submit-start` remains the G18 walk |
+| POST/GET | `/api/v1/p3/forms/{id}/submissions` | POST is `form.write` via `FormSurfaceGuard` when P2 context is bound; GET is `form.read` |
 | GET | `/api/v1/process/health` |
 | POST | `/api/v1/process/instances` |
 | POST | `/api/v1/process/tasks/{todoId}/approve` |
@@ -41,7 +41,7 @@ UI is **not** in this module (M0-12).
 | GET | `/api/v1/todos/pending` / `/api/v1/p3/todos` |
 | GET | `/api/v1/todos/done` |
 | GET | `/api/v1/todos/initiated` |
-| POST | `/api/v1/p3/path/submit-start` | Optional `Idempotency-Key` (or body `idempotency_key`). Repeat → same row, `idempotent_replay=true` |
+| POST | `/api/v1/p3/path/submit-start` | Optional `Idempotency-Key` (or body `idempotency_key`). Repeat → same row, `idempotent_replay=true`. With `form_id`, requires `form.write` **and** `process.instance`/`start` before submit |
 | PATCH | `/api/v1/p3/ledgers/{id}/records/{recordId}` | Body `{values, version}`. Stale / concurrent `version` → `409 P3.RECORD.0002` |
 | POST | `/api/v1/p3/path/tasks/{todoId}/approve` |
 | POST | `/api/v1/p3/path/tasks/{todoId}/reject` |
