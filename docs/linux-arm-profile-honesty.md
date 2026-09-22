@@ -67,7 +67,7 @@ Honesty fixtures (must reject fakes):
 
 Java **21** / Boot **4.1.1**. No Docker. No live PostgreSQL required.
 
-Sibling leftover honesty beyond this #157 contract (do **not** redo this leftover): [linux-arm-profile-leftover-honesty.md](./linux-arm-profile-leftover-honesty.md). Keep both leftover rows in [docs/README.md](./README.md).
+Sibling leftover honesty beyond this #157 contract (do **not** redo this leftover): [linux-arm-profile-leftover-honesty.md](./linux-arm-profile-leftover-honesty.md). Remainder honesty beyond #193/#157 (do **not** redo this leftover): [linux-arm-profile-remainder-honesty.md](./linux-arm-profile-remainder-honesty.md). Keep leftover rows in [docs/README.md](./README.md).
 
 See [engineering/linux-arm-profile-honesty-EVIDENCE.md](./engineering/linux-arm-profile-honesty-EVIDENCE.md).
 
