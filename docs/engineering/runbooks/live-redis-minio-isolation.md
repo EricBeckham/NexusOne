@@ -76,7 +76,7 @@ mvn -pl nexus-cache-core,nexus-file-core -am test \
 | Item | Status |
 |---|---|
 | Product Redis 3.2 on `:6379` | Not this drill. Dedicated port only. If compile of 3.2.13 fails, the script may start whatever `redis-server` is on PATH and must record that version. |
-| AIStor / licensed MinIO digest | Not claimed. Community MinIO binary is enough to prove prefix reject-before-S3. |
+| AIStor / licensed MinIO digest | Not claimed. The drill tries the last community linux-amd64 GitHub asset (`RELEASE.2025-09-07T16-13-09Z`), then `go install`. The floating `dl.min.io/.../minio` URL currently returns HTTP 410. |
 | GaussDB | Out of this PostgreSQL slice. Unused here anyway. |
 | AuditPort same-TX `append` | Unchanged. Guard rejects still use `appendNewTransaction` as in G1. |
 | G6 object-store restore / RPO | Still [object-store-restore.md](./object-store-restore.md). This drill is isolation, not restore. |

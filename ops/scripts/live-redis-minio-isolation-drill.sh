@@ -216,12 +216,41 @@ start_minio() {
   local bin="${DRILL_HOME}/minio"
   if [[ ! -x "${bin}" ]]; then
     log "downloading native MinIO linux-amd64 into ${DRILL_HOME} (no Docker)"
-    if ! curl -fsSL --max-time 90 "https://dl.min.io/server/minio/release/linux-amd64/minio" -o "${bin}"; then
+    # Community floating URL now returns 410. Prefer the last published linux-amd64
+    # GitHub asset, then go install, then SKIP honestly.
+    local urls=(
+      "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z"
+      "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2025-09-07T16-13-09Z"
+      "https://dl.min.io/server/minio/release/linux-amd64/minio"
+    )
+    local url ok=0
+    for url in "${urls[@]}"; do
+      log "trying ${url}"
+      if curl -fL --max-time 120 "${url}" -o "${bin}"; then
+        ok=1
+        break
+      fi
+      rm -f "${bin}"
+    done
+    if [[ "${ok}" -ne 1 && -x "$(command -v go || true)" ]]; then
+      log "prebuilt MinIO URLs failed; go install github.com/minio/minio@latest"
+      if GOPATH="${DRILL_HOME}/gopath" go install github.com/minio/minio@latest \
+        && [[ -x "${DRILL_HOME}/gopath/bin/minio" ]]; then
+        ln -sfn "${DRILL_HOME}/gopath/bin/minio" "${bin}"
+        ok=1
+      fi
+    fi
+    if [[ "${ok}" -ne 1 ]]; then
       MINIO_STATUS="SKIP"
-      MINIO_REASON="could not download MinIO binary"
+      MINIO_REASON="could not download or go-install MinIO (dl.min.io floating URL is 410)"
       return 1
     fi
-    chmod 755 "${bin}"
+    chmod 755 "${bin}" || true
+    if [[ ! -x "${bin}" ]]; then
+      MINIO_STATUS="SKIP"
+      MINIO_REASON="MinIO binary present but not executable at ${bin}"
+      return 1
+    fi
   fi
 
   if [[ -z "${MINIO_ROOT_USER:-}" ]]; then
