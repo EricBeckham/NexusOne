@@ -20,7 +20,7 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker.
 | Leftover harness contract | Always-green `wx_dt_harness_contract=PASS` and `native_bridge_harness_contract=PASS` when the #167/#181 leftover honesty fixtures still verify. |
 | Honest WeChat / DingTalk SKIP | `wechat_miniprogram_production` / `dingtalk_miniprogram_production` are **PASS** only when a live vendor host was present **and** `*_walk_observed=true`. Missing JSAPI / servicewechat.com / h5.dingtalk.com is honest **SKIP**. |
 | Honest IPA/APK SKIP | `ios_ipa_production` / `android_apk_production` are **PASS** only when Xcode/Gradle (or equivalent) was present **and** a native walk was observed. Missing live host is honest **SKIP**. |
-| Honesty gate | `--verify-report` rejects fake WeChat/DingTalk/IPA PASS, rejects `g15_close=CLOSED`, rejects #151/#167/#181 redo flags, and requires parent leftover rows kept. |
+| Honesty gate | `--verify-report` rejects fake WeChat/DingTalk/IPA PASS, rejects a claimed G15 close, rejects #151/#167/#181 redo flags, and requires parent leftover rows kept. |
 
 No Docker. No new harness page. Do **not** run `./scripts/g15-wx-dt-prod-gap-honesty.sh` or `./scripts/g15-native-bridge-honesty.sh` as this leftover (parent `--verify-report` on honest fixtures is allowed as harness evidence).
 
@@ -69,7 +69,7 @@ See [engineering/g15-wx-dt-native-bridge-honesty-EVIDENCE.md](./engineering/g15-
 
 | Leftover | Why |
 |---|---|
-| Product G15 close | Explicitly `g15_close=NOT_CLAIMED`. Honesty gate rejects `CLOSED`. |
+| Product G15 close | Explicitly `g15_close=NOT_CLAIMED`. Honesty gate rejects any other close claim. |
 | WeChat / DingTalk production accept | Honest SKIP unless a live vendor host walk was observed. |
 | Store-ready IPA / APK | Honest SKIP unless Xcode/Gradle + native walk was observed. Not IPA/APK. |
 | Redo of #151 / #167 / #181 | Stub / honesty leftover product modules stay on those leftovers. |
