@@ -10,11 +10,13 @@ import one.nexus.p3.port.ApplicationRepository;
 import one.nexus.p3.port.FieldRepository;
 import one.nexus.p3.port.LedgerRepository;
 import one.nexus.p3.port.LedgerRecordSink;
+import one.nexus.p3.schema.SchemaService;
 import one.nexus.p3.studio.form.FormService;
 import one.nexus.p3.studio.form.FormStore;
 import one.nexus.p3.studio.form.InMemoryFormStore;
 import one.nexus.p3.studio.form.JdbcFormStore;
 import one.nexus.p3.studio.form.PublishHook;
+import one.nexus.p3.studio.form.SchemaServicePublishHook;
 import one.nexus.p3.studio.meta.InMemoryLedgerMetadataCatalog;
 import one.nexus.p3.studio.meta.JdbcLedgerMetadataPort;
 import one.nexus.p3.studio.meta.LedgerMetadataPort;
@@ -64,7 +66,16 @@ public class StudioConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(PublishHook.class)
-    PublishHook publishHook() {
+    PublishHook publishHook(
+            ObjectProvider<SchemaService> schemas,
+            ObjectProvider<LedgerRepository> ledgers,
+            ObjectProvider<FieldRepository> fields) {
+        SchemaService schema = schemas.getIfAvailable();
+        LedgerRepository ledgerRepo = ledgers.getIfAvailable();
+        FieldRepository fieldRepo = fields.getIfAvailable();
+        if (schema != null && ledgerRepo != null && fieldRepo != null) {
+            return new SchemaServicePublishHook(schema, ledgerRepo, fieldRepo);
+        }
         return PublishHook.noop();
     }
 

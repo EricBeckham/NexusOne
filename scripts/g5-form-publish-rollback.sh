@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # G5 form-publish failed-path evidence (forms only).
 # Runs the PostgreSQL 15 IT + HTTP tests. Does not start the product JAR.
-# Mid-publish failure is injected via PublishHook (same stand-in as the IT).
+# Mid-publish failure: SchemaService confirm miss + SchemaService evolve DDL abort
+# on Zonky PG 15, plus PublishHook / SchemaServicePublishHook stand-ins.
 # No Docker. Credentials are not required: Zonky embeds PostgreSQL 15.
 set -euo pipefail
 
@@ -14,7 +15,7 @@ java -version
 mvn -version | head -n 1
 
 mvn -pl nexus-p3-studio -am test \
-  -Dtest=JdbcFormPublishRollbackIT,FormPublishFailureApiTest,FormPublishStateMachineTest \
+  -Dtest=JdbcFormPublishRollbackIT,FormPublishFailureApiTest,FormPublishStateMachineTest,SchemaServicePublishHookTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 
 echo

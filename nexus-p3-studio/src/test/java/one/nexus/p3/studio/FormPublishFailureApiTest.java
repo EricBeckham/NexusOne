@@ -6,9 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.UUID;
 import one.nexus.p3.studio.api.FormIsolationFilter;
-import one.nexus.p3.studio.form.FormSnapshot;
+import one.nexus.p3.studio.form.FormPublishTestStubs;
 import one.nexus.p3.studio.form.PublishHook;
+import one.nexus.p3.studio.form.SchemaServicePublishHook;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -26,8 +28,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * HTTP evidence for G5 form-publish failed paths. Mid-publish failure is injected
- * through {@link PublishHook} (same stand-in as the PostgreSQL IT).
+ * HTTP evidence for G5 form-publish failed paths. Mid-publish failure goes through
+ * {@link SchemaServicePublishHook} (product gate). The SchemaService here throws the
+ * same evolve-failed / SQLState 42701 shape as {@code JdbcSchemaService}; the
+ * PostgreSQL IT runs the real DDL abort.
  */
 @SpringBootTest(classes = FormPublishFailureApiTest.TestApp.class)
 @AutoConfigureMockMvc
@@ -219,12 +223,12 @@ class FormPublishFailureApiTest {
     static class TestApp {
         @Bean
         @Primary
-        PublishHook failSecondVersion() {
-            return (FormSnapshot snapshot) -> {
-                if (snapshot.versionNo() >= 2) {
-                    throw new IllegalStateException("forced mid-publish failure");
-                }
-            };
+        PublishHook failSecondViaSchemaServiceGate() {
+            UUID tenant = UUID.fromString(TENANT);
+            return new SchemaServicePublishHook(
+                    FormPublishTestStubs.abortOnNthConfirm(2),
+                    FormPublishTestStubs.leaveLedgers(tenant),
+                    FormPublishTestStubs.leaveFields(tenant));
         }
     }
 }
