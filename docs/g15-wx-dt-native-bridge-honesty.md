@@ -1,6 +1,6 @@
 # G15 leftover — WeChat / DingTalk prod-gap + native-bridge honesty beyond #167/#181
 
-S0+S1 remainder after the #167 production-gap honesty leftover ([g15-wx-dt-prod-gap-honesty.md](./g15-wx-dt-prod-gap-honesty.md)) and the #181 native-bridge honesty leftover ([g15-native-bridge-honesty.md](./g15-native-bridge-honesty.md)). Rebased onto `origin/main` `4d40e06` (Merge #192 G7 expense/travel query leftover honesty). **This does not close product G15.** It does **not** close product G15 native-bridge. It does **not** accept WeChat / DingTalk production. It is **not** IPA/APK production accept. It extends honest **PASS/SKIP** beyond #167/#181.
+S0+S1 remainder after the #167 production-gap honesty leftover ([g15-wx-dt-prod-gap-honesty.md](./g15-wx-dt-prod-gap-honesty.md)) and the #181 native-bridge honesty leftover ([g15-native-bridge-honesty.md](./g15-native-bridge-honesty.md)). Rebased onto `origin/main` `918417c` (Merge #199 S0+S1 claim-list tip-sync after #192). **This does not close product G15.** It does **not** close product G15 native-bridge. It does **not** accept WeChat / DingTalk production. It is **not** IPA/APK production accept. It extends honest **PASS/SKIP** beyond #167/#181.
 
 This leftover does **not** redo #151 native-bridge stub product code, does **not** redo #167 prod-gap honesty product code, and does **not** redo #181 native-bridge honesty product code. It does **not** add a new harness route. F014 envelope on main is reused, not rewritten. Desktop ledger / form / todo pages are unchanged. G18 stays closed. P0 / M0 are not redone.
 

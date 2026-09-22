@@ -1,6 +1,6 @@
 # G15 leftover: WeChat / DingTalk prod-gap + native-bridge honesty evidence
 
-Recorded on this branch after rebase onto `origin/main` `4d40e06` (Merge #192 G7 expense/travel query leftover honesty). **Not** a product G15 close. **Not** a product G15 native-bridge close. **Not** WeChat / DingTalk production验收. **Not** IPA/APK production accept. **Not** a redo of #151 / #167 / #181. **Not** a desktop P3 rewrite. **Not** a G18 reopen. **Not** a P0/M0 redo.
+Recorded on this branch after rebase onto `origin/main` `918417c` (Merge #199 S0+S1 claim-list tip-sync after #192). **Not** a product G15 close. **Not** a product G15 native-bridge close. **Not** WeChat / DingTalk production验收. **Not** IPA/APK production accept. **Not** a redo of #151 / #167 / #181. **Not** a desktop P3 rewrite. **Not** a G18 reopen. **Not** a P0/M0 redo.
 
 See [docs/g15-wx-dt-native-bridge-honesty.md](../g15-wx-dt-native-bridge-honesty.md). Keep **all sibling leftover rows** in [docs/README.md](../README.md), including [g15-wx-dt-prod-gap-honesty.md](../g15-wx-dt-prod-gap-honesty.md) (#167), [g15-native-bridge-honesty.md](../g15-native-bridge-honesty.md) (#181), [g7-query-expense-travel-honesty.md](../g7-query-expense-travel-honesty.md) (#192), [g4-p1-staging-audit-events-honesty.md](../g4-p1-staging-audit-events-honesty.md) (#190), and [linux-arm-profile-leftover-honesty.md](../linux-arm-profile-leftover-honesty.md) (#193).
 
