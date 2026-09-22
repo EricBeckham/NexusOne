@@ -117,9 +117,10 @@ public final class FormPublishTestStubs {
     }
 
     /**
-     * SchemaService stand-in: first {@code n-1} confirms succeed; the Nth throws the same
-     * {@link IllegalStateException} shape {@code JdbcSchemaService} uses on a PostgreSQL
-     * DDL abort ({@code 42701} duplicate_column).
+     * SchemaService stand-in: first {@code n-1} {@code ensurePhysicalTable} calls
+     * succeed (default → confirm); the Nth throws the same
+     * {@link IllegalStateException} shape {@code JdbcSchemaService} uses on a
+     * PostgreSQL evolve DDL abort.
      */
     public static SchemaService abortOnNthConfirm(int n) {
         AtomicInteger confirms = new AtomicInteger();

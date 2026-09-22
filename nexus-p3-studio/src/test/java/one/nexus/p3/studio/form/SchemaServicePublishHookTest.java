@@ -37,8 +37,8 @@ class SchemaServicePublishHookTest {
     }
 
     @Test
-    void confirmRunsOncePerBoundLedger() {
-        AtomicInteger confirms = new AtomicInteger();
+    void ensureRunsOncePerBoundLedger() {
+        AtomicInteger ensures = new AtomicInteger();
         SchemaService schema = new SchemaService() {
             @Override
             public LedgerDefinition createPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
@@ -60,8 +60,11 @@ class SchemaServicePublishHookTest {
             public void registerRuntime(LedgerDefinition ledger, List<LedgerField> fields) {}
 
             @Override
-            public void confirmPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
-                confirms.incrementAndGet();
+            public void confirmPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {}
+
+            @Override
+            public void ensurePhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
+                ensures.incrementAndGet();
             }
         };
         UUID tenant = UUID.fromString(TENANT);
@@ -78,7 +81,7 @@ class SchemaServicePublishHookTest {
                         new FormBinding("title", "leave_request", "title", true, false, WidgetType.TEXT, 0),
                         new FormBinding("days", "leave_request", "days", true, false, WidgetType.NUMBER, 1)));
         hook.beforeActivate(snapshot);
-        assertEquals(1, confirms.get());
+        assertEquals(1, ensures.get());
     }
 
     @Test

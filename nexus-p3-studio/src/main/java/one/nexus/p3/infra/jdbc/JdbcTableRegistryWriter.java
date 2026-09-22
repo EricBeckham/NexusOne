@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 import one.nexus.common.id.UuidV7;
 import one.nexus.common.module.NexusModule;
@@ -69,5 +71,22 @@ public class JdbcTableRegistryWriter {
                 return rs.next();
             }
         }
+    }
+
+    public Set<String> columnNames(Connection connection, String tableName) throws SQLException {
+        Set<String> columns = new LinkedHashSet<>();
+        try (PreparedStatement statement = connection.prepareStatement("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_schema = 'business_data' AND table_name = ?
+                ORDER BY ordinal_position
+                """)) {
+            statement.setString(1, tableName);
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    columns.add(rs.getString(1));
+                }
+            }
+        }
+        return columns;
     }
 }

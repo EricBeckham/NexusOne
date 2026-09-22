@@ -30,8 +30,8 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * HTTP evidence for G5 form-publish failed paths. Mid-publish failure goes through
  * {@link SchemaServicePublishHook} (product gate). The SchemaService here throws the
- * same evolve-failed / SQLState 42701 shape as {@code JdbcSchemaService}; the
- * PostgreSQL IT runs the real DDL abort.
+ * same evolve-failed shape as {@code JdbcSchemaService}; the PostgreSQL IT runs
+ * the real product evolve/CREATE path and a mid-evolve DDL abort.
  */
 @SpringBootTest(classes = FormPublishFailureApiTest.TestApp.class)
 @AutoConfigureMockMvc

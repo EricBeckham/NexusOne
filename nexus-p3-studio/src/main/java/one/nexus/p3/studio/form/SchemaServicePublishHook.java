@@ -15,9 +15,11 @@ import one.nexus.p3.port.LedgerRepository;
 import one.nexus.p3.schema.SchemaService;
 
 /**
- * Product publish gate: {@link SchemaService#confirmPhysicalTable} runs inside the
+ * Product publish gate: {@link SchemaService#ensurePhysicalTable} runs inside the
  * publish transaction after the PUBLISHING version row and before the Running
- * pointer switches. Not a second DDL path — SchemaService still owns CREATE/ALTER.
+ * pointer switches. SchemaService still owns CREATE/ALTER: missing table →
+ * {@code createPhysicalTable}; declared field not on the physical table →
+ * {@code evolvePhysicalTable}. No-drift G18 leave publish only confirms.
  */
 public final class SchemaServicePublishHook implements PublishHook {
     private final SchemaService schemaService;
@@ -43,7 +45,7 @@ public final class SchemaServicePublishHook implements PublishHook {
             LedgerDefinition ledger = ledgers.findByCode(tenantId, ledgerCode)
                     .orElseThrow(() -> new IllegalStateException(
                             "SchemaService publish gate: ledger not found: " + ledgerCode));
-            schemaService.confirmPhysicalTable(ledger, fields.listByLedger(tenantId, ledger.id()));
+            schemaService.ensurePhysicalTable(ledger, fields.listByLedger(tenantId, ledger.id()));
         }
     }
 
