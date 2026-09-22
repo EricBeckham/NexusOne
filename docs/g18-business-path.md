@@ -186,7 +186,7 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 |---|---|
 | Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); create / publish / submit-start / path approve in this PR; MOCK toggle retired |
 | Live UI clicking this path | **CLOSED** 2026-09-22 on `38f1a73`. See the browser table at the top. The `ace55ff` walk remains the prior, incomplete result |
-| G7 three business types | Remainder evidenced in [g7-business-types.md](./g7-business-types.md): leave + expense + travel, withdraw on travel. Not a full S0+S1 close |
+| G7 three business types | Catalog remainder on `main` (#69): leave + expense + travel, IT withdraw on travel. Dual-tenant HTTP withdraw + reject walkthrough is also [g7-business-types.md](./g7-business-types.md). Not a full S0+S1 close |
 | Outbox dispatcher P95 / 30s alarm | Cited as G18 evidence: `docs/m0-09-outbox-api.md`, P95 **238 ms**, product poller **25 ms**, lag alarm **30s**. The live walk delivered both inbox rows. G18 IT still leaves the poller off so it can assert `PENDING` |
 | Concurrent G18 submits holding the chain lock for the whole business TX | Accepted trade-off vs private commit (keeps gapless hash indexes + rollback atomicity) |
 | `appendNewTransaction` from a TX that already called `append` | Deadlock on `audit_chain_meta`; G18 path does not do this |

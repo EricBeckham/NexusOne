@@ -89,8 +89,8 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G18 | Ledger | **PASS** | `leave2231` READY, quota 1/10, table `l_ui2231_leave2231`. No field PUT |
 | G18 | Form / publish | **PASS** | `leave2231_form` Validate PASS, `running_version=1`. G5 failed-path evidence is [g5-form-publish-rollback.md](./g5-form-publish-rollback.md), not this walk |
 | G18 | Business data / query | **PASS** | Record 年假 / 3 / 浏览器走通 / `APPROVED` after 同意 |
-| G18 | Sequential approval / todo | **PASS** | submit-start then path 同意. Withdraw was not clicked on this walk; G7 travel withdraw is [g7-business-types.md](./g7-business-types.md) |
-| G7 | Three business types + withdraw | **SCRIPTED** | Catalog leave / expense / travel; expense reject; travel withdraw. Not a full S0+S1 close |
+| G18 | Sequential approval / todo | **PASS** | submit-start then path 同意. Withdraw was not clicked on this walk; G7 travel withdraw + reject dual-tenant HTTP evidence is [g7-business-types.md](./g7-business-types.md) |
+| G7 | Three business types + withdraw | **SCRIPTED** | Catalog leave / expense / travel (#69); expense reject; travel withdraw IT + dual-tenant HTTP walkthrough. Not a full S0+S1 close |
 | G18 | In-app notification | **PASS** | `approval.task.assigned` and `approval.task.approved` both `DELIVERED` |
 | G18 | Audit by trace | **PASS** | Submit trace `1a1f7b8b-4de0-4ef0-978c-3d39a65744ff`; approve trace `cb9e0a9f-0943-4384-aa06-31f05e292103`. Chain indexes 4–7 linked. G4 login/permission/admin/guard-reject stays open |
 | G18 | End-to-end real business walkthrough | **PASS** | `38f1a73` browser record in [g18-business-path.md](./g18-business-path.md). Same-TX rollback and dispatcher timing are the earlier records cited there |

@@ -44,8 +44,11 @@ if (!files.live.includes("Idempotency-Key")) {
 if (!files.live.includes("/api/v1/p3/business-types")) {
   failures.push("p3-live.js must call /api/v1/p3/business-types");
 }
-if (!files.live.includes("/api/v1/p3/path/tasks/") || !files.live.includes("/approve")) {
+if (!files.live.includes("/api/v1/p3/path/tasks/") || !files.live.includes("/approve") || !files.live.includes("/reject")) {
   failures.push("p3-live.js must call path approve/reject");
+}
+if (!files.live.includes("/api/v1/p3/path/instances/") || !files.live.includes("/withdraw")) {
+  failures.push("p3-live.js must call path withdraw");
 }
 if (!files.client.includes("/api/v1/permission")) {
   failures.push("client.js must call /api/v1/permission");
@@ -72,8 +75,11 @@ if (!files.formStudio.includes("submitStart") || files.formStudio.includes("дЄНе
 if (!files.todos.includes("approveTodo") || !files.todos.includes("todo-approve")) {
   failures.push("TodoInboxView must expose approve");
 }
+if (!files.todos.includes("rejectTodo") || !files.todos.includes("todo-reject")) {
+  failures.push("TodoInboxView must expose reject");
+}
 if (!files.todos.includes("withdrawTodo") || !files.todos.includes("todo-withdraw")) {
-  failures.push("TodoInboxView must expose withdraw on initiated");
+  failures.push("TodoInboxView must expose withdraw (data-testid=todo-withdraw)");
 }
 if (!files.router.includes("/p3/notifications") || !files.router.includes("/p3/audit")) {
   failures.push("router must expose notification and audit pages");
