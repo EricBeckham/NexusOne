@@ -239,10 +239,11 @@ if grep -Fq '[g1-queryast-boundsql-guard](./g1-queryast-boundsql-guard.md)' "$RE
   && grep -Fq '[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)' "$README" \
   && grep -Fq '[linux-arm-profile-leftover-honesty](./linux-arm-profile-leftover-honesty.md)' "$README" \
   && grep -Fq '[g7-query-expense-travel-honesty](./g7-query-expense-travel-honesty.md)' "$README" \
-  && grep -Fq '[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)' "$README"; then
+  && grep -Fq '[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)' "$README" \
+  && grep -Fq '[g15-wx-dt-native-bridge-honesty](./g15-wx-dt-native-bridge-honesty.md)' "$README"; then
   LEFTOVER_ROWS=true
 fi
-[ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep sibling leftover rows (g1-queryast-boundsql-guard, g1-datascope-or-in-ast, g1-fieldpolicy-mask-second-auth, g1-fieldpolicy-mask-second-auth-honesty, g4-hot-purge-90d-honesty, g17-separation-honesty, s0s1-live-redis-minio-isolation-honesty, g6-recovery-port-dry-run-honesty, g4-p1-staging-audit-events-honesty, linux-arm-profile-leftover-honesty, g7-query-expense-travel-honesty, s0-secret-rotate-without-restart-honesty)"
+[ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep sibling leftover rows (g1-queryast-boundsql-guard, g1-datascope-or-in-ast, g1-fieldpolicy-mask-second-auth, g1-fieldpolicy-mask-second-auth-honesty, g4-hot-purge-90d-honesty, g17-separation-honesty, s0s1-live-redis-minio-isolation-honesty, g6-recovery-port-dry-run-honesty, g4-p1-staging-audit-events-honesty, linux-arm-profile-leftover-honesty, g7-query-expense-travel-honesty, s0-secret-rotate-without-restart-honesty, g15-wx-dt-native-bridge-honesty)"
 
 TEST_SUMMARY=""
 if [ "$SKIP_TESTS" = "0" ]; then
