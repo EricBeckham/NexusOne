@@ -104,5 +104,5 @@ Catalog for M0-02 / M0-06 `table_registry`: `src/main/resources/p1-table-registr
 | JDK | 21 | |
 | Spring Boot | **4.1.1** | Same parent as M0-01 PR #46; Flyway auto-config (no custom `FlywayConfig`) |
 | Flyway | **13.7.0** | P0 freeze; overrides Boot BOM via aggregator property |
-| PostgreSQL | **15.x** | See [EVIDENCE.md](EVIDENCE.md) for the exact server version used in verification. Not PG 16. |
+| PostgreSQL | **15.x** | Exact server version is recorded in the PR and `EVIDENCE.md` after verification. Not PG 16. |
 | Artifact | `one.nexus:nexus-p1-tenant:0.1.0-SNAPSHOT` | Child of `one.nexus:nexusone` |
