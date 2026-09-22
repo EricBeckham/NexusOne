@@ -3,7 +3,7 @@
 Work package: wire **one** vertical path so publish → physical ledger row → sequential approval → Outbox in-app notify → audit hash chain run in the same Spring / PostgreSQL transaction model.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.1.0**, Flyway **13.7.0**. No Docker. Platform versions unchanged.
 
-**This does not close product G18.** Vue ledger/form/todo shells remain MOCK (`web/src/api/mocks/`). Permission UI, H5, and a browser walkthrough through the MOCK adapter are still open.
+**This does not close product G18.** Vue ledger/form/todo now call live HTTP (`/api/v1/p3/*`; MOCK adapters removed). Permission UI, H5, and a browser end-to-end walkthrough are still open.
 
 ## Runtime gates (ledger 403 / notify 403 / empty `audit_record`)
 
@@ -100,8 +100,8 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 
 | Item | Status |
 |---|---|
-| Vue 台账 / 表单 / 待办 | MOCK adapter default (`VITE_NEXUS_P3_USE_MOCK`) |
-| Live UI clicking this path | Not in this package |
+| Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); MOCK toggle retired |
+| Live UI clicking this path | Not a G18 close; Vue no longer uses MOCK |
 | Product-wide G18 / G7 three-business | Open |
 | Outbox dispatcher P95 / 30s alarm | M0-09; IT leaves dispatcher off to assert the row |
 | Audit hash-chain in the **same** JDBC TX as the business row | Existing `JdbcHashChainedAuditPort` uses a chain lock + own commit |

@@ -126,3 +126,17 @@ export const p2 = {
   bootstrapAdmin: (tenantId, body) =>
     api(`/api/v1/internal/tenants/${tenantId}/admin-users`, { method: "POST", body, auth: false }),
 };
+
+/** M0-05 permission engine. No /api/v1/p2/roles — those stubs never shipped. */
+export const perm = {
+  health: () => api("/api/v1/permission/health", { auth: false }),
+  snapshot: () => api("/api/v1/permission/snapshot"),
+  check: (body) => api("/api/v1/permission/check", { method: "POST", body }),
+};
+
+/** M0-10 in-app notify. List is empty without a server-issued TenantContext (403). */
+export const notify = {
+  list: () => api("/api/v1/notifications"),
+  enqueue: (body) => api("/api/v1/notifications", { method: "POST", body }),
+  read: (id) => api(`/api/v1/notifications/${id}/read`, { method: "POST", body: {} }),
+};

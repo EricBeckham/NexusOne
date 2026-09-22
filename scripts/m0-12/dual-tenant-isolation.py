@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """M0-12 dual-tenant acceptance at the HTTP/UI-API boundary.
 
-Talks to the merged M0-03 (P1 tenant) and M0-04 (P2 IAM) APIs.
-Does not claim G18 closed. Ledger/form/todo HTTP paths stay SKIP/TODO
-(the Vue shells use an in-browser MOCK adapter, not these routes).
+Talks to merged M0-03 (P1), M0-04 (P2), M0-05 (/api/v1/permission),
+M0-06/07/08 (/api/v1/p3/* + process), and M0-10 (/api/v1/notifications).
+Does not claim G18 closed. Missing TenantContext must be 403 (not SKIP).
 """
 from __future__ import annotations
 
@@ -192,7 +192,7 @@ def run(base: str, bootstrap_token: str, actor: str) -> int:
     # --- P2 IAM isolation (M0-04) ---
     if not bootstrap_token:
         record("G18", "P2 admin bootstrap", "SKIP", "NEXUS_PLATFORM_BOOTSTRAP_TOKEN unset")
-        deferred_business(api)
+        assert_live_without_context(api)
         return FAIL
 
     boot = {"X-Nexus-Bootstrap-Token": bootstrap_token}
@@ -352,34 +352,124 @@ def run(base: str, bootstrap_token: str, actor: str) -> int:
     require(pos_a.isdisjoint(pos_b), "position id leak")
     record("G1", "positions stay inside tenant", "PASS", f"|A|={len(pos_a)} |B|={len(pos_b)}")
 
-    deferred_business(api)
+    assert_live_without_context(api)
+    assert_live_with_context(
+        api,
+        admin_a_token,
+        pick(admin_a_sess, "context_id", "contextId"),
+        pick(admin_a, "person_id"),
+        admin_b_token,
+        pick(admin_b_sess, "context_id", "contextId"),
+        alice_token,
+        ctx_a,
+    )
     return FAIL
 
 
-def deferred_business(api: Api) -> None:
-    deferred = [
-        ("G2", "permission engine / roles API", "/api/v1/p2/roles", "M0-05"),
-        ("G9", "policy snapshot", "/api/v1/p2/policy-snapshots/current", "M0-05"),
-        ("G18", "ledger list", "/api/v1/p3/ledgers", "M0-06"),
-        ("G5", "forms / publish", "/api/v1/p3/forms", "M0-07"),
-        ("G18", "todos / sequential approval", "/api/v1/p3/todos", "M0-08"),
-        ("G18", "in-app notifications", "/api/v1/notifications", "M0-10"),
-    ]
-    for gate, item, path, owner in deferred:
-        status, body = api.request("GET", path)
-        if path.startswith("/api/v1/p3/"):
-            # M0-06/07/08 landed: unauthenticated list needs TenantContext.
-            # Vue P3 pages still default to the in-browser MOCK adapter.
-            if status in (401, 403):
-                record(gate, item, "SKIP", f"{owner} API live; {path} -> {status} {pick(body, 'code', default='')} (needs TenantContext)")
-                continue
-            if status == 200:
-                record(gate, item, "SKIP", f"{owner} list ok without G18 walkthrough; UI is MOCK")
-                continue
-        if status == 404:
-            record(gate, item, "SKIP", f"{owner}: {path} -> {status} {pick(body, 'code', default='')}")
-        else:
-            record(gate, item, "FAIL", f"expected 404 placeholder, got {status} {body}")
+def assert_live_without_context(api: Api) -> None:
+    """No server TenantContext → 403. Never SKIP-as-success on missing context."""
+    status, body = api.request("GET", "/api/v1/notifications")
+    require(status == 403, f"notify without context expected 403 got {status} {body}")
+    record("G18", "in-app notifications require TenantContext", "PASS", f"403 {pick(body, 'code', default='')}")
+
+    status, body = api.request("GET", "/api/v1/p3/ledgers")
+    require(status == 403, f"ledgers without context expected 403 got {status} {body}")
+    record("G18", "ledger list requires TenantContext", "PASS", f"403 {pick(body, 'code', default='')}")
+
+    status, body = api.request("GET", "/api/v1/p3/forms")
+    require(status == 403, f"forms without context expected 403 got {status} {body}")
+    record("G5", "forms / publish require TenantContext", "PASS", f"403 {pick(body, 'code', default='')}")
+
+    status, health = api.request("GET", "/api/v1/permission/health")
+    require(status == 200, health)
+    record("G2", "permission health /api/v1/permission/health", "PASS", pick(health, "module", default=""))
+
+    status, snap = api.request("GET", "/api/v1/permission/snapshot")
+    require(status in (401, 403), f"permission snapshot without context expected 401/403 got {status} {snap}")
+    record("G9", "policy snapshot without context is denied", "PASS", f"{status} {pick(snap, 'code', default='')}")
+
+
+def assert_live_with_context(
+    api: Api,
+    admin_a_token: str,
+    ctx_a_admin: str,
+    admin_a_person: str,
+    admin_b_token: str,
+    ctx_b_admin: str,
+    alice_token: str,
+    ctx_a: str,
+) -> None:
+    headers_a = auth_headers(alice_token, ctx_a)
+    headers_admin_a = auth_headers(admin_a_token, ctx_a_admin)
+    headers_admin_b = auth_headers(admin_b_token, ctx_b_admin)
+
+    _, ledgers = api.request("GET", "/api/v1/p3/ledgers", headers=headers_a, expected=200)
+    require(isinstance(ledgers, list), ledgers)
+    record("G18", "ledger list with issued context", "PASS", f"n={len(ledgers)} (API live; not a G18 walkthrough)")
+
+    _, forms = api.request("GET", "/api/v1/p3/forms", headers=headers_a, expected=200)
+    require(isinstance(forms, list), forms)
+    record("G5", "forms list with issued context", "PASS", f"n={len(forms)}")
+
+    # Todos: missing context with a valid bearer must be 403 (FlowAuthFilter).
+    status, missing_todo = api.request("GET", "/api/v1/p3/todos", headers=auth_headers(alice_token))
+    require(status == 403, f"todos without context expected 403 got {status} {missing_todo}")
+    record("G18", "todos require TenantContext", "PASS", f"403 {pick(missing_todo, 'code', default='')}")
+
+    _, todos = api.request("GET", "/api/v1/p3/todos", headers=headers_a, expected=200)
+    require(isinstance(todos, list), todos)
+    record("G18", "todo inbox with issued context", "PASS", f"n={len(todos)}")
+
+    _, snap = api.request("GET", "/api/v1/permission/snapshot", headers=headers_a, expected=200)
+    require(pick(snap, "tenant_id", "tenantId") is not None, snap)
+    record("G9", "policy snapshot /api/v1/permission/snapshot", "PASS", f"version={pick(snap, 'version')}")
+
+    _, decision = api.request(
+        "POST",
+        "/api/v1/permission/check",
+        {"resource": "ledger", "action": "read"},
+        headers=headers_a,
+        expected=200,
+    )
+    record(
+        "G2",
+        "permission check /api/v1/permission/check",
+        "PASS",
+        f"allowed={pick(decision, 'allowed')} reason={pick(decision, 'reason')}",
+    )
+
+    status, denied = api.request(
+        "POST",
+        "/api/v1/permission/check",
+        {"resource": "ledger", "action": "read"},
+        headers=auth_headers(alice_token),
+    )
+    require(status == 403, f"permission check without context expected 403 got {status} {denied}")
+    record("G2", "permission check without TenantContext", "PASS", f"403 {pick(denied, 'code', default='')}")
+
+    _, created = api.request(
+        "POST",
+        "/api/v1/notifications",
+        {
+            "template_code": "approval.task.assigned",
+            "recipient_subject": str(admin_a_person),
+            "variables": {"taskTitle": "m0-12-notify", "actor": "script"},
+        },
+        headers=headers_admin_a,
+        expected=(200, 201),
+    )
+    note_id = pick(created, "notification_id", "notificationId", "id")
+    _, mine = api.request("GET", "/api/v1/notifications", headers=headers_admin_a, expected=200)
+    require(isinstance(mine, list), mine)
+    ids = {pick(row, "notification_id", "notificationId", "id") for row in mine}
+    require(note_id in ids, f"admin A should see enqueued notification {note_id} in {ids}")
+    record("G18", "in-app notification list with issued context", "PASS", f"n={len(mine)} id={note_id}")
+
+    _, other = api.request("GET", "/api/v1/notifications", headers=headers_admin_b, expected=200)
+    require(isinstance(other, list), other)
+    other_ids = {pick(row, "notification_id", "notificationId", "id") for row in other}
+    require(note_id not in other_ids, f"tenant B listed A's notification {note_id}")
+    record("G1", "in-app notifications do not leak across tenants", "PASS", f"B.n={len(other)}")
 
 
 def print_table() -> None:
@@ -390,7 +480,7 @@ def print_table() -> None:
         detail = row["detail"].replace("|", "/")
         print(f"| {row['gate']} | {row['item']} | {row['status']} | {detail} |")
     print(f"\nPASS={PASS} FAIL={FAIL} SKIP={SKIP}")
-    print("G18 is NOT closed: ledger/form/todo/approval/notification remain SKIP.")
+    print("G18 is NOT closed: live list/query is not a real business walkthrough.")
 
 
 def main() -> int:

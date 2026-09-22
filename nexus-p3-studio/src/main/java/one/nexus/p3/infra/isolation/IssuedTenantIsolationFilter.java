@@ -26,10 +26,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Binds isolation-kernel TenantContext from a server-issued {@code X-Nexus-Context-Id}.
- * Same contract as PR #60 {@code one.nexus.bootstrap.web.IssuedTenantIsolationFilter}:
- * demo headers stay test-only; the Vue client never sends {@code X-Tenant-Id}.
- * Lives in P3 so the G18 path IT and product boot share one binder.
+ * Canonical binder for isolation-kernel TenantContext from a server-issued
+ * {@code X-Nexus-Context-Id}. Demo headers stay test-only; the Vue client never
+ * sends {@code X-Tenant-Id}. Lives in P3 so the G18 path IT and product boot share
+ * one binder (do not add a second bootstrap {@code IssuedTenantIsolationFilter}).
  * IdentityModule is optional so M0-06 studio hosts that do not load IAM still start.
  */
 @Component
