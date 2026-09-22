@@ -13,6 +13,7 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledg
 | F012 files | `/m/p3/files`, `/m/p3/files/:id` | Client size (20 MB) and MIME checks, then `POST /api/v1/files`. Download is `POST .../signed-url` after metadata. Progress + cancel. Never MinIO admin APIs, never `X-Tenant-Id`. |
 | F013 routing | `/m/p3/home`, files + query `tab`, file deep link | History mode. Refresh keeps `sessionStorage` session. Tenant stays in the issued context, not the URL. Back uses `history.back`, else mobile home. |
 | F014 host messages | `/m/host`, `/m/host-harness` | HostBridgePort exposes only `login` / `route` / `file` / `close` over same-origin `postMessage` (`nexus-h5` ↔ `nexus-host`). Standalone mobile browser uses the web fallback. The iframe parent at `/m/host-harness` is the mobile-browser acceptance host. Tokens / `tenant_id` / unknown channels / off-site routes are rejected. |
+| F010 runtime | `/m/p3/forms`, `/m/p3/lists`, `/m/p3/todos`, `/m/p3/query`, `/m/p3/notifications` | Published-app H5 runtime. Details and leftovers: [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). |
 
 Desktop `/p3/ledgers`, `/p3/forms`, `/p3/todos` (and their views) are unchanged.
 
@@ -50,7 +51,7 @@ Business pages do not branch on WeChat / DingTalk (H5 规范 §80.2). All host d
 | APP WebView | **Not accepted.** Same contract, no native host walk. |
 | 小程序 web-view | **Not accepted.** Same contract, no mini-program walk. |
 | Keycloak Authorization Code + PKCE | **Not accepted.** `/m/callback` lands code/state and POSTs `/api/v1/auth/login`; the confidential client does not write Access Token into the SPA or URL. Browser session is still stub token, same as M0-12. |
-| F010 full H5 runtime | Forms / lists / todos / query / notify jumps are **not** in this slice. |
+| F010 full H5 runtime | Mobile-browser pages now in [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). Other hosts / PKCE still open. |
 | Live S3 / MinIO download | Product default `nexus.files.storage=memory`. Signed URL against real S3 is M0-10, not re-run here. |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. |
 | Product G15 | **Open** until other hosts are walked on the same contract. |

@@ -64,6 +64,60 @@ const routes = [
     component: () => import("./mobile/products/p3-studio/pages/FileDetailPage.vue"),
     meta: { mobile: true, back: true, tabs: false, title: "文件详情", product: "p3" },
   },
+  {
+    path: "/m/p3/forms",
+    name: "m-forms",
+    component: () => import("./mobile/products/p3-studio/pages/FormsPage.vue"),
+    meta: { mobile: true, title: "表单", product: "p3" },
+  },
+  {
+    path: "/m/p3/forms/:id",
+    name: "m-form-fill",
+    component: () => import("./mobile/products/p3-studio/pages/FormFillPage.vue"),
+    meta: { mobile: true, back: true, tabs: false, title: "填报", product: "p3" },
+  },
+  {
+    path: "/m/p3/lists",
+    name: "m-lists",
+    component: () => import("./mobile/products/p3-studio/pages/ListsPage.vue"),
+    meta: { mobile: true, title: "列表", product: "p3" },
+  },
+  {
+    path: "/m/p3/lists/:id",
+    name: "m-list-records",
+    component: () => import("./mobile/products/p3-studio/pages/ListRecordsPage.vue"),
+    meta: { mobile: true, back: true, tabs: false, title: "记录", product: "p3" },
+  },
+  {
+    path: "/m/p3/lists/:id/records/:recordId",
+    name: "m-record-detail",
+    component: () => import("./mobile/products/p3-studio/pages/RecordDetailPage.vue"),
+    meta: { mobile: true, back: true, tabs: false, title: "记录详情", product: "p3" },
+  },
+  {
+    path: "/m/p3/todos",
+    name: "m-todos",
+    component: () => import("./mobile/products/p3-studio/pages/TodosPage.vue"),
+    meta: { mobile: true, title: "待办", product: "p3" },
+  },
+  {
+    path: "/m/p3/todos/:id",
+    name: "m-todo-detail",
+    component: () => import("./mobile/products/p3-studio/pages/TodoDetailPage.vue"),
+    meta: { mobile: true, back: true, tabs: false, title: "办理", product: "p3" },
+  },
+  {
+    path: "/m/p3/query",
+    name: "m-query",
+    component: () => import("./mobile/products/p3-studio/pages/QueryPage.vue"),
+    meta: { mobile: true, title: "查询", product: "p3" },
+  },
+  {
+    path: "/m/p3/notifications",
+    name: "m-notifications",
+    component: () => import("./mobile/products/p3-studio/pages/NotifyPage.vue"),
+    meta: { mobile: true, title: "通知", product: "p3" },
+  },
 ];
 
 const router = createRouter({

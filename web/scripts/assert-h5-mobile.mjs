@@ -36,6 +36,7 @@ const files = {
   formList: read("src/views/studio/FormListView.vue"),
   formStudio: read("src/views/studio/FormStudioView.vue"),
   todos: read("src/views/studio/TodoInboxView.vue"),
+  notify: read("src/views/studio/NotifyInboxView.vue"),
 };
 
 const failures = [];
@@ -62,6 +63,11 @@ requireIncludes("router", files.router, [
   'path: "/m/p3/files"',
   'path: "/m/p3/files/:id"',
   'path: "/m/p3/home"',
+  'path: "/m/p3/forms"',
+  'path: "/m/p3/lists"',
+  'path: "/m/p3/todos"',
+  'path: "/m/p3/query"',
+  'path: "/m/p3/notifications"',
   'path: "/m/host"',
   'path: "/m/host-harness"',
   "beforeEach",
@@ -100,6 +106,7 @@ for (const [name, text] of Object.entries({
   formList: files.formList,
   formStudio: files.formStudio,
   todos: files.todos,
+  notify: files.notify,
 })) {
   forbidIncludes(`desktop ${name}`, text, ["/m/p3", "NxMobileShell", "mobile-stub-login", "hostBridge"]);
 }

@@ -21,6 +21,7 @@ export const p3 = {
   addField: (...args) => live.addField(...args),
   updateField: (...args) => live.updateField(...args),
   listRecords: (...args) => live.listRecords(...args),
+  getRecord: (...args) => live.getRecord(...args),
   listForms: (...args) => live.listForms(...args),
   createForm: (...args) => live.createForm(...args),
   updateForm: (...args) => live.updateForm(...args),
