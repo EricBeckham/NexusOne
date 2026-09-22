@@ -54,7 +54,7 @@ G5（Draft/Running、校验、失败回滚）只验收 **表单发布**。失败
 | GET | `/api/v1/p3/forms/{id}/running` | 运行快照（填报 schema） |
 | GET | `/api/v1/p3/forms/{id}/versions` | 版本历史 |
 | GET | `/api/v1/p3/forms/{id}/publish-log` | 发布日志 |
-| POST | `/api/v1/p3/forms/{id}/submissions` | 按 **field_code** 填报运行版本。绑定 P2 时走 `form.write`（[g2-form-submission-write.md](./g2-form-submission-write.md)） |
+| POST | `/api/v1/p3/forms/{id}/submissions` | 按 **field_code** 填报运行版本。绑定 P2 时走 `form.write`（[g2-form-submission-write.md](./g2-form-submission-write.md)）。产品填报按钮走 path submit-start 双检（[g2-submit-start-form-write.md](./g2-submit-start-form-write.md)） |
 | GET | `/api/v1/p3/forms/{id}/submissions` | 本租户提交。绑定 P2 时走 `form.read` |
 
 填报写入 `business_meta.form_submission`。有 `LedgerRecordSink` 时同时写入 M0-06 物理台账（G18 路径）；无 sink 的内存测试仍只写提交表。

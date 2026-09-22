@@ -1,6 +1,6 @@
 # G2 remainder — form fill / POST submissions as `form.write`
 
-S0+S1 leftover from [g2-permission.md](./g2-permission.md): form fill and `POST /api/v1/p3/forms/{id}/submissions` now interpret the **same** `PermissionService.decide` `Decision` through `FormSurfaceGuard` → `SurfaceGuard`. **This is not a product-wide G2 close.** Path `POST /api/v1/p3/path/submit-start` remains the G18 runtime walk owner. **G18 stays closed.** AuditPort same-TX is unchanged.
+S0+S1 leftover from [g2-permission.md](./g2-permission.md): form fill and `POST /api/v1/p3/forms/{id}/submissions` now interpret the **same** `PermissionService.decide` `Decision` through `FormSurfaceGuard` → `SurfaceGuard`. **This is not a product-wide G2 close.** Path `POST /api/v1/p3/path/submit-start` is the G18 runtime walk owner; the leftover dual-check (`form.write` + process start when `form_id` is present) is [g2-submit-start-form-write.md](./g2-submit-start-form-write.md). **G18 stays closed.** AuditPort same-TX is unchanged.
 
 Reuse only: M0-05 `PermissionEngine` / `PermissionService.decide` and the existing `FormSurfaceGuard` (`form` / `write`). M0-05 and M0-07 are not redone.
 
@@ -20,8 +20,8 @@ Granted `form.write` (`g2_form_designer` / `g2_dept_manager` example cells, or a
 | Item | Status |
 |---|---|
 | Product-wide G2 (report UI / H5 permission) | Open |
-| Path `submit-start` as `form.write` | Not claimed. That walk stays `process.instance` / `start` via `SequentialApprovalService.guard` |
-| FormService.submit used by `BusinessPathService` | Not wrapped; HTTP `/submissions` is the guarded surface |
+| Path `submit-start` as `form.write` only | Dual-check leftover: [g2-submit-start-form-write.md](./g2-submit-start-form-write.md). Process start stays required |
+| FormService.submit used by `BusinessPathService` | Path `submitAndStart` now requires `form.write` when `form_id` is present; HTTP `/submissions` stays `requireFill` |
 | Isolation-only `FormApiTest` (no P2 context) | Still tenant-only |
 | AuditPort same-TX / hash-chain rewrite | Unchanged |
 | G18 reopen | No |

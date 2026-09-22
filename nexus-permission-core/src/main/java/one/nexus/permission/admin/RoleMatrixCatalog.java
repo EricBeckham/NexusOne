@@ -24,8 +24,9 @@ public final class RoleMatrixCatalog {
             "tenant_member ALL-scope seed is demo bootstrap only. G2 requires a role "
                     + "matrix with DataScope and field policy, evaluated by PermissionEngine "
                     + "for list, detail, flow, form studio, form fill / POST submissions, "
-                    + "export Task type, Job/Task submit, and export cache. Report / H5 remain "
-                    + "open. Not full product G2.";
+                    + "path submit-start (form.write + process.instance/start when form_id is "
+                    + "present), export Task type, Job/Task submit, and export cache. Report / "
+                    + "H5 remain open. Not full product G2.";
 
     private RoleMatrixCatalog() {}
 

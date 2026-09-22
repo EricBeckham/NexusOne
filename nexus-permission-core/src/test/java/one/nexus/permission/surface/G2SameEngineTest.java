@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * G2: role matrix + DataScope + field policy produce one {@link Decision}
- * that list, detail, flow, form studio, and form fill must honor. This is
+ * that list, detail, flow, form studio, form fill, and submit-start must honor. This is
  * not the {@code tenant_member} ALL-scope seed.
  */
 class G2SameEngineTest {

@@ -28,6 +28,7 @@ import one.nexus.p3.flow.persist.JdbcProcessStore;
 import one.nexus.p3.path.BusinessPathRecords.DecisionView;
 import one.nexus.p3.path.BusinessPathRecords.PathView;
 import one.nexus.p3.path.BusinessPathRecords.SubmitStartCommand;
+import one.nexus.p3.infra.permission.FormSurfaceGuard;
 import one.nexus.p3.port.LedgerRecordSink;
 import one.nexus.p3.studio.form.FormService;
 import one.nexus.p3.studio.form.FormSubmission;
@@ -58,6 +59,7 @@ public class BusinessPathService {
     private final ObjectProvider<ApprovalNotificationPublisher> notifications;
     private final ObjectProvider<AuditPort> audits;
     private final ObjectProvider<IdempotencyStore> idempotency;
+    private final ObjectProvider<FormSurfaceGuard> formSurfaces;
 
     public BusinessPathService(
             FormService forms,
@@ -67,7 +69,8 @@ public class BusinessPathService {
             ObjectProvider<OutboxPort> outbox,
             ObjectProvider<ApprovalNotificationPublisher> notifications,
             ObjectProvider<AuditPort> audits,
-            ObjectProvider<IdempotencyStore> idempotency) {
+            ObjectProvider<IdempotencyStore> idempotency,
+            ObjectProvider<FormSurfaceGuard> formSurfaces) {
         this.forms = Objects.requireNonNull(forms, "forms");
         this.approvals = Objects.requireNonNull(approvals, "approvals");
         this.processStore = Objects.requireNonNull(processStore, "processStore");
@@ -76,12 +79,14 @@ public class BusinessPathService {
         this.notifications = notifications;
         this.audits = audits;
         this.idempotency = idempotency;
+        this.formSurfaces = formSurfaces;
     }
 
     @Transactional
     public PathView submitAndStart(SubmitStartCommand command) {
         requireIsolation();
         one.nexus.p2.kernel.TenantContext iam = requireIam();
+        requireFormWriteWhenFormPresent(command.formId());
         String key = normalizeIdempotencyKey(command.idempotencyKey());
         String storedKey = key == null ? null : storedIdempotencyKey(iam.tenantId(), key);
         if (storedKey != null) {
@@ -103,6 +108,26 @@ public class BusinessPathService {
             requireIdempotency().remember(SUBMIT_START_SCOPE, storedKey, started.recordId().toString());
         }
         return started;
+    }
+
+    /**
+     * Form-fill HTTP {@code submit-start} is a dual-check when {@code form_id}
+     * is present: {@code form.write} here (same cell as
+     * {@link FormSurfaceGuard#requireFill}), then {@code process.instance}/
+     * {@code start} inside {@link SequentialApprovalService#start}. Deny
+     * happens before {@link FormService#submit} and Flowable start. Isolation-only
+     * hosts without {@link FormSurfaceGuard} stay tenant-only. Demo
+     * {@code tenant_member} seed may still run so the closed G18 leave walk
+     * keeps working.
+     */
+    private void requireFormWriteWhenFormPresent(UUID formId) {
+        if (formId == null) {
+            return;
+        }
+        FormSurfaceGuard guard = formSurfaces == null ? null : formSurfaces.getIfAvailable();
+        if (guard != null) {
+            guard.requireFill();
+        }
     }
 
     private PathView startFresh(SubmitStartCommand command, one.nexus.p2.kernel.TenantContext iam) {
