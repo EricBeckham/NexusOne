@@ -27,11 +27,11 @@ TenantContext  (ThreadLocal via AccessContextHolder)
 ## 2. Query / DB
 
 ```text
-QueryAst  (no SQL text)
-   → TenantInjector          (cannot be disabled)
-   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id)
+QueryAst  (no SQL text; SELECT may INNER JOIN registered tables)
+   → TenantInjector          (cannot be disabled; each join table too)
+   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id or join tenant)
    → SoftDeleteInjector SPI
-   → TableAccessPlan Guard
+   → TableAccessPlan Guard   (primary + each join)
    → parameterized PostgreSQL renderer
    → GuardedJdbc (PreparedStatement only)
 ```
@@ -45,6 +45,8 @@ Rejects happen in compile, before `Connection.prepareStatement`.
 | Cross-tenant read | P1.M02.003 |
 | Illegal / non-whitelist platform access | P1.M02.004 |
 | Client tenant untrusted | P1.M02.009 |
+| Cross-tenant INNER JOIN | P1.M02.020 |
+| Export FieldPolicy | P1.M02.021 |
 
 ## 3. Async / Job / Outbox (M0-09)
 
@@ -77,6 +79,8 @@ Platform context may read tenant prefixes (ops/reconciliation) but tenant contex
 ## 6. Export
 
 `ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`.
+
+`IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. Cross-tenant INNER JOIN is `P1.M02.020` and must not reach JDBC.
 
 ## 7. Audit
 

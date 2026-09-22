@@ -98,7 +98,7 @@ export NEXUS_REDIS_PORT=6379
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
 - Redis failover / Cluster / Sentinel
-- Query AST join/subquery expansion (M0-02 still equality + IS NULL)
+- Query AST subquery / batch / sort expansion (INNER JOIN isolation is M0-02; this module still binds OR DataScope via `PermissionQueryBinder`)
 - SQL Guard implementation (owned by M0-02)
 - Live Keycloak (owned by M0-04)
 - Docker / Compose as a hard dependency

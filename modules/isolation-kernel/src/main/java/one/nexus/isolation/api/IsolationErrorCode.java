@@ -23,7 +23,9 @@ public enum IsolationErrorCode {
     CROSS_TENANT_ASYNC("P1.M02.016", "cross-tenant async payload rejected"),
     CONTEXT_PROPAGATION_MISSING("P1.M02.017", "tenant context missing at async/cache/file/outbox boundary"),
     PLATFORM_PATH_REVOKED("P1.M02.018", "platform path is not currently allowed"),
-    CROSS_TENANT_EXPORT("P1.M02.019", "cross-tenant export rejected");
+    CROSS_TENANT_EXPORT("P1.M02.019", "cross-tenant export rejected"),
+    CROSS_TENANT_JOIN("P1.M02.020", "cross-tenant query join rejected"),
+    FIELD_POLICY_EXPORT("P1.M02.021", "export FieldPolicy rejected");
 
     private final String code;
     private final String defaultMessage;

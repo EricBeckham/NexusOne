@@ -4,6 +4,7 @@ import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
 import one.nexus.isolation.api.TableAccessPlan;
 import one.nexus.isolation.api.TableDescriptor;
@@ -69,5 +70,20 @@ public final class TableAccessPlanGuard {
                 context instanceof PlatformContext,
                 false
         );
+    }
+
+    public void checkJoin(TableDescriptor table, QueryJoin join, AccessContext context) {
+        if (context == null) {
+            throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, null, "missing context");
+        }
+        if (table.scope() == one.nexus.isolation.api.TableScope.PLATFORM && !(context instanceof PlatformContext)) {
+            throw auditor.reject(IsolationErrorCode.ILLEGAL_PLATFORM_ACCESS, context, table.name());
+        }
+        if (table.tenantRequired() && context instanceof TenantContext tenant) {
+            if (!tenant.tenantId().equals(join.filters().get("tenant_id"))) {
+                throw auditor.reject(
+                        IsolationErrorCode.CROSS_TENANT_JOIN, context, "join tenant predicate absent or mismatched");
+            }
+        }
     }
 }
