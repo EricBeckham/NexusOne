@@ -2,7 +2,7 @@
 
 S0+S1 remainder after [g2-form-submission-write.md](./g2-form-submission-write.md) (#106) and [g2-submit-start-form-write.md](./g2-submit-start-form-write.md) (#112). Rebased onto `origin/main` `183c837` (after #174). **G18 stays closed.** This leftover does **not** redo #112 / #116 / #137 / #144 / #150 / #155 / #163. It does **not** claim product G2 close. `g2_close=NOT_CLAIMED`.
 
-Keep both leftover rows in [docs/README.md](./README.md): `g2-form-submission-write` and `g2-submit-start-form-write`. This file is the honesty harness around those two leftovers.
+Keep both leftover rows in [docs/README.md](./README.md): `g2-form-submission-write` and `g2-submit-start-form-write`. This file is the honesty harness around those two leftovers. Follow-on honest PASS/SKIP leftover (does **not** redo this leftover): [g2-h5-every-page-form-write-honesty.md](./g2-h5-every-page-form-write-honesty.md).
 
 #106 already put `POST /api/v1/p3/forms/{id}/submissions` through `FormSurfaceGuard.requireFill` (`form` / `write`). #112 already dual-checks submit-start when `form_id` is present (`form.write` then `process.instance` / `start`). The leftover here is the **honesty harness**: in-process FormSurfaceGuard + dual-check stay **PASS**. Live product-JAR + issued-context HTTP is **PASS** only when the endpoint is up **and** both walks were observed. Missing `NEXUS_BASE_URL` / issued context or a down listener is honest **SKIP**. It never fabricates `PASS`. Submit-start is **not** `form.write` only.
 
