@@ -58,5 +58,6 @@ This is **not** a product-wide “zero leak” marketing close.
 | FieldPolicy on export | Visibility + second-auth reject-before-execute is evidenced in [g1-query-join-field-policy.md](./g1-query-join-field-policy.md). No report UI; API reads still drop/mask via `FieldPolicyProjector`. |
 | `P3RequestContext` | Some P3 HTTP still has a request snapshot beside `AccessContextHolder`. Export / file / cache / Job / Task do not add a third holder and do not use that snapshot as tenant truth. |
 | G4 same-request chain | Login / permission-change / admin / guard-reject wiring is on `main` ([g4-audit-coverage.md](./engineering/g4-audit-coverage.md)). Remaining G4 is 90-day hot + 365-day archive and export audit. This package only wires **guard-reject** onto `AuditPort.appendNewTransaction`. |
-| GaussDB / live Redis 3.2 / live MinIO | Same as M0-10: memory / Fake Redis / counting storage prove reject-before-backend. |
+| GaussDB | PostgreSQL-only slice. |
+| Live Redis 3.2 / live MinIO | Optional drills: [g1-live-redis-minio.md](./g1-live-redis-minio.md). Skip when the service is absent. Memory / Fake Redis / counting storage remain the always-on reject-before-backend proof. |
 | Platform-wide “every API” | IAM / P1 / notify / Query AST already had G1 rows on M0-12. Those stay as previously recorded; this package only closes the deferred export / file / cache / Job / Task guards. |
