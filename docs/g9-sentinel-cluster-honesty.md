@@ -68,10 +68,18 @@ Zonky in-process PostgreSQL **15.x**. Java 21 / Boot **4.1.1**. No Docker. No Se
 
 See [engineering/g9-sentinel-cluster-honesty-EVIDENCE.md](./engineering/g9-sentinel-cluster-honesty-EVIDENCE.md).
 
+Live multi-JVM / replica promotion honesty leftover (does not redo this Sentinel / Cluster inventory):
+
+```bash
+./scripts/g9-live-multi-jvm-replica.sh
+```
+
+See [g9-live-multi-jvm-replica.md](./g9-live-multi-jvm-replica.md).
+
 ## Honest leftovers (not claimed)
 
 - Redis Sentinel quorum + automatic failover against a live 3.2 topology
 - Redis Cluster slot failover / replica promotion
-- Live multi-JVM network partition (iptables / netem / two JARs)
+- Live multi-JVM network partition (iptables / netem / two JARs) — honesty leftover [g9-live-multi-jvm-replica.md](./g9-live-multi-jvm-replica.md)
 - Product G9 close
 - Redesigning `PolicySnapshot` / `SnapshotManager` / `PolicySnapshotPoller`

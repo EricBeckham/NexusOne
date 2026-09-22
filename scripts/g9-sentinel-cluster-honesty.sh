@@ -308,5 +308,6 @@ log "wrote $OUT/report.env"
 echo
 echo "PASS: honesty leftover recorded (Sentinel/Cluster/replica/live multi-JVM SKIP)"
 echo "See docs/g9-sentinel-cluster-honesty.md"
+echo "Live multi-JVM / replica leftover (does not redo this inventory): ./scripts/g9-live-multi-jvm-replica.sh"
 echo "Not claimed: product G9 close / Sentinel / Cluster / replica promotion / live multi-JVM"
 echo "out=$OUT"
