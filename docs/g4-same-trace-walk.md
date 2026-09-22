@@ -27,23 +27,30 @@ This is **not** a headless browser PKCE walk. MockMvc + IsolatedExport is the pr
 
 ## Evidence
 
-Recorded on this agent VM after the IT run. No Docker. No live `127.0.0.1:5432`. Stub IdP (not Keycloak PKCE).
+Recorded **2026-09-22T16:43:41Z** on this agent VM. `./scripts/g4-same-trace-walk.sh` → **BUILD SUCCESS**. No Docker. No live `127.0.0.1:5432`. Stub IdP (not Keycloak PKCE).
 
 ```
 ./scripts/g4-same-trace-walk.sh
+# Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+# BUILD SUCCESS  Total time: 38.240 s  Finished at: 2026-09-22T16:43:41Z
 ```
 
 | Item | Value |
 |---|---|
-| JDK | OpenJDK **21.0.10** |
-| Maven | see IT run below |
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
+| Maven | **3.8.7** |
 | Spring Boot | **4.1.1** |
-| PostgreSQL | Zonky **15.18** |
-| Result | pending first IT run on this branch |
+| PostgreSQL | Zonky **15.18** (`starting PostgreSQL 15.18 on x86_64-pc-linux-gnu`) |
+| Flyway | 16 migrations on schema `platform`, head **V550** |
+| Walk trace | `0199a1c0-0000-7000-8000-00000000c204` |
+| Linked fixture | `0199a1c0-0000-7000-8000-00000000c203` (`p1.tenant.created`) |
+| Result | **1/1** |
 
 | Suite | Result | What it proved |
 |---|---|---|
-| `G4SameTraceWalkIT` | pending | One `WALK_TRACE` holds LOGIN / PERMISSION / ADMIN / EXPORT / GUARD_REJECT; GET returns them; chain intact; guard-reject survives TX rollback |
+| `G4SameTraceWalkIT` | **1/1** | One `WALK_TRACE` holds LOGIN / PERMISSION / ADMIN (`p1.tenant.config.updated`) / EXPORT (`p3.export.submitted` + file) / GUARD_REJECT (`P1.M02.019`); GET `/api/v1/audit/traces/{id}` returns those categories for the login tenant; `verifyChain()` intact; guard-reject row survives the surrounding TX rollback |
+
+Log on this run (same `WALK_TRACE`): four `EXPORT_ACCEPTED` then `ISOLATION_REJECT code=P1.M02.019`.
 
 ## Honest leftover G4 rows
 
