@@ -149,6 +149,7 @@ class G9RedisDownInvalidateRemainderTest {
         assertTrue(leftover.contains("g5-mid-publish-failure-honesty"));
         assertTrue(leftover.contains("g10-leftover-honesty"));
         assertTrue(leftover.contains("g4-export-wizard-deny-honesty"));
+        assertTrue(leftover.contains("g2-h5-every-page-form-write-honesty"));
         assertTrue(leftover.contains("does **not** claim") || leftover.contains("Does **not** claim"));
         assertFalse(leftover.toLowerCase(Locale.ROOT).contains("product g9 is closed"));
         assertFalse(leftover.contains("产品 G9 已关闭"));

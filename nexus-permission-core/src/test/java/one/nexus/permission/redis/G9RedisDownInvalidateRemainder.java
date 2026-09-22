@@ -161,7 +161,8 @@ public final class G9RedisDownInvalidateRemainder {
                 "[g3-outbox-consume-crash-honesty](./g3-outbox-consume-crash-honesty.md)",
                 "[g5-mid-publish-failure-honesty](./g5-mid-publish-failure-honesty.md)",
                 "[g10-leftover-honesty](./g10-leftover-honesty.md)",
-                "[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)"
+                "[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)",
+                "[g2-h5-every-page-form-write-honesty](./g2-h5-every-page-form-write-honesty.md)"
         };
         for (String row : required) {
             if (!readme.contains(row)) {

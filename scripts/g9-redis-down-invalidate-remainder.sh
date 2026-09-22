@@ -182,7 +182,8 @@ if grep -Fq '[g9-policysnapshot-invalidate](./g9-policysnapshot-invalidate.md)' 
   && grep -Fq '[g3-outbox-consume-crash-honesty](./g3-outbox-consume-crash-honesty.md)' "$README" \
   && grep -Fq '[g5-mid-publish-failure-honesty](./g5-mid-publish-failure-honesty.md)' "$README" \
   && grep -Fq '[g10-leftover-honesty](./g10-leftover-honesty.md)' "$README" \
-  && grep -Fq '[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)' "$README"; then
+  && grep -Fq '[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)' "$README" \
+  && grep -Fq '[g2-h5-every-page-form-write-honesty](./g2-h5-every-page-form-write-honesty.md)' "$README"; then
   LEFTOVER_ROWS=true
 fi
 [ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep ALL sibling leftover rows + this leftover"
