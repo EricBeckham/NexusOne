@@ -2,7 +2,7 @@
 
 Honest leftover work. These are not claimed as done.
 
-- OUTER/CROSS JOIN and nested subquery. IN/EXISTS subquery, multi-row INSERT, ORDER BY, and LIMIT/OFFSET of registered tables are compiled; each tenant table gets its own `tenant_id` predicate.
+- OUTER/CROSS JOIN. Nested IN/EXISTS subquery-in-subquery is compiled (`docs/g1-query-nested-subquery.md`); each tenant table at every nesting level gets its own `tenant_id` predicate. IN/EXISTS, multi-row INSERT, ORDER BY, and LIMIT/OFFSET of registered tables remain as previously evidenced.
 - DataScope / FieldPolicy compilation into the AST (M0-05). The DataScope seam still cannot strip `tenant_id` (including join predicates). Export uses a visibility/second-auth gate (`ExportFieldPolicyGuard`); mask merge stays in `FieldPolicyProjector`.
 - Generic NativeSqlPort beyond count templates.
 - Static scanner is regex-based: aliases, reflection, generated code, and JNI are not covered. Must keep infrastructure-root allowlisting tight.

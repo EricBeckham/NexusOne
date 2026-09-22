@@ -86,6 +86,11 @@ public final class TableAccessPlanGuard {
         }
     }
 
+    /**
+     * One subquery level. The compiler walks {@code QuerySubquery.nested()}
+     * and calls this for every depth so each inner tenant table still has a
+     * tenant predicate before render.
+     */
     public void checkSubquery(TableDescriptor table, QuerySubquery subquery, AccessContext context) {
         if (context == null) {
             throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, null, "missing context");

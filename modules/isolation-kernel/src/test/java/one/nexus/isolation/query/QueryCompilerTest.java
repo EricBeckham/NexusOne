@@ -39,6 +39,7 @@ class QueryCompilerTest {
         TableRegistry registry = new TableRegistry();
         registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "deleted_at");
         registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+        registry.registerTenant("ledger_note", "p3", 1, "id", "tenant_id", "line_id", "body");
         registry.registerPlatform("platform_metric", "p1", 1, "id", "count");
         registry.freeze();
         return IsolationKernel.create(registry, Set.of("ops.summary"), sink);
@@ -269,6 +270,107 @@ class QueryCompilerTest {
     }
 
     @Test
+    void nestedSubqueryInjectsTenantOnEveryLevel() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        IsolationKernel kernel = kernel(sink);
+        TenantContext alpha = alpha(kernel);
+        RenderedSql inNested = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id", "title"), Map.of())
+                        .withSubqueries(List.of(nestedIn())),
+                alpha);
+        assertEquals(
+                "SELECT \"id\", \"title\" FROM \"ledger_entry\""
+                        + " WHERE \"tenant_id\" = ?"
+                        + " AND \"id\" IN (SELECT \"entry_id\" FROM \"ledger_line\" WHERE \"tenant_id\" = ?"
+                        + " AND \"id\" IN (SELECT \"line_id\" FROM \"ledger_note\" WHERE \"tenant_id\" = ?))",
+                inNested.sql());
+        assertEquals(List.of("alpha", "alpha", "alpha"), inNested.parameters());
+        assertEquals("TenantContext", inNested.plan().tenantSource());
+        assertTrue(inNested.plan().tenantRequired());
+
+        RenderedSql existsNested = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(nestedExists())),
+                alpha);
+        assertEquals(
+                "SELECT \"id\" FROM \"ledger_entry\""
+                        + " WHERE \"tenant_id\" = ?"
+                        + " AND EXISTS (SELECT 1 FROM \"ledger_line\" \"line\""
+                        + " WHERE \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\" = ?"
+                        + " AND EXISTS (SELECT 1 FROM \"ledger_note\" \"note\""
+                        + " WHERE \"line\".\"id\" = \"note\".\"line_id\" AND \"note\".\"tenant_id\" = ?))",
+                existsNested.sql());
+        assertEquals(List.of("alpha", "alpha", "alpha"), existsNested.parameters());
+        assertEquals(0, sink.rejectCount());
+    }
+
+    @Test
+    void nestedSubqueryIllegalShapesAreRejectedBeforeRender() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        IsolationKernel kernel = kernel(sink);
+        TenantContext alpha = alpha(kernel);
+        IsolationException stolen = assertThrows(IsolationException.class, () ->
+                kernel.compiler().compile(
+                        QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                                .withSubqueries(List.of(stolenNestedIn("beta"))),
+                        alpha));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_SUBQUERY, stolen.error());
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_SUBQUERY));
+        assertCode(IsolationErrorCode.CROSS_TENANT_SUBQUERY, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(stolenNestedIn(null))),
+                alpha));
+        assertCode(IsolationErrorCode.ILLEGAL_PLATFORM_ACCESS, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(QuerySubquery.in("id", "ledger_line", "entry_id", Map.of())
+                                .withNested(List.of(
+                                        QuerySubquery.in("id", "platform_metric", "id", Map.of()))))),
+                alpha));
+        assertCode(IsolationErrorCode.INVALID_IDENTIFIER, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(QuerySubquery.exists(
+                                "ledger_line",
+                                "line",
+                                List.of(new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                                Map.of())
+                                .withNested(List.of(QuerySubquery.exists(
+                                        "ledger_note",
+                                        "line",
+                                        List.of(new JoinOn("line", "id", "line", "line_id")),
+                                        Map.of()))))),
+                alpha));
+        IllegalArgumentException deep = assertThrows(IllegalArgumentException.class, () ->
+                kernel.compiler().compile(
+                        QueryAst.select("ledger_note", List.of("id"), Map.of())
+                                .withSubqueries(List.of(overDeepNoteIn())),
+                        alpha));
+        assertTrue(deep.getMessage().contains("nesting exceeds max depth"));
+        assertTrue(sink.rejectCount() >= 4);
+    }
+
+    @Test
+    void dataScopeCannotStripNestedSubqueryTenantPredicate() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+        registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+        registry.registerTenant("ledger_note", "p3", 1, "id", "tenant_id", "line_id", "body");
+        DataScopeInjector hostile = (query, table, context) -> query.withSubqueries(query.subqueries().stream()
+                .map(sub -> sub.withNested(sub.nested().stream()
+                        .map(inner -> inner.withFilters(Map.of("line_id", "1")))
+                        .toList()))
+                .toList());
+        IsolationKernel kernel = IsolationKernel.create(
+                registry, Set.of("ops.summary"), new CollectingAuditSink(), hostile, (q, t, c) -> q);
+        TenantContext alpha = alpha(kernel);
+        IsolationException ex = assertThrows(IsolationException.class, () ->
+                kernel.compiler().compile(
+                        QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                                .withSubqueries(List.of(nestedIn())),
+                        alpha));
+        assertEquals(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, ex.error());
+    }
+
+    @Test
     void insertBatchInjectsTenantOnEveryRow() {
         CollectingAuditSink sink = new CollectingAuditSink();
         IsolationKernel kernel = kernel(sink);
@@ -356,6 +458,37 @@ class QueryCompilerTest {
         return QueryAst.select("ledger_entry", projection, Map.of(), List.of(
                 QueryJoin.inner("ledger_line", "line", List.of(
                         new JoinOn("ledger_entry", "id", "line", "entry_id")), joinFilters)));
+    }
+
+    private static QuerySubquery nestedIn() {
+        return QuerySubquery.in("id", "ledger_line", "entry_id", Map.of())
+                .withNested(List.of(QuerySubquery.in("id", "ledger_note", "line_id", Map.of())));
+    }
+
+    private static QuerySubquery nestedExists() {
+        return QuerySubquery.exists(
+                        "ledger_line",
+                        "line",
+                        List.of(new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                        Map.of())
+                .withNested(List.of(QuerySubquery.exists(
+                        "ledger_note",
+                        "note",
+                        List.of(new JoinOn("line", "id", "note", "line_id")),
+                        Map.of())));
+    }
+
+    private static QuerySubquery stolenNestedIn(String tenantId) {
+        return QuerySubquery.in("id", "ledger_line", "entry_id", Map.of())
+                .withNested(List.of(QuerySubquery.in("id", "ledger_note", "line_id", map("tenant_id", tenantId))));
+    }
+
+    private static QuerySubquery overDeepNoteIn() {
+        QuerySubquery current = QuerySubquery.in("id", "ledger_note", "id", Map.of());
+        for (int i = 0; i < QuerySubquery.MAX_NESTING; i++) {
+            current = QuerySubquery.in("id", "ledger_note", "id", Map.of()).withNested(List.of(current));
+        }
+        return current;
     }
 
     private static void assertCode(IsolationErrorCode code, Runnable action) {

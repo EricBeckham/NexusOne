@@ -207,6 +207,41 @@ class IsolatedExportTest {
         assertFalse(sink.rejected(IsolationErrorCode.UNBOUNDED_PAGE));
     }
 
+    @Test
+    void exportCompileRejectsStolenNestedSubqueryAndAcceptsNestedIn() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+        registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+        registry.registerTenant("ledger_note", "p3", 1, "id", "tenant_id", "line_id", "body");
+        IsolationKernel tables = IsolationKernel.create(registry, Set.of("ops.summary"), sink);
+        TenantContext context = tables.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-alpha"), "alpha", "mem-alpha", Set.of("alpha")), "trace-alpha");
+        AccessContextHolder.set(context);
+        Map<String, ExportFieldRule> policy = Map.of("id", ExportFieldRule.allow());
+        IsolationException stolen = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(QuerySubquery.in("id", "ledger_line", "entry_id", Map.of())
+                                .withNested(List.of(
+                                        QuerySubquery.in("id", "ledger_note", "line_id", Map.of("tenant_id", "beta")))))),
+                "alpha",
+                policy,
+                false));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_SUBQUERY, stolen.error());
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_SUBQUERY));
+        var sql = IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(QuerySubquery.in("id", "ledger_line", "entry_id", Map.of())
+                                .withNested(List.of(QuerySubquery.in("id", "ledger_note", "line_id", Map.of()))))),
+                "alpha",
+                policy,
+                false);
+        assertTrue(sql.sql().contains("IN (SELECT \"entry_id\" FROM \"ledger_line\""));
+        assertTrue(sql.sql().contains("IN (SELECT \"line_id\" FROM \"ledger_note\""));
+        assertEquals(3, sql.parameters().stream().filter("alpha"::equals).count());
+    }
+
     private void bind(String tenantId) {
         TenantContext context = kernel.tenants().issue(new AuthenticatedMembership(
                 Actor.person("user-" + tenantId), tenantId, "mem-" + tenantId, Set.of(tenantId)),

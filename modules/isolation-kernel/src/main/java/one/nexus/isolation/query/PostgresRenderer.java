@@ -159,15 +159,18 @@ public final class PostgresRenderer {
             appendColumn(sql, outerAlias, subquery.outerColumn());
             sql.append(" IN (SELECT ").append(Identifiers.quote(subquery.projection()))
                     .append(" FROM ").append(Identifiers.quote(subquery.table()));
-            if (!subquery.alias().equals(subquery.table())) {
+            boolean aliased = !subquery.alias().equals(subquery.table());
+            if (aliased) {
                 sql.append(' ').append(Identifiers.quote(subquery.alias()));
             }
-            appendInnerFilters(sql, subquery, args);
+            appendSubqueryPredicates(sql, aliased ? subquery.alias() : null, subquery, args, false);
             sql.append(')');
             return;
         }
         sql.append("EXISTS (SELECT 1 FROM ").append(Identifiers.quote(subquery.table()));
-        boolean aliased = !subquery.correlated().isEmpty() || !subquery.alias().equals(subquery.table());
+        boolean aliased = !subquery.correlated().isEmpty()
+                || !subquery.alias().equals(subquery.table())
+                || !subquery.nested().isEmpty();
         if (aliased) {
             sql.append(' ').append(Identifiers.quote(subquery.alias()));
         }
@@ -179,7 +182,18 @@ public final class PostgresRenderer {
                     .append(" = ")
                     .append(Identifiers.quote(on.rightAlias())).append('.').append(Identifiers.quote(on.rightColumn()));
         }
-        String filterAlias = aliased ? subquery.alias() : null;
+        appendSubqueryPredicates(sql, aliased ? subquery.alias() : null, subquery, args, started);
+        sql.append(')');
+    }
+
+    private static void appendSubqueryPredicates(
+            StringBuilder sql,
+            String filterAlias,
+            QuerySubquery subquery,
+            List<Object> args,
+            boolean whereStarted
+    ) {
+        boolean started = whereStarted;
         for (Map.Entry<String, Object> entry : subquery.filters().entrySet()) {
             sql.append(started ? " AND " : " WHERE ");
             started = true;
@@ -194,30 +208,10 @@ public final class PostgresRenderer {
                 args.add(entry.getValue());
             }
         }
-        sql.append(')');
-    }
-
-    private static void appendInnerFilters(StringBuilder sql, QuerySubquery subquery, List<Object> args) {
-        if (subquery.filters().isEmpty()) {
-            return;
-        }
-        boolean aliased = !subquery.alias().equals(subquery.table());
-        sql.append(" WHERE ");
-        int i = 0;
-        for (Map.Entry<String, Object> entry : subquery.filters().entrySet()) {
-            if (i++ > 0) {
-                sql.append(" AND ");
-            }
-            if (aliased) {
-                sql.append(Identifiers.quote(subquery.alias())).append('.');
-            }
-            sql.append(Identifiers.quote(entry.getKey()));
-            if (entry.getValue() == null) {
-                sql.append(" IS NULL");
-            } else {
-                sql.append(" = ?");
-                args.add(entry.getValue());
-            }
+        for (QuerySubquery nested : subquery.nested()) {
+            sql.append(started ? " AND " : " WHERE ");
+            started = true;
+            appendSubquery(sql, filterAlias, nested, args);
         }
     }
 
