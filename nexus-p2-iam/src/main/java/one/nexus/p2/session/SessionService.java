@@ -7,7 +7,7 @@ import one.nexus.p2.idp.IdentityProviderPort;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p2.support.DomainException;
-import one.nexus.p2.support.Ids;
+import one.nexus.common.id.UuidV7;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -141,7 +141,7 @@ public final class SessionService {
                 .orElseThrow(() -> DomainException.forbidden("person record is missing in the requested tenant"));
         Instant now = clock.instant();
         Model.IssuedContext stored = new Model.IssuedContext(
-                Ids.v7(clock), tenantId, account.id(), person.id(), subject, now, now.plus(contextTtl), null);
+                UuidV7.generate(), tenantId, account.id(), person.id(), subject, now, now.plus(contextTtl), null);
         repository.saveContext(stored);
         TenantContext context = new TenantContext(
                 stored.id(), stored.tenantId(), stored.accountId(), stored.personId(),

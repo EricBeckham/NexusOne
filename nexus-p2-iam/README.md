@@ -24,8 +24,7 @@ PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **K
 Runnable without Keycloak (`nexus.iam.persistence=memory`, `nexus.iam.idp=stub`):
 
 ```bash
-cd nexus-p2-iam
-mvn clean test
+mvn -pl nexus-p2-iam -am test
 ```
 
 **13 tests, 0 failures** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**.
@@ -103,17 +102,17 @@ export NEXUS_IAM_PERSISTENCE=jdbc
 export NEXUS_DB_URL=jdbc:postgresql://127.0.0.1:5432/nexusone
 export NEXUS_DB_USER=...
 export NEXUS_DB_PASSWORD=...
-mvn -q -DskipTests package
-java -jar target/nexus-p2-iam-0.1.0-SNAPSHOT.jar
+mvn -pl nexus-bootstrap -am -q -DskipTests package
+java -jar nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
 ```
 
-Health: `GET http://127.0.0.1:8088/api/v1/health`. Login: `GET /api/v1/auth/authorize-url` then `POST /api/v1/auth/login` with the authorization `code`.
+Health: `GET http://127.0.0.1:8080/actuator/health` or `GET /api/v1/health`. Login: `GET /api/v1/auth/authorize-url` then `POST /api/v1/auth/login` with the authorization `code`.
 
 Keycloak SMTP (invite / reset) is configured in the Keycloak realm, not in this app. Enable `NEXUS_IAM_SMTP_ENABLED=true` only after that realm SMTP works.
 
 ## Coordination
 
-- **M0-01**: artifact is `one.nexus:nexus-p2-iam:0.1.0-SNAPSHOT`. Standalone parent is Spring Boot **4.1.1** (same BOM as PR #46). After the aggregator merges, re-parent to `nexusone`. Flyway **V200** is in schema `iam`. Do not make Docker required.
+- **M0-01**: parent is `one.nexus:nexusone` (Spring Boot **4.1.1** BOM). IDs use `nexus-common` `UuidV7`. Flyway **V200** is in schema `iam` on `classpath:db/migration` so bootstrap applies it with V001–V003. Do not make Docker required.
 - **M0-02**: consume `one.nexus.p2.kernel.TenantContext` / `TenantContextHolder`. Identity **issues** context after membership checks; isolation kernel **propagates** it to SQL Guard, jobs, cache, and files. Replace the in-module holder with the kernel holder when that module lands. Do not rewrite Guard or quota code here.
 - **M0-03**: call `TenantAdminInitializer.initialize(Command)` in-process, or `POST /api/v1/internal/tenants/{tenantId}/admin-users` with `X-Nexus-Bootstrap-Token`. That creates global account, Keycloak user, membership, person, root department `ROOT`, position `TENANT_ADMIN`, and primary employment.
 

@@ -5,11 +5,17 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 
+/** Test-only entrypoint. Product boot is {@code one.nexus.bootstrap.NexusOneApplication}. */
 @SpringBootApplication(exclude = {
         DataSourceAutoConfiguration.class,
         FlywayAutoConfiguration.class
 })
 public class NexusP2IamApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(NexusP2IamApplication.class, args);
+    }
+}
+
     public static void main(String[] args) {
         SpringApplication.run(NexusP2IamApplication.class, args);
     }

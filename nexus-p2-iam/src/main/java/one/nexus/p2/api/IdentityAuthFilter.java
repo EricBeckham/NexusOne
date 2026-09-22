@@ -1,5 +1,6 @@
 package one.nexus.p2.api;
 
+import one.nexus.common.trace.TraceIds;
 import one.nexus.p2.IdentityConfiguration;
 import one.nexus.p2.IdentityModule;
 import one.nexus.p2.kernel.TenantContextHolder;
@@ -9,10 +10,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.MDC;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -33,13 +34,18 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return !isIamPath(request.getRequestURI());
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String traceId = request.getHeader("X-Trace-Id");
-        if (traceId == null || traceId.isBlank()) {
-            traceId = UUID.randomUUID().toString();
-        }
-        MDC.put("trace_id", traceId);
+        String fromMdc = MDC.get(TraceIds.MDC_KEY);
+        String traceId = (fromMdc != null && !fromMdc.isBlank())
+                ? fromMdc
+                : TraceIds.resolve(
+                        request.getHeader(TraceIds.HEADER), request.getHeader(TraceIds.TRACEPARENT_HEADER));
         TenantContextHolder.clear();
         try {
             if (request.getHeader(HEADER_TENANT) != null) {
@@ -48,7 +54,7 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
                         "client-supplied tenant_id is rejected; use a server-issued context");
             }
             String path = request.getRequestURI();
-            if (isPublic(path, request.getMethod())) {
+            if (isPublic(path)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -73,7 +79,6 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
             writeError(response, DomainException.unauthorized(ex.getMessage()), traceId);
         } finally {
             TenantContextHolder.clear();
-            MDC.remove("trace_id");
         }
     }
 
@@ -86,12 +91,20 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
         return expected.equals(provided);
     }
 
-    private static boolean isPublic(String path, String method) {
+    static boolean isIamPath(String path) {
+        return "/api/v1/health".equals(path)
+                || path.startsWith("/api/v1/auth/")
+                || path.startsWith("/api/v1/persons")
+                || path.startsWith("/api/v1/departments")
+                || path.startsWith("/api/v1/positions")
+                || path.startsWith("/api/v1/employments")
+                || path.startsWith("/api/v1/memberships")
+                || path.startsWith("/api/v1/internal/");
+    }
+
+    private static boolean isPublic(String path) {
         if ("/api/v1/health".equals(path)) {
             return true;
-        }
-        if (!path.startsWith("/api/v1/auth/")) {
-            return false;
         }
         return path.equals("/api/v1/auth/authorize-url")
                 || path.equals("/api/v1/auth/login")

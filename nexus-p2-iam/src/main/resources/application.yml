@@ -1,10 +1,3 @@
-server:
-  port: ${NEXUS_IAM_PORT:8088}
-
-spring:
-  application:
-    name: nexus-p2-iam
-
 nexus:
   iam:
     persistence: ${NEXUS_IAM_PERSISTENCE:memory}
@@ -18,7 +11,7 @@ nexus:
       issuer: ${NEXUS_KEYCLOAK_ISSUER:http://127.0.0.1:8080/realms/nexus}
       client-id: ${NEXUS_KEYCLOAK_CLIENT_ID:nexus-platform}
       client-secret: ${NEXUS_KEYCLOAK_CLIENT_SECRET:}
-      redirect-uri: ${NEXUS_KEYCLOAK_REDIRECT_URI:http://127.0.0.1:8088/api/v1/auth/callback}
+      redirect-uri: ${NEXUS_KEYCLOAK_REDIRECT_URI:http://127.0.0.1:8080/api/v1/auth/callback}
     smtp:
       enabled: ${NEXUS_IAM_SMTP_ENABLED:false}
     platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:}

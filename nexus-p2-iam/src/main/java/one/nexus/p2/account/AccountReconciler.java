@@ -3,7 +3,7 @@ package one.nexus.p2.account;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.domain.Model;
 import one.nexus.p2.idp.IdentityProviderPort;
-import one.nexus.p2.support.Ids;
+import one.nexus.common.id.UuidV7;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -33,7 +33,7 @@ public final class AccountReconciler {
     private Model.GlobalAccount create(IdentityProviderPort.IdentityClaims claims, Instant now) {
         String email = Objects.requireNonNull(claims.email(), "email is required to create a global account");
         Model.GlobalAccount account = new Model.GlobalAccount(
-                Ids.v7(clock),
+                UuidV7.generate(),
                 claims.subject(),
                 email,
                 claims.phone(),

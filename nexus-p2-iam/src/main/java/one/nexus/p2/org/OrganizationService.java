@@ -5,7 +5,7 @@ import one.nexus.p2.domain.Model;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p2.support.DomainException;
-import one.nexus.p2.support.Ids;
+import one.nexus.common.id.UuidV7;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -49,7 +49,7 @@ public final class OrganizationService {
         });
         Instant now = clock.instant();
         Model.Person person = new Model.Person(
-                Ids.v7(clock), tenantId, accountId, command.displayName(), command.employeeNo(),
+                UuidV7.generate(), tenantId, accountId, command.displayName(), command.employeeNo(),
                 command.email(), command.phone(), command.hiredOn(), Model.PersonStatus.ACTIVE,
                 now, now, null, 0);
         return repository.savePerson(person);
@@ -91,7 +91,7 @@ public final class OrganizationService {
             pathPrefix = parent.path();
         }
         Instant now = clock.instant();
-        UUID id = Ids.v7(clock);
+        UUID id = UuidV7.generate();
         Model.Department department = new Model.Department(
                 id, tenantId, command.parentId(), command.code(), command.name(),
                 pathPrefix + id + "/", command.sortOrder(), command.leaderPersonId(), Model.OrgStatus.ACTIVE,
@@ -141,7 +141,7 @@ public final class OrganizationService {
         });
         Instant now = clock.instant();
         Model.Position position = new Model.Position(
-                Ids.v7(clock), context.tenantId(), command.code(), command.name(), command.category(),
+                UuidV7.generate(), context.tenantId(), command.code(), command.name(), command.category(),
                 command.duties(), Model.OrgStatus.ACTIVE, now, now, null, 0);
         return repository.savePosition(position);
     }
@@ -168,7 +168,7 @@ public final class OrganizationService {
         Instant now = clock.instant();
         LocalDate from = command.validFrom() == null ? LocalDate.ofInstant(now, clock.getZone()) : command.validFrom();
         Model.Employment employment = new Model.Employment(
-                Ids.v7(clock), tenantId, command.personId(), command.departmentId(), command.positionId(),
+                UuidV7.generate(), tenantId, command.personId(), command.departmentId(), command.positionId(),
                 kind, Model.EmploymentStatus.ACTIVE, from, command.validTo(), now, now, null, 0);
         return repository.saveEmployment(employment);
     }

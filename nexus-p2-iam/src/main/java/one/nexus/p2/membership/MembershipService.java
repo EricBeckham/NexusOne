@@ -4,7 +4,7 @@ import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.domain.Model;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p2.support.DomainException;
-import one.nexus.p2.support.Ids;
+import one.nexus.common.id.UuidV7;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -28,7 +28,7 @@ public final class MembershipService {
         });
         Instant now = clock.instant();
         return repository.saveMembership(new Model.TenantMembership(
-                Ids.v7(clock), tenantId, accountId, Model.MembershipStatus.ACTIVE, now, now, null, 0));
+                UuidV7.generate(), tenantId, accountId, Model.MembershipStatus.ACTIVE, now, now, null, 0));
     }
 
     public List<Model.TenantMembership> listCurrentTenant() {

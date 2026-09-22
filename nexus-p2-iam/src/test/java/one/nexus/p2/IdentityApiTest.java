@@ -34,6 +34,14 @@ class IdentityApiTest {
     }
 
     @Test
+    void nonIamRoutesAreNotCapturedByIdentityFilter() throws Exception {
+        mvc.perform(get("/api/v1/does-not-exist"))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void clientTenantHeaderIsRejected() throws Exception {
         String token = StubIdentityProvider.token("api-alice", "api-alice@example.com", "api-alice", "Api Alice");
         mvc.perform(get("/api/v1/auth/session")

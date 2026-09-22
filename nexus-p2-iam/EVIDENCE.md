@@ -22,8 +22,7 @@ PostgreSQL 15.19 (Ubuntu 15.19-1.pgdg24.04+2) on x86_64-pc-linux-gnu, compiled b
 ## Tests
 
 ```bash
-cd nexus-p2-iam
-mvn clean test
+mvn -pl nexus-p2-iam -am clean test
 ```
 
 Result: **13 tests, 0 failures, 0 skipped**.
@@ -50,5 +49,5 @@ No PostgreSQL 15.x SQL incompatibilities were found in `V200__iam_identity.sql` 
 - SAML, LDAP/AD, SMS MFA, Keycloak Organizations, browser PKCE — not this round.
 - Keycloak upgrade/rollback matrices — single version 26.5.2 only.
 - Target Linux/ARM / offline package Profile — not claimed.
-- This module still uses a **standalone** Boot 4.1.1 parent so `mvn test` works before M0-01 aggregator merge. After PR #46 lands, re-parent to `one.nexus:nexusone` (same 4.1.1 BOM).
+- Parent is **`one.nexus:nexusone` 0.1.0-SNAPSHOT** (Boot **4.1.1** BOM + `nexus-common`). Duplicate UUIDv7 helper removed.
 - Permission engine (M0-05) and SQL Guard (M0-02) are out of scope.

@@ -8,7 +8,7 @@ import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p2.org.OrganizationService;
 import one.nexus.p2.support.DomainException;
-import one.nexus.p2.support.Ids;
+import one.nexus.common.id.UuidV7;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -54,17 +54,17 @@ public final class TenantAdminInitializerImpl implements TenantAdminInitializer 
         Instant now = clock.instant();
         Model.TenantMembership membership = repository.findMembership(command.tenantId(), account.id())
                 .orElseGet(() -> repository.saveMembership(new Model.TenantMembership(
-                        Ids.v7(clock), command.tenantId(), account.id(),
+                        UuidV7.generate(), command.tenantId(), account.id(),
                         Model.MembershipStatus.ACTIVE, now, now, null, 0)));
 
         Model.Person person = repository.findPersonByAccount(command.tenantId(), account.id())
                 .orElseGet(() -> repository.savePerson(new Model.Person(
-                        Ids.v7(clock), command.tenantId(), account.id(), displayName, "ADMIN",
+                        UuidV7.generate(), command.tenantId(), account.id(), displayName, "ADMIN",
                         command.email(), null, null, Model.PersonStatus.ACTIVE, now, now, null, 0)));
 
         TenantContext previous = TenantContextHolder.get();
         TenantContextHolder.set(new TenantContext(
-                Ids.v7(clock), command.tenantId(), account.id(), person.id(),
+                UuidV7.generate(), command.tenantId(), account.id(), person.id(),
                 provisioned.subject(), now, now.plus(Duration.ofHours(1))));
         try {
             Model.Department department = repository.findDepartmentByCode(command.tenantId(), "ROOT")
