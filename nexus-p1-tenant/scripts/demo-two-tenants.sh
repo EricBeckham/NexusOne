@@ -105,10 +105,16 @@ echo "== enable ${ALPHA}"
 auth -X POST "$BASE/api/v1/p1/tenants/${ALPHA_ID}/enable" -d '{"confirm":true}'
 echo
 
+expect_code() {
+  local body="$1" code="$2"
+  python3 -c 'import json,sys; b=json.load(sys.stdin); assert b.get("code")==sys.argv[1], b' "$code" <<<"$body"
+}
+
 PLATFORM_ID="$(auth "$BASE/api/v1/p1/platform-tenant" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
 echo "== stop platform (expect P1.TENANT.0004)"
-auth -X POST "$BASE/api/v1/p1/tenants/${PLATFORM_ID}/disable" -d '{"confirm":true,"reason":"should fail"}'
-echo
+PLATFORM_DISABLE="$(auth -X POST "$BASE/api/v1/p1/tenants/${PLATFORM_ID}/disable" -d '{"confirm":true,"reason":"should fail"}')"
+echo "$PLATFORM_DISABLE"
+expect_code "$PLATFORM_DISABLE" "P1.TENANT.0004"
 echo "== platform disable rejected audit"
 auth "$BASE/api/v1/p1/tenants/${PLATFORM_ID}/audit-events?event_type=p1.tenant.disable.rejected"
 echo
@@ -118,9 +124,10 @@ auth -X POST "$BASE/api/v1/p1/tenants/${BETA_ID}/quotas/consume" \
   -d '{"metric":"CUSTOM_LEDGER","amount":2,"idempotency_key":"demo-ledgers"}'
 echo
 echo "== over-limit (expect P1.QUOTA.0001)"
-auth -X POST "$BASE/api/v1/p1/tenants/${BETA_ID}/quotas/consume" \
-  -d '{"metric":"CUSTOM_LEDGER","amount":1,"idempotency_key":"demo-overflow"}'
-echo
+QUOTA_OVER="$(auth -X POST "$BASE/api/v1/p1/tenants/${BETA_ID}/quotas/consume" \
+  -d '{"metric":"CUSTOM_LEDGER","amount":1,"idempotency_key":"demo-overflow"}')"
+echo "$QUOTA_OVER"
+expect_code "$QUOTA_OVER" "P1.QUOTA.0001"
 echo "== quota rejected audit"
 auth "$BASE/api/v1/p1/tenants/${BETA_ID}/audit-events?event_type=p1.quota.rejected"
 echo

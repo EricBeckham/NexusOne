@@ -2,6 +2,8 @@ package one.nexus.p1.api;
 
 import java.util.Map;
 import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,6 +20,7 @@ import one.nexus.p1.domain.ErrorCode;
  * {@code one.nexus} component scan without a bean-name clash.
  */
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class P1ApiExceptionHandler {
 
     @ExceptionHandler(DomainException.class)
