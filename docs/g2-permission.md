@@ -41,7 +41,7 @@ Turn the seed off with `NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS=false`. Permi
 
 This remainder does **not** close product-wide G2.
 
-- Report query/export HTTP + `/p3/reports` are the sibling leftover [g2-report-surface-guard.md](./g2-report-surface-guard.md). Physical ledger dump / raw export HTTP is [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). Callers that skip `SurfaceGuard` still fail the static gate. H5 `/m/*` list/detail/form/todo is [g2-h5-permission.md](./g2-h5-permission.md). Not a product-wide G2 close.
+- Report query/export HTTP + `/p3/reports` are the sibling leftover [g2-report-surface-guard.md](./g2-report-surface-guard.md). Isolation-only `tenant_only` / catalog whitelist honesty is [g2-tenant-only-catalog.md](./g2-tenant-only-catalog.md). Physical ledger dump / raw export HTTP is [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). Callers that skip `SurfaceGuard` still fail the static gate. H5 `/m/*` list/detail/form/todo is [g2-h5-permission.md](./g2-h5-permission.md). Not a product-wide G2 close.
 - Isolation-only jobs with no P2 `TenantContext` still skip `AuthorizedSubmit` / list-detail tenant-only fallback (including studio-only form hosts that never bind P2). Form fill HTTP without P2 still stays tenant-only (`FormApiTest`).
 - General cache (`CacheKeyGuard` / Redis) is still isolation-only; only IsolatedExport `cacheStatus` rides the export Task grant.
 - Direct `IsolatedExport` / `JdbcTaskQueue` callers that skip `AuthorizedExport` / `TaskSubmitGuard` are not a platform-wide “every API” close. New raw engine / IsolatedExport / unguarded P3 surface callers fail the static gate in [g2-surfaceguard-bypass-ci.md](./g2-surfaceguard-bypass-ci.md) (orthogonal to the G1 QueryCompiler JDBC gate).

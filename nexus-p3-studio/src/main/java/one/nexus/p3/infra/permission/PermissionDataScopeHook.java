@@ -1,7 +1,6 @@
 package one.nexus.p3.infra.permission;
 
 import java.util.Map;
-import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p3.port.DataScopeHook;
 import one.nexus.permission.PermissionModule;
 import one.nexus.permission.admin.TenantMemberGrantSeeder;
@@ -9,6 +8,7 @@ import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.field.FieldPolicyProjector;
 import one.nexus.permission.scope.PermissionQueryBinder;
+import one.nexus.permission.surface.IsolationOnlyDecision;
 import one.nexus.permission.surface.SurfaceGuard;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -38,7 +38,7 @@ public class PermissionDataScopeHook implements DataScopeHook {
 
     @Override
     public ScopedRead bind(String tenantId, String resource, String action) {
-        if (TenantContextHolder.get() == null) {
+        if (IsolationOnlyDecision.isolationOnly()) {
             return tenantOnly(tenantId);
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
@@ -55,6 +55,6 @@ public class PermissionDataScopeHook implements DataScopeHook {
     }
 
     private static ScopedRead tenantOnly(String tenantId) {
-        return new ScopedRead(PermissionQueryBinder.bind(tenantId, Predicate.TRUE), new Decision(true, "tenant_only"));
+        return new ScopedRead(PermissionQueryBinder.bind(tenantId, Predicate.TRUE), IsolationOnlyDecision.allow());
     }
 }
