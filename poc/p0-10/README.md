@@ -37,6 +37,8 @@ mvn -q compile exec:java '-Dexec.mainClass=poc.DbProbe'
 
 在 `supply-chain-evidence.csv` 为每个交付组件逐行记录确切版本、官方下载/仓库地址、包 SHA-256 或镜像 digest、许可证 SPDX ID 和许可证文件、SBOM、CVE 扫描及处置、离线包、适用架构、验收人。尤其要确认 Keycloak、Flowable、Quartz、Flyway、Redis 与对象存储各自的版本和授权；不能把开发机的 Maven 缓存当成来源追溯证据。镜像应按 digest 复拉并在目标架构验证。供应链表目前全部 `not-collected`。
 
+S0+S1 把只读探针收成可复现的 PASS/SKIP 采集包（仍**不**关闭目标 Profile）：[`scripts/linux-arm-profile/collect-and-verify.sh`](../../scripts/linux-arm-profile/collect-and-verify.sh)、[linux-arm-profile-EVIDENCE.md](../../docs/engineering/linux-arm-profile-EVIDENCE.md)。`TARGET-ARM-01` 在无 aarch64 硬件时必须保持 `not-tested` / SKIP。
+
 ## 仍未验证
 
 - 所有目标 Linux/CPU/JDK 21/PostgreSQL 的安装、升级、回滚及离线部署。

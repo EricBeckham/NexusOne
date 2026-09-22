@@ -1,0 +1,115 @@
+name: linux-arm-profile
+
+# Cross-check for the S0+S1 Linux/ARM Profile remainder.
+# ubuntu-latest proves the collector + honesty gate + a minimal module set on x86_64.
+# ubuntu-24.04-arm is an optional native aarch64 cross-check when GitHub provides the runner.
+# Neither job is product Profile acceptance (install / upgrade / rollback / offline / SBOM).
+
+on:
+  push:
+    paths:
+      - "scripts/linux-arm-profile/**"
+      - "poc/p0-10/collect-profile.sh"
+      - ".github/workflows/linux-arm-profile.yml"
+      - "pom.xml"
+      - "modules/isolation-kernel/**"
+      - "nexus-common/**"
+      - "nexus-crypto-core/**"
+      - "docs/engineering/linux-arm-profile-EVIDENCE.md"
+  pull_request:
+    paths:
+      - "scripts/linux-arm-profile/**"
+      - "poc/p0-10/collect-profile.sh"
+      - ".github/workflows/linux-arm-profile.yml"
+      - "pom.xml"
+      - "modules/isolation-kernel/**"
+      - "nexus-common/**"
+      - "nexus-crypto-core/**"
+      - "docs/engineering/linux-arm-profile-EVIDENCE.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest x86 report is accepted
+        run: ./scripts/linux-arm-profile/collect-and-verify.sh --verify-report scripts/linux-arm-profile/fixtures/x86-honest.env
+      - name: Fake aarch64 PASS on x86_64 is rejected
+        run: |
+          set +e
+          ./scripts/linux-arm-profile/collect-and-verify.sh --verify-report scripts/linux-arm-profile/fixtures/x86-fake-arm-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake ARM PASS on x86_64 to fail the honesty gate"
+            exit 1
+          fi
+          echo "PASS: fake ARM PASS rejected"
+
+  collect-x86_64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Install PostgreSQL 15 client only (no server, no Docker)
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client-15
+      - name: Collect + verify on this x86_64 runner
+        run: |
+          ./scripts/linux-arm-profile/collect-and-verify.sh \
+            --require-build \
+            --out "$RUNNER_TEMP/linux-arm-profile-x86_64"
+          ./scripts/linux-arm-profile/collect-and-verify.sh \
+            --verify-report "$RUNNER_TEMP/linux-arm-profile-x86_64/report.env"
+          grep -E '^aarch64_build=SKIP$' "$RUNNER_TEMP/linux-arm-profile-x86_64/report.env"
+          grep -E '^profile_acceptance=NOT_CLAIMED$' "$RUNNER_TEMP/linux-arm-profile-x86_64/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-arm-profile-x86_64
+          path: ${{ runner.temp }}/linux-arm-profile-x86_64
+
+  collect-aarch64:
+    # Native ARM cross-check. continue-on-error: runner may be unavailable.
+    # A green cell here is still not product Profile acceptance.
+    runs-on: ubuntu-24.04-arm
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Install PostgreSQL 15 client only (no server, no Docker)
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client-15
+      - name: Collect + verify on native aarch64 (if runner exists)
+        run: |
+          ./scripts/linux-arm-profile/collect-and-verify.sh \
+            --require-build \
+            --out "$RUNNER_TEMP/linux-arm-profile-aarch64"
+          ./scripts/linux-arm-profile/collect-and-verify.sh \
+            --verify-report "$RUNNER_TEMP/linux-arm-profile-aarch64/report.env"
+          grep -E '^host_arch_family=aarch64$' "$RUNNER_TEMP/linux-arm-profile-aarch64/report.env"
+          grep -E '^x86_64_build=SKIP$' "$RUNNER_TEMP/linux-arm-profile-aarch64/report.env"
+          grep -E '^profile_acceptance=NOT_CLAIMED$' "$RUNNER_TEMP/linux-arm-profile-aarch64/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-arm-profile-aarch64
+          path: ${{ runner.temp }}/linux-arm-profile-aarch64
