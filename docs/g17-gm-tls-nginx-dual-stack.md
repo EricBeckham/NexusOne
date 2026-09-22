@@ -55,6 +55,7 @@ See [engineering/g17-gm-tls-nginx-EVIDENCE.md](./engineering/g17-gm-tls-nginx-EV
 ## Honest leftovers (not claimed)
 
 - Live Nginx/Tongsuo GMTLS handshake honesty leftover is [g17-gm-tls-nginx-handshake.md](./g17-gm-tls-nginx-handshake.md) (SKIP without Tongsuo; does not redo this dual-stack leftover)
+- Tongsuo/Nginx GMTLS handshake PASS/SKIP leftover beyond #160/#129 is [g17-gm-tls-nginx-handshake-honesty.md](./g17-gm-tls-nginx-handshake-honesty.md) (harness PASS; missing Tongsuo/Nginx honest SKIP; does not redo #110/#129/#160)
 - Full GM/T 0024 encryption-certificate **negotiation** inside the Java handshake. RFC 8998 TLS 1.3 still uses the sign cert; the encrypt cert is material + documented NTLS config only
 - Qualified GM/T Provider / 商用密码资质模块
 - 密码机 / HSM / OpenBao / cloud KMS

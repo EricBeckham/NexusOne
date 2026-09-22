@@ -1,0 +1,119 @@
+name: g17-gm-tls-nginx-handshake-honesty
+
+# Honesty leftover beyond #160/#129.
+# Does not re-run g17-gm-tls-nginx-handshake.sh or dual-stack collect.
+# Live Tongsuo/Nginx stay SKIP unless present AND observed.
+# 等保 / 密评 / 完整 G17 is not closed.
+
+on:
+  push:
+    paths:
+      - "scripts/g17-gm-tls-nginx-handshake-honesty.sh"
+      - "scripts/g17-gm-tls-nginx-handshake-honesty/**"
+      - "docs/g17-gm-tls-nginx-handshake-honesty.md"
+      - "docs/engineering/g17-gm-tls-nginx-handshake-honesty-EVIDENCE.md"
+      - "docs/engineering/g17-gm-tls-nginx-handshake/agent-vm.env"
+      - "docs/README.md"
+      - ".github/workflows/g17-gm-tls-nginx-handshake-honesty.yml"
+  pull_request:
+    paths:
+      - "scripts/g17-gm-tls-nginx-handshake-honesty.sh"
+      - "scripts/g17-gm-tls-nginx-handshake-honesty/**"
+      - "docs/g17-gm-tls-nginx-handshake-honesty.md"
+      - "docs/engineering/g17-gm-tls-nginx-handshake-honesty-EVIDENCE.md"
+      - "docs/engineering/g17-gm-tls-nginx-handshake/agent-vm.env"
+      - "docs/README.md"
+      - ".github/workflows/g17-gm-tls-nginx-handshake-honesty.yml"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g17-gm-tls-nginx-handshake-honesty.sh --verify-report scripts/g17-gm-tls-nginx-handshake-honesty/fixtures/honest-skip.env
+      - name: Fake Tongsuo handshake PASS without binaries is rejected
+        run: |
+          set +e
+          ./scripts/g17-gm-tls-nginx-handshake-honesty.sh --verify-report \
+            scripts/g17-gm-tls-nginx-handshake-honesty/fixtures/fake-handshake-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake nginx_gmtls_handshake=PASS without tongsuo_nginx=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake handshake PASS rejected"
+      - name: Fake G17 close / 等保 claims are rejected
+        run: |
+          set +e
+          ./scripts/g17-gm-tls-nginx-handshake-honesty.sh --verify-report \
+            scripts/g17-gm-tls-nginx-handshake-honesty/fixtures/fake-g17-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g17_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G17 close rejected"
+      - name: Redo of #129/#160 is rejected
+        run: |
+          set +e
+          ./scripts/g17-gm-tls-nginx-handshake-honesty.sh --verify-report \
+            scripts/g17-gm-tls-nginx-handshake-honesty/fixtures/fake-redone.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake dual_stack_129_redone=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake #129/#160 redo rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest Tongsuo/Nginx SKIP
+        run: |
+          chmod +x ./scripts/g17-gm-tls-nginx-handshake-honesty.sh
+          chmod +x ./scripts/g17-gm-tls-nginx-handshake.sh
+          chmod +x ./scripts/g17-gm-tls-nginx-dual-stack/run.sh
+          ./scripts/g17-gm-tls-nginx-handshake-honesty.sh \
+            --out "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty"
+          ./scripts/g17-gm-tls-nginx-handshake-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_129_cells_honest=PASS$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_160_cells_honest=PASS$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_129_honesty_gate=PASS$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_160_honesty_gate=PASS$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^dual_stack_probe=PASS$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^nginx_gmtls_handshake=SKIP$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^handshake_observed=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^g17_close=NOT_CLAIMED$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E 'g17-gm-tls-nginx-dual-stack' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E 'g17-gm-tls-nginx-handshake' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E 'g10-leftover-honesty' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E 'g4-export-wizard-deny-honesty' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_129_kept=true$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_160_kept=true$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_202_kept=true$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^leftover_203_kept=true$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^dual_cert_110_redone=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^dual_stack_129_redone=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^handshake_160_redone=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^dengbao_claimed=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^mipin_claimed=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^hsm_claimed=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g17-gm-tls-nginx-handshake-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g17-gm-tls-nginx-handshake-honesty
+          path: ${{ runner.temp }}/g17-gm-tls-nginx-handshake-honesty
