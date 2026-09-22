@@ -83,7 +83,7 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, `/api/v1/files`, and
 | G7 | Leave withdraw (scripted HTTP) | **RECORDED** | [g7-withdraw-evidence.md](./g7-withdraw-evidence.md). Catalog leave/expense/travel is on main (#69). This row is the leave-path IT only; not a three-type close |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **PARTIAL** | `GET /api/v1/permission/snapshot` with issued context. Version poll + invalidate-only: [g9-policy-snapshot.md](./g9-policy-snapshot.md). Redis-down failover: [g9-policysnapshot-invalidate.md](./g9-policysnapshot-invalidate.md). Not Sentinel/Cluster. |
-| G15 | H5 | **PARTIAL** | S1 mobile browser: login redirect + files + routing in `web/src/mobile/` (see [g15-h5-mobile.md](./g15-h5-mobile.md)). Host messages / other hosts / PKCE **not** accepted. Desktop P3 pages untouched. |
+| G15 | H5 | **PARTIAL** | S1 mobile browser: login redirect + files + routing + F014 host messages + F010 runtime pages in `web/src/mobile/` (see [g15-h5-mobile.md](./g15-h5-mobile.md) and [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md)). Other hosts / PKCE **not** accepted. Desktop P3 pages untouched. |
 | G18 | Tenant create | **PASS** | P1 API + tenant admin UI |
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
 | G18 | Permission views | **PASS** | `38f1a73`: snapshot `grant_count=7`, `ledger`/`read` allowed. G18 close unchanged. Matrix UI is the G2 slice |

@@ -21,8 +21,10 @@
     </main>
     <nav v-if="showTabs" class="m-bottom" data-testid="mobile-tabs">
       <router-link to="/m/p3/home">首页</router-link>
+      <router-link to="/m/p3/forms">表单</router-link>
+      <router-link to="/m/p3/todos">待办</router-link>
+      <router-link to="/m/p3/notifications">通知</router-link>
       <router-link to="/m/p3/files">文件</router-link>
-      <router-link to="/m/login">会话</router-link>
     </nav>
   </div>
 </template>

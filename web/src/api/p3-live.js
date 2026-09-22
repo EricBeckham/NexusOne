@@ -263,14 +263,45 @@ export async function updateField() {
   throw error;
 }
 
-export async function listRecords(ledgerId) {
-  const page = (await api(`/api/v1/p3/ledgers/${ledgerId}/records`)) || {};
+function recordListQuery(query) {
+  const params = new URLSearchParams();
+  if (!query || typeof query !== "object") {
+    return "";
+  }
+  for (const [key, value] of Object.entries(query)) {
+    if (key === "page" || key === "size") {
+      if (value != null && String(value).trim() !== "") {
+        params.set(key, String(value).trim());
+      }
+      continue;
+    }
+    if (key === "tenant_id" || key === "tenantId") {
+      continue;
+    }
+    if (value == null || String(value).trim() === "") {
+      continue;
+    }
+    if (!/^[a-z][a-z0-9_]{0,23}$/.test(key)) {
+      continue;
+    }
+    params.set(key, String(value).trim());
+  }
+  const encoded = params.toString();
+  return encoded ? `?${encoded}` : "";
+}
+
+export async function listRecords(ledgerId, query = {}) {
+  const page = (await api(`/api/v1/p3/ledgers/${ledgerId}/records${recordListQuery(query)}`)) || {};
   return wrap({
     items: asList(page),
     total: pick(page, "total") ?? asList(page).length,
     page: pick(page, "page") ?? 0,
     size: pick(page, "size") ?? 20,
   });
+}
+
+export async function getRecord(ledgerId, recordId) {
+  return wrap(await api(`/api/v1/p3/ledgers/${ledgerId}/records/${recordId}`));
 }
 
 export async function listForms() {

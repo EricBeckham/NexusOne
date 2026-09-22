@@ -2,13 +2,26 @@
   <div>
     <div class="m-hero">
       <h2>你好，{{ session.displayName || "访客" }}</h2>
-      <p>星构 H5 · 登录回跳 / 文件 / 路由 / 宿主消息。桌面台账、表单、待办页未改。</p>
+      <p>星构 H5 运行入口 · 表单 / 列表 / 待办 / 查询 / 文件 / 通知跳转。桌面台账、表单、待办页未改。</p>
     </div>
     <div class="m-card">
       <h3>会话与租户</h3>
       <p class="m-muted">账号 {{ session.email || "未登录" }}</p>
       <p class="m-muted" data-testid="mobile-context">context {{ session.contextId || "（无）" }}</p>
       <p class="m-muted">tenant 仅在会话中，不在 URL。</p>
+    </div>
+    <div class="m-card">
+      <h3>运行入口</h3>
+      <p class="m-muted">已发布应用的移动浏览器运行态。设计器仍在桌面。</p>
+      <router-link class="m-btn primary" to="/m/p3/forms" data-testid="mobile-open-forms">打开表单</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/p3/lists" data-testid="mobile-open-lists">打开列表</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/p3/todos?box=inbox" data-testid="mobile-open-todos">打开待办</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/p3/query" data-testid="mobile-open-query">打开查询</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/p3/notifications" data-testid="mobile-open-notify">打开通知跳转</router-link>
     </div>
     <div class="m-card">
       <h3>路由验收</h3>

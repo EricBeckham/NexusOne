@@ -190,7 +190,7 @@
   border-top: 1px solid var(--nx-border);
   box-shadow: var(--nx-mobile-shadow-bottom);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .nx-mobile .m-bottom a {
@@ -233,6 +233,37 @@
   color: inherit;
 }
 .nx-mobile .m-file-row strong { font-size: 15px; }
+
+.nx-mobile .m-entity {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  box-shadow: var(--nx-mobile-shadow-card);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nx-mobile .m-entity strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.nx-mobile .m-sticky {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--nx-bg-page);
+}
 
 .host-harness {
   min-height: 100vh;
