@@ -61,7 +61,7 @@ See [engineering/g10-identity-drift-dry-run-EVIDENCE.md](./engineering/g10-ident
 | LDAP / Active Directory federation | Not implemented. Not walked. |
 | SMS MFA | Not implemented. `amr=sms` is only recognized if an IdP sent it. |
 | Product G10 close | Identity apply + file half already exist. This leftover is dry-run evidence only. |
-| File metadata ↔ object store | Other G10 half. Not redone. |
+| File metadata ↔ object store | Other G10 half. Not redone. Honesty leftover: [g10-file-reconcile-honesty.md](./g10-file-reconcile-honesty.md). |
 | Keycloak Organizations / Employment sync | P2 remains org master. Unmatched IdP users stay report-only. |
 | Browser Authorization Code + PKCE / human laptop + live CA | G4 leftovers. Not this slice. |
 | Keycloak upgrade / rollback matrix | 26.5.2 only. |
