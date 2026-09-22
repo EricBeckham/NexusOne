@@ -57,7 +57,8 @@ See [web/README.md](../web/README.md).
 | G1 | Query AST / export / file / cache / Job / Task full path | **DEFERRED** | M0-02 kernel + later modules |
 | G1 | Guard-reject logs “zero leak” product claim | **DEFERRED** | isolation kernel evidence, not this UI |
 | G2 | UI/API/list/detail/flow same permission engine | **DEFERRED** | M0-05 |
-| G5 | Draft/Validate/Publish | **DEFERRED** | M0-07 |
+| G5 | Draft/Validate/Publish | **DEFERRED UI** | M0-07 APIs exist; designer UI is this package’s later slice |
+| G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **DEFERRED** | M0-05 |
 | G15 | H5 | **DEFERRED** | S1 |
@@ -65,7 +66,7 @@ See [web/README.md](../web/README.md).
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
 | G18 | Permission views | **SHELL ONLY** | stub pages, no API |
 | G18 | Ledger | **SKIP** | TODO M0-06; script expects 404 |
-| G18 | Form / publish | **SKIP** | TODO M0-07 |
+| G18 | Form / publish | **API ONLY** | M0-07 `/api/v1/p3/forms`; this shell stays a stub |
 | G18 | Business data / query | **SKIP** | TODO M0-06 |
 | G18 | Sequential approval / todo | **SKIP** | TODO M0-08 |
 | G18 | In-app notification | **SKIP** | TODO M0-10 |

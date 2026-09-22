@@ -25,10 +25,10 @@ const catalog = {
     todo: "TODO(M0-06): 应用、一个台账、基础字段、SchemaService DDL、租户过滤列表。G18 台账段未开始。",
     path: "GET /api/v1/p3/ledgers",
   },
-  forms: {
+    forms: {
     title: "表单与发布",
-    blurb: "基础表单与 Draft→Validate→Publish 属于 M0-07。",
-    todo: "TODO(M0-07): 表单填报与发布失败回滚。G5/G18 表单段未开始。",
+    blurb: "基础表单 API 已在 M0-07（Draft→Validate→Publish→Running）。本页不实现设计器。",
+    todo: "TODO(M0-12): 表单设计/填报 UI。后端 POST/GET /api/v1/p3/forms 与 /validate /publish /submissions 已存在。",
     path: "GET /api/v1/p3/forms",
   },
   todos: {

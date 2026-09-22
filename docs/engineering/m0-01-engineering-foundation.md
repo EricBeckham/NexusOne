@@ -52,6 +52,7 @@ Java 包前缀：`one.nexus.*`。`nexus-bootstrap` 扫描 `one.nexus`，后续�
 | M0-03 | 新增 Flyway **V100–V199** 于 `nexus-bootstrap/src/main/resources/db/migration` 或本模块 `db/migration` 并加入 `spring.flyway.locations` | 不要建 `business_data` 台账表 |
 | M0-04 | 契约 `Actor`；Flyway **V200–V299** 写入 `iam` schema | 不要把 Keycloak 表放进 Flyway |
 | M0-06 | `platform.table_registry`；动态 DDL 只走 SchemaService | **禁止** Flyway 管理 `l_*` / `a_*` |
+| M0-07 | `LedgerMetadataPort`（逻辑 ledger/field code）；Flyway **V530–V549** 表单元数据 | 不要绑定物理列；不要占用 V500/V501/V510/V520 |
 | M0-08 | 引擎自管 `flowable` schema | 不要把 Flowable 表写入 Flyway |
 | M0-09 | `DomainEvent` / `OutboxMessage`；Flyway 可加静态 Outbox 表 | 版本号避开 001–099 |
 | M0-11 | `CryptoPort` / `AuditPort`；Flyway **V501** 写入 `platform.audit_record`（窗口 V500+；V500 已由 M0-09 占用） | 不要改 P1 staging `platform.audit_event`；不要声称 G6/Profile |
@@ -62,8 +63,8 @@ Flyway 版本窗：
 - `V100–V199`：M0-03 P1
 - `V200–V299`：M0-04 P2
 - `V300–V399`：M0-05 权限静态表
-- `V400–V499`：M0-06 P3 **元数据**（不是台账物理表）
-- `V500+`：其余静态表（M0-09 已占用 **V500** 执行通道；M0-11 已占用 **V501** 审计哈希链表）
+- `V400–V499`：M0-06 P3 **台账/字段元数据**（不是台账物理表；尚未占用）
+- `V500+`：其余静态表（M0-09 **V500** 执行通道；M0-11 **V501** 审计；M0-10 **V510** 文件 / **V520** 通知；M0-07 **V530–V549** 表单元数据）
 
 历史表：`platform.flyway_schema_history`。
 

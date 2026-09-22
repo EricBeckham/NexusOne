@@ -1,5 +1,5 @@
 /**
  * P3 Studio. Dynamic ledger DDL is {@code SchemaService} (M0-06), never Flyway.
- * Forms, Validate/Publish/Running are M0-07 and are not implemented here.
+ * Forms, Draft→Validate→Publish→Running (M0-07) bind {@code ledger_code} + {@code field_code} only.
  */
 package one.nexus.p3.studio;

@@ -366,6 +366,14 @@ def deferred_business(api: Api) -> None:
     ]
     for gate, item, path, owner in deferred:
         status, body = api.request("GET", path)
+        if path.endswith("/forms"):
+            # M0-07 landed: unauthenticated list requires TenantContext (CORE.CTX.0001).
+            if status in (401, 403):
+                record(gate, item, "SKIP", f"M0-07 API live; {path} -> {status} {pick(body, 'code', default='')} (needs TenantContext)")
+                continue
+            if status == 200:
+                record(gate, item, "SKIP", "M0-07 list ok without fill walkthrough; G5 UI is M0-12")
+                continue
         if status == 404:
             record(gate, item, "SKIP", f"{owner}: {path} -> {status} {pick(body, 'code', default='')}")
         else:

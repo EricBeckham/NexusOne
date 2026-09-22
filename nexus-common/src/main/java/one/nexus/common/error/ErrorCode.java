@@ -41,6 +41,16 @@ public record ErrorCode(String product, String module, int number) {
     public static final ErrorCode AUDIT_CHAIN_BROKEN = of("CORE", "AUDIT", 1);
     public static final ErrorCode AUDIT_APPEND_ONLY = of("CORE", "AUDIT", 2);
     public static final ErrorCode RECOVERY_DRY_RUN_ONLY = of("CORE", "RECOVERY", 1);
+    public static final ErrorCode FORM_NOT_FOUND = of("P3", "FORM", 1);
+    public static final ErrorCode FORM_INVALID_STATE = of("P3", "FORM", 2);
+    public static final ErrorCode FORM_BINDING_INVALID = of("P3", "FORM", 3);
+    public static final ErrorCode FORM_PHYSICAL_BINDING = of("P3", "FORM", 4);
+    public static final ErrorCode FORM_VALIDATE_FAILED = of("P3", "FORM", 5);
+    public static final ErrorCode FORM_PUBLISH_FAILED = of("P3", "FORM", 6);
+    public static final ErrorCode FORM_NOT_RUNNING = of("P3", "FORM", 7);
+    public static final ErrorCode FORM_SUBMIT_INVALID = of("P3", "FORM", 8);
+    public static final ErrorCode FORM_CODE_CONFLICT = of("P3", "FORM", 9);
+    public static final ErrorCode FORM_INVALID = of("P3", "FORM", 10);
 
     public ErrorCode {
         Objects.requireNonNull(product, "product");

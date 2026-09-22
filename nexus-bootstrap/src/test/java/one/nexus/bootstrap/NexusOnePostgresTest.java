@@ -44,8 +44,8 @@ class NexusOnePostgresTest {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from platform.flyway_schema_history where success and version is not null",
                 Integer.class);
-        assertTrue(applied != null && applied >= 11,
-                "expected V001-V003, V100-V101, V200, V300, V400, V500, V501, V510, V520; got " + applied);
+        assertTrue(applied != null && applied >= 12,
+                "expected V001-V003, V100-V101, V200, V300, V400, V500, V501, V510, V520, V530; got " + applied);
         List<String> versions = jdbc.queryForList(
                 "select version from platform.flyway_schema_history where success and version is not null",
                 String.class);
@@ -58,6 +58,7 @@ class NexusOnePostgresTest {
         assertTrue(versions.contains("501"), "M0-11 V501 audit hash chain must be applied, got " + versions);
         assertTrue(versions.contains("510"), "M0-10 V510 files must be applied, got " + versions);
         assertTrue(versions.contains("520"), "M0-10 V520 notify must be applied, got " + versions);
+        assertTrue(versions.contains("530"), "M0-07 V530 form metadata must be applied, got " + versions);
         Integer auditTables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'audit_record'",
                 Integer.class);
@@ -66,6 +67,10 @@ class NexusOnePostgresTest {
                 "select count(*) from information_schema.tables where table_schema = 'iam' and table_name = 'iam_global_account'",
                 Integer.class);
         assertEquals(1, iamTables);
+        Integer formTables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'business_meta' and table_name = 'form'",
+                Integer.class);
+        assertEquals(1, formTables);
         Integer ledgerTables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'business_data'", Integer.class);
         assertEquals(0, ledgerTables);

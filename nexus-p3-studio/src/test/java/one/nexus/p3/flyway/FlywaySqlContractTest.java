@@ -22,7 +22,11 @@ class FlywaySqlContractTest {
             for (Path file : sql) {
                 String name = file.getFileName().toString();
                 int version = Integer.parseInt(name.substring(1, name.indexOf('_')));
-                assertTrue(version >= 400 && version <= 499, name + " must be V400-V499");
+                boolean ledgerWindow = version >= 400 && version <= 499;
+                boolean formWindow = version >= 530 && version <= 549;
+                assertTrue(
+                        ledgerWindow || formWindow,
+                        name + " must be V400-V499 (M0-06 ledger metadata) or V530-V549 (M0-07 form metadata)");
                 String text = Files.readString(file).toLowerCase(Locale.ROOT);
                 assertFalse(text.contains("create table business_data."), file + " must not create business_data tables");
                 assertFalse(text.contains("create table l_"), file + " must not create l_* ledger tables");
