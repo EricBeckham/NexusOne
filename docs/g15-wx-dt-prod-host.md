@@ -37,7 +37,7 @@ Envelope (unchanged):
 |---|---|
 | WeChat 小程序 production accept | **Not accepted.** No vendor JSAPI, no servicewechat.com allow, no WeChat domain walk. This file is a **stub**. |
 | DingTalk 小程序 production accept | **Not accepted.** No DingTalk JSAPI, no h5.dingtalk.com allow. This file is a **stub**. |
-| APP WebView native binary | **Open.** Web harness is [g15-app-webview-host.md](./g15-app-webview-host.md). |
+| APP WebView native binary | **Open.** Web harness is [g15-app-webview-host.md](./g15-app-webview-host.md). Native-bridge **stub** is [g15-native-bridge-stub.md](./g15-native-bridge-stub.md) (not store-ready). |
 | 小程序 web-view sim | Simulated parent is [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Desktop leftover is [g4-pkce-browser-click.md](./g4-pkce-browser-click.md). Not walked inside this stub. |
 | Product G15 | **Open** until production hosts are walked on the same contract. |

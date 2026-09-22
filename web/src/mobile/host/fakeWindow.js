@@ -1,11 +1,12 @@
 /**
  * In-memory window double for HostBridgePort unit tests, assert:h5-host,
- * and the APP WebView web-harness walk. Not a browser. No Playwright.
- * Not a native APP binary.
+ * the APP WebView web-harness walk, and the native-bridge stub walk.
+ * Not a browser. No Playwright. Not a native APP binary or store package.
  */
 export function createFakeWindow({
   embedded = false,
   appWebView = false,
+  nativeBridge = false,
   origin = "http://127.0.0.1:5173",
   search = "",
 } = {}) {
@@ -13,7 +14,12 @@ export function createFakeWindow({
   const parentInbox = [];
   const selfInbox = [];
   const appInbox = [];
-  const resolvedSearch = search || (embedded || appWebView ? "?embedded=true" : "");
+  const nativeInbox = [];
+  const resolvedSearch = search || (
+    embedded || appWebView || nativeBridge
+      ? (nativeBridge ? "?embedded=true&host=native-bridge-stub" : "?embedded=true")
+      : ""
+  );
   const parent = {
     postMessage(data, targetOrigin) {
       parentInbox.push({ data, targetOrigin });
@@ -49,6 +55,7 @@ export function createFakeWindow({
   win.__parentInbox = parentInbox;
   win.__selfInbox = selfInbox;
   win.__appWebViewInbox = appInbox;
+  win.__nativeInbox = nativeInbox;
   win.__listeners = listeners;
   if (appWebView) {
     win.NexusAppWebView = {
@@ -56,6 +63,29 @@ export function createFakeWindow({
       nativeBinary: false,
       postMessage(data, targetOrigin) {
         appInbox.push({ data, targetOrigin });
+      },
+    };
+  }
+  if (nativeBridge === "android") {
+    win.NexusNativeBridge = {
+      kind: "android-jsinterface-stub",
+      storeReady: false,
+      nativeBinary: false,
+      storePackage: false,
+      postMessage(data) {
+        const parsed = typeof data === "string" ? JSON.parse(data) : data;
+        nativeInbox.push({ platform: "android", data: parsed, raw: data });
+      },
+    };
+  } else if (nativeBridge) {
+    win.webkit = { messageHandlers: {} };
+    win.webkit.messageHandlers.nexusHost = {
+      kind: "ios-wk-stub",
+      storeReady: false,
+      nativeBinary: false,
+      storePackage: false,
+      postMessage(data) {
+        nativeInbox.push({ platform: "ios", data });
       },
     };
   }

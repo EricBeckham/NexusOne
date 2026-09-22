@@ -70,6 +70,12 @@ const routes = [
     meta: { harness: true, public: true, title: "微信钉钉生产宿主契约桩" },
   },
   {
+    path: "/m/native-bridge-harness",
+    name: "m-native-bridge-harness",
+    component: () => import("./mobile/products/p3-studio/pages/NativeBridgeHarnessPage.vue"),
+    meta: { harness: true, public: true, title: "APP 原生桥契约桩" },
+  },
+  {
     path: "/m/p3/home",
     name: "m-home",
     component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),

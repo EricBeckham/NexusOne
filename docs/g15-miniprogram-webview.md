@@ -35,7 +35,7 @@ Envelope (unchanged):
 |---|---|
 | WeChat 小程序 production | **Not accepted.** No `wx.miniProgram`, no servicewechat.com allow, no WeChat domain walk. Contract **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). |
 | DingTalk 小程序 production | **Not accepted.** No DingTalk JSAPI, no h5.dingtalk.com allow. Contract **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). |
-| APP WebView | **Not accepted.** Same contract, no native host walk. |
+| APP WebView | **Not accepted.** Web harness is [g15-app-webview-host.md](./g15-app-webview-host.md). Native-bridge **stub** is [g15-native-bridge-stub.md](./g15-native-bridge-stub.md) (not store-ready). |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Not walked inside this 小程序 harness. |
 | Product G15 | **Open** until production hosts are walked on the same contract. |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. |
