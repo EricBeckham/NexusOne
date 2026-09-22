@@ -80,7 +80,7 @@ BUILD SUCCESS
 
 `mvn test` does not fail when live services are absent.
 
-This page is not a product-wide G1 “zero leak” close and is not GaussDB.
+This page is not a product-wide G1 “zero leak” close and is not GaussDB. Honesty leftover for tenant-key / bucket-prefix isolation (live SKIP when Redis/MinIO are absent; not a product live-drill close) is [s0s1-live-redis-minio-isolation-honesty.md](./s0s1-live-redis-minio-isolation-honesty.md).
 
 ## Honest leftover
 
