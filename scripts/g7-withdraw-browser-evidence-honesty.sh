@@ -129,7 +129,7 @@ verify_report_inner() {
 
   local rows
   rows="$(report_get "$file" leftover_rows_kept)"
-  for row in g7-withdraw-evidence g7-withdraw-expense-travel g7-withdraw-browser g7-withdraw-browser-honesty g7-query-expense-travel g7-query-expense-travel-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty g5-publishhook-ddl-honesty g17-gm-tls-nginx-handshake-honesty g1-queryast-export-honesty; do
+  for row in g7-withdraw-evidence g7-withdraw-expense-travel g7-withdraw-browser g7-withdraw-browser-honesty g7-query-expense-travel g7-query-expense-travel-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty g5-publishhook-ddl-honesty g17-gm-tls-nginx-handshake-honesty g1-queryast-export-honesty g15-wx-dt-native-bridge-remainder g17-separation-leftover-honesty; do
     echo "$rows" | grep -Fq "$row" || { echo "FAIL: leftover_rows_kept must keep $row" >&2; return 1; }
   done
 
@@ -324,6 +324,8 @@ g9-sentinel-cluster-remainder-honesty
 g5-publishhook-ddl-honesty
 g17-gm-tls-nginx-handshake-honesty
 g1-queryast-export-honesty
+g15-wx-dt-native-bridge-remainder
+g17-separation-leftover-honesty
 g17-mfa-recovery-email-honesty
 g17-vue-otp-writeback
 g9-redis-down-invalidate-remainder
@@ -390,6 +392,10 @@ grep -Fq 'g17-gm-tls-nginx-handshake-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover g17-gm-tls-nginx-handshake-honesty (#210)"
 grep -Fq 'g1-queryast-export-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover g1-queryast-export-honesty (#215)"
+grep -Fq 'g15-wx-dt-native-bridge-remainder.md' "$README" \
+  || fail "docs/README.md must keep sibling leftover g15-wx-dt-native-bridge-remainder (#220)"
+grep -Fq 'g17-separation-leftover-honesty.md' "$README" \
+  || fail "docs/README.md must keep sibling leftover g17-separation-leftover-honesty (#216)"
 
 echo
 echo "== Honesty fixtures (this leftover)"
@@ -508,7 +514,7 @@ REPORT="$OUT/report.env"
   kv stub_walk_travel "$STUB_TRAVEL"
   kv stub_walk_is_not_live "$STUB_NOT_LIVE"
   kv screenshot_artifacts "$SCREENSHOTS"
-  kv leftover_rows_kept "g7-withdraw-evidence,g7-withdraw-expense-travel,g7-withdraw-browser,g7-withdraw-browser-honesty,g7-query-expense-travel,g7-query-expense-travel-honesty,g2-h5-every-page-form-write-honesty,g9-redis-down-invalidate-remainder,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty,g5-publishhook-ddl-honesty,g17-gm-tls-nginx-handshake-honesty,g1-queryast-export-honesty"
+  kv leftover_rows_kept "g7-withdraw-evidence,g7-withdraw-expense-travel,g7-withdraw-browser,g7-withdraw-browser-honesty,g7-query-expense-travel,g7-query-expense-travel-honesty,g2-h5-every-page-form-write-honesty,g9-redis-down-invalidate-remainder,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty,g5-publishhook-ddl-honesty,g17-gm-tls-nginx-handshake-honesty,g1-queryast-export-honesty,g15-wx-dt-native-bridge-remainder,g17-separation-leftover-honesty"
   kv leftover_rows_all "$LEFTOVER_ROWS_ALL"
   kv same_tx_append_unchanged "$SAME_TX"
   kv live_jar_endpoint_set "$LIVE_ENDPOINT_SET"
@@ -551,7 +557,7 @@ MATRIX="$OUT/matrix.md"
   echo "| #192 query leftover honesty | $LEFTOVER_192 | sibling leftover; withdraw paths not redone |"
   echo "| Browser-visible stub walk | $STUB_WALK | leave=$STUB_LEAVE expense=$STUB_EXPENSE travel=$STUB_TRAVEL; stub ≠ live |"
   echo "| Screenshot artifacts | $SCREENSHOTS | stub-login / 我发起 / todo-withdraw / WITHDRAWN |"
-  echo "| leftover rows kept | true | parents + #215 G1 QueryAst/export honesty + #210 G17 GMTLS handshake honesty + #217 G5 PublishHook DDL honesty + #209 G9 Sentinel/Cluster remainder honesty + #188 G2 ops pg_dump honesty + #205 G17 MFA recovery/OTP honesty + #197 G9 Redis-down remainder + #204 G2 H5/form.write honesty + all sibling leftover rows |"
+  echo "| leftover rows kept | true | parents + #216 G17 SoD leftover honesty + #220 G15 wx-dt/native-bridge remainder + #215 G1 QueryAst/export honesty + #210 G17 GMTLS handshake honesty + #217 G5 PublishHook DDL honesty + #209 G9 Sentinel/Cluster remainder honesty + #188 G2 ops pg_dump honesty + #205 G17 MFA recovery/OTP honesty + #197 G9 Redis-down remainder + #204 G2 H5/form.write honesty + all sibling leftover rows |"
   echo "| AuditPort same-TX | $SAME_TX | untouched |"
   echo "| Live JAR/IdP browser withdraw | $LIVE_WALK | ${LIVE_REASON} |"
   echo "| Live browser-visible withdraw | $LIVE_VISIBLE | ${VISIBLE_REASON} |"
