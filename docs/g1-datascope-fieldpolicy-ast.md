@@ -18,16 +18,19 @@ It does **not** invent a second tenant context. It does **not** change `AuditPor
 
 ## Evidence
 
-Recorded on this agent VM. Java **21**, Maven **3.9.x**, Spring Boot **4.1.1**. Isolation-kernel `PostgresIsolationIT` uses in-process PostgreSQL **15.18** (Zonky). No Docker.
+Recorded on this agent VM. Java **21.0.10**, Maven **3.9.16**, Spring Boot **4.1.1**. Isolation-kernel `PostgresIsolationIT` uses in-process PostgreSQL **15.18** (Zonky). No Docker.
 
 ```
 mvn -f modules/isolation-kernel/pom.xml test
-# PENDING — filled after the targeted run
+# Tests run: 52, Failures: 0, Errors: 0, Skipped: 0  BUILD SUCCESS  2026-09-22T17:37:17Z
 
 mvn -pl nexus-permission-core,nexus-bootstrap -am test \
-    -Dtest=QueryAstPolicyCompilerTest,IsolationDataScopeInjectorTest,G1QueryDataScopeFieldPolicyAstTest \
+    -Dtest=QueryAstPolicyCompilerTest,IsolationDataScopeInjectorTest,G1QueryDataScopeFieldPolicyAstTest,G1QueryJoinFieldPolicyTest,G1QueryAstRemainderTest \
     -Dsurefire.failIfNoSpecifiedTests=false
-# PENDING — filled after the targeted run
+# BUILD SUCCESS  2026-09-22T17:37:49Z
+# QueryAstPolicyCompilerTest 3/3, IsolationDataScopeInjectorTest 5/5,
+# G1QueryDataScopeFieldPolicyAstTest 1/1, G1QueryJoinFieldPolicyTest 1/1,
+# G1QueryAstRemainderTest 1/1
 ```
 
 | Suite | What it proved |
