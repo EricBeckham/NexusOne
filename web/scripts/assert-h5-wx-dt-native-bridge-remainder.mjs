@@ -3,7 +3,8 @@
  * G15 leftover remainder: WeChat / DingTalk prod-gap + native-bridge
  * honesty PASS/SKIP beyond #167/#181/#198. Not a product G15 close.
  * Not IPA/APK. Does not redo #117/#132/#151/#167/#181/#198.
- * Keeps ALL sibling leftover rows including #188 g2-ops-pg-dump-honesty.
+ * Keeps ALL sibling leftover rows including #188 g2-ops-pg-dump-honesty
+ * and #209 g9-sentinel-cluster-remainder-honesty.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -124,6 +125,10 @@ check(files.doc.includes("#167") && files.doc.includes("#181") && files.doc.incl
 check(files.doc.includes("#117") && files.doc.includes("#132") && files.doc.includes("#151"), "doc names #117/#132/#151 leftovers");
 check(files.doc.includes("g15-wx-dt-native-bridge-honesty"), "doc keeps #198 leftover row");
 check(files.doc.includes("g2-ops-pg-dump-honesty"), "doc keeps #188 leftover row");
+check(files.doc.includes("g9-sentinel-cluster-remainder-honesty"), "doc keeps #209 leftover row");
+check(files.doc.includes("1c79ef3"), "doc points at origin/main 1c79ef3");
+check(files.claim.includes("g9-sentinel-cluster-remainder-honesty.md"), "claim-list keeps #209 leftover");
+check(files.docsIndex.includes("[g9-sentinel-cluster-remainder-honesty]"), "docs index keeps #209 leftover");
 check(!files.doc.includes("storeReady: true"), "doc must not claim store-ready");
 check(files.parentDoc.includes("g15-wx-dt-native-bridge-remainder"), "#198 doc points at remainder leftover");
 check(files.gapDoc.includes("g15-wx-dt-native-bridge-honesty"), "#167 doc keeps #198 leftover");

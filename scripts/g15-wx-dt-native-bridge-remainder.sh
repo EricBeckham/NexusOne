@@ -121,6 +121,7 @@ for row in \
   g15-wx-dt-prod-host \
   g15-wx-dt-native-bridge-honesty \
   g2-ops-pg-dump-honesty \
+  g9-sentinel-cluster-remainder-honesty \
   g17-mfa-recovery-vue-otp-honesty \
   g9-redis-down-invalidate-remainder \
   g2-h5-every-page-form-write-honesty \
@@ -301,7 +302,7 @@ log "wrote $OUT/report.env"
 echo
 echo "PASS: leftover remainder honesty recorded (#167/#181/#198 harness PASS; live WeChat/DingTalk/IPA/APK SKIP unless observed)"
 echo "See docs/g15-wx-dt-native-bridge-remainder.md"
-echo "Keep sibling leftover rows including g15-wx-dt-native-bridge-honesty / g2-ops-pg-dump-honesty"
+echo "Keep sibling leftover rows including g15-wx-dt-native-bridge-honesty / g2-ops-pg-dump-honesty / g9-sentinel-cluster-remainder-honesty"
 echo "Not claimed: product G15 close / IPA/APK / WeChat·DingTalk production"
 echo "Not redone: #117/#132/#151/#167/#181/#198 / P0/M0"
 echo "out=$OUT"
