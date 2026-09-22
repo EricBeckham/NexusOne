@@ -243,11 +243,25 @@ Wire: form submit → SchemaService physical `l_*` row → sequential approval i
 
 Flyway **V531** (window V530–V549) adds `form_submission.ledger_id` / `ledger_record_id`. No `business_data` / `l_*` DDL.
 
-Command:
+## Runnable evidence (this branch)
+
+Agent VM, **2026-09-22T12:32:09Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, Flowable **7.1.0**. No Docker.
 
 ```bash
-mvn -pl nexus-event-core,nexus-p3-studio -am test -Dtest=OutboxEventContractTest,G18BusinessPathIT,FormPublishStateMachineTest
+mvn -pl nexus-notification-core,nexus-p3-studio -am test \
+  -Dtest=G18BusinessPathIT,FormPublishStateMachineTest,NotificationServiceTest,NotificationApiTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Runnable evidence is recorded after the IT run on this branch (Zonky PostgreSQL 15.18). Audit hash-chain commits on its own chain lock (M0-11); reject-path audits can survive a business rollback. Outbox INSERT joins the business TX via `DataSourceUtils`.
+`BUILD SUCCESS`. `nexus-p3-studio`: **Tests run: 8, Failures: 0, Errors: 0** (`G18BusinessPathIT` **2/2**, `FormPublishStateMachineTest` **6/6**).
+
+```bash
+mvn -pl modules/isolation-kernel,nexus-event-core test \
+  -Dtest=QueryCompilerTest,OutboxEventContractTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+`BUILD SUCCESS` at **2026-09-22T12:32:28Z**. `QueryCompilerTest` **4/4**. `OutboxEventContractTest` **10/10**.
+
+Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; approval+record+outbox roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the same TX; audit events `p3.path.submitted` / `p3.approval.started` / `p3.approval.approved` by UUID `X-Trace-Id`. Vue ledger/form/todo remain MOCK. Audit hash-chain still commits on its own chain lock (M0-11).
 

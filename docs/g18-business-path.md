@@ -7,20 +7,38 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.1.0**, Fly
 
 ## What is proven (runnable)
 
-Suite: `one.nexus.p3.path.G18BusinessPathIT` (Zonky embedded PostgreSQL **15.18**) plus `OutboxEventContractTest.appendJoinsSpringTransactionAndRollsBack`.
+Recorded on this branch at **2026-09-22T12:32:09Z** (G18 IT) and **2026-09-22T12:32:28Z** (Outbox + QueryCompiler). Agent VM, no Docker.
+
+| Component | Version |
+|---|---|
+| JDK | OpenJDK **21.0.10** |
+| Maven | **3.8.7** |
+| Spring Boot | **4.1.1** |
+| PostgreSQL | Zonky embedded **15.18** |
+| Flowable | **7.1.0** in-process |
+| Flyway | **13.7.0** through **V550** (G18 adds **V531**) |
+
+| Suite | Result |
+|---|---|
+| `G18BusinessPathIT` | **2/2** |
+| `FormPublishStateMachineTest` | **6/6** (includes physical `LedgerRecordSink` submit) |
+| `OutboxEventContractTest` | **10/10** (includes `appendJoinsSpringTransactionAndRollsBack`) |
+| `QueryCompilerTest` | **4/4** (nullable JDBC binds) |
 
 | Behavior | Evidence |
 |---|---|
-| After form/ledger publish, submit writes a **physical** `business_data.l_*` row | IT asserts `count(*) = 1` on the SchemaService table (`JdbcSchemaService` DDL only) |
+| After form/ledger publish, submit writes a **physical** `business_data.l_*` row | IT asserts `count(*) = 1` on `l_g18a_leave` (`JdbcSchemaService` DDL only) |
 | Approval + that row share one Spring TX | `G18RollbackProbe.submitStartThenFail`: form_submission, physical row, `process_instance`, and `platform.exec_outbox` are all 0 after the forced failure |
 | Approval completion enqueues `notify.inbox` via M0-09 Outbox **in the same TX** | `OutboxPort.append` through M0-10 `ApprovalNotificationPublisher` / `NotificationService`; row `destination = notify.inbox`, `status = PENDING`. Dispatcher is **off** in the IT so the row is observed, not a private thread pool |
 | Repeat approve is idempotent | Second approve does not insert another Outbox row |
-| Actions are on the M0-11 hash chain and queryable by trace | `AuditPort.findByTraceId` returns `p3.path.submitted`, `p3.approval.started`, `p3.approval.approved` for `X-Trace-Id` |
+| Actions are on the M0-11 hash chain and queryable by trace | `AuditPort.findByTraceId` returns `p3.path.submitted`, `p3.approval.started`, `p3.approval.approved` for a valid UUID `X-Trace-Id` |
 
 Command:
 
 ```bash
-mvn -pl nexus-event-core,nexus-p3-studio -am test -Dtest=OutboxEventContractTest,G18BusinessPathIT,FormPublishStateMachineTest
+mvn -pl nexus-event-core,nexus-p3-studio -am test \
+  -Dtest=OutboxEventContractTest,G18BusinessPathIT,FormPublishStateMachineTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 ## API (IAM session + M0-02 isolation)
@@ -56,6 +74,8 @@ Tenant isolation for ledger/outbox is M0-02 `AccessContextHolder` / `RequestIsol
 - One running form binds a single `ledger_code`. The G18 ledger includes optional `approval_status`.
 - In-process Flowable 7.1.0 on the application `DataSource` / `PlatformTransactionManager` (already proven in M0-08).
 - Demo P3 headers are test-only for ledger/form setup; the path API uses server-issued IAM context.
+- `X-Trace-Id` must be a UUID / OTEL trace (`TraceIds.resolve`). The IT uses UUIDv7-shaped ids.
+- `nexus.notify.outbox=auto` uses M0-09 `JdbcOutboxStore`. In-memory `RecordingOutboxPort` is only for `outbox=record`.
 
 ## Still MOCK / deferred (not claimed)
 
