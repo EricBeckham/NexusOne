@@ -16,8 +16,10 @@
  * accept vendor production. Native-bridge contract stub:
  * /m/native-bridge-harness injects iOS WKScriptMessageHandler /
  * Android JavascriptInterface-shaped handlers. That stub is not a
- * store-ready IPA/APK. Store-ready native package and WeChat/DingTalk
- * production stay open.
+ * store-ready IPA/APK. Production mini-program acceptance-gap honesty
+ * stub: /m/wx-dt-prod-gap-harness inventories what is still NOT
+ * production验收 vs #117 / #132 / #151. Store-ready native package and
+ * WeChat/DingTalk production stay open.
  */
 import { DEFAULT_MOBILE_HOME, isSafeMobileReturn, safeMobileReturn } from "../auth/safeReturn.js";
 
@@ -259,6 +261,9 @@ export function isSafeHostPath(path) {
     return false;
   }
   if (clean === "/m/native-bridge-harness" || clean.startsWith("/m/native-bridge-harness/")) {
+    return false;
+  }
+  if (clean === "/m/wx-dt-prod-gap-harness" || clean.startsWith("/m/wx-dt-prod-gap-harness/")) {
     return false;
   }
   return true;

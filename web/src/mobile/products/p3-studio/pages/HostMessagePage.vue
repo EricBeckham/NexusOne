@@ -47,7 +47,7 @@
     </div>
     <div class="m-card">
       <h3>验收宿主</h3>
-      <p class="m-muted">移动浏览器 iframe、模拟小程序 web-view、APP WebView 网页宿主、微信钉钉生产契约桩与原生桥契约桩走同一 envelope。上架原生包 / 微信钉钉生产未交付。</p>
+      <p class="m-muted">移动浏览器 iframe、模拟小程序 web-view、APP WebView 网页宿主、微信钉钉生产契约桩、原生桥契约桩与生产验收缺口诚实桩走同一 envelope。上架原生包 / 微信钉钉生产未交付。</p>
       <router-link class="m-btn ghost" to="/m/host-harness" data-testid="host-open-harness">打开 iframe 宿主页</router-link>
       <div style="height:8px" />
       <router-link class="m-btn ghost" to="/m/mp-webview-harness" data-testid="host-open-mp-harness">打开模拟小程序 web-view</router-link>
@@ -57,6 +57,8 @@
       <router-link class="m-btn ghost" to="/m/wx-dt-harness" data-testid="host-open-wx-dt">打开微信钉钉生产宿主契约桩</router-link>
       <div style="height:8px" />
       <router-link class="m-btn ghost" to="/m/native-bridge-harness" data-testid="host-open-native-bridge">打开原生桥契约桩</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/wx-dt-prod-gap-harness" data-testid="host-open-wx-dt-prod-gap">打开微信钉钉生产验收缺口诚实</router-link>
     </div>
   </div>
 </template>

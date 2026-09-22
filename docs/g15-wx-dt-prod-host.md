@@ -40,7 +40,7 @@ Envelope (unchanged):
 | APP WebView native binary | **Open.** Web harness is [g15-app-webview-host.md](./g15-app-webview-host.md). Native-bridge **stub** is [g15-native-bridge-stub.md](./g15-native-bridge-stub.md) (not store-ready). |
 | 小程序 web-view sim | Simulated parent is [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Desktop leftover is [g4-pkce-browser-click.md](./g4-pkce-browser-click.md). Not walked inside this stub. |
-| Product G15 | **Open** until production hosts are walked on the same contract. |
+| Product G15 | **Open** until production hosts are walked on the same contract. Production-gap honesty stub is [g15-wx-dt-prod-gap-honesty.md](./g15-wx-dt-prod-gap-honesty.md). |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. |
 | Desktop P3 | Untouched. |
 

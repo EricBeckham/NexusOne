@@ -78,6 +78,12 @@ const routes = [
     meta: { harness: true, public: true, title: "APP 原生桥契约桩" },
   },
   {
+    path: "/m/wx-dt-prod-gap-harness",
+    name: "m-wx-dt-prod-gap-harness",
+    component: () => import("./mobile/products/p3-studio/pages/WeChatDingTalkProdGapHonestyPage.vue"),
+    meta: { harness: true, public: true, title: "微信钉钉生产验收缺口诚实" },
+  },
+  {
     path: "/m/p3/home",
     name: "m-home",
     component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),
