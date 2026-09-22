@@ -49,6 +49,6 @@ bcTls=bctls-jdk18on:1.85, dualServerCertsDistinct=true, sm3withSm2=true, payload
 ## Honest leftovers
 
 - GM/T 0024 dual-cert **protocol** (encryption cert consumed in handshake) is not implemented. RFC 8998 TLS 1.3 uses the sign cert.
-- Nginx / Tongsuo GM dual-stack, qualified GM/T Provider, 密码机 / HSM, classified delivery: **not** this PR.
+- Nginx / Tongsuo GM dual-stack leftover is [g17-gm-tls-nginx-dual-stack.md](../g17-gm-tls-nginx-dual-stack.md) (scripts + documented config; SKIP without Tongsuo). Qualified GM/T Provider, 密码机 / HSM, classified delivery: **not** this PR.
 - Product Tomcat connector stays HTTP. `nexus.tls.gm.enabled` defaults false.
 - G18, 三权分立, admin MFA, and AuditPort same-TX were **not** reopened.

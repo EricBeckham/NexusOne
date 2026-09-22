@@ -1,0 +1,78 @@
+name: g17-gm-tls-nginx
+
+# Honesty + local dual-stack cross-check for the G17 Nginx/Tongsuo leftover.
+# Does not install Tongsuo. Stock runner nginx (if any) is not a GMTLS PASS.
+# Not 等保 / 密评 / HSM / G17 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g17-gm-tls-nginx-dual-stack/**"
+      - ".github/workflows/g17-gm-tls-nginx.yml"
+      - "nexus-crypto-core/**"
+      - "docs/g17-gm-tls-nginx-dual-stack.md"
+      - "docs/engineering/g17-gm-tls-nginx-EVIDENCE.md"
+  pull_request:
+    paths:
+      - "scripts/g17-gm-tls-nginx-dual-stack/**"
+      - ".github/workflows/g17-gm-tls-nginx.yml"
+      - "nexus-crypto-core/**"
+      - "docs/g17-gm-tls-nginx-dual-stack.md"
+      - "docs/engineering/g17-gm-tls-nginx-EVIDENCE.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g17-gm-tls-nginx-dual-stack/run.sh --verify-report scripts/g17-gm-tls-nginx-dual-stack/fixtures/honest-skip.env
+      - name: Fake nginx GMTLS PASS without Tongsuo is rejected
+        run: |
+          set +e
+          ./scripts/g17-gm-tls-nginx-dual-stack/run.sh --verify-report scripts/g17-gm-tls-nginx-dual-stack/fixtures/fake-nginx-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake nginx PASS without tongsuo_nginx=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake nginx GMTLS PASS rejected"
+      - name: Fake 等保/密评/HSM/G17-close claims are rejected
+        run: |
+          set +e
+          ./scripts/g17-gm-tls-nginx-dual-stack/run.sh --verify-report scripts/g17-gm-tls-nginx-dual-stack/fixtures/fake-claims.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake 等保/密评/HSM/G17-close claims to fail"
+            exit 1
+          fi
+          echo "PASS: fake claims rejected"
+
+  local-dual-stack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Collect local dual-stack + honest nginx SKIP
+        run: |
+          ./scripts/g17-gm-tls-nginx-dual-stack/run.sh \
+            --out "$RUNNER_TEMP/g17-gm-tls-nginx"
+          ./scripts/g17-gm-tls-nginx-dual-stack/run.sh \
+            --verify-report "$RUNNER_TEMP/g17-gm-tls-nginx/report.env"
+          grep -E '^local_dual_stack=PASS$' "$RUNNER_TEMP/g17-gm-tls-nginx/report.env"
+          grep -E '^nginx_gmtls_handshake=SKIP$' "$RUNNER_TEMP/g17-gm-tls-nginx/report.env"
+          grep -E '^g17_close=NOT_CLAIMED$' "$RUNNER_TEMP/g17-gm-tls-nginx/report.env"
+          grep -E '^dengbao_claimed=false$' "$RUNNER_TEMP/g17-gm-tls-nginx/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g17-gm-tls-nginx/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g17-gm-tls-nginx/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g17-gm-tls-nginx
+          path: ${{ runner.temp }}/g17-gm-tls-nginx

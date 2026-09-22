@@ -1,0 +1,58 @@
+# G17 leftover — Tongsuo nginx dual-stack (international TLS + GM/T 0024 NTLS).
+#
+# Two loopback ports, two stacks. Same idea as the local Java probe:
+#   intl  TLS 1.2/1.3  ECDHE-ECDSA-AES128-GCM-SHA256 / TLS_AES_128_GCM_SHA256
+#   gm    NTLS / GMTLS  ssl_ntls_sign_* + ssl_ntls_enc_* (GM/T 0024 dual cert)
+#
+# Placeholders are substituted by scripts/g17-gm-tls-nginx-dual-stack/run.sh.
+# Stock Ubuntu nginx + OpenSSL 3.x CANNOT load this file (unknown directives).
+# Honest SKIP when Tongsuo-built nginx is absent. Never claim 等保 / 密评 / HSM.
+#
+# Alternate Tengine-style names (not used here): ssl_certificate_enc /
+# ssl_certificate_key_enc. Tongsuo 8.x NTLS names are documented below.
+
+# --- International TLS 1.2 / 1.3 (P-256 leaf) --------------------------------
+server {
+    listen 127.0.0.1:__INTL_PORT__ ssl;
+    server_name localhost;
+
+    ssl_certificate     __INTL_CERT__;
+    ssl_certificate_key __INTL_KEY__;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers on;
+
+    location = /g17 {
+        default_type text/plain;
+        return 200 "G17-INTL-OK\n";
+    }
+
+    # Product JAR remains HTTP. Uncomment only on a host that already runs it:
+    # location / {
+    #     proxy_pass http://127.0.0.1:8080;
+    # }
+}
+
+# --- GM / NTLS (SM2 sign + SM2 encrypt certs; Tongsuo-only) -------------------
+server {
+    listen 127.0.0.1:__GM_PORT__ ssl;
+    server_name localhost;
+
+    # GM/T 0024 dual-cert protocol. RFC 8998 TLS 1.3 SM4 does not consume the
+    # encrypt cert; NTLS does. This leftover documents the config; it does not
+    # implement NTLS inside the Java product JAR.
+    enable_ntls on;
+    ssl_ntls_sign_certificate     __GM_SIGN_CERT__;
+    ssl_ntls_sign_certificate_key __GM_SIGN_KEY__;
+    ssl_ntls_enc_certificate      __GM_ENC_CERT__;
+    ssl_ntls_enc_certificate_key  __GM_ENC_KEY__;
+
+    ssl_protocols TLSv1.1 TLSv1.2 TLSv1.3;
+    ssl_ciphers   ECC-SM2-SM4-GCM-SM3:ECDHE-SM2-SM4-GCM-SM3:ECC-SM2-SM4-CBC-SM3:ECDHE-ECDSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers on;
+
+    location = /g17 {
+        default_type text/plain;
+        return 200 "G17-GM-OK\n";
+    }
+}

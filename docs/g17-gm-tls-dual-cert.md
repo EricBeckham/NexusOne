@@ -65,7 +65,7 @@ See [engineering/g17-gm-tls-EVIDENCE.md](./engineering/g17-gm-tls-EVIDENCE.md).
 ## Honest leftovers (not claimed)
 
 - Full GM/T 0024 GMTLS dual-cert **protocol** (separate encryption certificate consumed in the handshake). RFC 8998 TLS 1.3 uses the sign cert for CertificateVerify; the encrypt cert is generated, stored, and loaded, not negotiated as a GMTLS encryption credential.
-- Nginx / Tongsuo / qualified GM TLS dual-stack in front of the product JAR
+- Nginx / Tongsuo / qualified GM TLS dual-stack in front of the product JAR. Scripts + documented config leftover is [g17-gm-tls-nginx-dual-stack.md](./g17-gm-tls-nginx-dual-stack.md) (honest SKIP without Tongsuo; not a close)
 - Qualified GM/T Provider (Bouncy Castle `bcprov-jdk18on:1.85.2` + `bctls-jdk18on:1.85` is the existing CryptoPort path, not a 商用密码资质模块)
 - 密码机 / HSM / OpenBao / cloud KMS
 - Classified / 等保 product close
