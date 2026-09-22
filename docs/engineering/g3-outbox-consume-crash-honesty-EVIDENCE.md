@@ -39,16 +39,17 @@ Honesty fixtures (must reject fakes):
 
 ## Results (agent VM)
 
-Filled after the collect script on this VM. Live output is gitignored under `.local/g3-outbox-consume-crash-honesty/`. A sanitized copy is [`g3-outbox-consume-crash-honesty/agent-vm.env`](./g3-outbox-consume-crash-honesty/agent-vm.env) once recorded.
+Filled after collect on this VM (`d30c841` rebased onto `25c3454`). Live output is gitignored under `.local/g3-outbox-consume-crash-honesty/`. Sanitized copy: [`g3-outbox-consume-crash-honesty/agent-vm.env`](./g3-outbox-consume-crash-honesty/agent-vm.env).
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | pending | leftover consume PASS + fake close / fake live crash / fake multi-node |
-| Consume-idempotent harness | pending PASS | first `FIRST`; replay `DUPLICATE`; side effect stays 1 |
+| Honesty fixtures | **PASS** / fake **FAIL** | honest-skip PASS; fake-live-crash / fake-multi-node / fake-g3-close FAIL |
+| Consume-idempotent harness | **PASS** | first `FIRST`; replay `DUPLICATE`; side effect stays 1 |
 | Claim-then-write crash window | **SIMULATED** | first claim committed; inbox UPDATE did not; replay DUPLICATE skips write |
-| Live process-kill crash | pending SKIP | `live_crash_observed=false` |
-| Multi-node Dispatcher | pending SKIP | one application JVM; no Kafka/bus |
-| Both leftover rows | kept | `g3-outbox-consume-idempotent` + `g3-claim-crash-window` |
+| Live process-kill crash | **SKIP** | `live_crash_observed=false` |
+| Multi-node Dispatcher | **SKIP** | one application JVM; no Kafka/bus |
+| Both leftover rows | **kept** | `g3-outbox-consume-idempotent` + `g3-claim-crash-window` (siblings including #185/#186/#187/#190/#194 stay) |
+| Java honesty tests | **9/9** | `G3OutboxConsumeCrashHonestyTest` only; #139/#170 not rerun |
 | #139/#170 redo | **false** | sibling leftovers |
 | Product G3 close | **NOT_CLAIMED** | honesty gate enforces `NOT_CLAIMED` |
 | G18 / AuditPort / Outbox core / P0/M0 | unchanged | not reopened / not redesigned / not redone |
