@@ -237,15 +237,23 @@ Coordinator merges when GitHub is CLEAN/MERGEABLE; this drop does not self-merge
 
 # G5 form publish rollback (forms only)
 
-Failed paths were not in Eric’s G18 browser walk (success-only Validate/Publish). This section is the G5 **forms** evidence. Not a full G5 product close. G18 stays closed.
+Failed paths were not in Eric’s G18 browser walk (success-only Validate/Publish). This section is the G5 **forms** evidence. Not a full G5 product close. G18 stays closed. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md).
 
-Command:
+Agent VM **2026-09-22T15:27:34Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
 
 ```bash
 ./scripts/g5-form-publish-rollback.sh
 ```
 
-Results: pending the PR test run on this branch. Suites: `JdbcFormPublishRollbackIT`, `FormPublishFailureApiTest`, `FormPublishStateMachineTest`. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md).
+`BUILD SUCCESS`. **Tests run: 12, Failures: 0, Errors: 0, Skipped: 0**.
+
+| Suite | Result |
+|---|---|
+| `JdbcFormPublishRollbackIT` | **3/3** — validate-fail stays DRAFT (no `form_version`); validate-fail after Running leaves pointer + `snapshot_json` unchanged; mid-publish fail leaves RUNNING row + snapshot + `running_version=1`; log `ROLLED_BACK`. Flyway through **V530** on PG 15.18 |
+| `FormPublishFailureApiTest` | **2/2** — HTTP `P3.FORM.0005` → DRAFT; HTTP `P3.FORM.0006` → Running v1 snapshot unchanged + `ROLLED_BACK` |
+| `FormPublishStateMachineTest` | **7/7** |
+
+`FormApiTest` **1/1** at **2026-09-22T15:27:49Z** (happy path plus HTTP validate-fail).
 
 # G18 one real business path (backend)
 

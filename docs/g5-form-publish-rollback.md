@@ -40,15 +40,24 @@ mvn -pl nexus-p3-studio -am test \
 
 ## 本次证据
 
-Recorded on this branch after the suites above. Fill the table from the agent VM run (see `nexus-p3-studio/EVIDENCE.md` G5 section).
+Agent VM **2026-09-22T15:27:34Z**. `./scripts/g5-form-publish-rollback.sh` → `BUILD SUCCESS`. No Docker.
 
 | Item | Value |
 |---|---|
-| JDK | OpenJDK 21 |
-| Maven | 3.x |
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
+| Maven | **3.8.7** |
 | Spring Boot | **4.1.1** |
-| PostgreSQL | Zonky **15.18** (`JdbcFormPublishRollbackIT` asserts `server_version` starts with `15.`) |
-| Result | pending this PR test run |
+| PostgreSQL | Zonky **15.18** (`starting PostgreSQL 15.18`; IT asserts `server_version` starts with `15.`) |
+| Flyway | V100→…→**V530**→V531→V550 on schema `platform` |
+| Result | **Tests run: 12, Failures: 0, Errors: 0, Skipped: 0** |
+
+| Suite | Result |
+|---|---|
+| `JdbcFormPublishRollbackIT` | **3/3** — `validateFailureKeepsDraftAndDoesNotWriteVersionOnPostgres15`; `validateFailureAfterRunningLeavesPointerAndSnapshotUnchanged`; `failedPublishLeavesRunningPointerAndSnapshotUnchangedOnPostgres15` |
+| `FormPublishFailureApiTest` | **2/2** — HTTP `P3.FORM.0005` keeps DRAFT; HTTP `P3.FORM.0006` leaves Running v1 + snapshot + `ROLLED_BACK` |
+| `FormPublishStateMachineTest` | **7/7** — same two failed paths in memory, plus the existing success / tenant cases |
+
+`FormApiTest` (happy path + HTTP validate-fail) re-run **1/1** at **2026-09-22T15:27:49Z**.
 
 ## 诚实缺口（不宣称完整 G5 产品）
 
