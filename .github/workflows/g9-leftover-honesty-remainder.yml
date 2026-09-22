@@ -1,0 +1,158 @@
+name: g9-leftover-honesty-remainder
+
+# Honesty remainder beyond #237/#229/#209/#197.
+# Parent leftover harness fixtures stay PASS.
+# Live Sentinel / multi-JVM / Redis-down / invalidate stay SKIP unless observed.
+# Does not redo those leftovers. Product G9 is not closed.
+
+on:
+  push:
+    paths:
+      - "scripts/g9-leftover-honesty-remainder.sh"
+      - "scripts/g9-leftover-honesty-remainder/**"
+      - "docs/g9-leftover-honesty-remainder.md"
+      - "docs/engineering/g9-leftover-honesty-remainder-EVIDENCE.md"
+      - "docs/README.md"
+      - ".github/workflows/g9-leftover-honesty-remainder.yml"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/redis/G9LeftoverHonestyRemainder.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/engine/G9LeftoverHonestyRemainderTest.java"
+  pull_request:
+    paths:
+      - "scripts/g9-leftover-honesty-remainder.sh"
+      - "scripts/g9-leftover-honesty-remainder/**"
+      - "docs/g9-leftover-honesty-remainder.md"
+      - "docs/engineering/g9-leftover-honesty-remainder-EVIDENCE.md"
+      - "docs/README.md"
+      - ".github/workflows/g9-leftover-honesty-remainder.yml"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/redis/G9LeftoverHonestyRemainder.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/engine/G9LeftoverHonestyRemainderTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g9-leftover-honesty-remainder.sh --verify-report scripts/g9-leftover-honesty-remainder/fixtures/honest-skip.env
+      - name: Fake live Redis-down PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-leftover-honesty-remainder.sh --verify-report \
+            scripts/g9-leftover-honesty-remainder/fixtures/fake-live-redis-down-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live Redis-down PASS without redis_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live Redis-down PASS rejected"
+      - name: Fake live invalidate PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-leftover-honesty-remainder.sh --verify-report \
+            scripts/g9-leftover-honesty-remainder/fixtures/fake-live-invalidate-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live invalidate PASS without live_invalidate_observed=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live invalidate PASS rejected"
+      - name: Fake Sentinel PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-leftover-honesty-remainder.sh --verify-report \
+            scripts/g9-leftover-honesty-remainder/fixtures/fake-sentinel-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake sentinel_failover=PASS without sentinel_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake Sentinel PASS rejected"
+      - name: Fake multi-JVM PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-leftover-honesty-remainder.sh --verify-report \
+            scripts/g9-leftover-honesty-remainder/fixtures/fake-multi-jvm-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_multi_jvm=PASS without second_jvm_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake multi-JVM PASS rejected"
+      - name: Fake product G9 close is rejected
+        run: |
+          set +e
+          ./scripts/g9-leftover-honesty-remainder.sh --verify-report \
+            scripts/g9-leftover-honesty-remainder/fixtures/fake-g9-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g9_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G9 close rejected"
+      - name: Fake leftover redo is rejected
+        run: |
+          set +e
+          ./scripts/g9-leftover-honesty-remainder.sh --verify-report \
+            scripts/g9-leftover-honesty-remainder/fixtures/fake-redone.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake redo flags to fail"
+            exit 1
+          fi
+          echo "PASS: fake leftover redo rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest parent harness PASS / live SKIP
+        run: |
+          chmod +x ./scripts/g9-leftover-honesty-remainder.sh
+          ./scripts/g9-leftover-honesty-remainder.sh --skip-tests \
+            --out "$RUNNER_TEMP/g9-leftover-honesty-remainder"
+          ./scripts/g9-leftover-honesty-remainder.sh \
+            --verify-report "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_237_harness=PASS$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_229_harness=PASS$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_209_harness=PASS$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_197_harness=PASS$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^live_redis_down=SKIP$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^live_invalidate=SKIP$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^sentinel_failover=SKIP$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^cluster_failover=SKIP$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^replica_promotion=SKIP$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^live_multi_jvm=SKIP$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^g9_close=NOT_CLAIMED$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^sentinel_cluster_close=NOT_CLAIMED$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g9-redis-down-invalidate-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g9-live-multi-jvm-replica-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g9-sentinel-cluster-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g17-separation-leftover-honesty-remainder' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g15-h5-pkce-miniprogram-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g2-h5-every-page-form-write-report-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'linux-arm-profile-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g4-hot-purge-staging-pkce-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g10-file-object-reconcile-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 's0-secret-rotate-getenv-leftover-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g5-publishhook-ddl-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E 'g17-mfa-recovery-vue-otp-remainder-honesty' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^redo_237=false$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g9-leftover-honesty-remainder/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g9-leftover-honesty-remainder
+          path: ${{ runner.temp }}/g9-leftover-honesty-remainder
