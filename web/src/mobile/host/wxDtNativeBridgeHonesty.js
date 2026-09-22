@@ -50,6 +50,7 @@ export const ALL_SIBLING_LEFTOVER_ROWS = Object.freeze([
   "s0-secret-getenv-snapshot-honesty",
   "g5-browser-failed-publish",
   "g7-withdraw-browser-honesty",
+  "g7-query-expense-travel-honesty",
   "g9-redis-down-invalidate-honesty",
   "g10-file-reconcile-honesty",
 ]);

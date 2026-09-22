@@ -60,6 +60,7 @@ describe("G15 WeChat/DingTalk prod-gap + native-bridge honesty beyond #167/#181"
       "g4-p1-staging-audit-events-honesty",
       "g6-recovery-port-dry-run-honesty",
       "s0s1-live-redis-minio-isolation-honesty",
+      "g7-query-expense-travel-honesty",
     ]));
   });
 

@@ -131,6 +131,7 @@ for row in \
   s0-secret-getenv-snapshot-honesty \
   g5-browser-failed-publish \
   g7-withdraw-browser-honesty \
+  g7-query-expense-travel-honesty \
   g9-redis-down-invalidate-honesty \
   g10-file-reconcile-honesty
 do
