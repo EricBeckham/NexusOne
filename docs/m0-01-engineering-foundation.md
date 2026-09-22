@@ -126,7 +126,7 @@ java -jar nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
 
 - `GET /actuator/health` → `UP`，含 db
 - `GET /api/v1/meta/runtime` 带回 `schema_manager=flyway_static_only` 与 `trace_id`
-- `platform.flyway_schema_history` 三条成功记录
+- `platform.flyway_schema_history` 三条成功 **SQL** 迁移（另有一条 Flyway schema creation 记录）
 - `business_data` 下无表
 
 ## 明确不在本 PR 范围
