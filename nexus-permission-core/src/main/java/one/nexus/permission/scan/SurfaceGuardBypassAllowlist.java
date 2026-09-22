@@ -40,11 +40,7 @@ public final class SurfaceGuardBypassAllowlist {
      */
     public static final List<String> DECISION_TRUE_PATHS = List.of(
             "nexus-permission-core/src/main/java/one/nexus/permission/engine/PermissionEngine.java",
-            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/FormSurfaceGuard.java",
-            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/H5SurfaceGuard.java",
-            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/ReportSurfaceGuard.java",
-            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/DumpSurfaceGuard.java",
-            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/PermissionDataScopeHook.java",
+            "nexus-permission-core/src/main/java/one/nexus/permission/surface/IsolationOnlyDecision.java",
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/TenantOnlyDataScopeHook.java");
 
     /**
@@ -64,6 +60,7 @@ public final class SurfaceGuardBypassAllowlist {
             "H5SurfaceGuard",
             "ReportSurfaceGuard",
             "DumpSurfaceGuard",
+            "CatalogSurfaceGuard",
             "PermissionDataScopeHook",
             "AuthorizedExport",
             "AuthorizedSubmit",

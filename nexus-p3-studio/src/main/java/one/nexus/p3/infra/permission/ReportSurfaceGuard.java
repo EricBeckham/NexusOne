@@ -1,9 +1,9 @@
 package one.nexus.p3.infra.permission;
 
-import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.PermissionModule;
 import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import one.nexus.permission.engine.Decision;
+import one.nexus.permission.surface.IsolationOnlyDecision;
 import one.nexus.permission.surface.ReportSurfaceCatalog;
 import one.nexus.permission.surface.SurfaceGuard;
 import org.springframework.beans.factory.ObjectProvider;
@@ -52,7 +52,7 @@ public class ReportSurfaceGuard {
     }
 
     public Decision require(String resource, String action) {
-        if (TenantContextHolder.get() == null) {
+        if (IsolationOnlyDecision.isolationOnly()) {
             return isolationOnly();
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
@@ -60,7 +60,7 @@ public class ReportSurfaceGuard {
     }
 
     public Decision decide(String resource, String action) {
-        if (TenantContextHolder.get() == null) {
+        if (IsolationOnlyDecision.isolationOnly()) {
             return isolationOnly();
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
@@ -68,8 +68,11 @@ public class ReportSurfaceGuard {
         return decision == null ? new Decision(false, "no_grant") : decision;
     }
 
-    /** Isolation-only leftover when no P2 {@code TenantContext}, same as Form/H5. */
+    /**
+     * Isolation-only leftover when no P2 {@code TenantContext}, same as Form/H5.
+     * Fail-closes if a P2 context is bound.
+     */
     public static Decision isolationOnly() {
-        return new Decision(true, "tenant_only");
+        return IsolationOnlyDecision.allow();
     }
 }

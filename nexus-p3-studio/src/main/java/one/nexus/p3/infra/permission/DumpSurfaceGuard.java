@@ -1,10 +1,10 @@
 package one.nexus.p3.infra.permission;
 
-import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.PermissionModule;
 import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.surface.DumpSurfaceCatalog;
+import one.nexus.permission.surface.IsolationOnlyDecision;
 import one.nexus.permission.surface.SurfaceGuard;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -16,7 +16,9 @@ import org.springframework.stereotype.Component;
  * Decision as list/detail and {@code ledger.export.csv}/{@code submit}.
  * {@code no_grant}, {@code explicit_deny}, and {@code tenant_boundary} are
  * deny ({@code P2.PERM.0003} / {@code 0002} / {@code 0001}). Isolation-only
- * hosts with no P2 {@code TenantContext} stay tenant-only.
+ * hosts with no P2 {@code TenantContext} stay tenant-only via
+ * {@link IsolationOnlyDecision}. An issued P2 context cannot emit
+ * {@code tenant_only}.
  *
  * <p>Vue calls {@code POST /api/v1/permission/check} first; this guard is
  * the in-process twin for HTTP dump entry points. Report query/export stays
@@ -52,7 +54,7 @@ public class DumpSurfaceGuard {
     }
 
     public Decision require(String resource, String action) {
-        if (TenantContextHolder.get() == null) {
+        if (IsolationOnlyDecision.isolationOnly()) {
             return isolationOnly();
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
@@ -60,7 +62,7 @@ public class DumpSurfaceGuard {
     }
 
     public Decision decide(String resource, String action) {
-        if (TenantContextHolder.get() == null) {
+        if (IsolationOnlyDecision.isolationOnly()) {
             return isolationOnly();
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
@@ -68,8 +70,11 @@ public class DumpSurfaceGuard {
         return decision == null ? new Decision(false, "no_grant") : decision;
     }
 
-    /** Isolation-only leftover when no P2 {@code TenantContext}, same as Form/H5/report. */
+    /**
+     * Isolation-only leftover when no P2 {@code TenantContext}, same as Form/H5/report.
+     * Fail-closes if a P2 context is bound.
+     */
     public static Decision isolationOnly() {
-        return new Decision(true, "tenant_only");
+        return IsolationOnlyDecision.allow();
     }
 }

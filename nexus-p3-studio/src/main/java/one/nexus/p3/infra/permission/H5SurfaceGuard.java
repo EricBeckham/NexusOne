@@ -1,10 +1,10 @@
 package one.nexus.p3.infra.permission;
 
-import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.PermissionModule;
 import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.surface.H5SurfaceCatalog;
+import one.nexus.permission.surface.IsolationOnlyDecision;
 import one.nexus.permission.surface.SurfaceGuard;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -68,8 +68,8 @@ public class H5SurfaceGuard {
     }
 
     public Decision require(String resource, String action) {
-        if (TenantContextHolder.get() == null) {
-            return new Decision(true, "tenant_only");
+        if (IsolationOnlyDecision.isolationOnly()) {
+            return IsolationOnlyDecision.allow();
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
         return SurfaceGuard.require(permission, resource, action);

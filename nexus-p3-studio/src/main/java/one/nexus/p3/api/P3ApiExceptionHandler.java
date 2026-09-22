@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import jakarta.servlet.http.HttpServletRequest;
+import one.nexus.common.error.NexusException;
 import one.nexus.isolation.api.IsolationException;
 import one.nexus.p3.api.ApiModels.ErrorBody;
 import one.nexus.p3.domain.P3ErrorCodes;
@@ -21,6 +22,12 @@ import one.nexus.p3.domain.P3Exception;
 public class P3ApiExceptionHandler {
     @ExceptionHandler(P3Exception.class)
     public ResponseEntity<ErrorBody> domain(P3Exception ex, HttpServletRequest request) {
+        return ResponseEntity.status(ex.httpStatus())
+                .body(body(ex.errorCode().code(), ex.getMessage(), request, ex.details()));
+    }
+
+    @ExceptionHandler(NexusException.class)
+    public ResponseEntity<ErrorBody> nexus(NexusException ex, HttpServletRequest request) {
         return ResponseEntity.status(ex.httpStatus())
                 .body(body(ex.errorCode().code(), ex.getMessage(), request, ex.details()));
     }

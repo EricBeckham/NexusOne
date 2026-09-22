@@ -29,14 +29,15 @@ These files may call the engine, IsolatedExport sinks, or construct an allow `De
 | `PermissionEngine` / `PermissionService` | Only evaluate / `can` path |
 | `SurfaceGuard` / `SurfaceCatalog` / `AuthorizedSubmit` / `AuthorizedExport` | Single Decision interpretation |
 | `PermissionController` | `POST /check` uses `decide` + `SurfaceGuard.asApi` |
-| `FormSurfaceGuard` / `H5SurfaceGuard` / `PermissionDataScopeHook` | Product wrappers around `SurfaceGuard.require` |
+| `FormSurfaceGuard` / `H5SurfaceGuard` / `ReportSurfaceGuard` / `DumpSurfaceGuard` / `CatalogSurfaceGuard` / `PermissionDataScopeHook` | Product wrappers around `SurfaceGuard.require` |
 | `SequentialApprovalService` / `BusinessPathService` / `FormController` / `LedgerRecordService` | Guarded P3 surfaces |
 | `AuditTraceController` / `PermissionSurfaceConfiguration` | `audit.read` + Job/Task `AuthorizedSubmit` |
 | `IsolatedExport` | Isolation-only export; product callers use `AuthorizedExport` |
-| `TenantOnlyDataScopeHook` + isolation-only `new Decision(true, "tenant_only")` | Documented leftover when no P2 `TenantContext` |
+| `IsolationOnlyDecision` + isolation-only `new Decision(true, "tenant_only")` | Single constructor; fail-closes when a P2 `TenantContext` exists |
+| `TenantOnlyDataScopeHook` | No-engine leftover when demo headers bind P2 without `PermissionModule` |
 | `TodoController` | Documented leftover: tenant-person filter; H5 UI gates via `/check` |
 
-**Not allowlisted** (must stay SurfaceGuard-free of raw engine / IsolatedExport): `nexus-p4-market`, `nexus-p5-connect`, P3 catalog controllers (`LedgerController` / `ApplicationController` / `BusinessTypeController` are catalog paths, not `/records`).
+**Not allowlisted** (must stay SurfaceGuard-free of raw engine / IsolatedExport): `nexus-p4-market`, `nexus-p5-connect`. Catalog controllers are product wrappers around `CatalogSurfaceGuard` (not `/records`).
 
 Source of truth: `SurfaceGuardBypassAllowlist`.
 
@@ -72,8 +73,8 @@ This is **not** a product-wide G2 close.
 | Still open | Why |
 |---|---|
 | `TodoController` / `TodoQueryService` | HTTP stays tenant-person filter. Allowlisted leftover. H5 UI still gates via `/check`. |
-| Ledger / application / business-type catalog HTTP | Definition list is not a record/form/flow surface. Unchanged. |
-| Isolation-only `tenant_only` | `FormSurfaceGuard` / `H5SurfaceGuard` / `ReportSurfaceGuard` / `DumpSurfaceGuard` / `PermissionDataScopeHook` still skip when no P2 `TenantContext`. |
+| Ledger / application / business-type catalog HTTP | Definition HTTP now goes through `CatalogSurfaceGuard` when `PermissionModule` is present. Isolation hosts without the bean stay the FormController-shaped skip. |
+| Isolation-only `tenant_only` | Engine-backed wrappers use `IsolationOnlyDecision.allow()` and **fail-close** when a P2 `TenantContext` exists. See [g2-tenant-only-catalog.md](./g2-tenant-only-catalog.md). |
 | Physical dump HTTP | Product dump HTTP is the sibling leftover [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). The gate now also flags unguarded `/dumps` and raw `writeProjected`. `pg_dump` ops stay open. |
 | Regex / ArchUnit limits | Aliases, reflection, generated code, and JNI are not covered. Keep the allowlist tight. |
 | UI / H5 every page | Not re-walked. Desktop `/p3` unchanged. |
