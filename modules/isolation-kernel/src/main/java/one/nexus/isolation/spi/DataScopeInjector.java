@@ -11,8 +11,8 @@ import one.nexus.isolation.api.TableDescriptor;
 /**
  * M0-05 DataScope seam. Isolation kernel always injects tenant_id first; DataScope may only AND extra predicates.
  * Implementations must not remove or replace the tenant predicate. Safe SELF/DEPT
- * equality atoms may be AND-ed via {@link #andEquals(Map)}; OR / IN trees stay
- * outside this AST.
+ * equality atoms and single-column multi-value {@code IN} lists may be AND-ed
+ * via {@link #andEquals(Map)}; mixed-column OR (SELF∨DEPT) stays outside this AST.
  */
 @FunctionalInterface
 public interface DataScopeInjector {

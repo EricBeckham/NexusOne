@@ -14,7 +14,7 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | FieldPolicy projection / masking / second-auth | `FieldPolicyProjector` |
 | list / detail / total / pagination share one WHERE (`tenant_id` first) | `PermissionQueryBinder` / `ScopedQuery` (OR leftover); product list/detail opt-in is `QueryAstScopedQuery` |
 | Isolation kernel seam: AND extra filters, never strip `tenant_id` | `IsolationDataScopeInjector` |
-| Query AST SELF/DEPT + FieldPolicy visibility (opt-in) | `QueryAstPolicyCompiler` / `QueryAstScopedQuery` |
+| Query AST SELF/DEPT + single-column IN + FieldPolicy visibility (opt-in) | `QueryAstPolicyCompiler` / `QueryAstScopedQuery` |
 | PolicySnapshot version + LRU + fail-closed | `SnapshotManager` |
 | Short-cycle version poll (between requests) | `PolicySnapshotPoller` |
 | Redis 3.2 PUBLISH/SUBSCRIBE invalidate-only (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |
@@ -46,7 +46,7 @@ M0-02 injects `tenant_id` first. Pass this module's injector into `IsolationKern
 IsolationKernel.create(registry, platformPaths, audit, injector::inject, SoftDeleteInjector.passthrough());
 ```
 
-`IsolationDataScopeInjector` only ANDs extra equality atoms and refuses to drop or replace `tenant_id`. OR DataScope is compiled by `PermissionQueryBinder.bind(tenantId, decision)` to
+`IsolationDataScopeInjector` only ANDs extra equality atoms or single-column `IN` lists and refuses to drop or replace `tenant_id`. Mixed-column OR DataScope is compiled by `PermissionQueryBinder.bind(tenantId, decision)` to
 
 ```text
 tenant_id = ? AND (<scope>)
@@ -109,7 +109,7 @@ export NEXUS_REDIS_PORT=6379
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
 - Redis failover / Cluster / Sentinel (P2-down timeout-then-reject is on `SnapshotManager`, not Sentinel)
-- Query AST OR / multi-value IN DataScope (SELF/DEPT equality + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler`; export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md); OUTER/CROSS JOIN and nested subquery isolation is M0-02)
+- Query AST mixed-column OR (SELF∨DEPT) DataScope (SELF/DEPT equality + single-column `IN` + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler`; export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md); OUTER/CROSS JOIN and nested subquery isolation is M0-02)
 - SQL Guard implementation (owned by M0-02)
 - Live Keycloak (owned by M0-04)
 - Docker / Compose as a hard dependency

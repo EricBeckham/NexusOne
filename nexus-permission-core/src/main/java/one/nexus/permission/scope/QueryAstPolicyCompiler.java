@@ -17,10 +17,11 @@ import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.support.PermissionException;
 
 /**
- * Encodes safe SELF/DEPT DataScope equality atoms and FieldPolicy visibility
- * into a Query AST. TenantInjector still owns {@code tenant_id}. OR / multi-value
- * IN trees stay on {@link PermissionQueryBinder}; masks stay on
- * {@code FieldPolicyProjector}.
+ * Encodes safe SELF/DEPT DataScope equality atoms, single-column multi-value
+ * {@code IN} lists ({@code DEPT_AND_CHILDREN} / SPECIFIED), and FieldPolicy
+ * visibility into a Query AST. TenantInjector still owns {@code tenant_id}.
+ * Mixed-column OR (SELF∨DEPT) stays on {@link PermissionQueryBinder}; masks
+ * stay on {@code FieldPolicyProjector}.
  */
 public final class QueryAstPolicyCompiler {
     public static final Set<String> ENCODABLE_COLUMNS = Set.of("owner_id", "department_id", "id", "status");
@@ -117,10 +118,60 @@ public final class QueryAstPolicyCompiler {
                     collectSafeEquals((Predicate) arg, columns, filters, leftover);
                 }
             }
-            case "or" -> leftover.add(predicate);
+            case "or" -> {
+                if (!encodeSameColumnIn(predicate, columns, filters, leftover)) {
+                    leftover.add(predicate);
+                }
+            }
             case "atom" -> encodeAtom(predicate, columns, filters, leftover);
             default -> leftover.add(predicate);
         }
+    }
+
+    private static boolean encodeSameColumnIn(
+            Predicate predicate,
+            Set<String> columns,
+            Map<String, Object> filters,
+            List<Predicate> leftover
+    ) {
+        String column = null;
+        LinkedHashMap<Object, Boolean> values = new LinkedHashMap<>();
+        for (Object arg : predicate.args()) {
+            if (!(arg instanceof Predicate child) || !"atom".equals(child.op()) || child.args().size() < 3) {
+                return false;
+            }
+            String childColumn = String.valueOf(child.args().get(0));
+            Object encoded = filterValue(String.valueOf(child.args().get(1)), child.args().get(2));
+            if (encoded == null
+                    || "tenant_id".equals(childColumn)
+                    || !ENCODABLE_COLUMNS.contains(childColumn)
+                    || !columns.contains(childColumn)) {
+                return false;
+            }
+            if (column == null) {
+                column = childColumn;
+            } else if (!column.equals(childColumn)) {
+                return false;
+            }
+            if (encoded instanceof Collection<?> collection) {
+                collection.forEach(item -> values.put(item, Boolean.TRUE));
+            } else {
+                values.put(encoded, Boolean.TRUE);
+            }
+        }
+        if (column == null || values.isEmpty()) {
+            return false;
+        }
+        Object next = values.size() == 1
+                ? values.keySet().iterator().next()
+                : List.copyOf(values.keySet());
+        Object existing = filters.get(column);
+        if (existing != null && !Objects.equals(existing, next)) {
+            leftover.add(predicate);
+            return true;
+        }
+        filters.put(column, next);
+        return true;
     }
 
     private static void encodeAtom(
@@ -136,32 +187,40 @@ public final class QueryAstPolicyCompiler {
             throw PermissionException.tenantPredicateRequired(
                     "DataScope must not author tenant_id; TenantInjector owns it");
         }
-        Object equality = equalityValue(operator, value);
-        if (equality != null
+        Object encoded = filterValue(operator, value);
+        if (encoded != null
                 && ENCODABLE_COLUMNS.contains(column)
                 && columns.contains(column)) {
             Object existing = filters.get(column);
-            if (existing != null && !Objects.equals(existing, equality)) {
+            if (existing != null && !Objects.equals(existing, encoded)) {
                 leftover.add(predicate);
                 return;
             }
-            filters.put(column, equality);
+            filters.put(column, encoded);
             return;
         }
         leftover.add(predicate);
     }
 
-    private static Object equalityValue(String operator, Object value) {
+    private static Object filterValue(String operator, Object value) {
         if ("=".equals(operator) && !(value instanceof Collection<?>)) {
             return value;
         }
-        if ("IN".equals(operator)) {
-            Collection<?> values = value instanceof Collection<?> collection ? collection : List.of(value);
-            if (values.size() == 1) {
-                return values.iterator().next();
-            }
+        if (!"IN".equals(operator)) {
+            return null;
         }
-        return null;
+        Collection<?> values = value instanceof Collection<?> collection ? collection : List.of(value);
+        if (values.isEmpty()) {
+            return null;
+        }
+        List<Object> items = new ArrayList<>();
+        for (Object item : values) {
+            if (item == null || item instanceof Collection<?>) {
+                return null;
+            }
+            items.add(item);
+        }
+        return items.size() == 1 ? items.getFirst() : List.copyOf(items);
     }
 
     private static VisibilityPlan planVisibility(QueryAst query, Map<String, FieldRule> fields) {

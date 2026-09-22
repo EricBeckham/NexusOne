@@ -11,10 +11,14 @@ import java.util.Set;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.TableDescriptor;
 import one.nexus.isolation.api.TableScope;
+import one.nexus.permission.engine.DataScopeCompiler;
+import one.nexus.permission.engine.DataScopeKind;
 import one.nexus.permission.engine.Decision;
+import one.nexus.permission.engine.DepartmentCatalog;
 import one.nexus.permission.engine.FieldRule;
 import one.nexus.permission.engine.Mask;
 import one.nexus.permission.engine.Predicate;
+import one.nexus.permission.engine.Subject;
 import one.nexus.permission.support.PermissionException;
 import org.junit.jupiter.api.Test;
 
@@ -59,7 +63,50 @@ class QueryAstPolicyCompilerTest {
     }
 
     @Test
-    void leavesOrAndMultiValueInOnBinderAndRejectsTenantAuthorship() {
+    void encodesMultiValueInAndLeavesMixedColumnOrOnBinder() {
+        QueryAstPolicyCompiler.Encoding multiDept = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                Predicate.atom("department_id", "IN", List.of("d1", "d2")),
+                Map.of(),
+                table);
+        assertTrue(multiDept.scopeFullyEncoded());
+        assertEquals(List.of("d1", "d2"), multiDept.query().filters().get("department_id"));
+        assertEquals(Predicate.TRUE, multiDept.leftoverScope());
+
+        QueryAstPolicyCompiler.Encoding sameColumnOr = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                Predicate.anyOf(
+                        Predicate.atom("department_id", "=", "d1"),
+                        Predicate.atom("department_id", "=", "d2")),
+                Map.of(),
+                table);
+        assertTrue(sameColumnOr.scopeFullyEncoded());
+        assertEquals(List.of("d1", "d2"), sameColumnOr.query().filters().get("department_id"));
+
+        Subject subject = new Subject("t1", "u1", Set.of(), Set.of(), Set.of("d1"),
+                Map.of("d1", "/d1/", "d2", "/d1/d2/"));
+        DepartmentCatalog catalog = new DepartmentCatalog(Map.of(
+                "d1", "/d1/",
+                "d2", "/d1/d2/",
+                "d9", "/other/"));
+        Predicate children = DataScopeCompiler.compile(DataScopeKind.DEPT_AND_CHILDREN, subject, catalog, List.of());
+        QueryAstPolicyCompiler.Encoding encodedChildren = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                children,
+                Map.of(),
+                table);
+        assertTrue(encodedChildren.scopeFullyEncoded());
+        assertEquals(List.of("d1", "d2"), encodedChildren.query().filters().get("department_id"));
+        Predicate specified = DataScopeCompiler.compile(
+                DataScopeKind.SPECIFIED, subject, catalog, List.of("d1", "d9"));
+        QueryAstPolicyCompiler.Encoding encodedSpecified = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                specified,
+                Map.of(),
+                table);
+        assertTrue(encodedSpecified.scopeFullyEncoded());
+        assertEquals(Set.of("d1", "d9"), Set.copyOf((List<?>) encodedSpecified.query().filters().get("department_id")));
+
         Predicate orScope = Predicate.anyOf(
                 Predicate.atom("owner_id", "=", "u1"),
                 Predicate.atom("department_id", "=", "d1"));
@@ -74,14 +121,18 @@ class QueryAstPolicyCompilerTest {
         ScopedQuery bound = PermissionQueryBinder.bind("t1", leftover.leftoverScope());
         assertTrue(bound.whereSql().startsWith("tenant_id = ? AND "));
         assertTrue(bound.whereSql().contains("owner_id"));
+        assertTrue(bound.whereSql().contains("department_id"));
 
-        QueryAstPolicyCompiler.Encoding multiDept = QueryAstPolicyCompiler.encode(
+        QueryAstPolicyCompiler.Encoding emptyIn = QueryAstPolicyCompiler.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
-                Predicate.atom("department_id", "IN", List.of("d1", "d2")),
+                Predicate.atom("department_id", "IN", List.of()),
                 Map.of(),
                 table);
-        assertFalse(multiDept.scopeFullyEncoded());
-        assertTrue(multiDept.query().filters().isEmpty());
+        assertFalse(emptyIn.scopeFullyEncoded());
+        assertTrue(emptyIn.query().filters().isEmpty());
+        ScopedQuery emptyBound = PermissionQueryBinder.bind("t1", emptyIn.leftoverScope());
+        assertTrue(emptyBound.whereSql().startsWith("tenant_id = ? AND "));
+        assertTrue(emptyBound.whereSql().contains("FALSE"));
 
         assertThrows(PermissionException.class, () -> QueryAstPolicyCompiler.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),

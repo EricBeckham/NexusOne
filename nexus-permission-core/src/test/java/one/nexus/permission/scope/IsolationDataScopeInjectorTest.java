@@ -91,4 +91,22 @@ class IsolationDataScopeInjectorTest {
                 sql.sql());
         assertEquals(List.of("alpha", "u1"), sql.parameters());
     }
+
+    @Test
+    void queryAstInjectorAndsInListWithoutStrippingTenant() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "department_id");
+        IsolationDataScopeInjector scoped = new IsolationDataScopeInjector(Map.of(
+                "department_id", List.of("d1", "d2")));
+        IsolationKernel kernel = IsolationKernel.create(
+                registry, Set.of("ops.summary"), new CollectingAuditSink(), scoped, (q, t, c) -> q);
+        TenantContext alpha = kernel.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-in");
+        RenderedSql sql = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()), alpha);
+        assertEquals(
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"department_id\" IN (?, ?)",
+                sql.sql());
+        assertEquals(List.of("alpha", "d1", "d2"), sql.parameters());
+    }
 }

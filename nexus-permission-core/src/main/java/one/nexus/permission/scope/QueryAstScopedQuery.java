@@ -14,9 +14,10 @@ import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.support.PermissionException;
 
 /**
- * Product list / detail opt-in: encode safe SELF/DEPT + FieldPolicy visibility
- * onto a Query AST, compile through {@link QueryCompiler}, and keep OR / IN /
- * {@code DEPT_AND_CHILDREN} leftovers on {@link PermissionQueryBinder}.
+ * Product list / detail opt-in: encode safe SELF/DEPT + single-column
+ * multi-value {@code IN} ({@code DEPT_AND_CHILDREN} / SPECIFIED) + FieldPolicy
+ * visibility onto a Query AST, compile through {@link QueryCompiler}, and keep
+ * mixed-column OR (SELF∨DEPT) leftovers on {@link PermissionQueryBinder}.
  * Mask / second-auth stay on {@code FieldPolicyProjector}.
  */
 public final class QueryAstScopedQuery {
