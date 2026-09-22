@@ -50,9 +50,9 @@ public class EventCoreConfiguration {
             DataSource dataSource,
             ExecutionIsolation isolation,
             ExecutionSettings settings,
-            Clock executionClock
+            ObjectProvider<Clock> clocks
     ) {
-        return new JdbcOutboxStore(dataSource, isolation, settings, executionClock);
+        return new JdbcOutboxStore(dataSource, isolation, settings, clock(clocks));
     }
 
     @Bean
@@ -69,14 +69,14 @@ public class EventCoreConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    IdempotencyStore idempotencyStore(DataSource dataSource, Clock executionClock) {
-        return new JdbcIdempotencyStore(dataSource, executionClock);
+    IdempotencyStore idempotencyStore(DataSource dataSource, ObjectProvider<Clock> clocks) {
+        return new JdbcIdempotencyStore(dataSource, clock(clocks));
     }
 
     @Bean
     @ConditionalOnMissingBean
-    JdbcDeadLetterStore jdbcDeadLetterStore(DataSource dataSource, Clock executionClock) {
-        return new JdbcDeadLetterStore(dataSource, executionClock);
+    JdbcDeadLetterStore jdbcDeadLetterStore(DataSource dataSource, ObjectProvider<Clock> clocks) {
+        return new JdbcDeadLetterStore(dataSource, clock(clocks));
     }
 
     @Bean
@@ -87,8 +87,8 @@ public class EventCoreConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    JobLogWriter jobLogWriter(DataSource dataSource, Clock executionClock) {
-        return new JdbcJobLogWriter(dataSource, executionClock);
+    JobLogWriter jobLogWriter(DataSource dataSource, ObjectProvider<Clock> clocks) {
+        return new JdbcJobLogWriter(dataSource, clock(clocks));
     }
 
     @Bean
@@ -97,9 +97,9 @@ public class EventCoreConfiguration {
             JdbcOutboxStore outbox,
             DataSource dataSource,
             JdbcDeadLetterStore deadLetters,
-            Clock executionClock
+            ObjectProvider<Clock> clocks
     ) {
-        return new JdbcReconciliation(outbox, dataSource, deadLetters, executionClock);
+        return new JdbcReconciliation(outbox, dataSource, deadLetters, clock(clocks));
     }
 
     @Bean
@@ -112,7 +112,7 @@ public class EventCoreConfiguration {
             DeadLetterStore deadLetters,
             JobLogWriter jobLog,
             ExecutionSettings settings,
-            Clock executionClock,
+            ObjectProvider<Clock> clocks,
             ExecutionProperties properties
     ) {
         return new OutboxDispatcher(
@@ -123,7 +123,16 @@ public class EventCoreConfiguration {
                 deadLetters,
                 jobLog,
                 settings,
-                executionClock,
+                clock(clocks),
                 properties.dispatcherEnabled());
+    }
+
+    /**
+     * Product already has more than one {@link Clock} ({@code clock} from IAM,
+     * {@code studioClock} when scan order creates it first). Injecting {@code Clock}
+     * by type would fail after Outbox auto-config attaches.
+     */
+    private static Clock clock(ObjectProvider<Clock> clocks) {
+        return clocks.orderedStream().findFirst().orElseGet(Clock::systemUTC);
     }
 }

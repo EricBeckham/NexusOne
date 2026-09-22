@@ -30,6 +30,17 @@ class EventCoreConfigurationTest {
     }
 
     @Test
+    void registersJdbcOutboxPortWhenMultipleClockBeansExist() {
+        runner.withUserConfiguration(StubDataSourceConfig.class, TwoClocksConfig.class)
+                .withPropertyValues("nexus.execution.dispatcher-enabled=false")
+                .run(ctx -> {
+                    assertThat(ctx).hasNotFailed();
+                    assertThat(ctx).hasSingleBean(OutboxPort.class);
+                    assertThat(ctx.getBean(OutboxPort.class)).isInstanceOf(JdbcOutboxStore.class);
+                });
+    }
+
+    @Test
     void doesNotRegisterOutboxPortWithoutDataSource() {
         runner.run(ctx -> {
             assertThat(ctx).hasNotFailed();
@@ -53,6 +64,19 @@ class EventCoreConfigurationTest {
         @Bean
         DataSource dataSource() {
             return mock(DataSource.class);
+        }
+    }
+
+    @Configuration
+    static class TwoClocksConfig {
+        @Bean
+        java.time.Clock clock() {
+            return java.time.Clock.systemUTC();
+        }
+
+        @Bean
+        java.time.Clock studioClock() {
+            return java.time.Clock.systemUTC();
         }
     }
 }
