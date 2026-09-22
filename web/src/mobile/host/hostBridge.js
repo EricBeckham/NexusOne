@@ -9,8 +9,9 @@
  * Mobile-browser acceptance: standalone uses the web fallback; the
  * same-origin iframe at /m/host-harness is the postMessage parent.
  * Simulated 小程序 web-view parent: /m/mp-webview-harness embeds the
- * same H5 with ?host=mp-webview. APP WebView and WeChat/DingTalk
- * production 小程序 are not accepted in this slice.
+ * same H5 with ?host=mp-webview. APP WebView contract walk: injected
+ * window.NexusAppWebView at /m/app-webview-harness uses the same envelope.
+ * Native iOS/Android WebView binary and WeChat/DingTalk production stay open.
  */
 import { DEFAULT_MOBILE_HOME, isSafeMobileReturn, safeMobileReturn } from "../auth/safeReturn.js";
 
@@ -23,6 +24,7 @@ export const OTHER_HOSTS_OPEN = Object.freeze([
 ]);
 export const H5_SOURCE = "nexus-h5";
 export const HOST_SOURCE = "nexus-host";
+export const APP_WEBVIEW_OBJECT = "NexusAppWebView";
 export const HOST_ACTIONS = Object.freeze({
   login: Object.freeze(["ready", "request", "done", "session_expired"]),
   route: Object.freeze(["navigate", "changed"]),
@@ -93,6 +95,14 @@ export function isEmbedded(win = defaultWindow()) {
   return Boolean(win.parent && win.parent !== win);
 }
 
+export function resolveAppWebViewTarget(win = defaultWindow()) {
+  const bridge = win?.[APP_WEBVIEW_OBJECT];
+  if (bridge && typeof bridge.postMessage === "function") {
+    return bridge;
+  }
+  return null;
+}
+
 export function isMiniProgramWebViewEmbed(win = defaultWindow()) {
   if (!win || !isEmbedded(win)) {
     return false;
@@ -106,6 +116,9 @@ export function isMiniProgramWebViewEmbed(win = defaultWindow()) {
 }
 
 export function detectHostKind(win = defaultWindow()) {
+  if (resolveAppWebViewTarget(win)) {
+    return "app-webview";
+  }
   if (isMiniProgramWebViewEmbed(win)) {
     return MP_WEBVIEW_HOST;
   }
@@ -127,6 +140,7 @@ export function hostCapabilities(win = defaultWindow()) {
     transport: "postMessage",
     origin: allowedHostOrigin(win),
     fallback: embedded ? null : "web",
+    nativeBinary: false,
     otherHostsOpen: [...OTHER_HOSTS_OPEN],
   };
 }
@@ -140,6 +154,9 @@ export function isSafeHostPath(path) {
     return false;
   }
   if (clean === "/m/mp-webview-harness" || clean.startsWith("/m/mp-webview-harness/")) {
+    return false;
+  }
+  if (clean === "/m/app-webview-harness" || clean.startsWith("/m/app-webview-harness/")) {
     return false;
   }
   return true;
@@ -234,6 +251,10 @@ export function decodeHostMessage(event, win = defaultWindow()) {
 export function resolvePostTarget(win = defaultWindow()) {
   if (!win) {
     return null;
+  }
+  const app = resolveAppWebViewTarget(win);
+  if (app) {
+    return app;
   }
   if (win.parent && win.parent !== win && typeof win.parent.postMessage === "function") {
     return win.parent;

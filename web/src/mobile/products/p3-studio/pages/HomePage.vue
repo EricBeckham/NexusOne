@@ -47,6 +47,8 @@
       <router-link class="m-btn ghost" to="/m/host-harness" data-testid="mobile-open-harness">打开 iframe 宿主</router-link>
       <div style="height:8px" />
       <router-link class="m-btn ghost" to="/m/mp-webview-harness" data-testid="mobile-open-mp-harness">打开模拟小程序 web-view</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/app-webview-harness" data-testid="mobile-open-app-webview">打开 APP WebView 模拟宿主</router-link>
     </div>
   </div>
 </template>

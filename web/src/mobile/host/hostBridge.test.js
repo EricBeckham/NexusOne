@@ -42,6 +42,15 @@ describe("F014 HostBridgePort contract", () => {
     expect(caps.fallback).toBe("web");
     expect(caps.otherHostsOpen).toEqual(["APP WebView", "WeChat/DingTalk 小程序 production"]);
     expect(caps.productionAccepted).toBe(false);
+    expect(caps.nativeBinary).toBe(false);
+  });
+
+  it("treats an injected NexusAppWebView as the APP WebView host", () => {
+    const caps = hostCapabilities(createFakeWindow({ appWebView: true }));
+    expect(caps.host).toBe("app-webview");
+    expect(caps.fallback).toBeNull();
+    expect(caps.accepted).toBe(true);
+    expect(caps.nativeBinary).toBe(false);
   });
 
   it("detects embedded via parent or query", () => {
@@ -82,6 +91,7 @@ describe("payload and origin guards", () => {
     expect(isSafeHostPath("/m/p3/files?access_token=abc")).toBe(false);
     expect(isSafeHostPath("/m/host-harness")).toBe(false);
     expect(isSafeHostPath("/m/mp-webview-harness")).toBe(false);
+    expect(isSafeHostPath("/m/app-webview-harness")).toBe(false);
     expect(isSafeHostPath("/m/p3/files?tab=recent")).toBe(true);
     expect(encodeHostMessage({
       source: HOST_SOURCE,

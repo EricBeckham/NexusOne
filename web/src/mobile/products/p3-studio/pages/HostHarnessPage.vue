@@ -2,7 +2,7 @@
   <div class="host-harness" data-testid="host-harness">
     <header class="host-harness-bar">
       <h1>F014 宿主（移动浏览器 iframe）</h1>
-      <p>source=nexus-host · 通道 login/route/file/close · 同域 postMessage。不是 APP WebView / 小程序。</p>
+      <p>source=nexus-host · 通道 login/route/file/close · 同域 postMessage。移动浏览器 iframe 验收；APP WebView 网页模拟见 /m/app-webview-harness。原生包仍开放。</p>
       <div class="host-harness-actions">
         <button type="button" data-testid="harness-send-login" @click="send('login', { action: 'request', returnTo: '/m/host' })">
           入站 login

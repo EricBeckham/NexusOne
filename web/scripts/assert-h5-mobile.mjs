@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * G15 H5: mobile login-redirect / file / routing + F014 host-message wiring.
- * Does not claim Keycloak PKCE, APP WebView, or WeChat/DingTalk production.
+ * Does not claim Keycloak PKCE, a native APP WebView binary, or WeChat/DingTalk production.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -30,6 +30,7 @@ const files = {
   hostPage: read("src/mobile/products/p3-studio/pages/HostMessagePage.vue"),
   harness: read("src/mobile/products/p3-studio/pages/HostHarnessPage.vue"),
   mpHarness: read("src/mobile/products/p3-studio/pages/MiniProgramWebViewHarnessPage.vue"),
+  appWebViewHarness: read("src/mobile/products/p3-studio/pages/AppWebViewHarnessPage.vue"),
   shell: read("src/mobile/layouts/NxMobileShell.vue"),
   hostBridge: read("src/mobile/host/hostBridge.js"),
   ledger: read("src/views/studio/LedgerListView.vue"),
@@ -72,6 +73,7 @@ requireIncludes("router", files.router, [
   'path: "/m/host"',
   'path: "/m/host-harness"',
   'path: "/m/mp-webview-harness"',
+  'path: "/m/app-webview-harness"',
   "beforeEach",
   'path: "/m/login"',
   'query: { return: returnTo }',
@@ -97,6 +99,7 @@ requireIncludes("shell", files.shell, ["mobile-back", "history.length", "useHost
 requireIncludes("host page", files.hostPage, ["host-out-login", "host-out-route", "host-out-file", "host-out-close"]);
 requireIncludes("harness", files.harness, ["host-iframe", "nexus-host", "/m/host?embedded=true"]);
 requireIncludes("mp harness", files.mpHarness, ["mp-webview", "mp-capsule", "MP_WEBVIEW_CHILD_SRC"]);
+requireIncludes("app WebView harness", files.appWebViewHarness, ["NexusAppWebView", "app-webview-send-login", "非原生"]);
 requireIncludes("hostBridge", files.hostBridge, ["HostBridgePort", "postMessage", "nexus-h5", "nexus-host"]);
 
 forbidIncludes("hostBridge", files.hostBridge, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
