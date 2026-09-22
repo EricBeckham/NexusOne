@@ -293,7 +293,7 @@ class QueryCompilerTest {
         IsolationException stolen = assertThrows(IsolationException.class, () ->
                 kernel.compiler().compile(
                         QueryAst.insertBatch("ledger_entry", List.of(
-                                map("id", "1", "title", "a"),
+                                map("id", "1", "title", "a", "tenant_id", "alpha"),
                                 map("id", "2", "title", "b", "tenant_id", "beta"))),
                         alpha));
         assertEquals(IsolationErrorCode.CROSS_TENANT_BATCH, stolen.error());
