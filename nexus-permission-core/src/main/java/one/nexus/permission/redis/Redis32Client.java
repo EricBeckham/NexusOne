@@ -37,6 +37,52 @@ public final class Redis32Client implements AutoCloseable {
         return reply == null ? null : reply.toString();
     }
 
+    /**
+     * RESP2 {@code INFO}. Inventory leftover for Sentinel / Cluster honesty.
+     * This is not a Sentinel, Cluster, or replica-promotion client.
+     */
+    public String info() {
+        return info("");
+    }
+
+    public String info(String section) {
+        Object reply = section == null || section.isBlank() ? call("INFO") : call("INFO", section);
+        return reply == null ? "" : reply.toString();
+    }
+
+    /**
+     * Best-effort command. Empty when the instance rejects the verb
+     * ({@code SENTINEL} / {@code CLUSTER} on standalone Redis 3.2).
+     */
+    public Optional<String> tryCommand(String... parts) {
+        try {
+            Object reply = call(parts);
+            return reply == null ? Optional.empty() : Optional.of(stringify(reply));
+        } catch (RedisUnavailableException ex) {
+            return Optional.empty();
+        }
+    }
+
+    public static String infoField(String info, String key) {
+        if (info == null || key == null || key.isBlank()) {
+            return "";
+        }
+        String prefix = key + ":";
+        for (String line : info.split("\\r?\\n")) {
+            if (line.startsWith(prefix)) {
+                return line.substring(prefix.length()).trim();
+            }
+        }
+        return "";
+    }
+
+    private static String stringify(Object reply) {
+        if (reply instanceof List<?> list) {
+            return list.toString();
+        }
+        return reply.toString();
+    }
+
     public Optional<String> get(String key) {
         Object reply = call("GET", key);
         return reply == null ? Optional.empty() : Optional.of(reply.toString());

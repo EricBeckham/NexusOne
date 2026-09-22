@@ -21,8 +21,8 @@ Wiring is the existing `SnapshotManager` + `PermissionModule.create` + `RedisPol
 | Leftover | Why |
 |---|---|
 | Full G9 product close | Explicitly not this slice. |
-| Redis Sentinel / Cluster / replica promotion | Same as #83 / #89 / #100. |
-| Multi-node live partition | In-process dual-reader / lost-invalidate version-poll is [g9-multinode-partition.md](./g9-multinode-partition.md). Live multi-JVM / Sentinel / Cluster / replica promotion is still not claimed. |
+| Redis Sentinel / Cluster / replica promotion | Honesty leftover is [g9-sentinel-cluster-honesty.md](./g9-sentinel-cluster-honesty.md). Same as #83 / #89 / #100. |
+| Multi-node live partition | In-process dual-reader / lost-invalidate version-poll is [g9-multinode-partition.md](./g9-multinode-partition.md). Live multi-JVM / Sentinel / Cluster / replica promotion honesty leftover is [g9-sentinel-cluster-honesty.md](./g9-sentinel-cluster-honesty.md). |
 | G2 product-wide same engine | Unchanged from #73. |
 | G18 browser walk | Closed; not walked again. |
 | Live Redis 3.2 on this VM | RESP2 client + tests are present; they skip when `127.0.0.1:6379` is down. Redis-down uses a dead client on port `1`. |

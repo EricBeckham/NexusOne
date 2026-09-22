@@ -24,8 +24,8 @@ Wiring is the existing `SnapshotManager` + `PermissionModule.create` + `PolicySn
 | Leftover | Why |
 |---|---|
 | Full G9 product close | Explicitly not this slice. |
-| Redis Sentinel / Cluster / replica promotion | Same as #83 / #89 / #100 / #121. Not started, not evidenced. |
-| Live multi-JVM / network partition | Two `PermissionModule` instances in one JVM. Separate buses simulate a lost `PUBLISH`. No second process, no iptables, no Docker. |
+| Redis Sentinel / Cluster / replica promotion | Honesty leftover is [g9-sentinel-cluster-honesty.md](./g9-sentinel-cluster-honesty.md). Not started, not evidenced as PASS. |
+| Live multi-JVM / network partition | Two `PermissionModule` instances in one JVM. Separate buses simulate a lost `PUBLISH`. No second process, no iptables, no Docker. Honesty leftover: [g9-sentinel-cluster-honesty.md](./g9-sentinel-cluster-honesty.md). |
 | Production bounded-stale window | Product poller default remains 2s (#89). This package only proves per-node poll / `get` convergence. |
 | G2 product-wide same engine | Unchanged from #73 / #122. |
 | G18 browser walk | Closed; not walked again. |
@@ -43,6 +43,12 @@ Equivalent:
 mvn -pl nexus-permission-core -am test \
   -Dtest=G9DualReaderPartitionTest,JdbcG9DualReaderPartitionIT,G9FailoverRemainderTest,G9PolicySnapshotPropagationTest,PermissionEngineTest \
   -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+Sentinel / Cluster / replica promotion / live multi-JVM honesty leftover (extends this harness, same snapshot store):
+
+```bash
+./scripts/g9-sentinel-cluster-honesty.sh
 ```
 
 Zonky in-process PostgreSQL **15.x**. No Docker. No Sentinel / Cluster. No live Redis required.
