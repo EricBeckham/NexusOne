@@ -163,4 +163,80 @@ class NexusOneOutboxDispatcherTest {
                 .andExpect(jsonPath("$[0].status").value("DELIVERED"))
                 .andExpect(jsonPath("$[0].template_code").value("approval.task.assigned"));
     }
+
+    /**
+     * G3 leftover: after the first at-least-once delivery, a requeue (duplicate
+     * delivery) must not write a second inbox row. Relies on existing
+     * {@code platform.exec_idempotency} keys. Does not rebuild the dispatcher.
+     */
+    @Test
+    void requeueAfterDeliveredDoesNotWriteSecondInbox() throws Exception {
+        IsolationSupport.bindTenant(isolationKernel, TENANT, ACTOR, "mem-" + TENANT, TRACE + "-g3");
+        Notification pending = notifications.enqueue(
+                "approval.task.assigned",
+                ACTOR,
+                NotificationChannel.IN_APP,
+                Map.of("taskTitle", "年假", "actor", "alice"));
+        UUID outboxId = pending.outboxMessageId();
+        Instant deadline = Instant.now().plusSeconds(5);
+        String outboxStatus = "PENDING";
+        while (Instant.now().isBefore(deadline)) {
+            outboxStatus = jdbc.queryForObject(
+                    "select status from platform.exec_outbox where id = ?",
+                    String.class,
+                    outboxId);
+            if ("DISPATCHED".equals(outboxStatus)) {
+                break;
+            }
+            Thread.sleep(25);
+        }
+        assertEquals("DISPATCHED", outboxStatus);
+        Integer inboxBefore = jdbc.queryForObject(
+                "select count(*) from notify.inbox where notification_id = ?",
+                Integer.class,
+                pending.id());
+        Integer keysBefore = jdbc.queryForObject(
+                """
+                select count(*) from platform.exec_idempotency
+                 where scope in ('outbox-dispatched', 'notify.inbox')
+                """,
+                Integer.class);
+        assertEquals(1, inboxBefore);
+        assertTrue(keysBefore != null && keysBefore >= 1);
+
+        jdbc.update("""
+                update platform.exec_outbox
+                   set status = 'PENDING', lease_until = null, leased_by = null, available_at = now()
+                 where id = ?
+                """, outboxId);
+        dispatcher.dispatchOnce();
+        Instant replayDeadline = Instant.now().plusSeconds(5);
+        String replayStatus = "PENDING";
+        while (Instant.now().isBefore(replayDeadline)) {
+            replayStatus = jdbc.queryForObject(
+                    "select status from platform.exec_outbox where id = ?",
+                    String.class,
+                    outboxId);
+            if ("DISPATCHED".equals(replayStatus)) {
+                break;
+            }
+            Thread.sleep(25);
+        }
+        assertEquals("DISPATCHED", replayStatus);
+        assertEquals(Integer.valueOf(1), jdbc.queryForObject(
+                "select count(*) from notify.inbox where notification_id = ?",
+                Integer.class,
+                pending.id()));
+        assertEquals("DELIVERED", jdbc.queryForObject(
+                "select status from notify.inbox where notification_id = ?",
+                String.class,
+                pending.id()));
+        Integer keysAfter = jdbc.queryForObject(
+                """
+                select count(*) from platform.exec_idempotency
+                 where scope in ('outbox-dispatched', 'notify.inbox')
+                """,
+                Integer.class);
+        assertEquals(keysBefore, keysAfter);
+    }
 }

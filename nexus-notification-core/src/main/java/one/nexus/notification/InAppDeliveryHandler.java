@@ -42,12 +42,13 @@ public final class InAppDeliveryHandler implements OutboxHandler {
             throw new IllegalArgumentException("notification_id missing from outbox payload");
         }
         UUID id = UUID.fromString(matcher.group(1));
-        if (idempotency != null) {
-            idempotency.claim(
-                    OutboxAppendCommand.NOTIFY_INBOX,
-                    envelope.traceId() + ":" + id,
-                    envelope.tenantId(),
-                    envelope.traceId());
+        if (idempotency != null
+                && idempotency.claim(
+                        OutboxAppendCommand.NOTIFY_INBOX,
+                        envelope.traceId() + ":" + id,
+                        envelope.tenantId(),
+                        envelope.traceId()) == IdempotencyStore.Claim.DUPLICATE) {
+            return;
         }
         Notification notification = repository.find(id)
                 .orElseThrow(() -> new IllegalStateException("notification missing: " + id));

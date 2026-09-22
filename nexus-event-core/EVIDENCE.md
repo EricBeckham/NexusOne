@@ -32,6 +32,7 @@ mvn -pl nexus-p3-studio -am test -Dtest=G18BusinessPathIT -Dsurefire.failIfNoSpe
 | nexus-event-core | **20** | Failures 0, Errors 0, Skipped 0 |
 | `ExecutionIsolationTest` | 2 | `RequestIsolationPolicy.bindTenant` + client-hint `P1.M02.009` |
 | `OutboxEventContractTest` | 13 | missing context, restore-and-deliver, poller delivers `notify.inbox`, cross-tenant reject, foreign DomainEvent, retry/DLQ/replay, idempotent reconsume, lag probe, lag alarm via `dispatchOnce` on aged PENDING, start-of-delivery P95, lease reclaim |
+| `G3OutboxConsumeIdempotentTest` | pending | G3 leftover: at-least-once + requeue storm / concurrent replay skip handler; unique `exec_idempotency`; handler `notify.inbox` claim skips second side effect. Not a product G3 close. |
 | `EventCoreConfigurationTest` | 5 | DS → `JdbcOutboxStore`; default `dispatcher-enabled` **starts** the poller; `false` does not auto-start |
 
 Flyway log: `Migrating schema "platform" to version "500 - execution channel"` against `PostgreSQL 15.18`.

@@ -48,6 +48,8 @@ Do not add a second Outbox. G3 consumes the M0-09 / G18 measurements already on 
 
 At-least-once delivery + database keys. Keys are **not** stored in Redis.
 
+Consume-idempotent **stress / duplicate-delivery** leftover (requeue storm, concurrent replay, handler `DUPLICATE` skip) is documented separately in [g3-outbox-consume-idempotent.md](./g3-outbox-consume-idempotent.md). That leftover still does **not** rebuild Outbox / Dispatcher and does **not** close product G3.
+
 ## Evidence
 
 Zonky PostgreSQL **15.18**, Boot **4.1.1**, Java 21. Recorded **2026-09-22T15:31:06Z**: `G3IdempotencyKeyTest` **2/2**, `G18BusinessPathIT` **4/4**. Outbox reuse **2026-09-22T15:31:42Z**: `OutboxEventContractTest` **13/13**, `EventCoreConfigurationTest` **5/5**. See `nexus-p3-studio/EVIDENCE.md` (G3 section).
