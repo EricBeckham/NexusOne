@@ -43,10 +43,36 @@ P1 `GET /tenants/{id}/audit-events` still reads staging `platform.audit_event` (
 
 ## Tests
 
+Recorded **2026-09-22T15:29:50Z** on this branch (agent VM, no Docker). Zonky PostgreSQL **15.18**, OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**. Live `127.0.0.1:5432` was not required.
+
 ```bash
 mvn -pl nexus-audit-core,nexus-p2-iam,nexus-permission-core,nexus-bootstrap -am test \
   -Dtest=JdbcAuditChainTransactionTest,SessionLoginAuditTest,PolicyAdminAuditTest,HashChainedCoverageTest,G4AuditCoverageIT,NexusOneProductBootTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Recorded on this branch (agent VM, no Docker, Zonky PostgreSQL **15.18**, OpenJDK **21**, Maven **3.8.7**, Boot **4.1.1**). Fill the run table after the suite.
+`BUILD SUCCESS`.
+
+| Suite | Result |
+|---|---|
+| `JdbcAuditChainTransactionTest` | **4/4** — `append` joins Spring TX / rolls back with chain head; commit intact; `appendNewTransaction` survives |
+| `SessionLoginAuditTest` | **1/1** — accepted / logout / rejected findable by trace; chain intact |
+| `PolicyAdminAuditTest` | **1/1** — grant + assign → `p2.permission.granted` by trace |
+| `HashChainedCoverageTest` | **2/2** — P1 admin mirror uses the same `append` / `appendNewTransaction`; isolation reject only |
+| `G4AuditCoverageIT` | **1/1** — product `NexusOneApplication`: HTTP login accepted+rejected, permission grant, tenant create, `GET /api/v1/audit/traces/{traceId}`, guard-reject, `append` rollback, guard-reject survives surrounding TX |
+| `NexusOneProductBootTest` | **1/1** — product boot still wires JDBC Outbox after Flyway |
+
+Regression on the same VM **2026-09-22T15:30:27Z** (did not redo G18 product close):
+
+```bash
+mvn -pl nexus-event-core,nexus-p2-iam,nexus-permission-core,nexus-p3-studio -am test \
+  -Dtest=EventCoreConfigurationTest,IdentityApiTest,PermissionApiTest,G18BusinessPathIT \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+| Suite | Result |
+|---|---|
+| `EventCoreConfigurationTest` | **5/5** |
+| `IdentityApiTest` | **4/4** |
+| `PermissionApiTest` | **2/2** |
+| `G18BusinessPathIT` | **2/2** — data/approval same-TX path still green |
