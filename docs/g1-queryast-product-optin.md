@@ -2,7 +2,7 @@
 
 S0+S1 PostgreSQL slice. Not an M0 redo. G18 stays closed. `#115` already landed `QueryAstPolicyCompiler.encode` for **safe SELF/DEPT equality** and **FieldPolicy visibility**. This package wires the high-traffic product list/detail path (`GuardedLedgerStore`) to opt in before `QueryCompiler`.
 
-It does **not** invent a second tenant context. It does **not** change `AuditPort.append` same-TX joining. It does **not** claim a product-wide G1 close. Orthogonal to `#119` (QueryCompiler-bypass CI), `#122` (SurfaceGuard-bypass CI), `#123` (90-day hot purge), `#124` (report SurfaceGuard), `#125` (desktop PKCE click), `#126` (H5 PKCE), `#127` (Linux/ARM profile lifecycle), `#128` (G9 in-process partition), `#129` (Nginx/Tongsuo dual-stack), `#131` (claim-list sync), `#132` (WeChat/DingTalk host stub), and `#133` (TOTP enrollment UX).
+It does **not** invent a second tenant context. It does **not** change `AuditPort.append` same-TX joining. It does **not** claim a product-wide G1 close. Orthogonal to `#119` (QueryCompiler-bypass CI), `#122` (SurfaceGuard-bypass CI), `#123` (90-day hot purge), `#124` (report SurfaceGuard), `#125` (desktop PKCE click), `#126` (H5 PKCE), `#127` (Linux/ARM profile lifecycle), `#128` (G9 in-process partition), `#129` (Nginx/Tongsuo dual-stack), `#131` (claim-list sync), `#132` (WeChat/DingTalk host stub), `#133` (TOTP enrollment UX), and `#135` (RecoveryPort dry-run).
 
 ## What this close covers
 
@@ -19,13 +19,17 @@ Fully encoded SELF/DEPT list/detail execute through `kernel.jdbc().executeQuery(
 
 ## Evidence
 
-Recorded on this agent VM. Java **21**, Maven **3.9.x**, Spring Boot **4.1.1**. No Docker. Isolation-kernel compile path is in-process (no live PostgreSQL required for this package).
+Recorded on this agent VM. Java **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. Isolation-kernel compile path is in-process (no live PostgreSQL required for this package). `#129` `DualStackTlsProbe` does not compile against `bctls-jdk18on` **1.85** (`SignatureAndHashAlgorithm.ecdsa_secp256r1_sha256` is not a field); that G17 file was parked only for this G1 run and was not committed.
 
 ```
 mvn -pl nexus-permission-core,nexus-bootstrap -am test \
-    -Dtest=QueryAstScopedQueryTest,QueryAstPolicyCompilerTest,G1QueryAstProductOptInTest,G1QueryDataScopeFieldPolicyAstTest \
+    -Dtest=QueryAstScopedQueryTest,QueryAstPolicyCompilerTest,G1QueryAstProductOptInTest \
     -Dsurefire.failIfNoSpecifiedTests=false
-# BUILD SUCCESS (suite counts recorded after the Maven run)
+# permission-core specified: Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+#   QueryAstScopedQueryTest 2/2, QueryAstPolicyCompilerTest 3/3
+# bootstrap specified: Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+#   G1QueryAstProductOptInTest 1/1
+# BUILD SUCCESS  Total time: 3.644 s  Finished at: 2026-09-22T18:26:26Z
 ```
 
 | Suite | What it proved |
