@@ -101,6 +101,8 @@ jobs:
           grep -F 'g9-redis-down-invalidate-remainder-honesty' docs/README.md
           grep -F 'g7-query-expense-travel-honesty-remainder' docs/README.md
           grep -F 'g1-fieldpolicy-mask-second-auth-remainder-honesty' docs/README.md
+          grep -F 'g17-mfa-recovery-vue-otp-remainder-honesty' docs/README.md
+          grep -E '^leftover_233_kept=true$' "$RUNNER_TEMP/linux-arm-profile-remainder-honesty/report.env"
           grep -E '^leftover_238_kept=true$' "$RUNNER_TEMP/linux-arm-profile-remainder-honesty/report.env"
           grep -E '^leftover_239_kept=true$' "$RUNNER_TEMP/linux-arm-profile-remainder-honesty/report.env"
           grep -E '^leftover_237_kept=true$' "$RUNNER_TEMP/linux-arm-profile-remainder-honesty/report.env"
