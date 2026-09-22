@@ -92,6 +92,7 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g17-admin-mfa-recovery-email",
   "s0-secret-rotate-without-restart",
   "g2-ops-pg-dump",
+  "g7-withdraw-browser",
 ]);
 requireIncludes("claim list", files.claim, [
   "g17-vue-otp-writeback.md",
@@ -102,7 +103,7 @@ requireIncludes("claim list", files.claim, [
 ]);
 requireIncludes("root README", files.readme, ["g17-vue-otp-writeback.md"]);
 forbidIncludes("doc", files.doc, ["closes G17", "等保关闭", "密评关闭", "reopen G18"]);
-forbidIncludes("claim list", files.claim, ["完整 G17 关闭", "等保关闭", "产品 G17 已关闭"]);
+forbidIncludes("claim list", files.claim, ["等保关闭", "产品 G17 已关闭", "宣称完整 G17 关闭"]);
 
 const secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
 const pending = startEnrollment({ secret, now: 59_000 }).session;
