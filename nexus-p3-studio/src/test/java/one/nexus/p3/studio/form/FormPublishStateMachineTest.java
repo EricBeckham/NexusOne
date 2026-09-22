@@ -183,7 +183,7 @@ class FormPublishStateMachineTest {
         service.validate(form.formId());
         service.publish(form.formId(), "v1");
         assertEquals(1, service.get(form.formId()).runningVersion());
-        String snapshot = service.running(form.formId()).snapshot().toJson();
+        Map<String, Object> snapshot = service.running(form.formId()).snapshot().toJson();
 
         service.update(form.formId(), "请假单 v2", null, leaveBindings());
         service.validate(form.formId());
