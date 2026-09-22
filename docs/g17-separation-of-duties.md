@@ -14,7 +14,7 @@ Three mutually exclusive P2 system roles, catalogued and installable without ass
 | `platform_security_admin` | 安全管理员 | `permission.role` / `permission.grant` / `permission.assignment` write; `security.policy` write; `security.mfa` write | `audit` write/delete/admin |
 | `platform_audit_admin` | 审计管理员 | `audit` read + verify | `audit` write/delete/admin; `audit.config` write; `audit.chain` mute/delete |
 
-Install: `POST /api/v1/permission/duties/example`. Read: `GET /api/v1/permission/duties`. Same repository and `PermissionEngine` as G2. `tenant_member` is unchanged.
+Install: `POST /api/v1/permission/duties/example`. Read: `GET /api/v1/permission/duties`. Same repository and `PermissionEngine` as G2. `tenant_member` is unchanged. In-process flow `guard()` seeds that demo role the same way `FormSurfaceGuard` / `PermissionDataScopeHook` do so the G18 rollback probe is not `no_grant`.
 
 ## Conflict enforcement (same tenant / platform scope)
 
