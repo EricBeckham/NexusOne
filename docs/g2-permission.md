@@ -57,4 +57,16 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Form studio recorded **2026-09-22T16:43:49Z** (OpenJDK 21.0.10 / Maven 3.8.7 / Boot 4.1.1, no Docker): permission-core targeted **7** run / **0** fail; p3-studio targeted **18** run / **0** fail (`FormStudioPermissionApiTest` 3, `FormSurfaceGuardTest` 5, `G2SurfaceAgreementTest` 5, `FormApiTest` 1, hook 4). Isolation-only `FormPublishFailureApiTest` **2/2** at **2026-09-22T16:44:11Z**. Export / Job / Task remainder evidence is recorded after the targeted suite on this branch. See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.
+Form studio recorded **2026-09-22T16:43:49Z** (OpenJDK 21.0.10 / Maven 3.8.7 / Boot 4.1.1, no Docker): permission-core targeted **7** run / **0** fail; p3-studio targeted **18** run / **0** fail (`FormStudioPermissionApiTest` 3, `FormSurfaceGuardTest` 5, `G2SurfaceAgreementTest` 5, `FormApiTest` 1, hook 4). Isolation-only `FormPublishFailureApiTest` **2/2** at **2026-09-22T16:44:11Z**.
+
+Export / Job / Task remainder on this branch (Boot **4.1.1** / OpenJDK **21.0.10** / Maven **3.8.7** / no Docker):
+
+```
+./scripts/g2-export-job-task.sh
+# BUILD SUCCESS  2026-09-22T16:44:16Z
+# permission-core: 14 tests (G2SameEngine 2, G2ExportJobTaskEngine 2, G2AuthorizedExport 2,
+#   G2AuthorizedSubmit 3, FieldPolicy 1, G2RoleMatrixApi 1, PermissionApi 2, TenantMemberGrantSeed 1)
+# p3-studio: 8 tests (PermissionDataScopeHook 4, G2SurfaceAgreement 4)
+```
+
+See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.
