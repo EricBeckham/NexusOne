@@ -257,6 +257,16 @@ Agent VM **2026-09-22T15:27:34Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **
 
 `FormApiTest` **1/1** at **2026-09-22T15:27:49Z** (happy path plus HTTP validate-fail).
 
+# G5 tighten — SchemaService / DDL abort (forms only)
+
+Extends #70. Product publish now defaults to `SchemaServicePublishHook` → `SchemaService.confirmPhysicalTable` when SchemaService is on the classpath (not a second DDL path). Mid-publish evidence adds:
+
+- Zonky PG 15: drop physical table after Running v1 → confirm miss → pointer/snapshot unchanged
+- Zonky PG 15: `JdbcSchemaService.evolvePhysicalTable` hits PostgreSQL `42701` (pre-created `drift_col`) → pointer/snapshot unchanged
+- HTTP / memory: same `SchemaServicePublishHook` + evolve-failed shape
+
+Not a full G5 close. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md). Script re-run evidence is recorded there after this PR's IT pass.
+
 # G18 one real business path (backend)
 
 See `docs/g18-business-path.md`. Product G18 is **closed** by the 2026-09-22 browser walk on `main` `38f1a73`. The paragraphs below are the earlier VM and `ace55ff` record.

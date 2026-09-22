@@ -34,7 +34,7 @@ DRAFT --validate--> VALIDATED --publish--> RUNNING
 
 - `validate`：按 M0-06 SPI 检查每条 binding 的 `ledger_code`+`field_code`。失败保持 DRAFT，不写 version，不改 `running_version`。
 - `publish`：必须 VALIDATED；同事务写入 version 快照并切换 RUNNING 指针。上一 RUNNING 变为 SUPERSEDED。
-- 发布中途失败（`PublishHook` / 运行时异常）：**事务回滚**。RUNNING 指针与已发布 snapshot 不变；`form_publish_log.outcome=ROLLED_BACK`。
+- 发布中途失败（`SchemaService.confirmPhysicalTable` / SchemaService evolve DDL abort / `PublishHook` / 运行时异常）：**事务回滚**。RUNNING 指针与已发布 snapshot 不变；`form_publish_log.outcome=ROLLED_BACK`。产品默认在 SchemaService 可用时走 `SchemaServicePublishHook`（只确认物理表，不开辟第二条 DDL 路径）。
 - 编辑 VALIDATED 草稿会回到 DRAFT，必须重新校验。
 
 G5（Draft/Running、校验、失败回滚）只验收 **表单发布**。失败路径证据在 [g5-form-publish-rollback.md](./g5-form-publish-rollback.md)：`./scripts/g5-form-publish-rollback.sh`。G18 关闭记录在 `docs/g18-business-path.md`，浏览器走通了校验与**成功**发布；validate-fail→DRAFT 与 publish-fail→Running/snapshot 不变不在那次点击里。

@@ -17,4 +17,11 @@ public interface SchemaService {
     SchemaAst astOf(LedgerDefinition ledger, List<LedgerField> fields);
 
     void registerRuntime(LedgerDefinition ledger, List<LedgerField> fields);
+
+    /**
+     * Form-publish gate: the bound ledger must already have a SchemaService-owned
+     * physical table. Does not {@code CREATE}/{@code ALTER} — ledger create/evolve
+     * remain the only DDL paths.
+     */
+    void confirmPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields);
 }

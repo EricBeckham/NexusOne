@@ -121,6 +121,26 @@ public class JdbcSchemaService implements SchemaService {
     }
 
     @Override
+    public void confirmPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
+        astOf(ledger, fields);
+        if (!ledger.ready()) {
+            throw P3Exception.ledgerNotReady(ledger.id());
+        }
+        Connection connection = SearchPathConnections.open(dataSource);
+        try {
+            lock(connection);
+            if (!registryWriter.tableExists(connection, ledger.physicalTable())) {
+                throw P3Exception.ledgerNotReady(ledger.id());
+            }
+            registerRuntime(ledger, fields);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("SchemaService confirm failed for " + ledger.physicalTable(), ex);
+        } finally {
+            SearchPathConnections.release(dataSource, connection);
+        }
+    }
+
+    @Override
     public void registerRuntime(LedgerDefinition ledger, List<LedgerField> fields) {
         Set<String> columns = new LinkedHashSet<>(SystemColumns.ALL);
         fields.forEach(field -> columns.add(LedgerIdentifiers.requireFieldCode(field.fieldCode())));

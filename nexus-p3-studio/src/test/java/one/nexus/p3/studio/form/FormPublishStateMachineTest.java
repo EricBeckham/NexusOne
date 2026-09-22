@@ -149,6 +149,30 @@ class FormPublishStateMachineTest {
     }
 
     @Test
+    void schemaServicePublishGateAbortLeavesRunningUnchanged() {
+        UUID tenant = UUID.fromString(TENANT);
+        FormService service = service(new SchemaServicePublishHook(
+                FormPublishTestStubs.abortOnNthConfirm(2),
+                FormPublishTestStubs.leaveLedgers(tenant),
+                FormPublishTestStubs.leaveFields(tenant)));
+        FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
+        service.validate(form.formId());
+        service.publish(form.formId(), "v1");
+        assertEquals(1, service.get(form.formId()).runningVersion());
+
+        service.update(form.formId(), "请假单 v2", null, leaveBindings());
+        service.validate(form.formId());
+        NexusException failed = assertThrows(NexusException.class, () -> service.publish(form.formId(), "v2"));
+        assertEquals(ErrorCode.FORM_PUBLISH_FAILED, failed.errorCode());
+        assertTrue(String.valueOf(failed.details().get("cause")).contains("SchemaService evolve failed"));
+        assertEquals(1, service.get(form.formId()).runningVersion());
+        assertEquals(1, service.versions(form.formId()).size());
+        assertEquals(VersionStatus.RUNNING, service.running(form.formId()).status());
+        assertTrue(service.publishLog(form.formId()).stream().anyMatch(log -> "ROLLED_BACK".equals(log.outcome())));
+        assertEquals(1, service.running(form.formId()).snapshot().versionNo());
+    }
+
+    @Test
     void validateFailureLeavesDraftAndDoesNotCreateRunning() {
         FormService service = service(PublishHook.noop());
         FormRecord form = service.create(
