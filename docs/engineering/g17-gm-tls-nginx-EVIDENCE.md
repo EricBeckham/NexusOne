@@ -51,7 +51,7 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 ## Honest leftovers
 
-- Tongsuo-built nginx + Tongsuo `s_client` handshake on a host that actually has those binaries
+- Tongsuo-built nginx + Tongsuo `s_client` handshake honesty leftover is [g17-gm-tls-nginx-handshake.md](../g17-gm-tls-nginx-handshake.md)
 - GM/T 0024 encryption-cert protocol inside Java
 - Qualified GM/T Provider, 密码机 / HSM, classified / 等保 / 密评 delivery
 - Product HTTPS connector in front of `nexus-bootstrap`
