@@ -1,6 +1,6 @@
 # G10 identity half: P2 persons ↔ Keycloak
 
-S0+S1 gate **G10 身份与文件对账** is split. This package is the **identity half only**: P2 personnel match Keycloak users, and inconsistencies can be repaired. File metadata ↔ object store belongs to the G1 isolation agent and is **not** implemented here.
+S0+S1 gate **G10 身份与文件对账** is split. This package is the **identity half only**: P2 personnel match Keycloak users, and inconsistencies can be repaired. File metadata ↔ object store is [g10-file-reconcile.md](./g10-file-reconcile.md).
 
 Reuse: M0-04 `nexus-p2-iam` (Boot **4.1.1**, Java **21**, PostgreSQL **15**, Keycloak **26.5.2**). P0/M0 login, org, and session paths are not rewritten.
 
@@ -37,7 +37,7 @@ Keycloak internal tables are never read. Admin API `GET /users` only.
 - SMS MFA (and TOTP/email MFA product acceptance)
 - Browser Authorization Code + PKCE
 - Keycloak Organizations as Nexus org master data, and Employment → Organization membership sync
-- File metadata ↔ object store reconcile (G1 isolation agent)
+- File metadata ↔ object store reconcile ([g10-file-reconcile.md](./g10-file-reconcile.md))
 - Keycloak upgrade/rollback matrix (26.5.2 only)
 - Docker / Compose as the app or Keycloak run path
 

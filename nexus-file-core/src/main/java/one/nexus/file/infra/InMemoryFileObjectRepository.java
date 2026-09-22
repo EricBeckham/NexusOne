@@ -1,5 +1,7 @@
 package one.nexus.file.infra;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,5 +25,21 @@ public final class InMemoryFileObjectRepository implements FileObjectRepository 
     @Override
     public void update(FileObject file) {
         files.put(file.fileId(), file);
+    }
+
+    @Override
+    public List<FileObject> listByTenant(UUID tenantId) {
+        List<FileObject> matched = new ArrayList<>();
+        for (FileObject file : files.values()) {
+            if (file.tenantId().equals(tenantId)) {
+                matched.add(file);
+            }
+        }
+        return List.copyOf(matched);
+    }
+
+    @Override
+    public List<FileObject> listAll() {
+        return List.copyOf(files.values());
     }
 }

@@ -31,7 +31,7 @@ mvn -pl nexus-p2-iam -am test
 
 **36 tests, 0 failures, 3 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0** (includes G17 admin-MFA slice). Skips: `LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest` (opt-in `NEXUS_KEYCLOAK_SMOKE=1`), and `JdbcDualTenantIsolationTest` when PostgreSQL 15 is unreachable.
 
-G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). File/object reconcile is out of this module.
+G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). File/object reconcile is [docs/g10-file-reconcile.md](../docs/g10-file-reconcile.md).
 
 Covered by tests:
 
@@ -68,7 +68,7 @@ These are **not** accepted:
 - SMS MFA, hardware MFA / WebAuthn, TOTP enrollment UX, email MFA product acceptance (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); not a full G17 close)
 - Browser Authorization Code + PKCE as an accepted Web/H5 path (P0 listed PKCE as unverified). Product login uses a **confidential** backend client; `p0-smoke` direct-grant must not be copied into production.
 - Keycloak Organizations as Nexus org master data or acceptance evidence (Employment is not synced to Organizations)
-- File metadata ↔ object store reconcile (G1 isolation agent; not this module)
+- File metadata ↔ object store reconcile (other G10 half; [g10-file-reconcile.md](../docs/g10-file-reconcile.md))
 - Keycloak old-version upgrade / rollback matrices (single version 26.5.2 only)
 - Target Linux / ARM / offline package / deployment Profile acceptance
 - Permission engine, roles, DataScope, FieldPolicy, PolicySnapshot (M0-05)

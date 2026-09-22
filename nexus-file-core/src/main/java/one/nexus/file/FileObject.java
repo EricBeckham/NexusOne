@@ -39,8 +39,20 @@ public record FileObject(
     }
 
     public FileObject deleted() {
+        return withStatus(FileStatus.DELETED);
+    }
+
+    public FileObject missing() {
+        return withStatus(FileStatus.MISSING);
+    }
+
+    public FileObject uploaded() {
+        return withStatus(FileStatus.UPLOADED);
+    }
+
+    public FileObject withStatus(FileStatus next) {
         return new FileObject(
                 fileId, tenantId, bucketAlias, objectKey, originalName, sizeBytes, contentType,
-                checksumSha256, FileStatus.DELETED, ownerSubject, resourceId, createdAt, createdBy);
+                checksumSha256, next, ownerSubject, resourceId, createdAt, createdBy);
     }
 }

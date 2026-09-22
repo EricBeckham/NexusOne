@@ -10,6 +10,7 @@ class ErrorCodeTest {
     void formatsProductModuleNumber() {
         assertEquals("CORE.API.0001", ErrorCode.API_BAD_REQUEST.code());
         assertEquals("CORE.FILE.0001", ErrorCode.FILE_NOT_FOUND.code());
+        assertEquals("CORE.FILE.0005", ErrorCode.FILE_MISSING.code());
         assertEquals("CORE.NOTIFY.0002", ErrorCode.NOTIFY_CHANNEL_UNSUPPORTED.code());
         assertEquals("CORE.SECRET.0003", ErrorCode.SECRET_BACKEND_READ_ONLY.code());
         assertEquals("P3.FORM.0004", ErrorCode.FORM_PHYSICAL_BINDING.code());

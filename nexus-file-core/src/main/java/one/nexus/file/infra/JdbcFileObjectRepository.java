@@ -1,5 +1,6 @@
 package one.nexus.file.infra;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -52,20 +53,7 @@ public final class JdbcFileObjectRepository implements FileObjectRepository {
                          WHERE file_id = :file_id
                         """)
                 .param("file_id", fileId)
-                .query((rs, row) -> new FileObject(
-                        rs.getObject("file_id", UUID.class),
-                        rs.getObject("tenant_id", UUID.class),
-                        rs.getString("bucket_alias"),
-                        rs.getString("object_key"),
-                        rs.getString("original_name"),
-                        rs.getLong("size_bytes"),
-                        rs.getString("content_type"),
-                        rs.getString("checksum_sha256"),
-                        FileStatus.valueOf(rs.getString("status")),
-                        rs.getString("owner_subject"),
-                        rs.getString("resource_id"),
-                        rs.getTimestamp("created_at").toInstant(),
-                        rs.getString("created_by")))
+                .query(this::map)
                 .optional();
     }
 
@@ -79,5 +67,48 @@ public final class JdbcFileObjectRepository implements FileObjectRepository {
                 .param("status", file.status().name())
                 .param("file_id", file.fileId())
                 .update();
+    }
+
+    @Override
+    public List<FileObject> listByTenant(UUID tenantId) {
+        return jdbc.sql("""
+                        SELECT file_id, tenant_id, bucket_alias, object_key, original_name, size_bytes,
+                               content_type, checksum_sha256, status, owner_subject, resource_id,
+                               created_at, created_by
+                          FROM files.file_object
+                         WHERE tenant_id = :tenant_id
+                        """)
+                .param("tenant_id", tenantId)
+                .query(this::map)
+                .list();
+    }
+
+    @Override
+    public List<FileObject> listAll() {
+        return jdbc.sql("""
+                        SELECT file_id, tenant_id, bucket_alias, object_key, original_name, size_bytes,
+                               content_type, checksum_sha256, status, owner_subject, resource_id,
+                               created_at, created_by
+                          FROM files.file_object
+                        """)
+                .query(this::map)
+                .list();
+    }
+
+    private FileObject map(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+        return new FileObject(
+                rs.getObject("file_id", UUID.class),
+                rs.getObject("tenant_id", UUID.class),
+                rs.getString("bucket_alias"),
+                rs.getString("object_key"),
+                rs.getString("original_name"),
+                rs.getLong("size_bytes"),
+                rs.getString("content_type"),
+                rs.getString("checksum_sha256"),
+                FileStatus.valueOf(rs.getString("status")),
+                rs.getString("owner_subject"),
+                rs.getString("resource_id"),
+                rs.getTimestamp("created_at").toInstant(),
+                rs.getString("created_by"));
     }
 }

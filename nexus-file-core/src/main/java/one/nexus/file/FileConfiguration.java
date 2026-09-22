@@ -61,17 +61,35 @@ public class FileConfiguration {
             FileAccessPolicy policy,
             Clock cacheClock,
             FileProperties properties) {
-        String bucket = "s3".equalsIgnoreCase(properties.getStorage())
-                ? properties.getS3().getBucket()
-                : properties.getBucketAlias();
         return new FileService(
                 storage,
                 repository,
                 policy,
                 cacheClock,
-                bucket,
+                bucket(properties),
                 properties.getMaxSizeBytes(),
                 properties.getSignedTtl(),
                 properties.getAllowedMime());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    FileObjectReconciler fileObjectReconciler(
+            ObjectStoragePort storage,
+            FileObjectRepository repository,
+            FileProperties properties) {
+        return new FileObjectReconciler(storage, repository, bucket(properties));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    FileReconcileJob fileReconcileJob(FileObjectReconciler reconciler) {
+        return new FileReconcileJob(reconciler);
+    }
+
+    private static String bucket(FileProperties properties) {
+        return "s3".equalsIgnoreCase(properties.getStorage())
+                ? properties.getS3().getBucket()
+                : properties.getBucketAlias();
     }
 }
