@@ -1,8 +1,6 @@
 package one.nexus.event;
 
 import java.time.Clock;
-import java.time.Duration;
-import java.util.List;
 import javax.sql.DataSource;
 import one.nexus.event.isolation.ExecutionIsolation;
 import one.nexus.event.jdbc.JdbcDeadLetterStore;
@@ -11,13 +9,21 @@ import one.nexus.event.jdbc.JdbcJobLogWriter;
 import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.event.jdbc.JdbcReconciliation;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+/**
+ * M0-09 JDBC outbox / dispatcher. Must be <strong>auto-configuration</strong>, not a
+ * component-scanned {@code @Configuration}: {@code @ConditionalOnBean(DataSource)} on a
+ * scanned class is evaluated before {@link DataSourceAutoConfiguration}, so the product
+ * monolith never registered {@link JdbcOutboxStore} / {@link OutboxPort}. G18 IT hid this
+ * by declaring those beans on {@code G18PathApplication}.
+ */
+@AutoConfiguration(after = DataSourceAutoConfiguration.class)
 @ConditionalOnBean(DataSource.class)
 @EnableConfigurationProperties(ExecutionProperties.class)
 public class EventCoreConfiguration {

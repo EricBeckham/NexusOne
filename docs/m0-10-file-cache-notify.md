@@ -61,8 +61,8 @@ API：`POST/GET/DELETE /api/v1/files`，`POST /api/v1/files/{id}/signed-url`。
 - 投递入口：M0-09 `OutboxPort.append(OutboxAppendCommand)`，destination 固定为 `notify.inbox`。
 - Handler：`InAppDeliveryHandler` 实现 `OutboxHandler`，由 `OutboxDispatcher` 在恢复租户上下文后调用。
 
-无 DataSource 的单测仍可用本模块的 `RecordingOutboxPort` / `ImmediateOutboxPort`（`@ConditionalOnMissingBean(OutboxPort)`）。  
-单体启动走 `JdbcOutboxStore`：inbox 行与 outbox 行同事务；重试 / 失败池 / P95 由 M0-09 dispatcher 负责。
+无 DataSource 的单测仍可用本模块的 `RecordingOutboxPort` / `ImmediateOutboxPort`（`nexus.notify.outbox=record|immediate`）。  
+单体启动走 M0-09 `EventCoreConfiguration` **auto-config**（`@AutoConfiguration` after `DataSourceAutoConfiguration`）：`JdbcOutboxStore` 即 `OutboxPort`。不要把该类当成 component-scan `@Configuration` 再挂 `@ConditionalOnBean(DataSource)`——会在 DataSource 注册之前被跳过，`NotificationService` 启动失败。G18 IT 不得再单独声明 Outbox bean 来掩盖这一点。
 
 ## Flyway
 

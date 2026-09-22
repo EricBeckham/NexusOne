@@ -17,6 +17,19 @@ Fixes for the live path Eric hit. Product G18 is still not closed.
 
 Grant seed is idempotent per tenant. Turn off with `NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS=false` (permission-core ITs stay off so they still observe `no_grant`). Override audit with `NEXUS_AUDIT_PERSISTENCE=memory` if a host has no DataSource.
 
+## Product boot: `OutboxPort` for `NotificationService`
+
+After #62, `nexus.notify.outbox=auto` no longer registers in-memory `RecordingOutboxPort`. Product `NexusOneApplication` must get M0-09 `JdbcOutboxStore` as `OutboxPort`.
+
+`EventCoreConfiguration` used to be a component-scanned `@Configuration` with class-level `@ConditionalOnBean(DataSource)`. Spring Boot evaluates that **before** `DataSourceAutoConfiguration`, so the class was skipped on the monolith: Flyway reached V550, then startup failed because `NotificationService` had no `OutboxPort`.
+
+`G18BusinessPathIT` still passed because `G18PathApplication` **declared** `JdbcOutboxStore` / `OutboxPort` itself. That is not product wiring.
+
+**Fix:** `EventCoreConfiguration` is now `@AutoConfiguration(after = DataSourceAutoConfiguration)` listed in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`. `@ConditionalOnBean(DataSource)` runs after the DataSource exists. The G18 host no longer declares those beans; it uses the same auto-config as the product.
+
+This unblocks empty-DB product boot / E2E. It does **not** close product G18.
+
+
 ## What is proven (runnable)
 
 Recorded on this branch at **2026-09-22T12:53:57Z** (G18 IT + filter/hook tests). Agent VM, no Docker.

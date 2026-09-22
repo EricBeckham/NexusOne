@@ -9,6 +9,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import one.nexus.common.trace.TraceIds;
+import one.nexus.event.OutboxPort;
+import one.nexus.event.jdbc.JdbcOutboxStore;
+import one.nexus.notification.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,12 @@ class NexusOnePostgresTest {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    OutboxPort outboxPort;
+
+    @Autowired
+    NotificationService notificationService;
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
@@ -92,6 +101,13 @@ class NexusOnePostgresTest {
                 "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'exec_outbox'",
                 Integer.class);
         assertEquals(1, outbox);
+    }
+
+    @Test
+    void notificationServiceUsesJdbcOutboxPort() {
+        assertTrue(notificationService != null);
+        assertTrue(outboxPort instanceof JdbcOutboxStore, () -> "expected JdbcOutboxStore, got "
+                + (outboxPort == null ? "null" : outboxPort.getClass().getName()));
     }
 
     @Test

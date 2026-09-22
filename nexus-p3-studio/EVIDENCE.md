@@ -237,7 +237,7 @@ Coordinator merges when GitHub is CLEAN/MERGEABLE; this drop does not self-merge
 
 # G18 one real business path (backend)
 
-See `docs/g18-business-path.md`. Product G18 is **not** closed (Vue MOCK remains).
+See `docs/g18-business-path.md`. Product G18 is **not** closed (browser E2E still open).
 
 Wire: form submit → SchemaService physical `l_*` row → sequential approval in the same Spring TX → `OutboxPort.append` destination `notify.inbox` → M0-11 `AuditPort.findByTraceId`.
 
@@ -263,5 +263,5 @@ mvn -pl modules/isolation-kernel,nexus-event-core test \
 
 `BUILD SUCCESS` at **2026-09-22T12:32:28Z**. `QueryCompilerTest` **4/4**. `OutboxEventContractTest` **10/10**.
 
-Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the same TX; `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`). Vue ledger/form/todo remain MOCK. Audit hash-chain still commits on its own chain lock (M0-11). Product G18 is **not** closed.
+Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the same TX; `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`). Product `OutboxPort` is M0-09 `EventCoreConfiguration` auto-config (`JdbcOutboxStore` after DataSource). Vue live P3 APIs landed in #60. Product G18 is **not** closed until Eric re-runs the loop.
 
