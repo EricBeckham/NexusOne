@@ -2,7 +2,8 @@
 """M0-12 dual-tenant acceptance at the HTTP/UI-API boundary.
 
 Talks to the merged M0-03 (P1 tenant) and M0-04 (P2 IAM) APIs.
-Does not claim G18 closed. Ledger/form/todo paths are SKIP/TODO.
+Does not claim G18 closed. Ledger/form/todo HTTP paths stay SKIP/TODO
+(the Vue shells use an in-browser MOCK adapter, not these routes).
 """
 from __future__ import annotations
 
@@ -366,13 +367,14 @@ def deferred_business(api: Api) -> None:
     ]
     for gate, item, path, owner in deferred:
         status, body = api.request("GET", path)
-        if path.endswith("/forms"):
-            # M0-07 landed: unauthenticated list requires TenantContext (CORE.CTX.0001).
+        if path.startswith("/api/v1/p3/"):
+            # M0-06/07/08 landed: unauthenticated list needs TenantContext.
+            # Vue P3 pages still default to the in-browser MOCK adapter.
             if status in (401, 403):
-                record(gate, item, "SKIP", f"M0-07 API live; {path} -> {status} {pick(body, 'code', default='')} (needs TenantContext)")
+                record(gate, item, "SKIP", f"{owner} API live; {path} -> {status} {pick(body, 'code', default='')} (needs TenantContext)")
                 continue
             if status == 200:
-                record(gate, item, "SKIP", "M0-07 list ok without fill walkthrough; G5 UI is M0-12")
+                record(gate, item, "SKIP", f"{owner} list ok without G18 walkthrough; UI is MOCK")
                 continue
         if status == 404:
             record(gate, item, "SKIP", f"{owner}: {path} -> {status} {pick(body, 'code', default='')}")

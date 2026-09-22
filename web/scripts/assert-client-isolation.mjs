@@ -7,7 +7,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const client = readFileSync(join(root, "src/api/client.js"), "utf8");
+const client = [
+  readFileSync(join(root, "src/api/client.js"), "utf8"),
+  readFileSync(join(root, "src/api/p3.js"), "utf8"),
+  readFileSync(join(root, "src/api/p3-live.js"), "utf8"),
+].join("\n");
 
 const failures = [];
 if (!client.includes("ARCH-024")) {

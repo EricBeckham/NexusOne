@@ -2,7 +2,7 @@
 
 Work package for **tenant/org/permission shells** plus **dual-tenant adversarial scripts** against APIs that are already on `main` (M0-03 P1, M0-04 P2).
 
-This package **does not close G18**. Ledger, form, publish, sequential approval, todo, query, and in-app notification wait for M0-06/07/08/10.
+This package **does not close G18**. Ledger, form, and todo **UI shells** are in `web/` with a default **MOCK** adapter (`web/src/api/mocks/`). M0-06/07/08 HTTP APIs are on `main`; the dual-tenant script SKIPs them (404 or TenantContext 401/403). In-app notification remains M0-10.
 
 ## How to run
 
@@ -57,18 +57,17 @@ See [web/README.md](../web/README.md).
 | G1 | Query AST / export / file / cache / Job / Task full path | **DEFERRED** | M0-02 kernel + later modules |
 | G1 | Guard-reject logs “zero leak” product claim | **DEFERRED** | isolation kernel evidence, not this UI |
 | G2 | UI/API/list/detail/flow same permission engine | **DEFERRED** | M0-05 |
-| G5 | Draft/Validate/Publish | **DEFERRED UI** | M0-07 APIs exist; designer UI is this package’s later slice |
-| G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
+| G5 | Draft/Validate/Publish | **SHELL + MOCK** | M0-07 APIs exist; Vue fill/publish is MOCK, G5 not closed |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **DEFERRED** | M0-05 |
 | G15 | H5 | **DEFERRED** | S1 |
 | G18 | Tenant create | **PASS** | P1 API + tenant admin UI |
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
 | G18 | Permission views | **SHELL ONLY** | stub pages, no API |
-| G18 | Ledger | **SKIP** | TODO M0-06; script expects 404 |
-| G18 | Form / publish | **API ONLY** | M0-07 `/api/v1/p3/forms`; this shell stays a stub |
-| G18 | Business data / query | **SKIP** | TODO M0-06 |
-| G18 | Sequential approval / todo | **SKIP** | TODO M0-08 |
+| G18 | Ledger | **SHELL + MOCK** | Vue list/designer; M0-06 `/api/v1/p3/ledgers` live |
+| G18 | Form / publish | **SHELL + MOCK** | Fill + Validate/Publish shell; M0-07 API; G5 not closed |
+| G18 | Business data / query | **SKIP** | M0-06 record APIs exist; G18 walkthrough not closed |
+| G18 | Sequential approval / todo | **SHELL + MOCK** | Inbox/done/initiated; M0-08 `/api/v1/p3/todos`; no G18 |
 | G18 | In-app notification | **SKIP** | TODO M0-10 |
 | G18 | Full audit hash chain | **SKIP** | P1 staging read only; M0-11 |
 | G18 | End-to-end real business walkthrough | **NOT CLOSED** | later packages |
@@ -79,7 +78,7 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 
 - Claiming G18 or G1 product-wide closed
 - Implementing M0-05 permission engine
-- Fake ledger/todo data
+- Treating MOCK ledger/form/todo rows as G18 evidence
 - Docker / Compose
 - Browser Authorization Code + PKCE as accepted login
 - GaussDB

@@ -102,3 +102,71 @@ a { color: var(--nx-primary); text-decoration: none; }
   padding: 8px 12px;
   cursor: pointer;
 }
+.ghost {
+  background: #fff;
+  color: var(--nx-text-regular);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.danger {
+  background: var(--nx-danger);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.nx-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--nx-border);
+}
+.nx-tabs button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 12px;
+  color: var(--nx-text-secondary);
+  cursor: pointer;
+}
+.nx-tabs button.active {
+  color: var(--nx-product);
+  border-bottom-color: var(--nx-product);
+  font-weight: 600;
+}
+.nx-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--nx-text-secondary);
+}
+.nx-designer {
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  min-height: 420px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  overflow: hidden;
+  background: var(--nx-surface);
+}
+.nx-designer .pane {
+  padding: 14px;
+  min-width: 0;
+}
+.nx-designer .palette { background: var(--nx-bg-sidebar); border-right: 1px solid var(--nx-border); }
+.nx-designer .props { background: var(--nx-bg-sidebar); border-left: 1px solid var(--nx-border); }
+.nx-chip-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--nx-text-regular);
+  cursor: pointer;
+}
+.nx-chip-btn.active, .nx-chip-btn:hover { border-color: var(--nx-product); background: var(--nx-primary-light); }

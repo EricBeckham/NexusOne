@@ -39,6 +39,7 @@ hydrate();
 
 export function persist() {
   saveSettings({
+    ...loadSettings(),
     accessToken: session.accessToken,
     contextId: session.contextId,
     tenantId: session.tenantId,

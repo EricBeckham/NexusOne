@@ -1,7 +1,10 @@
 # NexusOne Web (M0-12)
 
-Minimal Vue 3 shell for tenant admin, org/identity, and permission placeholders.
-It talks only to already merged **M0-03** and **M0-04** HTTP APIs. It does **not** close G18.
+Vue 3 shell for tenant admin, org/identity, and **P3 台账 / 表单 / 待办** pages.
+
+- Tenant / org pages talk to merged **M0-03** and **M0-04** HTTP APIs.
+- Ledger / form / todo pages default to a **MOCK** adapter (`src/api/mocks/`).
+- This package **does not close G18**.
 
 ## Run
 
@@ -33,11 +36,28 @@ Open `http://127.0.0.1:5173/login`.
 - Tenant pages use P1 demo PlatformContext headers (local JAR only).
 - Person / org / position pages use `Authorization` + `X-Nexus-Context-Id`.
 
-Client isolation check (no running server required):
+Checks (no running server required):
 
 ```bash
-cd web && npm run assert:isolation
+cd web
+npm run assert:isolation
+npm run assert:p3-mock
 ```
+
+## Toggle P3 MOCK → real APIs
+
+Default is MOCK even though M0-06/07/08 HTTP APIs are on `main`. Toggle live only after you have a TenantContext.
+
+| How | Command / action |
+|---|---|
+| Stay on fixtures | `npm run dev` (unset or any value except `false`/`0`) |
+| Live HTTP | `VITE_NEXUS_P3_USE_MOCK=false npm run dev` |
+| Runtime | P3 page banner **尝试真实 API** / **回到 MOCK** |
+| Code | implement `src/api/p3-live.js`, keep `p3.js` method names |
+
+Full notes: [src/api/mocks/README.md](./src/api/mocks/README.md).
+
+MOCK markers: `_source: "MOCK"`, ids contain `-mock-`, orange banner. Reset: banner **重置 MOCK** or `sessionStorage.removeItem("nexus.m012.p3.mock")`.
 
 ## Pages
 
@@ -50,7 +70,10 @@ cd web && npm run assert:isolation
 | `/p2/org` | `/api/v1/departments/tree` | |
 | `/p2/positions` | positions + employments | Position ≠ Role |
 | `/p2/permissions/*` | none | TODO M0-05 |
-| `/p3/ledgers\|todos` | none | TODO M0-06/08 |
-| `/p3/forms` | `GET /api/v1/p3/forms` | API is M0-07; this page is still a stub (M0-12) |
+| `/p3/ledgers` | MOCK or `GET /api/v1/p3/ledgers` | List + quota; M0-06 API on main |
+| `/p3/ledgers/:id` | MOCK | Records + field designer shell |
+| `/p3/forms` | MOCK or `GET /api/v1/p3/forms` | Form catalog; M0-07 API on main |
+| `/p3/forms/:id` | MOCK | Fill / designer / publish shell |
+| `/p3/todos` | MOCK or `GET /api/v1/p3/todos` | Inbox / done / initiated; M0-08 API on main |
 
 Do not treat this shell as a Keycloak Authorization Code + PKCE acceptance. Product login remains M0-04’s confidential client.
