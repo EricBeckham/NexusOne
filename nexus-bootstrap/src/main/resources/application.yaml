@@ -92,6 +92,9 @@ nexus:
     persistence: ${NEXUS_STUDIO_PERSISTENCE:jdbc}
     demo-context: ${NEXUS_STUDIO_DEMO_CONTEXT:false}
     seed-demo-metadata: ${NEXUS_STUDIO_SEED_DEMO_METADATA:true}
+  flow:
+    engine: flowable-7.1.0-in-process
+
 
 info:
   app:

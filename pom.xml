@@ -48,6 +48,8 @@
     <quartz.version>2.5.2</quartz.version>
     <!-- P0-10 / M0-11: Bouncy Castle JCA provider used by CryptoPort (not a GM/T qualified module). -->
     <bouncycastle.version>1.85.2</bouncycastle.version>
+    <!-- P0-04 freeze. M0-08 proves 7.1.0 in-process on Boot 4.1.1 via flowable-spring, not the Boot 3 starter. -->
+    <flowable.version>7.1.0</flowable.version>
   </properties>
 
   <dependencyManagement>

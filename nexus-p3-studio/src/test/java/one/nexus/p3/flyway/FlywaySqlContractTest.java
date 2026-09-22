@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class FlywaySqlContractTest {
     @Test
-    void metadataMigrationsStayInV400WindowAndNeverCreateLedgerTables() throws IOException {
+    void metadataMigrationsStayInOwnedWindowsAndNeverCreateLedgerTables() throws IOException {
         Path dir = Path.of("src/main/resources/db/migration");
         assertTrue(Files.isDirectory(dir), dir.toAbsolutePath().toString());
         try (Stream<Path> files = Files.list(dir)) {
@@ -24,9 +24,10 @@ class FlywaySqlContractTest {
                 int version = Integer.parseInt(name.substring(1, name.indexOf('_')));
                 boolean ledgerWindow = version >= 400 && version <= 499;
                 boolean formWindow = version >= 530 && version <= 549;
+                boolean flowWindow = version >= 550 && version <= 599;
                 assertTrue(
-                        ledgerWindow || formWindow,
-                        name + " must be V400-V499 (M0-06 ledger metadata) or V530-V549 (M0-07 form metadata)");
+                        ledgerWindow || formWindow || flowWindow,
+                        name + " must be V400-V499 (M0-06), V530-V549 (M0-07), or V550-V599 (M0-08)");
                 String text = Files.readString(file).toLowerCase(Locale.ROOT);
                 assertFalse(text.contains("create table business_data."), file + " must not create business_data tables");
                 assertFalse(text.contains("create table l_"), file + " must not create l_* ledger tables");

@@ -1,0 +1,209 @@
+package one.nexus.p3.flow;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import one.nexus.common.id.UuidV7;
+import one.nexus.common.time.Utc;
+import one.nexus.p2.kernel.TenantContext;
+import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.p3.flow.ProcessRecords.ProcessInstanceView;
+import one.nexus.p3.flow.ProcessRecords.StartCommand;
+import one.nexus.p3.flow.ProcessRecords.TodoView;
+import one.nexus.p3.flow.engine.FlowEngineConfiguration;
+import one.nexus.p3.flow.persist.JdbcProcessStore;
+import one.nexus.permission.PermissionModule;
+import one.nexus.permission.engine.Decision;
+import org.flowable.engine.RuntimeService;
+import org.flowable.engine.TaskService;
+import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.task.api.Task;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@ConditionalOnProperty(name = "nexus.flow.engine")
+public class SequentialApprovalService {
+    private final RuntimeService runtimeService;
+    private final TaskService taskService;
+    private final JdbcProcessStore store;
+    private final AssigneeResolver assignees;
+    private final PermissionModule permission;
+
+    public SequentialApprovalService(
+            RuntimeService runtimeService,
+            TaskService taskService,
+            JdbcProcessStore store,
+            AssigneeResolver assignees,
+            PermissionModule permission
+    ) {
+        this.runtimeService = runtimeService;
+        this.taskService = taskService;
+        this.store = store;
+        this.assignees = assignees;
+        this.permission = permission;
+    }
+
+    @Transactional
+    public ProcessInstanceView start(StartCommand command) {
+        TenantContext tenant = requireTenant();
+        requireText(command.businessKey(), "business_key is required");
+        String processKey = command.processKey() == null || command.processKey().isBlank()
+                ? FlowEngineConfiguration.PROCESS_KEY
+                : command.processKey();
+        if (!FlowEngineConfiguration.PROCESS_KEY.equals(processKey)) {
+            throw FlowException.badRequest("only nexusSequentialApproval is supported in M0-08");
+        }
+        guard("process.instance", "start");
+        List<UUID> candidates = assignees.resolve(tenant.tenantId(), command.assigneeType(), command.assigneeRef());
+        UUID assignee = candidates.getFirst();
+        store.findInstanceByBusinessKey(tenant.tenantId(), command.businessKey()).ifPresent(existing -> {
+            throw FlowException.conflict("business_key already used in this tenant");
+        });
+        Instant now = Utc.now();
+        ProcessInstance flowable = runtimeService.createProcessInstanceBuilder()
+                .processDefinitionKey(processKey)
+                .businessKey(command.businessKey())
+                .tenantId(tenant.tenantId().toString())
+                .variable("assignee", assignee.toString())
+                .variable("initiator", tenant.personId().toString())
+                .variable("assigneeType", command.assigneeType().name())
+                .variable("outcome", "")
+                .start();
+        UUID instanceId = UuidV7.generate();
+        ProcessInstanceView view = new ProcessInstanceView(
+                instanceId,
+                tenant.tenantId(),
+                processKey,
+                command.businessKey(),
+                tenant.personId(),
+                command.assigneeType(),
+                command.assigneeRef(),
+                flowable.getId(),
+                ProcessStatus.RUNNING,
+                now,
+                null);
+        try {
+            store.insertInstance(view);
+        } catch (DuplicateKeyException ex) {
+            throw FlowException.conflict("business_key already used in this tenant");
+        }
+        Task task = taskService.createTaskQuery()
+                .processInstanceId(flowable.getId())
+                .taskTenantId(tenant.tenantId().toString())
+                .singleResult();
+        if (task == null) {
+            throw FlowException.conflict("sequential process did not create a user task");
+        }
+        for (UUID candidate : candidates) {
+            if (!candidate.equals(assignee)) {
+                taskService.addCandidateUser(task.getId(), candidate.toString());
+            }
+        }
+        store.insertTodo(new TodoView(
+                UuidV7.generate(),
+                tenant.tenantId(),
+                instanceId,
+                task.getId(),
+                task.getName(),
+                assignee,
+                candidates,
+                TodoStatus.PENDING,
+                null,
+                null,
+                null,
+                now,
+                command.businessKey(),
+                ProcessStatus.RUNNING));
+        store.recordAction(tenant.tenantId(), instanceId, null, tenant.personId(), "START",
+                "START:" + command.businessKey(), now);
+        return view;
+    }
+
+    @Transactional
+    public TodoView approve(UUID todoId) {
+        return complete(todoId, "APPROVE", ProcessStatus.APPROVED);
+    }
+
+    @Transactional
+    public TodoView reject(UUID todoId) {
+        return complete(todoId, "REJECT", ProcessStatus.REJECTED);
+    }
+
+    @Transactional
+    public ProcessInstanceView withdraw(UUID instanceId) {
+        TenantContext tenant = requireTenant();
+        ProcessInstanceView instance = store.findInstance(tenant.tenantId(), instanceId)
+                .orElseThrow(() -> FlowException.notFound("process instance not found in current tenant"));
+        String key = "WITHDRAW:" + instanceId;
+        if (instance.status() == ProcessStatus.WITHDRAWN) {
+            return instance;
+        }
+        if (instance.status() != ProcessStatus.RUNNING) {
+            throw FlowException.notRunning("instance is " + instance.status());
+        }
+        if (!instance.initiatorPersonId().equals(tenant.personId())) {
+            throw FlowException.forbidden("only the initiator may withdraw");
+        }
+        guard("process.instance", "withdraw");
+        Instant now = Utc.now();
+        runtimeService.deleteProcessInstance(instance.flowableInstanceId(), "withdraw");
+        store.cancelPending(tenant.tenantId(), instanceId);
+        store.finishInstance(tenant.tenantId(), instanceId, ProcessStatus.WITHDRAWN, now);
+        if (!store.actionExists(tenant.tenantId(), key)) {
+            store.recordAction(tenant.tenantId(), instanceId, null, tenant.personId(), "WITHDRAW", key, now);
+        }
+        return store.findInstance(tenant.tenantId(), instanceId).orElseThrow();
+    }
+
+    private TodoView complete(UUID todoId, String outcome, ProcessStatus endStatus) {
+        TenantContext tenant = requireTenant();
+        TodoView todo = store.findTodo(tenant.tenantId(), todoId)
+                .orElseThrow(() -> FlowException.notFound("todo not found in current tenant"));
+        String key = outcome + ":" + todoId;
+        if (todo.status() == TodoStatus.DONE && outcome.equals(todo.outcome())) {
+            return todo;
+        }
+        if (todo.status() != TodoStatus.PENDING) {
+            throw FlowException.conflict("todo is " + todo.status());
+        }
+        if (!todo.candidatePersonIds().contains(tenant.personId())
+                && (todo.assigneePersonId() == null || !todo.assigneePersonId().equals(tenant.personId()))) {
+            throw FlowException.forbidden("current person is not a candidate for this todo");
+        }
+        guard("process.task", outcome.toLowerCase());
+        Instant now = Utc.now();
+        taskService.setAssignee(todo.flowableTaskId(), tenant.personId().toString());
+        taskService.complete(todo.flowableTaskId(), Map.of("outcome", outcome));
+        store.completeTodo(tenant.tenantId(), todoId, tenant.personId(), outcome, now);
+        store.finishInstance(tenant.tenantId(), todo.instanceId(), endStatus, now);
+        if (!store.actionExists(tenant.tenantId(), key)) {
+            store.recordAction(tenant.tenantId(), todo.instanceId(), todoId, tenant.personId(), outcome, key, now);
+        }
+        return store.findTodo(tenant.tenantId(), todoId).orElseThrow();
+    }
+
+    private void guard(String resource, String action) {
+        Decision decision = permission.service().decide(resource, action);
+        if ("explicit_deny".equals(decision.reason()) || "tenant_boundary".equals(decision.reason())) {
+            throw FlowException.forbidden(decision.reason());
+        }
+    }
+
+    private static TenantContext requireTenant() {
+        TenantContext tenant = TenantContextHolder.get();
+        if (tenant == null) {
+            throw FlowException.missingContext();
+        }
+        return tenant;
+    }
+
+    private static void requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw FlowException.badRequest(message);
+        }
+    }
+}

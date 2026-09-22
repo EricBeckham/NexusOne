@@ -28,7 +28,20 @@ import tools.jackson.databind.ObjectMapper;
         "nexus.studio.persistence=memory",
         "nexus.studio.seed-demo-metadata=true",
         "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
-                + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
+                + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
+                + "org.flowable.spring.boot.ProcessEngineAutoConfiguration,"
+                + "org.flowable.spring.boot.ProcessEngineServicesAutoConfiguration,"
+                + "org.flowable.spring.boot.eventregistry.EventRegistryAutoConfiguration,"
+                + "org.flowable.spring.boot.eventregistry.EventRegistryServicesAutoConfiguration,"
+                + "org.flowable.spring.boot.idm.IdmEngineAutoConfiguration,"
+                + "org.flowable.spring.boot.idm.IdmEngineServicesAutoConfiguration,"
+                + "org.flowable.spring.boot.app.AppEngineAutoConfiguration,"
+                + "org.flowable.spring.boot.app.AppEngineServicesAutoConfiguration,"
+                + "org.flowable.spring.boot.RestApiAutoConfiguration,"
+                + "org.flowable.spring.boot.FlowableSecurityAutoConfiguration,"
+                + "org.flowable.spring.boot.FlowableJpaAutoConfiguration,"
+                + "org.flowable.spring.boot.EndpointAutoConfiguration,"
+                + "org.flowable.spring.boot.actuate.info.FlowableInfoAutoConfiguration"
 })
 class FormApiTest {
     private static final String TENANT_A = "11111111-1111-4111-8111-111111111111";

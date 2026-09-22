@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://nexus.one/m0-08">
+  <process id="nexusSequentialApproval" name="Nexus sequential approval" isExecutable="true">
+    <startEvent id="start" name="Start"/>
+    <sequenceFlow id="toApprove" sourceRef="start" targetRef="approveTask"/>
+    <userTask id="approveTask" name="Approve" flowable:assignee="${assignee}"/>
+    <sequenceFlow id="toGateway" sourceRef="approveTask" targetRef="outcomeGateway"/>
+    <exclusiveGateway id="outcomeGateway" name="Outcome"/>
+    <sequenceFlow id="toApproved" sourceRef="outcomeGateway" targetRef="endApproved">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${outcome == 'APPROVE'}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="toRejected" sourceRef="outcomeGateway" targetRef="endRejected">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${outcome == 'REJECT'}]]></conditionExpression>
+    </sequenceFlow>
+    <endEvent id="endApproved" name="Approved"/>
+    <endEvent id="endRejected" name="Rejected"/>
+  </process>
+</definitions>

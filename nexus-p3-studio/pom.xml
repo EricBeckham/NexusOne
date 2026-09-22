@@ -10,7 +10,7 @@
   </parent>
   <artifactId>nexus-p3-studio</artifactId>
   <name>NexusOne P3 Studio</name>
-  <description>M0-06 ledger metadata/SchemaService/CRUD and M0-07 form publish. Forms bind ledger_code + field_code only.</description>
+  <description>M0-06 ledger metadata/SchemaService/CRUD, M0-07 form publish, and M0-08 sequential approval/todos. Forms bind ledger_code + field_code only. Flowable engine tables are not Flyway-managed.</description>
   <dependencies>
     <dependency>
       <groupId>one.nexus</groupId>
@@ -27,8 +27,29 @@
     </dependency>
     <dependency>
       <groupId>one.nexus</groupId>
+      <artifactId>nexus-p2-iam</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
       <artifactId>nexus-permission-core</artifactId>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.flowable</groupId>
+      <artifactId>flowable-engine</artifactId>
+      <version>${flowable.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.flowable</groupId>
+      <artifactId>flowable-spring</artifactId>
+      <version>${flowable.version}</version>
+    </dependency>
+    <!-- Official Boot starter is a compatibility probe only. Product wiring is flowable-spring 7.1.0. -->
+    <dependency>
+      <groupId>org.flowable</groupId>
+      <artifactId>flowable-spring-boot-starter-process</artifactId>
+      <version>${flowable.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

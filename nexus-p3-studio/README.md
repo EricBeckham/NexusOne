@@ -1,12 +1,12 @@
-# NexusOne P3 Studio (M0-06 + M0-07)
+# NexusOne P3 Studio (M0-06 + M0-07 + M0-08)
 
-Application / ledger / field **metadata**, **SchemaService** (sole owner of dynamic DDL), ledger **CRUD / list / detail / query / pagination**, and form **Draft→Validate→Publish→Running**.
+Application / ledger / field **metadata**, **SchemaService** (sole owner of dynamic DDL), ledger **CRUD / list / detail / query / pagination**, form **Draft→Validate→Publish→Running**, and **sequential approval / todos**.
 
-UI and Flowable are **not** in this module (M0-12 / M0-08).
+UI is **not** in this module (M0-12).
 
 ## Rules
 
-- Flyway window **V400–V499** writes ledger metadata in `business_meta` only. Flyway window **V530–V549** writes form metadata in `business_meta` only. Physical `business_data.l_*` / `a_*` tables are never created by Flyway.
+- Flyway window **V400–V499** writes ledger metadata in `business_meta` only. Flyway window **V530–V549** writes form metadata in `business_meta` only. Flyway window **V550–V599** writes process metadata in `business_meta` only. Physical `business_data.l_*` / `a_*` tables are never created by Flyway.
 - `SchemaService` (`JdbcSchemaService`) is the only type that executes `CREATE TABLE` / `ALTER TABLE` / `CREATE INDEX` for tenant ledgers.
 - Tenant custom tables: `l_{tenant_code}_{ledger_code}`. App-shared tables: `a_{app_code}_{ledger_code}`.
 - Identifiers: `^[a-z][a-z0-9_]{0,23}$` (ledgers) / `^[a-z][a-z0-9_]{0,62}$` (forms). Illegal names are refused before DDL.
@@ -14,6 +14,7 @@ UI and Flowable are **not** in this module (M0-12 / M0-08).
 - Writes go through isolation-kernel Query AST + `GuardedJdbc` (mandatory `tenant_id`).
 - List / detail / total / pagination share one `tenant_id = ? AND (DataScope)` WHERE from M0-05 `PermissionQueryBinder`.
 - P1 `QuotaService` is used when the bean exists (`APP` / `CUSTOM_LEDGER`).
+- Flowable 7.1.0 runs **in-process** on Boot 4.1.1 via `SpringProcessEngineConfiguration`. Engine tables live in schema `flowable` (engine-owned). Domain lists never read `act_*`.
 
 ## API
 
@@ -32,11 +33,23 @@ UI and Flowable are **not** in this module (M0-12 / M0-08).
 | POST | `/api/v1/p3/forms/{id}/publish` |
 | GET | `/api/v1/p3/forms/{id}/running` |
 | POST/GET | `/api/v1/p3/forms/{id}/submissions` |
+| GET | `/api/v1/process/health` |
+| POST | `/api/v1/process/instances` |
+| POST | `/api/v1/process/tasks/{todoId}/approve` |
+| POST | `/api/v1/process/tasks/{todoId}/reject` |
+| POST | `/api/v1/process/instances/{instanceId}/withdraw` |
+| GET | `/api/v1/todos/pending` / `/api/v1/p3/todos` |
+| GET | `/api/v1/todos/done` |
+| GET | `/api/v1/todos/initiated` |
 
 Demo tenant headers (test only, `nexus.p3.demo-context=true` and/or `nexus.studio.demo-context=true`): `X-Nexus-Demo-Tenant-Id`, `X-Nexus-Demo-Tenant-Code`, `X-Nexus-Demo-Actor-Id`.
 
-Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md).
+Flow mutating routes require `Authorization: Bearer` and `X-Nexus-Context-Id`. `X-Tenant-Id` is rejected (`P3.FLOW.0006`).
+
+Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md). Sequential approval: [docs/engineering/m0-08-sequential-approval.md](../docs/engineering/m0-08-sequential-approval.md).
 
 ```bash
 mvn -pl nexus-p3-studio -am test
 ```
+
+Uses embedded PostgreSQL **15.18** (Zonky) for M0-08 ITs. Compatibility spike: `Flowable710Boot411CompatibilityIT`.
