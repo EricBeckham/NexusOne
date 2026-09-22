@@ -1,11 +1,13 @@
 # M0-02 isolation kernel evidence
 
-Recorded 2026-09-22 on this agent VM. Java 21.0.10, Maven 3.8.7, in-process PostgreSQL **15.18** via zonky embedded binaries (no Docker).
+Recorded 2026-09-22 on this agent VM. Java 21.0.10, Maven 3.9.16, in-process PostgreSQL **15.18** via zonky embedded binaries (no Docker).
 
 ## `mvn test`
 
+G1 remaining-surfaces re-run **2026-09-22T15:28:16Z**:
+
 ```
-Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
