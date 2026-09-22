@@ -1,0 +1,17 @@
+{
+  "leftover": "g17-separation-honesty",
+  "sibling": "g17-separation-of-duties",
+  "catalog_99_inventory": "PASS",
+  "live_sod_walk": "SKIP",
+  "live_sod_skip_reason": "live JAR unset (NEXUS_BASE_URL / NEXUS_G17_SOD_LIVE_BASE); nothing on 127.0.0.1:8080 / :8088; live IdP unreachable; Docker forbidden",
+  "live_admin_boundary": "SKIP",
+  "live_auditor_boundary": "SKIP",
+  "live_operator_boundary": "SKIP",
+  "p1_all_demo_status": "OPEN",
+  "product_duty_ui_status": "OPEN",
+  "g17Close": "NOT_CLAIMED",
+  "g17SodClose": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "timestampUtc": "2026-09-22T20:10:50Z",
+  "evidence": "scripts/g17-separation-honesty.sh"
+}
