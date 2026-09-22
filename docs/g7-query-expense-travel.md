@@ -10,6 +10,7 @@ Withdraw leftovers are already on `main`:
 - Vue `todo-withdraw` click: [g7-withdraw-browser.md](./g7-withdraw-browser.md) (#113)
 - Vue `todo-withdraw` / browser honesty leftover: [g7-withdraw-browser-honesty.md](./g7-withdraw-browser-honesty.md) (does not redo this query leftover)
 - Expense / travel query honesty leftover: [g7-query-expense-travel-honesty.md](./g7-query-expense-travel-honesty.md) (PASS when query surfaces work; live JAR/IdP SKIP; does not redo this package)
+- Expense / travel query honesty remainder leftover: [g7-query-expense-travel-honesty-remainder.md](./g7-query-expense-travel-honesty-remainder.md) (beyond #192/#140/#212; query surfaces PASS; live JAR/IdP SKIP; does not redo this package)
 
 Catalog leave / expense / travel from [#69](https://github.com/EricBeckham/NexusOne/pull/69) is already on `main`. This package only records **list / field-equals query / detail / todo query** evidence for the two non-leave classes. Withdraw ITs, the catalog, the provisioner, leave ITs, and `AuditPort` are not rewritten.
 
