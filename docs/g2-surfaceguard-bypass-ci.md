@@ -75,7 +75,7 @@ This is **not** a product-wide G2 close.
 | `TodoController` / `TodoQueryService` | HTTP now `TodoSurfaceGuard` (`process.task`/`read`) when `PermissionModule` is present. See [g2-todo-http-surface.md](./g2-todo-http-surface.md). Isolation hosts without the bean stay the FormController-shaped skip. |
 | Ledger / application / business-type catalog HTTP | Definition HTTP now goes through `CatalogSurfaceGuard` when `PermissionModule` is present. Isolation hosts without the bean stay the FormController-shaped skip. |
 | Isolation-only `tenant_only` | Engine-backed wrappers use `IsolationOnlyDecision.allow()` and **fail-close** when a P2 `TenantContext` exists. See [g2-tenant-only-catalog.md](./g2-tenant-only-catalog.md). |
-| Physical dump HTTP | Product dump HTTP is the sibling leftover [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). The gate now also flags unguarded `/dumps` and raw `writeProjected`. `pg_dump` ops stay open. |
+| Physical dump HTTP | Product dump HTTP is the sibling leftover [g2-physical-dump-surface.md](./g2-physical-dump-surface.md). The gate now also flags unguarded `/dumps` and raw `writeProjected`. Ops-level `pg_dump` honesty is [g2-ops-pg-dump.md](./g2-ops-pg-dump.md). |
 | Regex / ArchUnit limits | Aliases, reflection, generated code, and JNI are not covered. Keep the allowlist tight. |
 | UI / H5 every page | Not re-walked. Desktop `/p3` unchanged. |
 | G1 QueryCompiler / JDBC callers | Orthogonal open leftover (#119). This package does not scan JDBC. |

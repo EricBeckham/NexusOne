@@ -33,6 +33,7 @@
 | [g2-surfaceguard-bypass-ci](./g2-surfaceguard-bypass-ci.md) | G2 leftover：CI / ArchUnit 门禁拦截绕过 `SurfaceGuard` / `PermissionEngine` 的调用方；不是产品级 G2 关闭；与 G1 QueryCompiler JDBC 门禁正交 |
 | [g2-tenant-only-catalog](./g2-tenant-only-catalog.md) | G2 leftover：isolation-only `tenant_only` fail-closed + catalog 定义 HTTP 走同一 `SurfaceGuard`（#144；`ledger/read` + `ledger/write`）；物理 dump 见 sibling leftover；不是产品级 G2 关闭；[证据](./engineering/g2-tenant-only-catalog-EVIDENCE.md) |
 | [g2-todo-http-surface](./g2-todo-http-surface.md) | G2 leftover：待办 HTTP（`GET /api/v1/p3/todos` 及 aliases）走同一 `SurfaceGuard`（`process.task`/`read`）；不重做 #144 catalog/`tenant_only`、#116 H5 `/check`；不是产品级 G2 关闭；[证据](./engineering/g2-todo-http-surface-EVIDENCE.md) |
+| [g2-ops-pg-dump](./g2-ops-pg-dump.md) | G2 leftover：运维 `pg_dump` 不在产品 SurfaceGuard 路径（须走 #137 `AuthorizedExport` 或保持 ops/G6 runbook）；不重做 #137/#144/#150；不是产品级 G2 关闭；[证据](./engineering/g2-ops-pg-dump-EVIDENCE.md) |
 | [g4-hot-purge-90d](./g4-hot-purge-90d.md) | G4 leftover：90 天热行 purge（已冷归档，或仍在 365 天归档窗的热前缀）。不 DROP 热表，不改 `AuditPort` 同事务入链，不宣称产品 G4 关闭 |
 | [g4-pkce-browser-click](./g4-pkce-browser-click.md) | G4 leftover：桌面 Playwright Authorization Code + PKCE 点击上链（stub IdP，同 AuditCaptures / CanonicalAudit）。不宣称产品 G4 关闭。H5 `/m/*` PKCE leftover 见 #126 / [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md)；不宣称产品 G15 关闭 |
 | [g4-guard-deny-audit](./g4-guard-deny-audit.md) | G4 leftover：Form/H5/报表/Job/Task `SurfaceGuard` 拒绝写入同一哈希链（#136；`p2.permission.denied` + `isolation.guard.reject`）。不改 `AuditPort` 同事务入链，不宣称产品 G4 关闭；与 #125 桌面 PKCE 点击正交 |

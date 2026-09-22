@@ -28,7 +28,7 @@ Dump writes projected CSV through `AuthorizedExport.writeProjected`. It is **not
 | Report query/export | Closed on main by #124. This leftover does not redo it. |
 | SurfaceGuard bypass CI | Closed on main by #122. This leftover only adds `/dumps` + dump fixtures. |
 | H5 dump page | Not added. H5 `/m/p3/query` export stays AuthorizedExport Task submit. |
-| `pg_dump` / RecoveryPort / G6 runbooks | Ops leftover. Not a product dump. |
+| `pg_dump` / RecoveryPort / G6 runbooks | Ops leftover. Not a product dump. Honesty boundary is [g2-ops-pg-dump.md](./g2-ops-pg-dump.md). |
 | `TodoController` | Sibling leftover [g2-todo-http-surface.md](./g2-todo-http-surface.md). Catalog / isolation-only `tenant_only` honesty is [g2-tenant-only-catalog.md](./g2-tenant-only-catalog.md). |
 | AuditPort same-TX / hash-chain rewrite | Unchanged |
 | G18 reopen | No |

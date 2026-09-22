@@ -23,7 +23,7 @@ Approve / reject / withdraw stay `SequentialApprovalService.guard` (`P3.FLOW.000
 
 | Item | Status |
 |---|---|
-| Product-wide G2 | Open. H5 every page and `pg_dump` ops stay off this close. |
+| Product-wide G2 | Open. H5 every page stays off this close. Ops-level `pg_dump` honesty is [g2-ops-pg-dump.md](./g2-ops-pg-dump.md). |
 | Isolation-only `tenant_only` / catalog HTTP | Closed on main by #144. This leftover reuses `IsolationOnlyDecision`. It does not rewrite catalog controllers. |
 | Physical dump / raw export | Sibling leftover on main (#137). |
 | H5 `/m/*` Vue `/check` | Closed on main by #116. This leftover does not redo mobile pages. |

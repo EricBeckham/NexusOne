@@ -115,6 +115,15 @@
               <mainClass>one.nexus.permission.scan.SurfaceGuardBypassCheckMain</mainClass>
             </configuration>
           </execution>
+          <execution>
+            <id>ops-pg-dump-honesty</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <mainClass>one.nexus.permission.scan.OpsPgDumpHonestyCheckMain</mainClass>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>

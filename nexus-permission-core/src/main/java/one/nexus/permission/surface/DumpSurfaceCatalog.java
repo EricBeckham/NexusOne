@@ -8,7 +8,7 @@ package one.nexus.permission.surface;
  * <p>Dump is the raw {@link AuthorizedExport#writeProjected} path. Report
  * export stays the Task {@link AuthorizedExport#submit} leftover
  * ({@code ReportSurfaceCatalog}). Not a product-wide G2 close. {@code pg_dump}
- * ops / RecoveryPort stay off this engine.
+ * ops / RecoveryPort stay off this engine; see {@link OpsPhysicalDumpCatalog}.
  */
 public final class DumpSurfaceCatalog {
     public static final String READ_RESOURCE = "ledger";
