@@ -4,6 +4,7 @@
     "g17-separation-of-duties",
     "g17-separation-honesty",
     "g17-separation-leftover-honesty",
+    "g15-h5-pkce-miniprogram-remainder-honesty",
     "g2-h5-every-page-form-write-report-remainder-honesty",
     "linux-arm-profile-remainder-honesty",
     "g4-hot-purge-staging-pkce-remainder-honesty",
@@ -28,6 +29,6 @@
   "g17SodClose": "NOT_CLAIMED",
   "productDualControlClose": "NOT_CLAIMED",
   "g18": "closed_unchanged",
-  "timestampUtc": "2026-09-22T22:43:19Z",
+  "timestampUtc": "2026-09-22T22:44:50Z",
   "evidence": "scripts/g17-separation-leftover-honesty-remainder.sh"
 }
