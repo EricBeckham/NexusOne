@@ -183,10 +183,18 @@ class IssuedTenantIsolationFilterTest {
         return provider;
     }
 
+    @SuppressWarnings("unchecked")
+    private static ObjectProvider<IdentityModule> identities(IdentityModule identity) {
+        ObjectProvider<IdentityModule> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(identity);
+        when(provider.getIfAvailable(any())).thenReturn(identity);
+        return provider;
+    }
+
     private IssuedTenantIsolationFilter filter(
             IdentityModule identity,
             ObjectProvider<TenantRepository> tenants,
             ObjectProvider<LedgerRepository> ledgers) {
-        return new IssuedTenantIsolationFilter(kernel, identity, tenants, ledgers, noSeeder());
+        return new IssuedTenantIsolationFilter(kernel, identities(identity), tenants, ledgers, noSeeder());
     }
 }

@@ -31,7 +31,7 @@ class PermissionDataScopeHookTest {
         PermissionDataScopeHook hook = hook(decision("ledger", "read", new Decision(false, "no_grant")), null);
         ScopedRead scoped = hook.bind("tenant-a", "ledger", "read");
         assertEquals("tenant_only", scoped.decision().reason());
-        assertTrue(scoped.query().whereClause().contains("tenant_id"));
+        assertTrue(scoped.query().whereSql().contains("tenant_id"));
     }
 
     @Test

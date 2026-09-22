@@ -19,7 +19,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -31,25 +30,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Same contract as PR #60 {@code one.nexus.bootstrap.web.IssuedTenantIsolationFilter}:
  * demo headers stay test-only; the Vue client never sends {@code X-Tenant-Id}.
  * Lives in P3 so the G18 path IT and product boot share one binder.
- * {@code @ConditionalOnBean(IdentityModule)} keeps M0-06 studio hosts that do not
- * load IAM from failing to start.
+ * IdentityModule is optional so M0-06 studio hosts that do not load IAM still start.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 19)
-@ConditionalOnBean(IdentityModule.class)
 public class IssuedTenantIsolationFilter extends OncePerRequestFilter {
     public static final String HEADER_CONTEXT = "X-Nexus-Context-Id";
     public static final String HEADER_TENANT = "X-Tenant-Id";
 
     private final IsolationKernel kernel;
-    private final IdentityModule identity;
+    private final ObjectProvider<IdentityModule> identity;
     private final ObjectProvider<TenantRepository> tenants;
     private final ObjectProvider<LedgerRepository> ledgers;
     private final ObjectProvider<TenantMemberGrantSeeder> grantSeeder;
 
     public IssuedTenantIsolationFilter(
             IsolationKernel kernel,
-            IdentityModule identity,
+            ObjectProvider<IdentityModule> identity,
             ObjectProvider<TenantRepository> tenants,
             ObjectProvider<LedgerRepository> ledgers,
             ObjectProvider<TenantMemberGrantSeeder> grantSeeder) {
@@ -84,9 +81,10 @@ public class IssuedTenantIsolationFilter extends OncePerRequestFilter {
             }
             String header = request.getHeader(HttpHeaders.AUTHORIZATION);
             String contextId = request.getHeader(HEADER_CONTEXT);
-            if (header != null && header.startsWith("Bearer ") && contextId != null && !contextId.isBlank()) {
-                SessionService.AuthenticatedIdentity session = identity.sessions().authenticate(header.substring(7));
-                var issued = identity.sessions().loadContext(UUID.fromString(contextId), session.claims().subject());
+            IdentityModule iam = identity.getIfAvailable();
+            if (iam != null && header != null && header.startsWith("Bearer ") && contextId != null && !contextId.isBlank()) {
+                SessionService.AuthenticatedIdentity session = iam.sessions().authenticate(header.substring(7));
+                var issued = iam.sessions().loadContext(UUID.fromString(contextId), session.claims().subject());
                 TenantMemberGrantSeeder seeder = grantSeeder.getIfAvailable();
                 if (seeder != null) {
                     seeder.ensure();

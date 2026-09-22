@@ -19,7 +19,7 @@ Grant seed is idempotent per tenant. Turn off with `NEXUS_PERMISSION_SEED_TENANT
 
 ## What is proven (runnable)
 
-Recorded on this branch at **2026-09-22T12:32:09Z** (G18 IT) and **2026-09-22T12:32:28Z** (Outbox + QueryCompiler). Agent VM, no Docker.
+Recorded on this branch at **2026-09-22T12:53:57Z** (G18 IT + filter/hook tests). Agent VM, no Docker.
 
 | Component | Version |
 |---|---|
@@ -32,7 +32,10 @@ Recorded on this branch at **2026-09-22T12:32:09Z** (G18 IT) and **2026-09-22T12
 
 | Suite | Result |
 |---|---|
-| `G18BusinessPathIT` | **2/2** |
+| `G18BusinessPathIT` | **2/2** (IAM ledger write/query, notify issued context, `platform.audit_record`) |
+| `IssuedTenantIsolationFilterTest` | **5/5** |
+| `PermissionDataScopeHookTest` | **4/4** |
+| `TenantMemberGrantSeederTest` | **1/1** |
 | `FormPublishStateMachineTest` | **6/6** (includes physical `LedgerRecordSink` submit) |
 | `OutboxEventContractTest` | **10/10** (includes `appendJoinsSpringTransactionAndRollsBack`) |
 | `QueryCompilerTest` | **4/4** (nullable JDBC binds) |

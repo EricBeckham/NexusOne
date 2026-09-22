@@ -245,15 +245,15 @@ Flyway **V531** (window V530–V549) adds `form_submission.ledger_id` / `ledger_
 
 ## Runnable evidence (this branch)
 
-Agent VM, **2026-09-22T12:32:09Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, Flowable **7.1.0**. No Docker.
+Agent VM, **2026-09-22T12:53:57Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, Flowable **7.1.0**. No Docker.
 
 ```bash
 mvn -pl nexus-notification-core,nexus-p3-studio -am test \
-  -Dtest=G18BusinessPathIT,FormPublishStateMachineTest,NotificationServiceTest,NotificationApiTest \
+  -Dtest=G18BusinessPathIT,FormPublishStateMachineTest,IssuedTenantIsolationFilterTest,PermissionDataScopeHookTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS`. `nexus-p3-studio`: **Tests run: 8, Failures: 0, Errors: 0** (`G18BusinessPathIT` **2/2**, `FormPublishStateMachineTest` **6/6**).
+`BUILD SUCCESS`. `nexus-p3-studio`: **Tests run: 13, Failures: 0, Errors: 0** (`G18BusinessPathIT` **2/2**, `IssuedTenantIsolationFilterTest` **5/5**, `FormPublishStateMachineTest` **6/6**). `PermissionDataScopeHookTest` **4/4** in the same module.
 
 ```bash
 mvn -pl modules/isolation-kernel,nexus-event-core test \
