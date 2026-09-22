@@ -83,6 +83,7 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g7-withdraw-browser",
   "g9-sentinel-cluster-honesty",
   "g4-export-wizard",
+  "g4-export-wizard-deny",
   "g4-p1-staging-audit-events",
   "g4-pkce-spa-verifier",
   "g15-native-bridge-stub",
@@ -95,6 +96,9 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g9-live-multi-jvm-replica",
   "g6-recovery-port-dry-run",
   "g6-recovery-port-honesty",
+  "g2-h5-every-page",
+  "linux-arm-profile-honesty",
+  "g10-file-reconcile-honesty",
 ]);
 requireIncludes("doc", files.doc, [
   "POST /api/v1/p3/path/instances/{id}/withdraw",

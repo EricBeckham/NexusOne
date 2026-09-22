@@ -34,6 +34,7 @@
     "assert:g2-report-surface": "node scripts/assert-g2-report-surface.mjs",
     "assert:g2-physical-dump": "node scripts/assert-g2-physical-dump.mjs",
     "assert:g4-export-wizard": "node scripts/assert-g4-export-wizard.mjs",
+    "assert:g4-export-wizard-deny": "node scripts/assert-g4-export-wizard-deny.mjs",
     "test:g4-export-wizard": "vitest run src/views/studio/export-wizard.browser.test.js"
   },
   "dependencies": {

@@ -53,7 +53,7 @@ UI is **not** in this module (M0-12).
 | POST | `/api/v1/p3/reports/export` | `ledger.export.csv/submit` via `ReportSurfaceGuard` then `AuthorizedExport`. Not a physical dump |
 | GET | `/api/v1/p3/exports/wizard/decision` | Export cell only; decide, no write. G4 leftover, not a product export UI |
 | POST | `/api/v1/p3/exports/wizard/begin` | `ledger.export.csv/submit` via `ReportSurfaceGuard` then `p3.export.begun` on the hash chain |
-| POST | `/api/v1/p3/exports/wizard/complete` | Same cell, then `AuthorizedExport.submit` + `p3.export.completed`. Deny uses existing guard-deny leftover |
+| POST | `/api/v1/p3/exports/wizard/complete` | Same cell, then `AuthorizedExport.submit` + `p3.export.completed`. Complete-deny after begin (revoke / `DENY`) writes the #136 pair and skips IsolatedExport; leftover is [g4-export-wizard-deny.md](../docs/g4-export-wizard-deny.md) |
 | GET | `/api/v1/p3/dumps/decision` | Both `ledger/read` and `ledger.export.csv/submit` Decisions; no throw |
 | POST | `/api/v1/p3/dumps/export` | `ledger.export.csv/submit` then `ledger/read` via `DumpSurfaceGuard` then `AuthorizedExport.writeProjected`. Not report Task submit |
 
