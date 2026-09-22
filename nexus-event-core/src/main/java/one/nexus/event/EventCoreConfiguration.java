@@ -46,7 +46,8 @@ public class EventCoreConfiguration {
                         "cache.ops",
                         "p3.schema",
                         "p3.studio",
-                        "flow.ops"),
+                        "flow.ops",
+                        "audit.archive"),
                 sinks.getIfAvailable(Slf4jIsolationAuditSink::new));
     }
 

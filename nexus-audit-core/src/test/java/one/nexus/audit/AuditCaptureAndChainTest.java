@@ -83,6 +83,50 @@ class AuditCaptureAndChainTest {
     }
 
     @Test
+    void exportActionsShareTraceOnExistingHashChain() {
+        var port = new InMemoryHashChainedAuditPort(JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL));
+        UUID tenant = UUID.fromString("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+        UUID actor = UUID.fromString("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        String trace = "0199a1c0-0000-7000-8000-0000000000e4";
+        port.append(AuditCaptures.data(
+                "p3.data.changed", true, tenant, actor, "ledger", "row-1", "update", trace, Map.of()));
+        port.append(AuditCaptures.export(
+                AuditCaptures.EXPORT_SUBMITTED,
+                true,
+                tenant,
+                actor,
+                "export",
+                "ledger.export.csv",
+                "export submit",
+                trace,
+                Map.of("action", "submit", "password", "nope")));
+        port.append(AuditCaptures.export(
+                AuditCaptures.EXPORT_FILE_WRITTEN,
+                true,
+                tenant,
+                actor,
+                "export",
+                "export/2026/note.csv",
+                "export writeFile",
+                trace,
+                Map.of("action", "writeFile")));
+        List<ChainedAuditEvent> correlated = AuditTrace.correlate(port, trace);
+        assertEquals(3, correlated.size());
+        assertEquals(
+                List.of(AuditCategory.DATA, AuditCategory.EXPORT, AuditCategory.EXPORT),
+                AuditTrace.categories(correlated));
+        assertEquals(AuditCaptures.EXPORT_SUBMITTED, correlated.get(1).event().eventType());
+        assertEquals(SensitiveRedactor.REDACTED, correlated.get(1).event().details().get("password"));
+        HashChainVerification verification = port.verifyChain();
+        assertTrue(verification.intact(), verification.failure());
+        Map<String, Object> json = AuditTrace.jsonForTenant(trace, tenant, correlated);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> mine = (List<Map<String, Object>>) json.get("events");
+        assertEquals(3, mine.size());
+        assertEquals("p3.export.submitted", mine.get(1).get("event_type"));
+    }
+
+    @Test
     void gmDigestChainDetectsTamper() {
         var crypto = JcaCryptoPort.ephemeral(CryptoSuite.GM);
         var port = new InMemoryHashChainedAuditPort(crypto);

@@ -31,4 +31,10 @@ public final class CollectingAuditSink implements IsolationAuditSink {
     public boolean rejected(IsolationErrorCode code) {
         return events.stream().anyMatch(event -> event.error() == code);
     }
+
+    public List<IsolationAuditEvent> exportAccepted() {
+        return events.stream()
+                .filter(event -> IsolationAuditEvent.EXPORT_ACCEPTED.equals(event.type()))
+                .toList();
+    }
 }

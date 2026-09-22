@@ -18,7 +18,7 @@ BUILD SUCCESS
 | `PostgresIsolationIT` | 2 (dual-tenant CRUD; same-tenant join; stolen join never reaches JDBC) |
 | `PropagationContractTest` | 5 (cache / file / async rejects now assert `IsolationAuditEvent`) |
 | `RequestIsolationPolicyTest` | 5 |
-| `IsolatedExportTest` | 4 (export/file/cache/task + FieldPolicy `P1.M02.021` reject-before-compile/file) |
+| `IsolatedExportTest` | 4 (export/file/cache/task + `EXPORT_ACCEPTED`; FieldPolicy `P1.M02.021` reject-before-compile/file) |
 | `TableRegistryReplaceTest` | 3 |
 
 S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md). INNER JOIN + export FieldPolicy (`P1.M02.020` / `P1.M02.021`) are recorded in [docs/g1-query-join-field-policy.md](../../../docs/g1-query-join-field-policy.md).

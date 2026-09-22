@@ -10,5 +10,6 @@ public enum AuditCategory {
     ADMIN,
     DATA,
     APPROVAL,
-    GUARD_REJECT
+    GUARD_REJECT,
+    EXPORT
 }

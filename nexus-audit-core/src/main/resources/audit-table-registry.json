@@ -12,5 +12,12 @@
     "tenant_required": false,
     "schema_version": 1,
     "owner_module": "nexus-audit-core"
+  },
+  {
+    "table_name": "platform.audit_record_archive",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-audit-core"
   }
 ]

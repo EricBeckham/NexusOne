@@ -29,4 +29,5 @@ public record IsolationAuditEvent(
     public static final String PLATFORM_CONTEXT_ISSUED = "PLATFORM_CONTEXT_ISSUED";
     public static final String TENANT_CONTEXT_ISSUED = "TENANT_CONTEXT_ISSUED";
     public static final String ISOLATION_REJECT = "ISOLATION_REJECT";
+    public static final String EXPORT_ACCEPTED = "EXPORT_ACCEPTED";
 }
