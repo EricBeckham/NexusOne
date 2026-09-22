@@ -124,7 +124,9 @@ public class IssuedTenantIsolationFilter extends OncePerRequestFilter {
         if (path == null) {
             return false;
         }
-        if (path.startsWith("/api/v1/notifications") || path.startsWith("/api/v1/audit")) {
+        if (path.startsWith("/api/v1/notifications")
+                || path.startsWith("/api/v1/audit")
+                || path.startsWith("/api/v1/files")) {
             return true;
         }
         // Todos / process keep FlowAuthFilter as the exclusive binder (strict 403 if context missing).
