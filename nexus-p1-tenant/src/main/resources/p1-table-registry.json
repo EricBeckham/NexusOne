@@ -1,48 +1,48 @@
 [
   {
-    "table_name": "p1.tenant",
+    "table_name": "platform.tenant",
     "scope": "platform",
     "tenant_required": false,
     "schema_version": 1,
     "owner_module": "nexus-p1-tenant"
   },
   {
-    "table_name": "p1.tenant_config",
+    "table_name": "platform.tenant_config",
     "scope": "platform",
     "tenant_required": false,
     "schema_version": 1,
     "owner_module": "nexus-p1-tenant"
   },
   {
-    "table_name": "p1.entitlement_projection",
+    "table_name": "platform.entitlement_projection",
     "scope": "platform",
     "tenant_required": false,
     "schema_version": 1,
     "owner_module": "nexus-p1-tenant"
   },
   {
-    "table_name": "p1.quota",
+    "table_name": "platform.quota",
     "scope": "platform",
     "tenant_required": false,
     "schema_version": 1,
     "owner_module": "nexus-p1-tenant"
   },
   {
-    "table_name": "p1.quota_idempotency",
+    "table_name": "platform.quota_idempotency",
     "scope": "platform",
     "tenant_required": false,
     "schema_version": 1,
     "owner_module": "nexus-p1-tenant"
   },
   {
-    "table_name": "p1.admin_init_request",
+    "table_name": "platform.admin_init_request",
     "scope": "platform",
     "tenant_required": false,
     "schema_version": 1,
     "owner_module": "nexus-p1-tenant"
   },
   {
-    "table_name": "p1.audit_event",
+    "table_name": "platform.audit_event",
     "scope": "platform",
     "tenant_required": false,
     "schema_version": 1,

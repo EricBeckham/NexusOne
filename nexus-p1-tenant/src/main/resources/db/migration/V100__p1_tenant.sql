@@ -1,10 +1,10 @@
--- P1 platform-static schema. Flyway only; P3 dynamic ledger tables are out of scope.
+-- P1 platform-static schema. Flyway window V100–V199 (M0-01). P3 ledger tables are out of scope.
 -- All tables in this file are scope=platform (see classpath:p1-table-registry.json).
 -- M0-02 table_registry should import that catalog; this module does not own isolation internals.
 
-CREATE SCHEMA IF NOT EXISTS p1;
+CREATE SCHEMA IF NOT EXISTS platform;
 
-CREATE TABLE p1.tenant (
+CREATE TABLE platform.tenant (
     id              uuid PRIMARY KEY,
     code            varchar(24) NOT NULL,
     name            varchar(200) NOT NULL,
@@ -26,11 +26,11 @@ CREATE TABLE p1.tenant (
     )
 );
 
-CREATE UNIQUE INDEX p1_tenant_code_uq ON p1.tenant (code);
-CREATE UNIQUE INDEX p1_tenant_one_platform ON p1.tenant (kind) WHERE kind = 'PLATFORM' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX p1_tenant_code_uq ON platform.tenant (code);
+CREATE UNIQUE INDEX p1_tenant_one_platform ON platform.tenant (kind) WHERE kind = 'PLATFORM' AND deleted_at IS NULL;
 
-CREATE TABLE p1.tenant_config (
-    tenant_id                 uuid PRIMARY KEY REFERENCES p1.tenant (id),
+CREATE TABLE platform.tenant_config (
+    tenant_id                 uuid PRIMARY KEY REFERENCES platform.tenant (id),
     display_name              varchar(200) NOT NULL,
     locale                    varchar(16) NOT NULL,
     timezone                  varchar(64) NOT NULL,
@@ -48,8 +48,8 @@ CREATE TABLE p1.tenant_config (
 
 -- Runtime entitlement projection. Same row shape P4 will later overwrite (source=SUBSCRIPTION).
 -- P1 does not store commercial Product/SKU definitions.
-CREATE TABLE p1.entitlement_projection (
-    tenant_id         uuid PRIMARY KEY REFERENCES p1.tenant (id),
+CREATE TABLE platform.entitlement_projection (
+    tenant_id         uuid PRIMARY KEY REFERENCES platform.tenant (id),
     source            varchar(32) NOT NULL,
     pack_code         varchar(64) NOT NULL,
     pack_version      varchar(32) NOT NULL,
@@ -66,8 +66,8 @@ CREATE TABLE p1.entitlement_projection (
     )
 );
 
-CREATE TABLE p1.quota (
-    tenant_id           uuid NOT NULL REFERENCES p1.tenant (id),
+CREATE TABLE platform.quota (
+    tenant_id           uuid NOT NULL REFERENCES platform.tenant (id),
     metric              varchar(32) NOT NULL,
     limit_value         integer NOT NULL,
     used_value          integer NOT NULL DEFAULT 0,
@@ -83,7 +83,7 @@ CREATE TABLE p1.quota (
     CONSTRAINT p1_quota_policy CHECK (over_limit_policy IN ('REJECT'))
 );
 
-CREATE TABLE p1.quota_idempotency (
+CREATE TABLE platform.quota_idempotency (
     tenant_id         uuid NOT NULL,
     metric            varchar(32) NOT NULL,
     idempotency_key   varchar(128) NOT NULL,
@@ -94,12 +94,12 @@ CREATE TABLE p1.quota_idempotency (
     created_at        timestamptz NOT NULL,
     PRIMARY KEY (tenant_id, metric, idempotency_key),
     CONSTRAINT p1_quota_idemp_outcome CHECK (outcome IN ('ACCEPTED', 'REJECTED')),
-    CONSTRAINT p1_quota_idemp_fk FOREIGN KEY (tenant_id, metric) REFERENCES p1.quota (tenant_id, metric)
+    CONSTRAINT p1_quota_idemp_fk FOREIGN KEY (tenant_id, metric) REFERENCES platform.quota (tenant_id, metric)
 );
 
-CREATE TABLE p1.admin_init_request (
+CREATE TABLE platform.admin_init_request (
     id                    uuid PRIMARY KEY,
-    tenant_id             uuid NOT NULL REFERENCES p1.tenant (id),
+    tenant_id             uuid NOT NULL REFERENCES platform.tenant (id),
     admin_display_name    varchar(200) NOT NULL,
     admin_email           varchar(320) NOT NULL,
     status                varchar(16) NOT NULL,
@@ -110,11 +110,11 @@ CREATE TABLE p1.admin_init_request (
     CONSTRAINT p1_admin_init_status CHECK (status IN ('ACCEPTED', 'COMPLETED', 'FAILED'))
 );
 
-CREATE INDEX p1_admin_init_tenant_idx ON p1.admin_init_request (tenant_id, created_at DESC);
+CREATE INDEX p1_admin_init_tenant_idx ON platform.admin_init_request (tenant_id, created_at DESC);
 
 -- Local staging store until M0-11 owns append-only hash-chained audit.
 -- No UPDATE/DELETE from application code. Hash chain is out of scope for M0-03.
-CREATE TABLE p1.audit_event (
+CREATE TABLE platform.audit_event (
     event_id            uuid PRIMARY KEY,
     event_type          varchar(64) NOT NULL,
     event_version       integer NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE p1.audit_event (
     CONSTRAINT p1_audit_outcome CHECK (outcome IN ('ACCEPTED', 'REJECTED'))
 );
 
-CREATE INDEX p1_audit_tenant_idx ON p1.audit_event (tenant_id, occurred_at DESC);
-CREATE INDEX p1_audit_type_idx ON p1.audit_event (event_type, occurred_at DESC);
+CREATE INDEX p1_audit_tenant_idx ON platform.audit_event (tenant_id, occurred_at DESC);
+CREATE INDEX p1_audit_type_idx ON platform.audit_event (event_type, occurred_at DESC);
 
-REVOKE UPDATE, DELETE ON p1.audit_event FROM PUBLIC;
+REVOKE UPDATE, DELETE ON platform.audit_event FROM PUBLIC;

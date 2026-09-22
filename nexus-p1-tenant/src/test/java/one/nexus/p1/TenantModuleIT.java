@@ -41,11 +41,21 @@ class TenantModuleIT {
 
     @BeforeAll
     static void requirePassword() {
-        String password = System.getenv("NEXUS_DATASOURCE_PASSWORD");
+        String password = firstEnv("NEXUS_DB_PASSWORD", "NEXUS_DATASOURCE_PASSWORD");
         if (password == null || password.isBlank()) {
             throw new IllegalStateException(
-                    "NEXUS_DATASOURCE_PASSWORD must be provided via environment for PostgreSQL tests");
+                    "NEXUS_DB_PASSWORD or NEXUS_DATASOURCE_PASSWORD must be provided for PostgreSQL tests");
         }
+    }
+
+    private static String firstEnv(String... names) {
+        for (String name : names) {
+            String value = System.getenv(name);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     @Test
@@ -86,7 +96,7 @@ class TenantModuleIT {
                 "/api/v1/p1/tenants/" + platformId + "/disable",
                 Map.of("confirm", true, "reason", "should fail"),
                 HttpStatus.BAD_REQUEST).path("body");
-        assertThat(rejectedStop.path("code").asText()).isEqualTo("P1.TENANT.004");
+        assertThat(rejectedStop.path("code").asText()).isEqualTo("P1.TENANT.0004");
         assertThat(get("/api/v1/p1/platform-tenant").path("body").path("status").asText()).isEqualTo("ENABLED");
 
         JsonNode platformAudits = get(
@@ -101,7 +111,7 @@ class TenantModuleIT {
         assertThat(rejectEvent.path("platform_context").asBoolean()).isTrue();
         assertThat(rejectEvent.path("trace_id").asText()).isNotBlank();
         assertThat(rejectEvent.path("resource_type").asText()).isEqualTo("tenant");
-        assertThat(rejectEvent.path("details").path("reason_code").asText()).isEqualTo("P1.TENANT.004");
+        assertThat(rejectEvent.path("details").path("reason_code").asText()).isEqualTo("P1.TENANT.0004");
 
         exchange(
                 HttpMethod.POST,
@@ -113,7 +123,7 @@ class TenantModuleIT {
                 "/api/v1/p1/tenants/" + betaId + "/quotas/consume",
                 Map.of("metric", "CUSTOM_LEDGER", "amount", 1, "idempotency_key", "ledger-batch-2"),
                 HttpStatus.UNPROCESSABLE_ENTITY).path("body");
-        assertThat(over.path("code").asText()).isEqualTo("P1.QUOTA.001");
+        assertThat(over.path("code").asText()).isEqualTo("P1.QUOTA.0001");
         assertThat(over.path("details").path("limit").asInt()).isEqualTo(2);
         assertThat(over.path("details").path("used").asInt()).isEqualTo(2);
         assertThat(over.path("details").path("requested").asInt()).isEqualTo(1);
@@ -128,7 +138,7 @@ class TenantModuleIT {
         assertThat(quotaEvent.path("resource_type").asText()).isEqualTo("quota");
         assertThat(quotaEvent.path("resource_id").asText()).isEqualTo("CUSTOM_LEDGER");
         assertThat(quotaEvent.path("details").path("policy").asText()).isEqualTo("REJECT");
-        assertThat(quotaEvent.path("details").path("reason_code").asText()).isEqualTo("P1.QUOTA.001");
+        assertThat(quotaEvent.path("details").path("reason_code").asText()).isEqualTo("P1.QUOTA.0001");
 
         JsonNode stillEnabled = get("/api/v1/p1/tenants/" + betaId).path("body");
         assertThat(stillEnabled.path("status").asText()).isEqualTo("ENABLED");

@@ -20,7 +20,7 @@ import one.nexus.p1.port.TableAccessPlan;
 @DependsOn("flyway")
 public class JdbcAuditRepository implements AuditRepository {
 
-    static final TableAccessPlan PLAN = TableAccessPlan.platform("p1.audit_event");
+    static final TableAccessPlan PLAN = TableAccessPlan.platform("platform.audit_event");
 
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
@@ -33,7 +33,7 @@ public class JdbcAuditRepository implements AuditRepository {
     @Override
     public void insert(AuditEvent event) {
         jdbc.sql("""
-                        INSERT INTO p1.audit_event (
+                        INSERT INTO platform.audit_event (
                           event_id, event_type, event_version, occurred_at, tenant_id,
                           actor_subject_id, actor_tenant_id, platform_context, reason,
                           trace_id, correlation_id, causation_id, outcome, resource_type, resource_id, details)
@@ -65,7 +65,7 @@ public class JdbcAuditRepository implements AuditRepository {
     @Override
     public List<AuditEvent> listByTenant(UUID tenantId, int limit) {
         return jdbc.sql("""
-                        SELECT * FROM p1.audit_event
+                        SELECT * FROM platform.audit_event
                         WHERE tenant_id = :tenant_id
                         ORDER BY occurred_at DESC
                         LIMIT :limit
@@ -79,7 +79,7 @@ public class JdbcAuditRepository implements AuditRepository {
     @Override
     public List<AuditEvent> listByType(UUID tenantId, String eventType, int limit) {
         return jdbc.sql("""
-                        SELECT * FROM p1.audit_event
+                        SELECT * FROM platform.audit_event
                         WHERE tenant_id = :tenant_id AND event_type = :event_type
                         ORDER BY occurred_at DESC
                         LIMIT :limit

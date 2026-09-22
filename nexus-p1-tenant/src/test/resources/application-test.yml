@@ -8,6 +8,6 @@ nexus:
 
 spring:
   datasource:
-    url: ${NEXUS_TEST_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/nexus_p1_test}
-    username: ${NEXUS_DATASOURCE_USERNAME:nexus_p1}
-    password: ${NEXUS_DATASOURCE_PASSWORD:}
+    url: ${NEXUS_TEST_DATASOURCE_URL:${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus_p1_test}}
+    username: ${NEXUS_DB_USER:${NEXUS_DATASOURCE_USERNAME:nexus_p1}}
+    password: ${NEXUS_DB_PASSWORD:${NEXUS_DATASOURCE_PASSWORD:}}

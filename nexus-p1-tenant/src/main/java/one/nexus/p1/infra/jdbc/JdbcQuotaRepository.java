@@ -20,8 +20,8 @@ import one.nexus.p1.port.TableAccessPlan;
 @DependsOn("flyway")
 public class JdbcQuotaRepository implements QuotaRepository {
 
-    static final TableAccessPlan PLAN = TableAccessPlan.platform("p1.quota");
-    static final TableAccessPlan IDEMP_PLAN = TableAccessPlan.platform("p1.quota_idempotency");
+    static final TableAccessPlan PLAN = TableAccessPlan.platform("platform.quota");
+    static final TableAccessPlan IDEMP_PLAN = TableAccessPlan.platform("platform.quota_idempotency");
 
     private final JdbcClient jdbc;
 
@@ -32,7 +32,7 @@ public class JdbcQuotaRepository implements QuotaRepository {
     @Override
     public void insert(Quota quota) {
         jdbc.sql("""
-                        INSERT INTO p1.quota (
+                        INSERT INTO platform.quota (
                           tenant_id, metric, limit_value, used_value, warn_percent,
                           over_limit_policy, updated_at, version)
                         VALUES (
@@ -52,7 +52,7 @@ public class JdbcQuotaRepository implements QuotaRepository {
 
     @Override
     public List<Quota> listByTenant(UUID tenantId) {
-        return jdbc.sql("SELECT * FROM p1.quota WHERE tenant_id = :tenant_id ORDER BY metric")
+        return jdbc.sql("SELECT * FROM platform.quota WHERE tenant_id = :tenant_id ORDER BY metric")
                 .param("tenant_id", tenantId)
                 .query(this::map)
                 .list();
@@ -60,7 +60,7 @@ public class JdbcQuotaRepository implements QuotaRepository {
 
     @Override
     public Optional<Quota> find(UUID tenantId, QuotaMetric metric) {
-        return jdbc.sql("SELECT * FROM p1.quota WHERE tenant_id = :tenant_id AND metric = :metric")
+        return jdbc.sql("SELECT * FROM platform.quota WHERE tenant_id = :tenant_id AND metric = :metric")
                 .param("tenant_id", tenantId)
                 .param("metric", metric.name())
                 .query(this::map)
@@ -70,7 +70,7 @@ public class JdbcQuotaRepository implements QuotaRepository {
     @Override
     public Quota lock(UUID tenantId, QuotaMetric metric) {
         return jdbc.sql("""
-                        SELECT * FROM p1.quota
+                        SELECT * FROM platform.quota
                         WHERE tenant_id = :tenant_id AND metric = :metric
                         FOR UPDATE
                         """)
@@ -86,7 +86,7 @@ public class JdbcQuotaRepository implements QuotaRepository {
     @Override
     public void update(Quota quota) {
         int updated = jdbc.sql("""
-                        UPDATE p1.quota
+                        UPDATE platform.quota
                         SET used_value = :used_value, updated_at = :updated_at, version = :version
                         WHERE tenant_id = :tenant_id AND metric = :metric AND version = :previous_version
                         """)
@@ -105,7 +105,7 @@ public class JdbcQuotaRepository implements QuotaRepository {
     @Override
     public Optional<IdempotencyRecord> findIdempotency(UUID tenantId, QuotaMetric metric, String key) {
         return jdbc.sql("""
-                        SELECT * FROM p1.quota_idempotency
+                        SELECT * FROM platform.quota_idempotency
                         WHERE tenant_id = :tenant_id AND metric = :metric AND idempotency_key = :key
                         """)
                 .param("tenant_id", tenantId)
@@ -118,7 +118,7 @@ public class JdbcQuotaRepository implements QuotaRepository {
     @Override
     public void insertIdempotency(IdempotencyRecord record) {
         jdbc.sql("""
-                        INSERT INTO p1.quota_idempotency (
+                        INSERT INTO platform.quota_idempotency (
                           tenant_id, metric, idempotency_key, amount, outcome, used_after, limit_value, created_at)
                         VALUES (
                           :tenant_id, :metric, :idempotency_key, :amount, :outcome, :used_after, :limit_value, :created_at)

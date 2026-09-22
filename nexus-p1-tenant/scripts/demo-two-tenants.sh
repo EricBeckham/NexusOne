@@ -1,29 +1,45 @@
 #!/usr/bin/env bash
-# Two-tenant create/stop + platform protection + quota reject on local PostgreSQL 15.
-# Requires NEXUS_DATASOURCE_PASSWORD (and optional URL/user) in the environment.
+# Two-tenant create/stop + platform protection + quota reject on local PostgreSQL 15.x.
+# Requires NEXUS_DB_PASSWORD (or legacy NEXUS_DATASOURCE_PASSWORD) in the environment.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if [[ -z "${NEXUS_DATASOURCE_PASSWORD:-}" ]]; then
-  echo "NEXUS_DATASOURCE_PASSWORD must be set in the environment" >&2
+PASSWORD="${NEXUS_DB_PASSWORD:-${NEXUS_DATASOURCE_PASSWORD:-}}"
+if [[ -z "${PASSWORD}" ]]; then
+  echo "NEXUS_DB_PASSWORD (or NEXUS_DATASOURCE_PASSWORD) must be set in the environment" >&2
   exit 1
 fi
 
-export NEXUS_DATASOURCE_URL="${NEXUS_DATASOURCE_URL:-jdbc:postgresql://127.0.0.1:5432/nexus_p1}"
-export NEXUS_DATASOURCE_USERNAME="${NEXUS_DATASOURCE_USERNAME:-nexus_p1}"
-export NEXUS_P1_PORT="${NEXUS_P1_PORT:-18081}"
+export NEXUS_DB_URL="${NEXUS_DB_URL:-${NEXUS_DATASOURCE_URL:-jdbc:postgresql://127.0.0.1:5432/nexus_p1}}"
+export NEXUS_DB_USER="${NEXUS_DB_USER:-${NEXUS_DATASOURCE_USERNAME:-nexus_p1}}"
+export NEXUS_DB_PASSWORD="${NEXUS_DB_PASSWORD:-$PASSWORD}"
+export NEXUS_DATASOURCE_URL="${NEXUS_DATASOURCE_URL:-$NEXUS_DB_URL}"
+export NEXUS_DATASOURCE_USERNAME="${NEXUS_DATASOURCE_USERNAME:-$NEXUS_DB_USER}"
+export NEXUS_DATASOURCE_PASSWORD="${NEXUS_DATASOURCE_PASSWORD:-$PASSWORD}"
+export NEXUS_HTTP_PORT="${NEXUS_HTTP_PORT:-${NEXUS_P1_PORT:-18081}}"
+export NEXUS_P1_PORT="${NEXUS_P1_PORT:-$NEXUS_HTTP_PORT}"
 export NEXUS_P1_DEMO_CONTEXT_ENABLED=true
 export NEXUS_P1_QUOTA_APP_LIMIT="${NEXUS_P1_QUOTA_APP_LIMIT:-2}"
 export NEXUS_P1_QUOTA_CUSTOM_LEDGER_LIMIT="${NEXUS_P1_QUOTA_CUSTOM_LEDGER_LIMIT:-2}"
+
+echo "== runtime"
+echo "Spring Boot parent: 4.1.1 (one.nexus:nexusone)"
+java -version
+if command -v psql >/dev/null 2>&1; then
+  export PGPASSWORD="${NEXUS_DB_PASSWORD}"
+  psql "${NEXUS_DB_URL/#jdbc:postgresql:\/\//postgres://}" -c "SELECT current_setting('server_version') AS pg_server_version, version();" \
+    || PGPASSWORD="${NEXUS_DB_PASSWORD}" psql -h 127.0.0.1 -p 5432 -U "${NEXUS_DB_USER}" -d nexus_p1 \
+      -c "SELECT current_setting('server_version') AS pg_server_version, version();"
+fi
 
 BASE="http://127.0.0.1:${NEXUS_P1_PORT}"
 ACTOR="${NEXUS_P1_DEMO_ACTOR_ID:-01900000-0000-7000-8000-0000000000ac}"
 TRACE="demo-$(date -u +%Y%m%d%H%M%S)"
 
 mvn -q -DskipTests package
-JAR="$(ls -1 target/nexus-p1-tenant-*.jar | head -n 1)"
+JAR="$(ls -1 target/nexus-p1-tenant-*.jar | grep -v original | head -n 1)"
 
 java -jar "$JAR" > /tmp/nexus-p1-tenant.log 2>&1 &
 PID=$!
@@ -86,7 +102,7 @@ auth -X POST "$BASE/api/v1/p1/tenants/${ALPHA_ID}/enable" -d '{"confirm":true}'
 echo
 
 PLATFORM_ID="$(auth "$BASE/api/v1/p1/platform-tenant" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
-echo "== stop platform (expect P1.TENANT.004)"
+echo "== stop platform (expect P1.TENANT.0004)"
 auth -X POST "$BASE/api/v1/p1/tenants/${PLATFORM_ID}/disable" -d '{"confirm":true,"reason":"should fail"}'
 echo
 echo "== platform disable rejected audit"
@@ -97,7 +113,7 @@ echo "== consume CUSTOM_LEDGER to limit then overflow"
 auth -X POST "$BASE/api/v1/p1/tenants/${BETA_ID}/quotas/consume" \
   -d '{"metric":"CUSTOM_LEDGER","amount":2,"idempotency_key":"demo-ledgers"}'
 echo
-echo "== over-limit (expect P1.QUOTA.001)"
+echo "== over-limit (expect P1.QUOTA.0001)"
 auth -X POST "$BASE/api/v1/p1/tenants/${BETA_ID}/quotas/consume" \
   -d '{"metric":"CUSTOM_LEDGER","amount":1,"idempotency_key":"demo-overflow"}'
 echo

@@ -45,7 +45,7 @@ public class ApiExceptionHandler {
     public ResponseEntity<ErrorBody> other(Exception ex, HttpServletRequest request) {
         log.error("unhandled error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(body("P1.INTERNAL.001", "internal error", request, Map.of()));
+                .body(body("P1.INTERNAL.0001", "internal error", request, Map.of()));
     }
 
     private static ErrorBody body(String code, String message, HttpServletRequest request, Map<String, Object> details) {

@@ -1,5 +1,5 @@
 server:
-  port: ${NEXUS_P1_PORT:18081}
+  port: ${NEXUS_HTTP_PORT:${NEXUS_P1_PORT:18081}}
 
 spring:
   application:
@@ -8,16 +8,22 @@ spring:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
   datasource:
-    url: ${NEXUS_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/nexus_p1}
-    username: ${NEXUS_DATASOURCE_USERNAME:nexus_p1}
-    password: ${NEXUS_DATASOURCE_PASSWORD:}
+    url: ${NEXUS_DB_URL:${NEXUS_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/nexus_p1}}
+    username: ${NEXUS_DB_USER:${NEXUS_DATASOURCE_USERNAME:nexus_p1}}
+    password: ${NEXUS_DB_PASSWORD:${NEXUS_DATASOURCE_PASSWORD:}}
+    driver-class-name: org.postgresql.Driver
   flyway:
     enabled: true
-    schemas: p1
-    default-schema: p1
-    table: p1_flyway_history
+    # Align with M0-01: platform schema + flyway_schema_history. V100–V199 is the P1 window.
+    schemas: platform
+    default-schema: platform
+    table: flyway_schema_history
     locations: classpath:db/migration
-    baseline-on-migrate: false
+    validate-on-migrate: true
+    create-schemas: true
+  sql:
+    init:
+      mode: never
 
 management:
   endpoints:
@@ -28,6 +34,17 @@ management:
     health:
       probes:
         enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: NexusOne P1 Tenant
+    work-package: M0-03
+    spring-boot: "4.1.1"
+    java: "21"
+    flyway-pin: "13.7.0"
 
 nexus:
   p1:

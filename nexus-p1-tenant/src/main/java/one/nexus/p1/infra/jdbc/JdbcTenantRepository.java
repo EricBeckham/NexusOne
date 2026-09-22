@@ -26,10 +26,10 @@ import one.nexus.p1.port.TenantRepository;
 @DependsOn("flyway")
 public class JdbcTenantRepository implements TenantRepository {
 
-    static final TableAccessPlan TENANT_PLAN = TableAccessPlan.platform("p1.tenant");
-    static final TableAccessPlan CONFIG_PLAN = TableAccessPlan.platform("p1.tenant_config");
-    static final TableAccessPlan ENTITLEMENT_PLAN = TableAccessPlan.platform("p1.entitlement_projection");
-    static final TableAccessPlan ADMIN_PLAN = TableAccessPlan.platform("p1.admin_init_request");
+    static final TableAccessPlan TENANT_PLAN = TableAccessPlan.platform("platform.tenant");
+    static final TableAccessPlan CONFIG_PLAN = TableAccessPlan.platform("platform.tenant_config");
+    static final TableAccessPlan ENTITLEMENT_PLAN = TableAccessPlan.platform("platform.entitlement_projection");
+    static final TableAccessPlan ADMIN_PLAN = TableAccessPlan.platform("platform.admin_init_request");
 
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
@@ -42,7 +42,7 @@ public class JdbcTenantRepository implements TenantRepository {
     @Override
     public void insert(Tenant tenant, TenantConfig config, EntitlementProjection projection) {
         jdbc.sql("""
-                        INSERT INTO p1.tenant (
+                        INSERT INTO platform.tenant (
                           id, code, name, kind, status, legal_name,
                           created_at, created_by, updated_at, updated_by, deleted_at, version)
                         VALUES (
@@ -63,7 +63,7 @@ public class JdbcTenantRepository implements TenantRepository {
                 .param("version", tenant.version())
                 .update();
         jdbc.sql("""
-                        INSERT INTO p1.tenant_config (
+                        INSERT INTO platform.tenant_config (
                           tenant_id, display_name, locale, timezone, date_format, currency,
                           fiscal_year_start_month, logo_file_id, favicon_file_id, updated_at, updated_by, version)
                         VALUES (
@@ -84,7 +84,7 @@ public class JdbcTenantRepository implements TenantRepository {
                 .param("version", config.version())
                 .update();
         jdbc.sql("""
-                        INSERT INTO p1.entitlement_projection (
+                        INSERT INTO platform.entitlement_projection (
                           tenant_id, source, pack_code, pack_version, sku_code, subscription_id,
                           projected_at, payload, updated_at, version)
                         VALUES (
@@ -107,7 +107,7 @@ public class JdbcTenantRepository implements TenantRepository {
     @Override
     public void update(Tenant tenant) {
         int updated = jdbc.sql("""
-                        UPDATE p1.tenant
+                        UPDATE platform.tenant
                         SET name = :name, status = :status, legal_name = :legal_name,
                             updated_at = :updated_at, updated_by = :updated_by, version = :version
                         WHERE id = :id AND version = :previous_version AND deleted_at IS NULL
@@ -129,7 +129,7 @@ public class JdbcTenantRepository implements TenantRepository {
     @Override
     public void updateConfig(TenantConfig config) {
         int updated = jdbc.sql("""
-                        UPDATE p1.tenant_config
+                        UPDATE platform.tenant_config
                         SET display_name = :display_name, locale = :locale, timezone = :timezone,
                             date_format = :date_format, currency = :currency,
                             fiscal_year_start_month = :fiscal_year_start_month,
@@ -158,7 +158,7 @@ public class JdbcTenantRepository implements TenantRepository {
 
     @Override
     public Optional<Tenant> findById(UUID id) {
-        return jdbc.sql("SELECT * FROM p1.tenant WHERE id = :id AND deleted_at IS NULL")
+        return jdbc.sql("SELECT * FROM platform.tenant WHERE id = :id AND deleted_at IS NULL")
                 .param("id", id)
                 .query(this::mapTenant)
                 .optional();
@@ -166,7 +166,7 @@ public class JdbcTenantRepository implements TenantRepository {
 
     @Override
     public Optional<Tenant> findByCode(String code) {
-        return jdbc.sql("SELECT * FROM p1.tenant WHERE code = :code AND deleted_at IS NULL")
+        return jdbc.sql("SELECT * FROM platform.tenant WHERE code = :code AND deleted_at IS NULL")
                 .param("code", code)
                 .query(this::mapTenant)
                 .optional();
@@ -174,7 +174,7 @@ public class JdbcTenantRepository implements TenantRepository {
 
     @Override
     public boolean codeExists(String code) {
-        Integer count = jdbc.sql("SELECT count(*) FROM p1.tenant WHERE code = :code")
+        Integer count = jdbc.sql("SELECT count(*) FROM platform.tenant WHERE code = :code")
                 .param("code", code)
                 .query(Integer.class)
                 .single();
@@ -183,14 +183,14 @@ public class JdbcTenantRepository implements TenantRepository {
 
     @Override
     public List<Tenant> listAll() {
-        return jdbc.sql("SELECT * FROM p1.tenant WHERE deleted_at IS NULL ORDER BY created_at")
+        return jdbc.sql("SELECT * FROM platform.tenant WHERE deleted_at IS NULL ORDER BY created_at")
                 .query(this::mapTenant)
                 .list();
     }
 
     @Override
     public Optional<TenantConfig> findConfig(UUID tenantId) {
-        return jdbc.sql("SELECT * FROM p1.tenant_config WHERE tenant_id = :tenant_id")
+        return jdbc.sql("SELECT * FROM platform.tenant_config WHERE tenant_id = :tenant_id")
                 .param("tenant_id", tenantId)
                 .query(this::mapConfig)
                 .optional();
@@ -198,7 +198,7 @@ public class JdbcTenantRepository implements TenantRepository {
 
     @Override
     public Optional<EntitlementProjection> findProjection(UUID tenantId) {
-        return jdbc.sql("SELECT * FROM p1.entitlement_projection WHERE tenant_id = :tenant_id")
+        return jdbc.sql("SELECT * FROM platform.entitlement_projection WHERE tenant_id = :tenant_id")
                 .param("tenant_id", tenantId)
                 .query(this::mapProjection)
                 .optional();
@@ -215,7 +215,7 @@ public class JdbcTenantRepository implements TenantRepository {
             UUID actorId,
             String traceId) {
         jdbc.sql("""
-                        INSERT INTO p1.admin_init_request (
+                        INSERT INTO platform.admin_init_request (
                           id, tenant_id, admin_display_name, admin_email, status, message,
                           actor_subject_id, trace_id, created_at)
                         VALUES (

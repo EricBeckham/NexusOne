@@ -82,7 +82,7 @@ public class DemoPlatformContextFilter extends OncePerRequestFilter {
         try {
             actorId = UUID.fromString(actorHeader);
         } catch (IllegalArgumentException ex) {
-            writeError(request, response, trace, "P1.CONTEXT.001", "invalid demo actor id");
+            writeError(request, response, trace, "P1.CONTEXT.0001", "invalid demo actor id");
             return false;
         }
         String reason = header(request, REASON_HEADER);
@@ -92,7 +92,7 @@ public class DemoPlatformContextFilter extends OncePerRequestFilter {
             actorTenant = parseUuid(header(request, ACTOR_TENANT_HEADER), properties.getPlatformTenant().getId());
             tenantId = parseUuid(header(request, TENANT_HEADER), null);
         } catch (IllegalArgumentException ex) {
-            writeError(request, response, trace, "P1.CONTEXT.001", "invalid demo tenant id");
+            writeError(request, response, trace, "P1.CONTEXT.0001", "invalid demo tenant id");
             return false;
         }
         Actor actor = new Actor(actorId, actorTenant, "demo-actor", Set.of(PlatformDuty.ALL_DEMO));

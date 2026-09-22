@@ -4,6 +4,8 @@ Java 21 module for **P1 星域** tenant lifecycle, reserved platform tenant, bas
 
 This is product code, not a PoC copy of `poc/`. Isolation kernel (M0-02) and Keycloak (M0-04) are **not** implemented here; ports and stubs are documented in [CONTRACTS.md](CONTRACTS.md).
 
+Parent reactor: `one.nexus:nexusone:0.1.0-SNAPSHOT` with **Spring Boot 4.1.1** (same BOM as M0-01 / PR #46). This branch ships a thin aggregator `pom.xml` that only lists `nexus-p1-tenant` until M0-01 merges.
+
 ## What is in scope
 
 | Capability | Behavior |
@@ -27,19 +29,18 @@ This is product code, not a PoC copy of `poc/`. Isolation kernel (M0-02) and Key
 - Audit hash chain, CryptoPort, SecretPort — M0-11
 - Vue UI — M0-12
 
-## Run (local JAR, PostgreSQL 15)
+## Run (local JAR, PostgreSQL 15.x)
 
-Credentials only from the environment. Never commit passwords.
+Credentials only from the environment. Never commit passwords. Canonical names match M0-01 (`NEXUS_DB_*`); `NEXUS_DATASOURCE_*` still works as a fallback.
 
 ```bash
-export NEXUS_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/nexus_p1
-export NEXUS_DATASOURCE_USERNAME=nexus_p1
-export NEXUS_DATASOURCE_PASSWORD=...   # from your secret store
+export NEXUS_DB_URL=jdbc:postgresql://127.0.0.1:5432/nexus_p1
+export NEXUS_DB_USER=nexus_p1
+export NEXUS_DB_PASSWORD=...   # from your secret store
 export NEXUS_P1_DEMO_CONTEXT_ENABLED=true   # demo only; strip in production entry
 
-cd nexus-p1-tenant
 mvn -q -DskipTests package
-java -jar target/nexus-p1-tenant-0.1.0-m0.jar
+java -jar nexus-p1-tenant/target/nexus-p1-tenant-0.1.0-SNAPSHOT.jar
 ```
 
 Provisional quota env (not product max):
@@ -52,13 +53,13 @@ export NEXUS_P1_QUOTA_CUSTOM_LEDGER_LIMIT=10
 Two-tenant demo (create / stop / platform reject / quota reject):
 
 ```bash
-./scripts/demo-two-tenants.sh
+./nexus-p1-tenant/scripts/demo-two-tenants.sh
 ```
 
-Tests against PostgreSQL 15 (uses database `nexus_p1_test` by default):
+Tests against PostgreSQL 15.x (uses database `nexus_p1_test` by default):
 
 ```bash
-export NEXUS_DATASOURCE_PASSWORD=...
+export NEXUS_DB_PASSWORD=...
 mvn -q test
 ```
 
@@ -78,7 +79,7 @@ Demo headers (only when `NEXUS_P1_DEMO_CONTEXT_ENABLED=true`):
 | GET | `/tenants/{id}` | get |
 | GET | `/platform-tenant` | reserved tenant |
 | POST | `/tenants/{id}/enable` | body `{ "confirm": true }` |
-| POST | `/tenants/{id}/disable` | stop; platform tenant → `P1.TENANT.004` |
+| POST | `/tenants/{id}/disable` | stop; platform tenant → `P1.TENANT.0004` |
 | GET/PUT | `/tenants/{id}/config` | basic config |
 | GET | `/tenants/{id}/entitlement` | runtime projection |
 | GET | `/tenants/{id}/quotas` | usage |
@@ -86,14 +87,22 @@ Demo headers (only when `NEXUS_P1_DEMO_CONTEXT_ENABLED=true`):
 | POST | `/tenants/{id}/quotas/release` | |
 | GET | `/tenants/{id}/audit-events` | P1 staging until M0-11 |
 
-Error body: `{ "code", "message", "trace_id", "details" }`.
+Error body: `{ "code", "message", "trace_id", "details" }`. Error numbers are four digits (`P1.TENANT.0001`), matching M0-01.
 
 ## Flyway
 
-History table `p1.p1_flyway_history`. Migrations only create P1 static tables in schema `p1`. They do not create P3 ledger tables.
+M0-01 window for P1 is **V100–V199**. History table `platform.flyway_schema_history` (same as M0-01). Migrations create P1 static tables in schema `platform`. They do not create P3 ledger tables.
 
-Catalog for M0-02 `table_registry`: `src/main/resources/p1-table-registry.json` (all `scope=platform`).
+Standalone this module also `CREATE SCHEMA IF NOT EXISTS platform` so it can run before M0-01’s V001 lands. After merge, keep that statement (idempotent) or drop it; do not replay V20260922_* against this history table.
+
+Catalog for M0-02 / M0-06 `table_registry`: `src/main/resources/p1-table-registry.json` (all `scope=platform`).
 
 ## Versions used here
 
-Aligned with P0 local closure where applicable: Java 21, PostgreSQL 15, Flyway 13.7.0, PostgreSQL JDBC 42.7.8. Spring Boot **3.5.6** is a current stable GA stand-in until M0-01 freezes the parent BOM / Spring Boot minor. Flyway 13 removed APIs that Spring Boot 3.5 auto-config still calls, so this module migrates through `FlywayConfig` instead of Boot's Flyway auto-configuration.
+| Item | Value | Notes |
+|---|---|---|
+| JDK | 21 | |
+| Spring Boot | **4.1.1** | Same parent as M0-01 PR #46; Flyway auto-config (no custom `FlywayConfig`) |
+| Flyway | **13.7.0** | P0 freeze; overrides Boot BOM via aggregator property |
+| PostgreSQL | **15.x** | See [EVIDENCE.md](EVIDENCE.md) for the exact server version used in verification. Not PG 16. |
+| Artifact | `one.nexus:nexus-p1-tenant:0.1.0-SNAPSHOT` | Child of `one.nexus:nexusone` |

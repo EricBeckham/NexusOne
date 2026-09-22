@@ -1,10 +1,18 @@
 # M0-03 contracts and integration points
 
-P1 is the source of truth for **Tenant**, **Runtime Entitlement Projection**, and **Quota execution**. Sibling modules must not read `p1.*` tables directly.
+P1 is the source of truth for **Tenant**, **Runtime Entitlement Projection**, and **Quota execution**. Sibling modules must not read `platform.tenant` (and other P1 tables in schema `platform`) directly.
 
 ## M0-01 engineering base
 
-This directory is a **runnable Spring Boot module** so M0-03 can be demonstrated before the monolith skeleton exists.
+This directory is a **runnable Spring Boot module** so M0-03 can be demonstrated before the M0-01 reactor is merged to `main`.
+
+Re-parent (this follow-up):
+
+- Aggregator `pom.xml` uses the same coordinates as PR #46: `one.nexus:nexusone:0.1.0-SNAPSHOT`, parent **Spring Boot 4.1.1**, `flyway.version=13.7.0`.
+- This branch’s aggregator **only lists `nexus-p1-tenant`**. Merging with M0-01 will conflict on the root POM — keep M0-01’s full `<modules>` list and this module’s sources.
+- Env: `NEXUS_DB_URL` / `NEXUS_DB_USER` / `NEXUS_DB_PASSWORD` (legacy `NEXUS_DATASOURCE_*` still accepted).
+- Flyway: schema `platform`, table `flyway_schema_history`, versions **V100–V199**.
+- Error codes: four-digit numbers (`P1.TENANT.0001`).
 
 When M0-01 lands, preferred absorption:
 
@@ -17,15 +25,16 @@ nexusone/
   nexus-audit-core         <- M0-11
 ```
 
-Integration steps for M0-01 (do not require changes inside P1 domain):
+Remaining absorption steps (do not require changes inside P1 domain):
 
-1. Move `P1TenantApplication` into bootstrap or delete it; keep `@SpringBootApplication` scanning `one.nexus.p1`.
-2. Keep Flyway location `classpath:db/migration` **or** remap to `classpath:db/migration/p1` and retain history table `p1_flyway_history` (do not replay V20260922_* against a different history table without baselining).
-3. Datasource URL/user/password stay env-only (`NEXUS_DATASOURCE_*`).
+1. Move `P1TenantApplication` into bootstrap or delete it; keep `@SpringBootApplication` scanning `one.nexus`.
+2. Add this module’s `classpath:db/migration` to bootstrap Flyway locations (or move V100–V101 into `nexus-bootstrap`). History table is already `platform.flyway_schema_history`.
+3. Datasource secrets stay env-only (`NEXUS_DB_*`).
 4. Disable `nexus.p1.demo-context.enabled`. Wire M0-02 filters instead.
-5. Health: this module exposes `/actuator/health` on `NEXUS_P1_PORT` (default 18081). Bootstrap may relocate it.
+5. Replace duplicated `one.nexus.p1.domain` copies of `Actor` / `AuditEvent` / `ErrorCode` / `TenantContext` / `PlatformContext` with `nexus-common` types.
+6. Health: this module exposes `/actuator/health` on `NEXUS_HTTP_PORT` / `NEXUS_P1_PORT` (default 18081). Bootstrap may relocate it.
 
-If M0-01 uses a different module name (`tenant` / `p1`), keep the Java package `one.nexus.p1` and schema `p1` so table ownership stays stable.
+Java package stays `one.nexus.p1`. Physical tables stay in schema `platform`.
 
 ## M0-02 isolation kernel
 
@@ -67,7 +76,7 @@ MFA policy for tenant admin (P2)
 
 Command fields: `tenantId`, `tenantCode`, `adminDisplayName`, `adminEmail`, `actor`, `traceId`, `correlationId`.
 
-Result: `ACCEPTED` | `COMPLETED` | `FAILED`. M0-03 stub always returns `ACCEPTED` and stores `p1.admin_init_request`. Create rolls back if the hook returns `FAILED`.
+Result: `ACCEPTED` | `COMPLETED` | `FAILED`. M0-03 stub always returns `ACCEPTED` and stores `platform.admin_init_request`. Create rolls back if the hook returns `FAILED`.
 
 P1 does not:
 
@@ -75,7 +84,7 @@ P1 does not:
 - store credentials
 - assign RBAC beyond requesting "this email should become tenant admin"
 
-Platform administrators live **in the platform tenant**. P2 maintains their persons/roles there. P1 only names duties it requires (`SYSTEM_ADMIN` for lifecycle writes, `AUDIT_ADMIN` must not mutate `p1.audit_event`).
+Platform administrators live **in the platform tenant**. P2 maintains their persons/roles there. P1 only names duties it requires (`SYSTEM_ADMIN` for lifecycle writes, `AUDIT_ADMIN` must not mutate `platform.audit_event`).
 
 ## M0-06 SchemaService / apps
 
@@ -86,7 +95,7 @@ POST /api/v1/p1/tenants/{id}/quotas/consume
 { "metric": "CUSTOM_LEDGER" | "APP", "amount": 1, "idempotency_key": "..." }
 ```
 
-or inject `QuotaService` in-process. Over-limit → `P1.QUOTA.001` + `p1.quota.rejected` audit. Disabled tenants cannot consume.
+or inject `QuotaService` in-process. Over-limit → `P1.QUOTA.0001` + `p1.quota.rejected` audit. Disabled tenants cannot consume.
 
 Release on compensating delete/uninstall.
 
@@ -114,21 +123,22 @@ Notable event types:
 
 ## P4 (later)
 
-Same `p1.entitlement_projection` row. S3+ writer sets `source=SUBSCRIPTION` with `sku_code` + `subscription_id`. M0 only writes `DEFAULT_PACK`. There is no P1 API to author commercial SKUs.
+Same `platform.entitlement_projection` row. S3+ writer sets `source=SUBSCRIPTION` with `sku_code` + `subscription_id`. M0 only writes `DEFAULT_PACK`. There is no P1 API to author commercial SKUs.
 
 ## Error codes
 
 | Code | Meaning |
 |---|---|
-| P1.TENANT.001 | not found |
-| P1.TENANT.002 | code conflict |
-| P1.TENANT.003 | invalid state |
-| P1.TENANT.004 | platform tenant protected |
-| P1.TENANT.005 | invalid code/name |
-| P1.TENANT.006 | confirm required |
-| P1.QUOTA.001 | over limit rejected |
-| P1.QUOTA.002 | invalid metric/amount |
-| P1.CONTEXT.001 | platform context required |
-| P1.CONTEXT.002 | tenant context mismatch |
-| P1.ADMIN.001 | admin init failed |
-| P1.DUTY.001 | platform duty denied |
+| P1.TENANT.0001 | not found |
+| P1.TENANT.0002 | code conflict |
+| P1.TENANT.0003 | invalid state |
+| P1.TENANT.0004 | platform tenant protected |
+| P1.TENANT.0005 | invalid code/name |
+| P1.TENANT.0006 | confirm required |
+| P1.QUOTA.0001 | over limit rejected |
+| P1.QUOTA.0002 | invalid metric/amount |
+| P1.CONTEXT.0001 | platform context required |
+| P1.CONTEXT.0002 | tenant context mismatch |
+| P1.ADMIN.0001 | admin init failed |
+| P1.DUTY.0001 | platform duty denied |
+| P1.INTERNAL.0001 | unhandled (should not leak) |
