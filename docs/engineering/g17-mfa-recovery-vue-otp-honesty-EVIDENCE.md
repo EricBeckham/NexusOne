@@ -45,7 +45,7 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** | `2026-09-22T20:38:18Z`; honest SKIP accepted; fake delivery / write-back PASS / fake G17 close / redo rejected |
+| Honesty fixtures | **PASS** | `2026-09-22T20:41:02Z`; honest SKIP accepted; fake delivery / write-back PASS / fake G17 close / redo rejected |
 | #172 leftover honesty fixture | **PASS** (gate) | parent `--verify-report` only; not a product redo |
 | #158 leftover honesty fixture | **PASS** (gate) | parent `--verify-report` only; not a product redo |
 | Live email OTP mailbox | **SKIP** | SMTP off; no mailbox observed |
