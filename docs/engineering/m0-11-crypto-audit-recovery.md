@@ -31,7 +31,7 @@
 
 密文信封 `NXC1` 携带套件、`keyId`、版本、12 字节 nonce。另一套件无法解密。`Keyring.rotate()` 保留旧版本以便解开历史密文。
 
-`SecretPort` 首期实现是 `LocalEncryptedSecretAdapter`（进程内 envelope，走 CryptoPort）。不要求 OpenBao / 云 KMS / 国密密码机。
+`SecretPort` 首期实现是 `LocalEncryptedSecretAdapter`（进程内 envelope，走 CryptoPort）。S0 产品默认叠加只读 `EnvSecretAdapter`（`LocalThenEnvSecretPort`）。不要求 OpenBao / 云 KMS / 国密密码机。S0 接线见 [s0-secret-port.md](./s0-secret-port.md)。
 
 配置（`nexus-bootstrap`）：
 

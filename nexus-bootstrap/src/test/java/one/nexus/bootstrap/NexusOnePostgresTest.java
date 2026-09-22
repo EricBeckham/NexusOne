@@ -132,6 +132,9 @@ class NexusOnePostgresTest {
         assertTrue(runtime.body().contains("\"trace_id\":\"" + trace + "\""));
         assertTrue(runtime.body().contains("\"spring_boot\":\"4.1.1\""));
         assertTrue(runtime.body().contains("\"crypto_suite\":\"INTERNATIONAL\""));
+        assertTrue(runtime.body().contains("\"secret_backend\":\"local+env\""));
+        assertTrue(runtime.body().contains("\"secret_openbao\":false"));
+        assertTrue(runtime.body().contains("\"secret_kms\":false"));
     }
 
     @Test

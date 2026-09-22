@@ -6,7 +6,7 @@ import one.nexus.crypto.CryptoSuite;
 import one.nexus.crypto.Hex;
 import one.nexus.crypto.JcaCryptoPort;
 import one.nexus.crypto.Keyring;
-import one.nexus.crypto.LocalEncryptedSecretAdapter;
+import one.nexus.crypto.LocalThenEnvSecretPort;
 import one.nexus.crypto.SecretPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +34,6 @@ public class CryptoConfiguration {
 
     @Bean
     SecretPort secretPort(CryptoPort cryptoPort) {
-        return new LocalEncryptedSecretAdapter(cryptoPort);
+        return LocalThenEnvSecretPort.system(cryptoPort);
     }
 }

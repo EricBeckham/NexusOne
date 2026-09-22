@@ -1,6 +1,8 @@
 /**
  * CryptoPort dual suites and SecretPort. Business code must not call JCE or
- * Bouncy Castle directly.
+ * Bouncy Castle directly. Credentials are retrieved only through
+ * {@link one.nexus.crypto.SecretPort} (S0: in-process overlay + environment
+ * variables). OpenBao and KMS are not required and are not wired.
  *
  * <p>International: AES-256-GCM / SHA-256 / ECDSA P-256 / HMAC-SHA256.
  * GM: SM4-GCM / SM3 / SM2 / HMAC-SM3. Suite is a deployment choice; a sealed

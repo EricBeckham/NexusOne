@@ -49,7 +49,7 @@ Redis **不是**业务真相、审计或关键幂等键存储。
 - 元数据表 `files.file_object`（Flyway **V510**）。对象字节只在 `ObjectStoragePort`（内存或 MinIO 9.0.3，同 P0-06）。
 - 上传 / 元数据 / 删除 / 签名下载。签名前再次校验租户、`FileObjectKeyGuard` 前缀、所有者、资源权限。
 - 跨租户签名：`P1.M02.015`，`ObjectStoragePort.presignGet` 次数不变，守卫拒绝落 `IsolationAuditEvent`。
-- 本机无 S3 时 `nexus.files.storage=memory`。设置 `S3_ENDPOINT` 等变量后可切 `s3`。
+- 本机无 S3 时 `nexus.files.storage=memory`。设置 `S3_ENDPOINT` 后可切 `s3`。`S3_ACCESS_KEY` / `S3_SECRET_KEY` 只经 `SecretPort`（local+env）读取，不进 `FileProperties`。不引入 OpenBao / KMS。见 [engineering/s0-secret-port.md](./engineering/s0-secret-port.md)。
 
 API：`POST/GET/DELETE /api/v1/files`，`POST /api/v1/files/{id}/signed-url`。
 

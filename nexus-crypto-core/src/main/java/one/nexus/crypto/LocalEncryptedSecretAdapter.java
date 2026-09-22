@@ -10,7 +10,8 @@ import one.nexus.common.time.Utc;
 
 /**
  * LocalEncryptedSecretAdapter: envelope-encrypts values with {@link CryptoPort}
- * and keeps ciphertext in process memory. This is the S0 default so the product
+ * and keeps ciphertext in process memory. S0 product default pairs this overlay
+ * with {@link EnvSecretAdapter} via {@link LocalThenEnvSecretPort}. The product
  * does not require OpenBao/KMS. It is not a durable secret store.
  */
 public final class LocalEncryptedSecretAdapter implements SecretPort {
@@ -62,5 +63,10 @@ public final class LocalEncryptedSecretAdapter implements SecretPort {
     @Override
     public CryptoSuite suite() {
         return crypto.suite();
+    }
+
+    @Override
+    public String backend() {
+        return "local";
     }
 }

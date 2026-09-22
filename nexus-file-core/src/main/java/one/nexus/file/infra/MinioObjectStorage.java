@@ -11,11 +11,25 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Objects;
+import one.nexus.crypto.SecretNames;
+import one.nexus.crypto.SecretPort;
 import one.nexus.file.ObjectStoragePort;
 
 /** P0-06 MinIO Java SDK adapter. FileService must authorize before calling. */
 public final class MinioObjectStorage implements ObjectStoragePort {
     private final MinioClient client;
+
+    /**
+     * Product path: credentials come only from {@link SecretPort} (S0 local+env).
+     * Do not pass access/secret keys from ordinary Spring properties.
+     */
+    public static MinioObjectStorage fromSecretPort(String endpoint, SecretPort secrets) {
+        Objects.requireNonNull(secrets, "secrets");
+        return new MinioObjectStorage(
+                endpoint,
+                secrets.getUtf8(SecretNames.S3_ACCESS_KEY),
+                secrets.getUtf8(SecretNames.S3_SECRET_KEY));
+    }
 
     public MinioObjectStorage(String endpoint, String accessKey, String secretKey) {
         this.client = MinioClient.builder()
