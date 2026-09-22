@@ -40,7 +40,7 @@ mvn -pl nexus-common,nexus-crypto-core,nexus-audit-core,nexus-bootstrap -am test
 
 `nexus-audit-core` includes `JdbcAuditChainTest` against PostgreSQL 15.19 (`platform.audit_record` append + `verifyChain()`).
 
-Bootstrap `NexusOnePostgresTest` asserts Flyway applied **≥ 8** versioned migrations including **V500** (M0-09) and **V501** (M0-11), and `GET /api/v1/meta/runtime` returns `crypto_suite":"INTERNATIONAL"` without key material.
+Bootstrap `NexusOnePostgresTest` asserts Flyway applied **≥ 8** versioned migrations including **V500** (M0-09) and **V501** (M0-11). After rebase onto #51–#53 a clean `nexusone` applied **9** SQL versions (V001–V003, V100–V101, V200, V300, V500, V501). `GET /api/v1/meta/runtime` returns `crypto_suite":"INTERNATIONAL"` without key material.
 
 ## Flyway history after bootstrap IT (`nexusone`)
 
@@ -54,6 +54,7 @@ History table: `platform.flyway_schema_history`.
 | 100 | p1 tenant |
 | 101 | p1 platform tenant |
 | 200 | iam identity |
+| 300 | permission engine (M0-05) |
 | 500 | execution channel (M0-09) |
 | **501** | **audit hash chain (M0-11)** |
 
