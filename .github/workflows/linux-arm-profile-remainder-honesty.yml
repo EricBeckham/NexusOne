@@ -96,6 +96,8 @@ jobs:
           grep -F 'g6-recovery-port-dry-run-remainder-honesty' docs/README.md
           grep -F 'g9-live-multi-jvm-replica-remainder-honesty' docs/README.md
           grep -F 'g4-hot-purge-staging-leftover-honesty' docs/README.md
+          grep -F 'g7-withdraw-browser-evidence-honesty' docs/README.md
+          grep -E '^leftover_212_kept=true$' "$RUNNER_TEMP/linux-arm-profile-remainder-honesty/report.env"
           grep -E '^leftover_229_kept=true$' "$RUNNER_TEMP/linux-arm-profile-remainder-honesty/report.env"
           grep -E '^leftover_230_kept=true$' "$RUNNER_TEMP/linux-arm-profile-remainder-honesty/report.env"
       - uses: actions/upload-artifact@v4
