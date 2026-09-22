@@ -26,12 +26,13 @@ Recorded on this agent VM. Java **21.0.10**, Maven **3.9.16**, Spring Boot **4.1
 
 ```
 mvn -f modules/isolation-kernel/pom.xml test
-# pending this run
+# Tests run: 37, Failures: 0, Errors: 0, Skipped: 0  BUILD SUCCESS  2026-09-22T16:45:38Z
 
 mvn -pl nexus-bootstrap -am test \
     -Dtest=G1QueryAstRemainderTest,G1QueryJoinFieldPolicyTest,G1IsolationSurfacesTest \
     -Dsurefire.failIfNoSpecifiedTests=false
-# pending this run
+# BUILD SUCCESS  2026-09-22T16:46:04Z
+# G1QueryAstRemainderTest 1/1, G1QueryJoinFieldPolicyTest 1/1, G1IsolationSurfacesTest 1/1
 ```
 
 | Suite | What it proved |
