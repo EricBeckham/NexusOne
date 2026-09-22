@@ -60,7 +60,7 @@ See [web/README.md](../web/README.md).
 
 ## Isolation filter owner
 
-TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (except todos) is bound by P3 `one.nexus.p3.infra.isolation.IssuedTenantIsolationFilter` (PR #62 on `main`). This package does **not** register a second bootstrap filter. Todos / process keep `FlowAuthFilter`. Vue never assigns `X-Tenant-Id`.
+TenantContext for `/api/v1/notifications`, `/api/v1/audit`, `/api/v1/files`, and `/api/v1/p3/*` (except todos) is bound by P3 `one.nexus.p3.infra.isolation.IssuedTenantIsolationFilter` (PR #62 on `main`; files path is the G15 H5 binder). This package does **not** register a second bootstrap filter. Todos / process keep `FlowAuthFilter`. Vue never assigns `X-Tenant-Id`.
 
 ## Checklist: assertable now vs deferred
 

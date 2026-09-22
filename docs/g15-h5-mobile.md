@@ -64,3 +64,23 @@ Vite `http://127.0.0.1:5173`, Chromium **375×812**. No JAR / PostgreSQL on this
 | `/p3/ledgers` | Desktop M0-12 sidebar + 创建台账 unchanged |
 
 Host messages / PKCE / live File Service upload against issued context were **not** walked. Client size/MIME checks are in `assert:h5` plus on-page 演示 buttons.
+
+## Follow-up after rebase onto `origin/main` `92b57f8` (#80 then #82/#83/#74)
+
+Recorded on this agent VM **2026-09-22T15:57:03Z**. OpenJDK **21.0.10**, Apache Maven **3.9.9** (not on PATH at boot; unpacked under `/tmp` for this run), Boot **4.1.1**. No Docker.
+
+### IssuedTenantIsolationFilterTest (covers `/api/v1/files`)
+
+```bash
+mvn -pl nexus-p3-studio -am test \
+  -Dtest=IssuedTenantIsolationFilterTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+`BUILD SUCCESS`. `IssuedTenantIsolationFilterTest` **Tests run: 5, Failures: 0, Errors: 0, Skipped: 0**. `isHandled` asserts `/api/v1/files` and `/api/v1/files/abc/signed-url`. This is the binder unit test, not a live upload.
+
+### Issued-context live upload — SKIP
+
+No PostgreSQL 15 listener (`psql` missing, nothing on `:5432`). No product JAR process. Did **not** start PG, did **not** package `nexus-bootstrap`, did **not** POST `/api/v1/files` with a real `Bearer` + `X-Nexus-Context-Id`. Not a pass and not a fixture.
+
+Product G15 remains **open**. This slice is still login-redirect / files / routing only.
