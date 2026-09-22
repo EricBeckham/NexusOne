@@ -205,3 +205,32 @@ Flyway log (SequentialApprovalIT): `Migrating schema "platform" to version "550 
 - Domain lists read `business_meta.process_*` only; never `act_*`.
 - Tenant from M0-04 issued context; M0-02 `IsolationKernel.tenants().issue` on every mutating/list call; `X-Tenant-Id` → `P3.FLOW.0006`.
 - Shared BPMN (`fallbackToDefaultTenant`); instances are not started with Flowable `tenantId`. Isolation is `business_meta.tenant_id`.
+
+## Post-rebase onto #58+#57 (`ff12b4d`, 2026-09-22T11:48:46Z)
+
+```bash
+mvn -pl nexus-p3-studio -am install -DskipTests
+mvn -pl nexus-p3-studio test
+```
+
+`BUILD SUCCESS` at `2026-09-22T11:48:46Z`. `nexus-p3-studio`: **Tests run: 36, Failures: 0, Errors: 0, Skipped: 4**.
+
+| Suite | Result |
+|---|---|
+| `FormApiTest` | 1/1 — Flowable Boot starter excludes on TestPropertySource |
+| `FormFlywayContractTest` | 1/1 |
+| `JdbcLedgerMetadataPortTest` | 2/2 |
+| `FormPublishStateMachineTest` | 5/5 |
+| `JdbcFormPublishRollbackIT` | 1/1 — Flyway V100→V101→V200→V300→**V400**→**V530**→**V550** on zonky PostgreSQL **15.18** |
+| `BindingValidationTest` | 4/4 |
+| `DdlOwnershipTest` | 1/1 |
+| `NoFlowableInternalTableScanTest` | 2/2 — no `act_*` SQL; Flyway windows V400/V530/V550 |
+| `Flowable710Boot411CompatibilityIT` | 5/5 — engine create `flowable.postgres.create.engine.sql` |
+| `SequentialApprovalIT` | 4/4 — V550 + sequential approve/reject/withdraw + todos |
+| `LedgerIdentifiersTest` | 3/3 |
+| `SchemaAstTest` | 2/2 |
+| `FlywaySqlContractTest` | 1/1 — V400–V499 or V530–V549 or V550–V599 |
+| `SchemaServicePostgresIT` | 2 skipped (no local PG listener) |
+| `LedgerCrudPostgresIT` | 2 skipped (no local PG listener) |
+
+Coordinator merges when GitHub is CLEAN/MERGEABLE; this drop does not self-merge.
