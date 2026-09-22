@@ -173,6 +173,31 @@ class FormPublishStateMachineTest {
     }
 
     @Test
+    void schemaServiceWorkThenAbortLeavesRunningAndSnapshotUnchanged() {
+        UUID tenant = UUID.fromString(TENANT);
+        FormService service = service(new SchemaServicePublishHook(
+                FormPublishTestStubs.abortAfterNthEnsure(FormPublishTestStubs.abortOnNthConfirm(99), 2),
+                FormPublishTestStubs.leaveLedgers(tenant),
+                FormPublishTestStubs.leaveFields(tenant)));
+        FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
+        service.validate(form.formId());
+        service.publish(form.formId(), "v1");
+        assertEquals(1, service.get(form.formId()).runningVersion());
+        String snapshot = service.running(form.formId()).snapshot().toJson();
+
+        service.update(form.formId(), "请假单 v2", null, leaveBindings());
+        service.validate(form.formId());
+        NexusException failed = assertThrows(NexusException.class, () -> service.publish(form.formId(), "v2"));
+        assertEquals(ErrorCode.FORM_PUBLISH_FAILED, failed.errorCode());
+        assertTrue(String.valueOf(failed.details().get("cause")).contains("mid-publish abort after SchemaService"));
+        assertEquals(1, service.get(form.formId()).runningVersion());
+        assertEquals(1, service.versions(form.formId()).size());
+        assertEquals(VersionStatus.RUNNING, service.running(form.formId()).status());
+        assertEquals(snapshot, service.running(form.formId()).snapshot().toJson());
+        assertTrue(service.publishLog(form.formId()).stream().anyMatch(log -> "ROLLED_BACK".equals(log.outcome())));
+    }
+
+    @Test
     void validateFailureLeavesDraftAndDoesNotCreateRunning() {
         FormService service = service(PublishHook.noop());
         FormRecord form = service.create(

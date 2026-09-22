@@ -294,6 +294,20 @@ Agent VM **2026-09-22T16:44:54Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **
 
 `FormApiTest` **1/1**. G18 leave publish `publishSubmitApprovalOutboxAndAuditShareOnePath` **1/1** at **2026-09-22T16:45:39Z**. Not a full G5 close. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md).
 
+# G5 leftover — mid-publish failure beyond evolve DDL abort (forms only)
+
+Extends #70 / #85 / #94. Does **not** claim a product G5 close. `AuditPort` untouched. G18 stays closed.
+
+Adds mid-publish cases that keep Running v1 + `snapshot_json` after a failed v2:
+
+- Zonky PG 15: `DROP` physical table + same-name `SEQUENCE` → product `createPhysicalTable` `42P07` → pointer/snapshot unchanged
+- Zonky PG 15: optional `remark` evolve **succeeds** in the publish TX, then hook abort → column rolled back + pointer/snapshot unchanged
+- HTTP / memory: `SchemaServicePublishHook` finishes `ensurePhysicalTable`, then aborts
+
+See [docs/g5-mid-publish-failure.md](../docs/g5-mid-publish-failure.md).
+
+Recorded **pending-this-run**. `./scripts/g5-form-publish-rollback.sh` → **pending**. No Docker.
+
 # G18 one real business path (backend)
 
 See `docs/g18-business-path.md`. Product G18 is **closed** by the 2026-09-22 browser walk on `main` `38f1a73`. The paragraphs below are the earlier VM and `ace55ff` record.

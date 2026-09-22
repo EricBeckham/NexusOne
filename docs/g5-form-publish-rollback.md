@@ -24,8 +24,10 @@ Eric 的 G18 浏览器走通只观察到 **校验通过 + 发布成功**（`leav
 | 产品扇门 + 现场 SchemaService evolve 成功 | v1 发布后往 `ledger_field` 插入 `remark`（未事先 ALTER）；v2 publish 走 `evolvePhysicalTable`，物理列出现，`schema_version=2` | `JdbcFormPublishRollbackIT.schemaServiceEvolveNewField…` |
 | 产品扇门 + 现场 SchemaService evolve abort | v1 后插入一行业务数据，再声明 **必填** `remark`；v2 publish 的 `ADD COLUMN … NOT NULL` 被 PG 15 拒绝（已有行会是 null，SQLState `23502`），`IllegalStateException("SchemaService evolve failed…")` | `JdbcFormPublishRollbackIT.schemaServiceEvolveAbort…` |
 | 回归 / HTTP | 纯 `PublishHook` 抛错；HTTP 与内存态机走 `SchemaServicePublishHook` + 同形状的 evolve-failed 异常 | 既有 hook IT；`FormPublishFailureApiTest`；`FormPublishStateMachineTest` |
+| leftover：产品 CREATE abort（Running 已在） | v1 后 `DROP` 物理表，再种同名 `SEQUENCE`；v2 `createPhysicalTable` 被 PG 15 `42P07` 拒绝 | `JdbcFormPublishRollbackIT.schemaServiceCreateAbortAfterRunning…` |
+| leftover：SchemaService 成功后再 abort | v1 后 evolve 可选 `remark` 在发布事务里成功，随后 hook 抛错；DDL 与指针一起回滚 | `JdbcFormPublishRollbackIT.schemaServiceWorkThenMidPublishAbort…`；HTTP/内存 leftover 见 [g5-mid-publish-failure.md](./g5-mid-publish-failure.md) |
 
-产品路径没有单独的「失败发布」HTTP 开关。evolve abort 是真实 SchemaService DDL（必填新列 + 已有行），不是 `ConfirmThenAbortEvolve` 包装、也不是现场产品开关。
+产品路径没有单独的「失败发布」HTTP 开关。evolve abort 是真实 SchemaService DDL（必填新列 + 已有行），不是 `ConfirmThenAbortEvolve` 包装、也不是现场产品开关。CREATE abort leftover 是同名 sequence 挡住 `CREATE TABLE`。**不宣称完整 G5。**
 
 ## 如何跑
 
@@ -45,10 +47,10 @@ mvn -pl nexus-p3-studio -am test \
 
 | Suite | 覆盖 |
 |---|---|
-| `JdbcFormPublishRollbackIT` | Zonky PG 15：校验失败保持 DRAFT / 不写 version；已发布后再校验失败指针与 snapshot 不变；Hook 回归；**SchemaService CREATE**（表缺失）与 **evolve 新列成功**；**evolve DDL abort**（必填 `remark` + 已有行，`23502`）后 `running_version`、RUNNING 行、`snapshot_json`、物理列与失败前相等 + `ROLLED_BACK` |
-| `FormPublishFailureApiTest` | HTTP：`P3.FORM.0005` → DRAFT；`P3.FORM.0006` 经 `SchemaServicePublishHook` → Running v1 + snapshot 不变 + `ROLLED_BACK` |
-| `FormPublishStateMachineTest` | 内存状态机，Hook 回归 + SchemaService 扇门 abort + 成功路径 |
-| `SchemaServicePublishHookTest` | 每 ledger 一次 `ensurePhysicalTable`；evolve-failed 原样抛出 |
+| `JdbcFormPublishRollbackIT` | Zonky PG 15：校验失败保持 DRAFT / 不写 version；已发布后再校验失败指针与 snapshot 不变；Hook 回归；**SchemaService CREATE**（表缺失）与 **evolve 新列成功**；**evolve DDL abort**（必填 `remark` + 已有行，`23502`）；**leftover CREATE abort**（同名 sequence，`42P07`）与 **leftover evolve-then-abort**（`remark` 列回滚）后 `running_version`、RUNNING 行、`snapshot_json` 与失败前相等 + `ROLLED_BACK` |
+| `FormPublishFailureApiTest` | HTTP：`P3.FORM.0005` → DRAFT；leftover `P3.FORM.0006` 经 `ensurePhysicalTable` 后再 abort → Running v1 + snapshot 不变 + `ROLLED_BACK` |
+| `FormPublishStateMachineTest` | 内存状态机，Hook 回归 + SchemaService 扇门 abort + leftover 成功后再 abort + 成功路径 |
+| `SchemaServicePublishHookTest` | 每 ledger 一次 `ensurePhysicalTable`；evolve-failed 原样抛出；abort-after-ensure 原样抛出 |
 
 ## 本次证据
 
@@ -78,7 +80,7 @@ Agent VM **2026-09-22T16:44:54Z**. `./scripts/g5-form-publish-rollback.sh` → `
 |---|---|
 | 表单 Draft / Validate / Publish / Running 成功路径 | 已有；G18 浏览器走过成功发布 |
 | 表单校验失败 → DRAFT | **本包 IT / HTTP** |
-| 表单发布中途失败 → Running / snapshot 不变 | **本包 IT / HTTP**。产品扇门是 `SchemaService.ensurePhysicalTable`（CREATE / evolve / confirm）。evolve abort 是必填新列 + 已有行，经现场 `JdbcSchemaService` + PG 15 `23502`，不是产品「失败发布」开关 |
+| 表单发布中途失败 → Running / snapshot 不变 | **本包 IT / HTTP**。产品扇门是 `SchemaService.ensurePhysicalTable`（CREATE / evolve / confirm）。evolve abort 是必填新列 + 已有行，经现场 `JdbcSchemaService` + PG 15 `23502`。leftover 见 [g5-mid-publish-failure.md](./g5-mid-publish-failure.md)：CREATE abort（`42P07`）与 SchemaService 成功后再 abort（DDL 回滚）。都不是产品「失败发布」开关 |
 | 浏览器再点一次失败发布 | **未做**。UI「查看 publish-log」只读日志，不模拟失败 |
 | 应用包 / P4 交付发布 | 不在本包 |
 | 表单设计器 | M0-12 壳，不是设计器产品 |

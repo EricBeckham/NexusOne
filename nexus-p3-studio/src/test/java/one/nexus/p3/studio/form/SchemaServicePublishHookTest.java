@@ -104,4 +104,23 @@ class SchemaServicePublishHookTest {
         assertTrue(failed.getCause() instanceof java.sql.SQLException);
         assertEquals("42701", ((java.sql.SQLException) failed.getCause()).getSQLState());
     }
+
+    @Test
+    void abortAfterEnsurePropagatesAfterWork() {
+        UUID tenant = UUID.fromString(TENANT);
+        SchemaServicePublishHook hook = new SchemaServicePublishHook(
+                FormPublishTestStubs.abortAfterNthEnsure(FormPublishTestStubs.abortOnNthConfirm(99), 1),
+                FormPublishTestStubs.leaveLedgers(tenant),
+                FormPublishTestStubs.leaveFields(tenant));
+        FormSnapshot snapshot = new FormSnapshot(
+                UUID.randomUUID(),
+                "leave_form",
+                "demo",
+                "请假单",
+                "",
+                2,
+                List.of(new FormBinding("title", "leave_request", "title", true, false, WidgetType.TEXT, 0)));
+        IllegalStateException failed = assertThrows(IllegalStateException.class, () -> hook.beforeActivate(snapshot));
+        assertTrue(failed.getMessage().contains("mid-publish abort after SchemaService"));
+    }
 }

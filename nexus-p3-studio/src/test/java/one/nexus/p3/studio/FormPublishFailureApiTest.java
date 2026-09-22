@@ -28,10 +28,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * HTTP evidence for G5 form-publish failed paths. Mid-publish failure goes through
- * {@link SchemaServicePublishHook} (product gate). The SchemaService here throws the
- * same evolve-failed shape as {@code JdbcSchemaService}; the PostgreSQL IT runs
- * the real product evolve/CREATE path and a mid-evolve DDL abort.
+ * HTTP evidence for G5 form-publish failed paths. Mid-publish leftover beyond
+ * evolve DDL abort: {@link SchemaServicePublishHook} finishes
+ * {@code ensurePhysicalTable}, then aborts so Running v1 + snapshot stay put.
+ * Zonky CREATE/evolve abort stays on {@code JdbcFormPublishRollbackIT}.
  */
 @SpringBootTest(classes = FormPublishFailureApiTest.TestApp.class)
 @AutoConfigureMockMvc
@@ -140,7 +140,9 @@ class FormPublishFailureApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"notes\":\"v2\"}"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("P3.FORM.0006"));
+                .andExpect(jsonPath("$.code").value("P3.FORM.0006"))
+                .andExpect(jsonPath("$.details.cause").value(org.hamcrest.Matchers.containsString(
+                        "mid-publish abort after SchemaService")));
 
         mvc.perform(get("/api/v1/p3/forms/" + id)
                         .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT)
@@ -223,10 +225,10 @@ class FormPublishFailureApiTest {
     static class TestApp {
         @Bean
         @Primary
-        PublishHook failSecondViaSchemaServiceGate() {
+        PublishHook failSecondAfterSchemaServiceWork() {
             UUID tenant = UUID.fromString(TENANT);
             return new SchemaServicePublishHook(
-                    FormPublishTestStubs.abortOnNthConfirm(2),
+                    FormPublishTestStubs.abortAfterNthEnsure(FormPublishTestStubs.abortOnNthConfirm(99), 2),
                     FormPublishTestStubs.leaveLedgers(tenant),
                     FormPublishTestStubs.leaveFields(tenant));
         }

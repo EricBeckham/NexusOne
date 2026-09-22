@@ -49,8 +49,9 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * G5 form-publish paths on PostgreSQL 15: validate-fail stays DRAFT;
  * product {@link SchemaServicePublishHook} CREATE/evolve on drift; mid-publish
- * failure (PublishHook stand-in and SchemaService evolve DDL abort) leaves the
- * Running pointer and published snapshot unchanged.
+ * failure (PublishHook stand-in, SchemaService evolve DDL abort, CREATE abort,
+ * and abort after successful SchemaService work) leaves the Running pointer
+ * and published snapshot unchanged.
  */
 class JdbcFormPublishRollbackIT {
     private static final String TENANT = "11111111-1111-4111-8111-111111111111";
@@ -212,6 +213,82 @@ class JdbcFormPublishRollbackIT {
             assertEquals(0, env.countColumn("remark"));
             assertEquals(1, env.ledgerSchemaVersion());
             assertTrue(service.publishLog(form.formId()).stream().anyMatch(log -> "ROLLED_BACK".equals(log.outcome())));
+        }
+    }
+
+    /**
+     * Leftover beyond evolve {@code 23502}: after Running v1, DROP the physical
+     * table and plant a same-name sequence so v2 {@code createPhysicalTable}
+     * fails ({@code 42P07}). Running pointer + published snapshot stay v1.
+     */
+    @Test
+    void schemaServiceCreateAbortAfterRunningLeavesPointerAndSnapshotUnchanged() throws Exception {
+        try (SchemaEnv env = SchemaEnv.start()) {
+            FormService service = env.formService(env.schema);
+            FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
+            service.validate(form.formId());
+            service.publish(form.formId(), "v1");
+            PublishedPointer before = env.readPointer(form.formId());
+            assertEquals(1, before.runningVersion());
+            assertEquals(1, env.countPhysicalTables());
+
+            env.dropPhysicalTable();
+            env.plantBlockingSequence();
+            assertEquals(0, env.countPhysicalTables());
+            assertEquals(1, env.countSequences());
+
+            service.update(form.formId(), "请假单 v2", null, leaveBindings());
+            service.validate(form.formId());
+            NexusException failed = assertThrows(NexusException.class, () -> service.publish(form.formId(), "v2"));
+            assertEquals(ErrorCode.FORM_PUBLISH_FAILED, failed.errorCode());
+            String cause = String.valueOf(failed.details().get("cause"));
+            assertTrue(cause.contains("SchemaService create failed"), () -> cause);
+            assertTrue(cause.contains(SchemaEnv.PHYSICAL_TABLE), () -> cause);
+
+            PublishedPointer after = env.readPointer(form.formId());
+            assertEquals(before, after);
+            assertEquals(1, env.countVersions(form.formId()));
+            assertEquals(1, env.countRunning(form.formId()));
+            assertEquals(0, env.countPhysicalTables());
+            assertEquals(1, env.countSequences());
+            assertEquals(1, env.ledgerSchemaVersion());
+            assertTrue(service.publishLog(form.formId()).stream().anyMatch(log -> "ROLLED_BACK".equals(log.outcome())));
+        }
+    }
+
+    /**
+     * Leftover beyond evolve abort: SchemaService evolve of optional {@code remark}
+     * succeeds inside the publish TX, then a later hook abort rolls the DDL back.
+     * Running pointer + published snapshot stay v1; {@code remark} is absent.
+     */
+    @Test
+    void schemaServiceWorkThenMidPublishAbortRollsBackDdlAndKeepsRunning() throws Exception {
+        try (SchemaEnv env = SchemaEnv.start()) {
+            FormService ok = env.formService(env.schema);
+            FormRecord form = ok.create("demo", "leave_form", "请假单", null, leaveBindings());
+            ok.validate(form.formId());
+            ok.publish(form.formId(), "v1");
+            PublishedPointer before = env.readPointer(form.formId());
+            assertEquals(1, before.runningVersion());
+            assertEquals(0, env.countColumn("remark"));
+
+            env.insertField(env.newField("remark", FieldType.TEXT, false, 3));
+            ok.update(form.formId(), "请假单 v2", null, remarkBindings());
+            ok.validate(form.formId());
+
+            FormService failing = env.formService(FormPublishTestStubs.abortAfterNthEnsure(env.schema, 1));
+            NexusException failed = assertThrows(NexusException.class, () -> failing.publish(form.formId(), "v2"));
+            assertEquals(ErrorCode.FORM_PUBLISH_FAILED, failed.errorCode());
+            String cause = String.valueOf(failed.details().get("cause"));
+            assertTrue(cause.contains("mid-publish abort after SchemaService"), () -> cause);
+
+            PublishedPointer after = env.readPointer(form.formId());
+            assertEquals(before, after);
+            assertEquals(1, env.countVersions(form.formId()));
+            assertEquals(1, env.countRunning(form.formId()));
+            assertEquals(0, env.countColumn("remark"));
+            assertEquals(1, env.ledgerSchemaVersion());
+            assertTrue(failing.publishLog(form.formId()).stream().anyMatch(log -> "ROLLED_BACK".equals(log.outcome())));
         }
     }
 
@@ -454,6 +531,24 @@ class JdbcFormPublishRollbackIT {
                     Statement statement = connection.createStatement()) {
                 statement.execute("DROP TABLE business_data." + PHYSICAL_TABLE);
             }
+        }
+
+        void plantBlockingSequence() throws Exception {
+            try (Connection connection = dataSource.getConnection();
+                    Statement statement = connection.createStatement()) {
+                statement.execute("CREATE SEQUENCE business_data." + PHYSICAL_TABLE);
+            }
+        }
+
+        int countSequences() {
+            return jdbc.sql(
+                            """
+                            select count(*) from information_schema.sequences
+                             where sequence_schema = 'business_data' and sequence_name = :name
+                            """)
+                    .param("name", PHYSICAL_TABLE)
+                    .query(Integer.class)
+                    .single();
         }
 
         void insertField(LedgerField field) {
