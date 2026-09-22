@@ -6,7 +6,7 @@ Baseline unchanged: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.
 
 **Not claimed:** full S0+S1 release, G2 permission-matrix UI, G4 login/permission/admin/export/guard-reject on the same chain, G1 export/file/cache/Job/Task, G15 H5.
 
-The **catalog / provisioner** below landed on `main` with PR **#69**. The **dual-tenant HTTP walkthrough** section is additional evidence (not a new business class): travel withdraw + reject across two tenants. Expense + travel withdraw with non-initiator **403** (leave-path G7LeaveWithdrawIT shape) is a sibling leftover: [g7-withdraw-expense-travel.md](./g7-withdraw-expense-travel.md). That package does **not** claim a G7 three-type product close.
+The **catalog / provisioner** below landed on `main` with PR **#69**. The **dual-tenant HTTP walkthrough** section is additional evidence (not a new business class): travel withdraw + reject across two tenants. Expense + travel withdraw with non-initiator **403** (leave-path G7LeaveWithdrawIT shape) is on `main` as [g7-withdraw-expense-travel.md](./g7-withdraw-expense-travel.md) (#103). The leftover **Vue click** of `todo-withdraw` (stub login, not a product close, does not reopen G18) is [g7-withdraw-browser.md](./g7-withdraw-browser.md) (#113). Neither package claims a G7 three-type product close.
 
 ## Three classes
 
