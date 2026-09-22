@@ -6,7 +6,7 @@ Focused Java 21 module for NexusOne tenant isolation. It is not the M0-01 applic
 
 | Module | API |
 |---|---|
-| M0-01 | `RequestIsolationPolicy.bindTenant`, `AccessContextHolder`, `GuardedJdbc`, `SqlBypassScanner` CI |
+| M0-01 | `RequestIsolationPolicy.bindTenant`, `AccessContextHolder`, `GuardedJdbc`, `SqlBypassScanner` / `QueryCompilerBypassGate` CI |
 | M0-03 | Do not issue context from tenant admin UI; platform tenant still uses `TenantContextIssuer` / `PlatformContextIssuer` |
 | M0-04 | Build `AuthenticatedMembership` from session + P2 membership, then call `bindTenant` |
 | M0-05 | Implement `DataScopeInjector` and pass it to `IsolationKernel.create` — it cannot strip `tenant_id`; `andEquals` may AND SELF/DEPT atoms |
@@ -37,7 +37,13 @@ mvn -f modules/isolation-kernel/pom.xml -q exec:java \
 # negative jdbc fixture: must fail
 mvn -f modules/isolation-kernel/pom.xml -q exec:java \
   -Dexec.args="--source modules/isolation-kernel/src/test/resources/sql-bypass-fixtures/negative/jdbc"
+
+# product src/main: QueryCompiler bypass gate must pass
+mvn -f modules/isolation-kernel/pom.xml -q exec:java@querycompiler-bypass \
+  -Dexec.args="--repo ."
 ```
+
+Allowlisted modules and the intentional-violation fixtures are recorded in [docs/g1-querycompiler-bypass-ci.md](../../docs/g1-querycompiler-bypass-ci.md).
 
 ## Contracts
 

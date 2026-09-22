@@ -55,4 +55,4 @@ This is **not** a product-wide “zero leak” close.
 | `P3RequestContext` | Unchanged. Joins / export FieldPolicy use `AccessContextHolder` only. |
 | G4 same-request chain | Login / permission-change / admin / guard-reject wiring is on `main` ([g4-audit-coverage.md](./engineering/g4-audit-coverage.md)). Export + 90-day copy + 365-day same-PG purge: [g4-export-audit-archive.md](./g4-export-audit-archive.md). Same-trace MockMvc walk: [g4-same-trace-walk.md](./g4-same-trace-walk.md). Remaining G4 is browser PKCE / object-store cold / hot-row purge. Guard-reject still uses `appendNewTransaction` only. |
 | GaussDB / live Redis / live MinIO | Unchanged from M0-10 / #71. |
-| Platform-wide “every API” | Direct `QueryCompiler.compile` without `IsolatedExport.compile` is not a FieldPolicy gate. Callers that skip `IsolatedExport` for a dump still need product wiring. |
+| Platform-wide “every API” | Direct `QueryCompiler.compile` without `IsolatedExport.compile` is not a FieldPolicy gate. Raw JDBC / tenant-table SQL that skips `QueryCompiler` is a CI gate ([g1-querycompiler-bypass-ci.md](./g1-querycompiler-bypass-ci.md)). |

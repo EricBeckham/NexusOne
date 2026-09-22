@@ -1,0 +1,3 @@
+<mapper namespace="business.Mapper">
+  <select id="find">SELECT * FROM l_demo_leave WHERE id = ${id}</select>
+</mapper>

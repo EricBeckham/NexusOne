@@ -82,6 +82,14 @@
         <configuration>
           <mainClass>one.nexus.isolation.scan.SqlBypassCheckMain</mainClass>
         </configuration>
+        <executions>
+          <execution>
+            <id>querycompiler-bypass</id>
+            <configuration>
+              <mainClass>one.nexus.isolation.scan.QueryCompilerBypassCheckMain</mainClass>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

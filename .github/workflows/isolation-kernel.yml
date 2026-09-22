@@ -4,10 +4,14 @@ on:
   push:
     paths:
       - "modules/isolation-kernel/**"
+      - "nexus-*/src/main/**"
+      - "docs/g1-querycompiler-bypass-ci.md"
       - ".github/workflows/isolation-kernel.yml"
   pull_request:
     paths:
       - "modules/isolation-kernel/**"
+      - "nexus-*/src/main/**"
+      - "docs/g1-querycompiler-bypass-ci.md"
       - ".github/workflows/isolation-kernel.yml"
 
 jobs:
@@ -38,3 +42,7 @@ jobs:
             exit 1
           fi
           echo "PASS static rejection: jdbc"
+      - name: QueryCompiler bypass gate (product src/main must pass)
+        run: >
+          mvn -B -f modules/isolation-kernel/pom.xml -q exec:java@querycompiler-bypass
+          -Dexec.args="--repo ${{ github.workspace }}"

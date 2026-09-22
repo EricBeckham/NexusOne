@@ -49,10 +49,10 @@ This is **not** a product-wide “zero leak” close.
 | Still open | Why |
 |---|---|
 | Nested subquery | Evidenced in [g1-query-nested-subquery.md](./g1-query-nested-subquery.md). |
-| Product-wide G1 close | UI / H5 every page, report UI / physical ledger dump, and callers that skip `QueryCompiler` stay open. |
+| Product-wide G1 close | UI / H5 every page and report UI / physical ledger dump stay open. Callers that skip `QueryCompiler` are a CI gate ([g1-querycompiler-bypass-ci.md](./g1-querycompiler-bypass-ci.md)). |
 | DataScope / FieldPolicy compilation into AST | SELF/DEPT equality + visibility encoding is [g1-datascope-fieldpolicy-ast.md](./g1-datascope-fieldpolicy-ast.md). OR / IN / mask leftovers stay there. |
 | Silent drop on API reads | Unchanged. Export still rejects hidden/second-auth instead of dropping. |
 | `P3RequestContext` | Unchanged. New join kinds use `AccessContextHolder` only. |
 | G4 same-request chain | Unchanged. Guard-reject still uses `appendNewTransaction` only. |
 | GaussDB / live Redis / live MinIO | Unchanged. |
-| Platform-wide “every API” | Direct JDBC / raw SQL outside `QueryCompiler` is still a caller-wiring gap. |
+| Platform-wide “every API” | New raw JDBC / tenant-table SQL is rejected by the CI gate ([g1-querycompiler-bypass-ci.md](./g1-querycompiler-bypass-ci.md)). Existing allowlisted platform / catalog adapters stay. |
