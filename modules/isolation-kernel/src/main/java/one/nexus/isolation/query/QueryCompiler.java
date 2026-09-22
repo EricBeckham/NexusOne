@@ -25,11 +25,10 @@ import one.nexus.isolation.spi.SoftDeleteInjector;
  * Compile pipeline: registry → tenant inject (cannot disable) → optional DataScope/soft-delete
  * → TableAccessPlan Guard → parameterized PostgreSQL renderer.
  *
- * <p>INNER JOIN, IN/EXISTS subquery (including nested subquery-in-subquery),
- * multi-row INSERT, ORDER BY, and LIMIT/OFFSET of registered tables are compiled
- * here. Each tenant-scoped table, including every nested subquery level, gets
- * its own {@code tenant_id} predicate. OUTER JOIN / CROSS JOIN stay out of this
- * compiler.
+ * <p>INNER / LEFT / RIGHT / FULL OUTER / CROSS JOIN, IN/EXISTS subquery
+ * (including nested subquery-in-subquery), multi-row INSERT, ORDER BY, and
+ * LIMIT/OFFSET of registered tables are compiled here. Each tenant-scoped table,
+ * including every nested subquery level, gets its own {@code tenant_id} predicate.
  */
 public final class QueryCompiler {
     private final TableRegistry registry;
@@ -145,7 +144,9 @@ public final class QueryCompiler {
         for (int i = 0; i < before.size(); i++) {
             QueryJoin left = before.get(i);
             QueryJoin right = after.joins().get(i);
-            if (!left.table().equals(right.table()) || !left.alias().equals(right.alias())) {
+            if (!left.table().equals(right.table())
+                    || !left.alias().equals(right.alias())
+                    || left.kind() != right.kind()) {
                 throw auditor.reject(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "DataScope replaced join");
             }
             Object tenant = left.filters().get("tenant_id");
@@ -273,8 +274,12 @@ public final class QueryCompiler {
         if (joined == null) {
             throw auditor.reject(IsolationErrorCode.UNREGISTERED_TABLE, context, join.alias());
         }
-        if (join.on().isEmpty()) {
-            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_JOIN, context, "join requires equality predicates");
+        if (join.kind().requiresOn()) {
+            if (join.on().isEmpty()) {
+                throw auditor.reject(IsolationErrorCode.CROSS_TENANT_JOIN, context, "join requires equality predicates");
+            }
+        } else if (!join.on().isEmpty()) {
+            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_JOIN, context, "CROSS JOIN cannot carry ON predicates");
         }
         for (JoinOn on : join.on()) {
             requireJoinSide(aliases, on.leftAlias(), on.leftColumn(), context);

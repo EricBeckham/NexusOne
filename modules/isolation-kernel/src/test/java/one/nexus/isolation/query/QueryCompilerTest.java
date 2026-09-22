@@ -454,9 +454,127 @@ class QueryCompilerTest {
         assertTrue(sink.rejectCount() >= 5);
     }
 
+    @Test
+    void outerJoinInjectsTenantOnBothTables() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        IsolationKernel kernel = kernel(sink);
+        TenantContext alpha = alpha(kernel);
+        RenderedSql left = kernel.compiler().compile(
+                outerSelect(QueryJoin.Kind.LEFT, List.of("ledger_entry.id", "line.amount"), Map.of()), alpha);
+        assertEquals(
+                "SELECT \"ledger_entry\".\"id\", \"line\".\"amount\" FROM \"ledger_entry\" \"ledger_entry\""
+                        + " LEFT OUTER JOIN \"ledger_line\" \"line\""
+                        + " ON \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\" = ?"
+                        + " WHERE \"ledger_entry\".\"tenant_id\" = ?",
+                left.sql());
+        assertEquals(List.of("alpha", "alpha"), left.parameters());
+        RenderedSql right = kernel.compiler().compile(
+                outerSelect(QueryJoin.Kind.RIGHT, List.of("ledger_entry.id", "line.amount"), Map.of()), alpha);
+        assertTrue(right.sql().contains("RIGHT OUTER JOIN \"ledger_line\" \"line\""));
+        assertTrue(right.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertTrue(right.sql().contains("\"ledger_entry\".\"tenant_id\" = ?"));
+        RenderedSql full = kernel.compiler().compile(
+                outerSelect(QueryJoin.Kind.FULL, List.of("ledger_entry.id", "line.amount"), Map.of()), alpha);
+        assertTrue(full.sql().contains("FULL OUTER JOIN \"ledger_line\" \"line\""));
+        assertTrue(full.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertEquals(0, sink.rejectCount());
+    }
+
+    @Test
+    void crossJoinInjectsTenantOnBothTables() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        IsolationKernel kernel = kernel(sink);
+        TenantContext alpha = alpha(kernel);
+        RenderedSql crossed = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("ledger_entry.id", "line.amount"), Map.of(), List.of(
+                        QueryJoin.cross("ledger_line", "line"))),
+                alpha);
+        assertEquals(
+                "SELECT \"ledger_entry\".\"id\", \"line\".\"amount\" FROM \"ledger_entry\" \"ledger_entry\""
+                        + " CROSS JOIN \"ledger_line\" \"line\""
+                        + " WHERE \"ledger_entry\".\"tenant_id\" = ? AND \"line\".\"tenant_id\" = ?",
+                crossed.sql());
+        assertEquals(List.of("alpha", "alpha"), crossed.parameters());
+        assertEquals(0, sink.rejectCount());
+    }
+
+    @Test
+    void outerAndCrossJoinRejectIllegalShapesAndStolenTenant() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        IsolationKernel kernel = kernel(sink);
+        TenantContext alpha = alpha(kernel);
+        IsolationException stolenLeft = assertThrows(IsolationException.class, () ->
+                kernel.compiler().compile(
+                        outerSelect(QueryJoin.Kind.LEFT, List.of("id"), map("tenant_id", "beta")), alpha));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_JOIN, stolenLeft.error());
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_JOIN));
+        assertCode(IsolationErrorCode.CROSS_TENANT_JOIN, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.cross("ledger_line", "line", map("tenant_id", "beta")))),
+                alpha));
+        assertCode(IsolationErrorCode.CROSS_TENANT_JOIN, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.left("ledger_line", "line", List.of(
+                                new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                                map("tenant_id", null)))),
+                alpha));
+        assertCode(IsolationErrorCode.CROSS_TENANT_JOIN, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.of(QueryJoin.Kind.LEFT, "ledger_line", "line", List.of(), Map.of()))),
+                alpha));
+        assertCode(IsolationErrorCode.CROSS_TENANT_JOIN, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.of(
+                                QueryJoin.Kind.CROSS,
+                                "ledger_line",
+                                "line",
+                                List.of(new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                                Map.of()))),
+                alpha));
+        assertCode(IsolationErrorCode.ILLEGAL_PLATFORM_ACCESS, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.left("platform_metric", "metric", List.of(
+                                new JoinOn("ledger_entry", "id", "metric", "id"))))),
+                alpha));
+        assertCode(IsolationErrorCode.ILLEGAL_PLATFORM_ACCESS, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.cross("platform_metric", "metric"))),
+                alpha));
+        assertTrue(sink.rejectCount() >= 7);
+    }
+
+    @Test
+    void dataScopeCannotStripOuterOrCrossJoinTenantPredicate() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+        registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+        DataScopeInjector hostile = (query, table, context) -> query.withJoins(query.joins().stream()
+                .map(join -> join.withFilters(Map.of("entry_id", "1")))
+                .toList());
+        IsolationKernel kernel = IsolationKernel.create(
+                registry, Set.of("ops.summary"), new CollectingAuditSink(), hostile, (q, t, c) -> q);
+        TenantContext alpha = alpha(kernel);
+        IsolationException left = assertThrows(IsolationException.class, () ->
+                kernel.compiler().compile(
+                        outerSelect(QueryJoin.Kind.LEFT, List.of("id"), Map.of()), alpha));
+        assertEquals(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, left.error());
+        IsolationException crossed = assertThrows(IsolationException.class, () ->
+                kernel.compiler().compile(
+                        QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                                QueryJoin.cross("ledger_line", "line"))),
+                        alpha));
+        assertEquals(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, crossed.error());
+    }
+
     private static QueryAst joinSelect(List<String> projection, Map<String, Object> joinFilters) {
         return QueryAst.select("ledger_entry", projection, Map.of(), List.of(
                 QueryJoin.inner("ledger_line", "line", List.of(
+                        new JoinOn("ledger_entry", "id", "line", "entry_id")), joinFilters)));
+    }
+
+    private static QueryAst outerSelect(QueryJoin.Kind kind, List<String> projection, Map<String, Object> joinFilters) {
+        return QueryAst.select("ledger_entry", projection, Map.of(), List.of(
+                QueryJoin.of(kind, "ledger_line", "line", List.of(
                         new JoinOn("ledger_entry", "id", "line", "entry_id")), joinFilters)));
     }
 

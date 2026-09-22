@@ -9,8 +9,7 @@ import java.util.Objects;
 /**
  * Restricted IN / EXISTS subquery. TenantInjector adds {@code tenant_id} on
  * every tenant table in the tree, including nested subquery-in-subquery.
- * OUTER/CROSS JOIN stay out. Nesting deeper than {@link #MAX_NESTING} is
- * rejected before render.
+ * Nesting deeper than {@link #MAX_NESTING} is rejected before render.
  */
 public final class QuerySubquery {
     public enum Kind {

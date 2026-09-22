@@ -45,7 +45,7 @@ Rejects happen in compile, before `Connection.prepareStatement`.
 | Cross-tenant read | P1.M02.003 |
 | Illegal / non-whitelist platform access | P1.M02.004 |
 | Client tenant untrusted | P1.M02.009 |
-| Cross-tenant INNER JOIN | P1.M02.020 |
+| Cross-tenant INNER / OUTER / CROSS JOIN | P1.M02.020 |
 | Export FieldPolicy | P1.M02.021 |
 | Cross-tenant subquery | P1.M02.022 |
 | Cross-tenant batch write | P1.M02.023 |
@@ -84,7 +84,7 @@ Platform context may read tenant prefixes (ops/reconciliation) but tenant contex
 
 `ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`. Accepted submit / writeFile / dispatch emit `EXPORT_ACCEPTED`; product `AuditPortIsolationSink` persists those with `AuditPort.append` on the existing hash chain.
 
-`IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. Cross-tenant INNER JOIN is `P1.M02.020` and must not reach JDBC. Cross-tenant IN/EXISTS subquery is `P1.M02.022`; stolen batch INSERT is `P1.M02.023`; unregistered ORDER BY is `P1.M02.024`; LIMIT/OFFSET outside `1..1000` / `offset >= 0` is `P1.M02.025`. None of those reach JDBC.
+`IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. Cross-tenant INNER / OUTER / CROSS JOIN is `P1.M02.020` and must not reach JDBC. Cross-tenant IN/EXISTS subquery is `P1.M02.022`; stolen batch INSERT is `P1.M02.023`; unregistered ORDER BY is `P1.M02.024`; LIMIT/OFFSET outside `1..1000` / `offset >= 0` is `P1.M02.025`. None of those reach JDBC.
 
 ## 7. Audit
 
