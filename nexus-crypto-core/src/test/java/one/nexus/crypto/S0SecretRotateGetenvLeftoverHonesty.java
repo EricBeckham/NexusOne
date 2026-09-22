@@ -51,6 +51,7 @@ public final class S0SecretRotateGetenvLeftoverHonesty {
     public static final String ROW_G9_SENTINEL = "g9-sentinel-cluster-honesty";
     public static final String ROW_G9_REPLICA = "g9-live-multi-jvm-replica";
     public static final String ROW_G9_REDIS_REM = "g9-redis-down-invalidate-remainder";
+    public static final String ROW_G9_REDIS_REM_HONESTY = "g9-redis-down-invalidate-remainder-honesty";
     public static final String ROW_G9_REDIS = "g9-redis-down-invalidate-honesty";
     public static final String ROW_G17 = "g17-mfa-recovery-vue-otp-honesty";
     public static final String ROW_G17_EMAIL = "g17-mfa-recovery-email-honesty";
@@ -103,6 +104,7 @@ public final class S0SecretRotateGetenvLeftoverHonesty {
             ROW_G9_SENTINEL,
             ROW_G9_REPLICA,
             ROW_G9_REDIS_REM,
+            ROW_G9_REDIS_REM_HONESTY,
             ROW_G9_REDIS,
             ROW_G17,
             ROW_G17_EMAIL,
