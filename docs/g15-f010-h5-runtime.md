@@ -3,7 +3,7 @@
 Work package: **mobile runtime pages only** under `web/src/mobile`. First acceptance host is a **mobile browser**.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledger / form / todo pages are unchanged.
 
-**This does not close product G15.** APP WebView / 小程序 web-view and Keycloak Authorization Code + PKCE stay open. G18 stays closed and is not redone. F014 HostBridgePort is reused; this slice does not fork a second bridge.
+**This does not close product G15.** APP WebView and WeChat / DingTalk production 小程序 stay open. A simulated web-view parent is [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). Keycloak Authorization Code + PKCE stays open. G18 stays closed and is not redone. F014 HostBridgePort is reused; this slice does not fork a second bridge.
 
 F010 in 需求规格 V1.1: 发布后的应用提供响应式 H5 运行入口，覆盖表单、列表、流程待办、查询、文件和通知跳转.
 
@@ -33,7 +33,7 @@ Issued TenantContext is `X-Nexus-Context-Id` after membership checks. The UI nev
 | Item | Status |
 |---|---|
 | APP WebView | **Not accepted.** Same HostBridge contract, no native host walk. |
-| 小程序 web-view | **Not accepted.** Same contract, no mini-program walk. |
+| 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). **WeChat / DingTalk production not accepted.** |
 | Keycloak Authorization Code + PKCE | **Not accepted.** Browser session is still stub token. |
 | H5 designer / BPMN | **Out of scope.** Desktop first (H5 规范 §52.8 / §91). |
 | Product G15 | **Open** until other hosts are walked. |
@@ -49,6 +49,7 @@ npm install
 npm test
 npm run assert:h5
 npm run assert:h5-host
+npm run assert:h5-mp-webview
 npm run assert:h5-runtime
 npm run assert:isolation
 npm run assert:p3-live
