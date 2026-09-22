@@ -1,0 +1,103 @@
+name: g6-recovery-port-dry-run-honesty
+
+# Honesty gate for the G6 RecoveryPort still dry-run leftover.
+# Does not start PostgreSQL. Does not touch haopan_platform.
+# Does not redo #135/#164. Not product G6 / HA close.
+
+on:
+  push:
+    paths:
+      - "scripts/g6-recovery-port-dry-run-honesty.sh"
+      - "scripts/g6-recovery-port-dry-run-honesty/**"
+      - ".github/workflows/g6-recovery-port-dry-run-honesty.yml"
+      - "docs/g6-recovery-port-dry-run-honesty.md"
+      - "docs/engineering/g6-recovery-port-dry-run-honesty-EVIDENCE.md"
+      - "nexus-audit-core/src/test/java/one/nexus/audit/recovery/G6RecoveryPortDryRunHonesty.java"
+      - "nexus-audit-core/src/test/java/one/nexus/audit/recovery/G6RecoveryPortDryRunHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/g6-recovery-port-dry-run-honesty.sh"
+      - "scripts/g6-recovery-port-dry-run-honesty/**"
+      - ".github/workflows/g6-recovery-port-dry-run-honesty.yml"
+      - "docs/g6-recovery-port-dry-run-honesty.md"
+      - "docs/engineering/g6-recovery-port-dry-run-honesty-EVIDENCE.md"
+      - "nexus-audit-core/src/test/java/one/nexus/audit/recovery/G6RecoveryPortDryRunHonesty.java"
+      - "nexus-audit-core/src/test/java/one/nexus/audit/recovery/G6RecoveryPortDryRunHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g6-recovery-port-dry-run-honesty.sh --verify-report scripts/g6-recovery-port-dry-run-honesty/fixtures/honest-skip.env
+      - name: Fake minute-level RPO PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g6-recovery-port-dry-run-honesty.sh --verify-report \
+            scripts/g6-recovery-port-dry-run-honesty/fixtures/fake-minute-rpo-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake minute-level RPO PASS without minute_rpo_observed=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake minute-level RPO PASS rejected"
+      - name: Fake product HA PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g6-recovery-port-dry-run-honesty.sh --verify-report \
+            scripts/g6-recovery-port-dry-run-honesty/fixtures/fake-product-ha-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake product HA PASS without product_ha_observed=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake product HA PASS rejected"
+      - name: Fake product G6 close is rejected
+        run: |
+          set +e
+          ./scripts/g6-recovery-port-dry-run-honesty.sh --verify-report \
+            scripts/g6-recovery-port-dry-run-honesty/fixtures/fake-g6-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g6_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G6 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest minute-level RPO / product HA SKIP
+        run: |
+          chmod +x ./scripts/g6-recovery-port-dry-run-honesty.sh
+          ./scripts/g6-recovery-port-dry-run-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty"
+          ./scripts/g6-recovery-port-dry-run-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^dry_run_contract=PASS$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^minute_level_rpo=SKIP$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^product_ha=SKIP$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^executing_restore=SKIP$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^g6_close=NOT_CLAIMED$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^recovery_port_close=NOT_CLAIMED$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^haopan_platform_touched=false$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^redone_135=false$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^redone_164=false$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E 'g6-recovery-port-dry-run' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+          grep -E 'g6-recovery-port-honesty' "$RUNNER_TEMP/g6-recovery-port-dry-run-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g6-recovery-port-dry-run-honesty
+          path: ${{ runner.temp }}/g6-recovery-port-dry-run-honesty
