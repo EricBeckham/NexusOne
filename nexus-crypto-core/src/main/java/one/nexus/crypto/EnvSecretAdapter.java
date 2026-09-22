@@ -16,6 +16,13 @@ import one.nexus.common.error.NexusException;
  * are rejected so plaintext is not written back into process state as if this
  * were a durable store.
  *
+ * <p>Each {@code get}/{@code find} calls the env {@link Function} again; values
+ * are not cached. A mutable map (or other live lookup) therefore rotates
+ * without restart. {@link #system(CryptoSuite)} uses {@code System::getenv},
+ * which on Java 21 is an unmodifiable process-start snapshot — an OS environ
+ * rotate of a running JVM is not a supported API and is not observed until
+ * process restart.
+ *
  * <p>This is an S0 adapter (CORE-SEC-001 / ARCH-007). It does not call OpenBao
  * or any KMS.
  */

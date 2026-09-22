@@ -29,6 +29,10 @@ public final class MinioObjectStorage implements ObjectStoragePort {
     /**
      * Product path: credentials come only from {@link SecretPort} (S0 local+env).
      * Do not pass access/secret keys from ordinary Spring properties.
+     *
+     * <p>Credentials are snapshotted at construct. An env rotate that
+     * {@link SecretPort} later observes does not rebuild this client. That
+     * leftover is documented in {@code docs/s0-secret-rotate-without-restart.md}.
      */
     public static MinioObjectStorage fromSecretPort(String endpoint, SecretPort secrets) {
         Objects.requireNonNull(secrets, "secrets");

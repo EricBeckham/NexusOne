@@ -53,6 +53,7 @@ File Service 在 `nexus.files.storage=s3` 时通过 `MinioObjectStorage.fromSecr
 | OpenBao / 云 KMS / 国密密码机 Adapter | ARCH-007：首期不得强制独立 Secret 平台 |
 | CORE-SEC-003 租户 `encrypted_payload` / `secret_ref` | S1 租户外部凭据，未做 |
 | 把 JDBC DataSource 改成运行期 SecretPort | Spring 启动期绑定；本包不重做 M0-01 |
+| OS `System.getenv()` rotate-without-restart | Java 21 进程启动快照；诚实 SKIP。可变 env map 下次 get 可见。见 [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md) |
 | 重做 CryptoPort / 审计链 / G4 / G6 / G17 | P0/M0 已交付，本包不重开 |
 
 ## 测试
@@ -63,4 +64,4 @@ mvn -pl nexus-bootstrap -am -DskipTests install
 mvn -pl nexus-bootstrap test
 ```
 
-`-am test` on bootstrap also runs `nexus-p1-tenant` `TenantModuleIT`, which requires `NEXUS_DB_PASSWORD` and a live PostgreSQL 15. That IT is M0-03, not this package. Evidence: [s0-secret-port-EVIDENCE.md](./s0-secret-port-EVIDENCE.md).
+`-am test` on bootstrap also runs `nexus-p1-tenant` `TenantModuleIT`, which requires `NEXUS_DB_PASSWORD` and a live PostgreSQL 15. That IT is M0-03, not this package. Evidence: [s0-secret-port-EVIDENCE.md](./s0-secret-port-EVIDENCE.md). Env/process rotate-without-restart leftover: [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md).

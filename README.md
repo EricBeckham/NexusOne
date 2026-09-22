@@ -21,6 +21,7 @@ G2 leftover：报表 query/export 走同一 `SurfaceGuard` 见 [docs/g2-report-s
 G6 leftover：`RecoveryPort` dry-run 契约（不宣称分钟级 RPO / 产品 HA / 产品 RecoveryPort 关闭；不碰 `haopan_platform`）见 [docs/g6-recovery-port-dry-run.md](./docs/g6-recovery-port-dry-run.md)。
 G4 leftover：SurfaceGuard 守卫拒绝 / 权限拒绝上同一哈希链见 [docs/g4-guard-deny-audit.md](./docs/g4-guard-deny-audit.md)（#136；不宣称产品 G4 关闭；与 #125 桌面 PKCE 点击正交）。G4 leftover：HTTP 导出向导 begin/complete（或 deny）上同一哈希链见 [docs/g4-export-wizard.md](./docs/g4-export-wizard.md)（不是产品导出 UI；浏览器向导诚实 SKIP）。G4 leftover：P1 staging `GET /tenants/{id}/audit-events` 查询/导出诚实 harness 见 [docs/g4-p1-staging-audit-events.md](./docs/g4-p1-staging-audit-events.md)（不切换 GET 离 staging；活库不可用时 SKIP）。人机笔记本 + 活 Keycloak CA / SPA 自生成 verifier 证据路径见 [docs/g4-pkce-spa-verifier.md](./docs/g4-pkce-spa-verifier.md)（活 Keycloak 不可达诚实 SKIP；不重做 #108/#120/#125）。
 G1 leftover：导出 Query AST 对 hidden 字段 drop（不再只 reject）见 [docs/g1-export-fieldpolicy-drop.md](./docs/g1-export-fieldpolicy-drop.md)（#134；不宣称产品 G1 关闭；二次授权 / mask 仍在 `FieldPolicyProjector`）。`GuardedLedgerStore` leftover BoundSql / COUNT 守卫见 [docs/g1-queryast-boundsql-guard.md](./docs/g1-queryast-boundsql-guard.md)（不重做 #142 AST；不宣称产品 G1 关闭）。
+S0 leftover：env/process secret rotate-without-restart 证据见 [docs/s0-secret-rotate-without-restart.md](./docs/s0-secret-rotate-without-restart.md)（可变 env map 下次 get 可见；OS `System.getenv` 为启动快照则诚实 SKIP；不引入 OpenBao/KMS；不宣称完整 S0 关闭）。
 
 ## 应用骨架（M0-01）
 
