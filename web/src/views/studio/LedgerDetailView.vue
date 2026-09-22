@@ -6,12 +6,11 @@
         <p class="nx-code">{{ ledger.code }} · {{ ledger.physical_table }}</p>
       </div>
       <div class="nx-row">
-        <NxStatus :label="`Draft v${ledger.draft_schema_version}`" tone="warning" />
-        <NxStatus :label="`Running v${ledger.running_schema_version}`" tone="success" />
+        <NxStatus :label="`Schema v${ledger.running_schema_version}`" tone="success" />
         <router-link class="ghost" to="/p3/ledgers">返回列表</router-link>
       </div>
     </div>
-    <NxSourceBanner body="字段设计是壳：改 Draft，不改 Running。真实 SchemaService / 每台账一表 DDL 等待 M0-06。" />
+    <NxSourceBanner body="记录走 GET /api/v1/p3/ledgers/{id}/records。新增字段走 POST .../fields（M0-06 无 PUT 改字段）。列来自现场 metadata，不再假设费用报销夹具。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <div class="nx-tabs">
       <button :class="{ active: tab === 'records' }" type="button" @click="tab = 'records'">记录</button>
@@ -21,36 +20,22 @@
     <table v-if="tab === 'records'" class="nx-table">
       <thead>
         <tr>
-          <th>事由</th>
-          <th>金额</th>
-          <th>申请人</th>
-          <th>部门</th>
-          <th>日期</th>
-          <th>类别</th>
-          <th>状态</th>
+          <th v-for="col in recordColumns" :key="col">{{ col }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="!records.length">
-          <td colspan="7" class="nx-empty">暂无记录</td>
+          <td :colspan="recordColumns.length" class="nx-empty">暂无记录</td>
         </tr>
-        <tr v-for="row in records" :key="row.id">
-          <td>{{ row.title }}</td>
-          <td>{{ row.amount }}</td>
-          <td>{{ row.applicant }}</td>
-          <td>{{ row.department }}</td>
-          <td>{{ row.claim_date }}</td>
-          <td>{{ row.category }}</td>
-          <td>
-            <NxStatus :label="row.status" :tone="tone(row.status)" />
-          </td>
+        <tr v-for="row in records" :key="row.id || JSON.stringify(row)">
+          <td v-for="col in recordColumns" :key="col">{{ formatCell(row, col) }}</td>
         </tr>
       </tbody>
     </table>
 
     <div v-else>
       <div class="toolbar nx-row" style="margin-bottom:12px;">
-        <span class="nx-muted">Palette → Canvas → Property。不能边编辑边改 Running。</span>
+        <span class="nx-muted">Palette 映射到 M0-06 FieldType（TEXT / NUMERIC / BOOLEAN / TIMESTAMPTZ）。不能边编辑边改 Running。</span>
       </div>
       <div class="nx-designer">
         <div class="pane palette">
@@ -64,10 +49,10 @@
           >{{ kind.label }}</button>
         </div>
         <div class="pane canvas">
-          <h3>Draft 字段</h3>
+          <h3>字段</h3>
           <button
             v-for="field in fields"
-            :key="field.id"
+            :key="field.id || field.code"
             class="nx-chip-btn"
             :class="{ active: selected?.id === field.id }"
             type="button"
@@ -75,7 +60,6 @@
           >
             <strong>{{ field.name }}</strong>
             <span class="nx-muted"> · {{ field.code }} · {{ field.type }}</span>
-            <NxStatus v-if="!field.running" label="Draft only" tone="warning" />
           </button>
           <h3 class="sys">系统字段（只读）</h3>
           <p v-for="field in system" :key="field.code" class="nx-muted">{{ field.code }}</p>
@@ -83,21 +67,21 @@
         <div class="pane props">
           <h3>属性</h3>
           <template v-if="selected">
-            <div class="nx-field"><label>名称</label><input v-model="selected.name" /></div>
+            <div class="nx-field"><label>名称</label><input :value="selected.name" disabled /></div>
             <div class="nx-field"><label>编码</label><input :value="selected.code" disabled /></div>
             <div class="nx-field"><label>类型</label><input :value="selected.type" disabled /></div>
-            <label class="nx-row"><input v-model="selected.required" type="checkbox" /> 必填</label>
-            <button class="primary" type="button" style="margin-top:12px;" @click="save">写入 Draft</button>
+            <p class="nx-muted">字段更新 API 未提供。要改定义请走后端演进接口（POST fields 只追加）。</p>
           </template>
           <p v-else class="nx-muted">选择一个字段</p>
         </div>
       </div>
     </div>
   </div>
+  <p v-else-if="error" class="nx-error">{{ error }}</p>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
@@ -113,21 +97,39 @@ const tab = ref("records");
 const error = ref("");
 
 const palette = [
-  { type: "text", label: "文本" },
-  { type: "longtext", label: "长文本" },
-  { type: "number", label: "数字" },
-  { type: "money", label: "金额" },
-  { type: "date", label: "日期" },
-  { type: "boolean", label: "布尔" },
-  { type: "enum", label: "枚举" },
-  { type: "person", label: "人员" },
-  { type: "department", label: "部门" },
+  { type: "text", label: "文本 → TEXT" },
+  { type: "number", label: "数字 → NUMERIC" },
+  { type: "boolean", label: "布尔 → BOOLEAN" },
+  { type: "date", label: "日期 → TIMESTAMPTZ" },
 ];
 
-function tone(status) {
-  if (status === "APPROVED") return "success";
-  if (status === "REJECTED") return "danger";
-  return "warning";
+const SYSTEM_SKIP = new Set(["tenant_id", "deleted_at", "ext_data", "schema_version"]);
+
+const recordColumns = computed(() => {
+  const fromFields = (fields.value || []).map((field) => field.code).filter(Boolean);
+  if (fromFields.length) {
+    return ["id", ...fromFields, "status"].filter((col, idx, all) => all.indexOf(col) === idx);
+  }
+  const keys = new Set();
+  for (const row of records.value) {
+    Object.keys(row || {}).forEach((key) => {
+      if (!SYSTEM_SKIP.has(key) && key !== "_source") {
+        keys.add(key);
+      }
+    });
+  }
+  return keys.size ? [...keys] : ["id"];
+});
+
+function formatCell(row, col) {
+  const value = row?.[col];
+  if (value == null) {
+    return "—";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return value;
 }
 
 async function reload() {
@@ -137,7 +139,7 @@ async function reload() {
   fields.value = fieldBody.items || [];
   system.value = fieldBody.system || [];
   const recBody = await p3.listRecords(id);
-  records.value = recBody.items || recBody || [];
+  records.value = recBody.items || [];
 }
 
 onMounted(async () => {
@@ -152,7 +154,7 @@ async function add(kind) {
   try {
     const body = await p3.addField(route.params.id, {
       type: kind.type,
-      name: `新${kind.label}`,
+      name: `新${kind.label.split(" ")[0]}`,
       code: `${kind.type}_${Date.now().toString().slice(-4)}`,
     });
     ledger.value = body.ledger;
@@ -160,20 +162,7 @@ async function add(kind) {
     const fieldBody = await p3.listFields(route.params.id);
     fields.value = fieldBody.items || [];
   } catch (err) {
-    error.value = err.message;
-  }
-}
-
-async function save() {
-  if (!selected.value) return;
-  try {
-    const body = await p3.updateField(route.params.id, selected.value.id, {
-      name: selected.value.name,
-      required: selected.value.required,
-    });
-    ledger.value = body.ledger;
-  } catch (err) {
-    error.value = err.message;
+    error.value = `${err.code || ""} ${err.message}`;
   }
 }
 </script>

@@ -17,7 +17,7 @@
         <router-link to="/p2/persons">用户目录</router-link>
         <router-link to="/p2/org">组织架构</router-link>
         <router-link to="/p2/positions">岗位任职</router-link>
-        <p class="group">权限 · M0-05 未到</p>
+        <p class="group">权限 · M0-05</p>
         <router-link to="/p2/permissions/roles">角色授权</router-link>
         <router-link to="/p2/permissions/datascope">数据范围</router-link>
         <router-link to="/p2/permissions/fields">字段权限</router-link>

@@ -78,9 +78,9 @@ python3 "$ROOT/scripts/m0-12/dual-tenant-isolation.py" \
 
 if [[ -f "$ROOT/web/package.json" ]]; then
   if command -v node >/dev/null 2>&1; then
-    echo "== Vue client isolation assert"
-    (cd "$ROOT/web" && node scripts/assert-client-isolation.mjs)
+    echo "== Vue client isolation + live P3 asserts"
+    (cd "$ROOT/web" && node scripts/assert-client-isolation.mjs && node scripts/assert-p3-live.mjs)
   fi
 fi
 
-echo "PASS: M0-12 dual-tenant HTTP acceptance (G18 still open; see checklist SKIP rows)"
+echo "PASS: M0-12 dual-tenant HTTP acceptance (G18 still open; live list/query is not a walkthrough)"

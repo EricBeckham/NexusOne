@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
- * Static + runtime guard: the Vue API client must never attach tenant identity headers.
+ * Static guard: the Vue API client must never attach tenant identity headers.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const client = [
-  readFileSync(join(root, "src/api/client.js"), "utf8"),
-  readFileSync(join(root, "src/api/p3.js"), "utf8"),
-  readFileSync(join(root, "src/api/p3-live.js"), "utf8"),
-].join("\n");
+const apiDir = join(root, "src/api");
+const client = readdirSync(apiDir)
+  .filter((name) => name.endsWith(".js"))
+  .map((name) => readFileSync(join(apiDir, name), "utf8"))
+  .join("\n");
 
 const failures = [];
 if (!client.includes("ARCH-024")) {
@@ -24,7 +24,7 @@ if (!client.includes('["x-tenant-id"') && !client.includes('"x-tenant-id"')) {
   failures.push("denylist must include x-tenant-id");
 }
 if (/headers\[["']X-Tenant-Id["']\]\s*=/.test(client) || /["']X-Tenant-Id["']\s*:/.test(client)) {
-  failures.push("client.js must not assign X-Tenant-Id");
+  failures.push("client must not assign X-Tenant-Id");
 }
 if (client.includes("tenant_id=") && client.includes("?")) {
   failures.push("do not pass tenant_id as a query identity");

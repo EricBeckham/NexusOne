@@ -3,13 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "NexusOne M0-12 Vue 3 shell: tenant/org plus P3 ledger/form/todo (MOCK until M0-06/07/08).",
+  "description": "NexusOne M0-12 Vue 3 shell: tenant/org plus live P3 ledger/form/todo (M0-06/07/08).",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "assert:isolation": "node scripts/assert-client-isolation.mjs",
-    "assert:p3-mock": "node scripts/assert-p3-mock-toggle.mjs"
+    "assert:p3-live": "node scripts/assert-p3-live.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13",

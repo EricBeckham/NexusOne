@@ -3,15 +3,15 @@
     <div class="nx-page-header nx-row" style="justify-content:space-between;">
       <div>
         <h1>{{ form.name }}</h1>
-        <p>Draft / Published / Running 必须分开。本壳不改真实 Running 版本。</p>
+        <p>Draft / Published / Running 必须分开。填报写入 <code>form_submission</code>，不写物理台账。</p>
       </div>
       <div class="nx-row">
         <NxStatus :label="form.draft_status" tone="warning" />
-        <NxStatus :label="`Running v${form.running_version}`" tone="success" />
+        <NxStatus :label="`Running v${form.running_version || 0}`" tone="success" />
         <router-link class="ghost" to="/p3/forms">返回列表</router-link>
       </div>
     </div>
-    <NxSourceBanner body="填报 / 发布是 MOCK 壳。校验失败不污染 Running 只在夹具里演示。G5 / G18 表单段未关闭。" />
+    <NxSourceBanner body="Live M0-07：validate / publish / submissions。校验失败保持 DRAFT。G5 回滚由服务端事务覆盖，UI 不再 MOCK 失败。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-tabs">
@@ -21,13 +21,10 @@
     </div>
 
     <form v-if="tab === 'fill'" class="nx-card" style="max-width:720px;" @submit.prevent="submitFill">
-      <div v-for="field in runningFields" :key="field.id" class="nx-field">
+      <p v-if="!runningFields.length" class="nx-muted">没有 running 快照。先 Validate / Publish，或当前租户还没有运行版本。</p>
+      <div v-for="field in runningFields" :key="field.id || field.code" class="nx-field">
         <label>{{ field.name }}</label>
-        <select v-if="field.type === 'enum'" v-model="values[field.code]">
-          <option disabled value="">请选择</option>
-          <option v-for="opt in field.options || []" :key="opt" :value="opt">{{ opt }}</option>
-        </select>
-        <textarea v-else-if="field.type === 'longtext'" v-model="values[field.code]" rows="3" />
+        <textarea v-if="field.type === 'longtext' || field.type === 'textarea'" v-model="values[field.code]" rows="3" />
         <input
           v-else
           v-model="values[field.code]"
@@ -35,29 +32,24 @@
           :required="field.required"
         />
       </div>
-      <button class="primary" type="submit" data-testid="form-fill-submit">提交填报（MOCK）</button>
+      <button class="primary" type="submit" data-testid="form-fill-submit" :disabled="!runningFields.length">提交填报</button>
     </form>
 
     <div v-else-if="tab === 'designer'" class="nx-designer">
       <div class="pane palette">
-        <h3>基础</h3>
-        <p v-for="item in ['单行文本', '金额', '日期', '人员', '部门', '枚举']" :key="item" class="nx-chip-btn">{{ item }}</p>
-        <h3>布局</h3>
-        <p class="nx-muted">分组 / 两列（M0 仅展示）</p>
+        <h3>绑定</h3>
+        <p class="nx-muted">表单只绑定 ledger_code + field_code。物理列名会被 P3.FORM.0004 拒绝。</p>
       </div>
       <div class="pane canvas">
-        <h3>Canvas · Desktop</h3>
+        <h3>Canvas · Draft bindings</h3>
         <div class="preview">
-          <p v-for="field in form.draft_fields || []" :key="field.id">
+          <p v-for="field in form.draft_fields || []" :key="field.id || field.code">
             <strong>{{ field.name }}</strong>
-            <span class="nx-muted"> {{ field.type }}</span>
+            <span class="nx-muted"> {{ field.code }} · {{ field.type }}</span>
           </p>
         </div>
       </div>
       <div class="pane props">
-        <div class="nx-tabs" style="border:0;margin:0 0 8px;">
-          <span class="nx-muted">属性 / 校验 / 权限</span>
-        </div>
         <p>校验：Validation Rule / Business Rule / Field Rule 分开展示（M0-07）。</p>
         <p class="nx-muted">不能边编辑边修改 Running。</p>
       </div>
@@ -75,7 +67,7 @@
         <div class="nx-row" style="margin-top:12px;">
           <button class="ghost" type="button" @click="onValidate">Validate</button>
           <button class="primary" type="button" data-testid="form-publish" @click="onPublish">Publish</button>
-          <button class="danger" type="button" @click="onFail">模拟失败回滚</button>
+          <button class="ghost" type="button" @click="onLog">查看 publish-log</button>
         </div>
       </div>
       <div class="nx-card">
@@ -86,12 +78,13 @@
           <ul>
             <li v-for="(issue, idx) in validation.issues || []" :key="idx">{{ issue.kind }} · {{ issue.message }}</li>
           </ul>
-          <p v-if="validation.ok" class="nx-muted">无错误。Publish 仍是 MOCK，不写物理 Schema。</p>
+          <p v-if="validation.ok" class="nx-muted">无错误。Publish 会切换 running 指针（G5 由服务端保证失败回滚）。</p>
         </template>
         <p v-if="publishResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(publishResult, null, 2) }}</p>
       </div>
     </div>
   </div>
+  <p v-else-if="error" class="nx-error">{{ error }}</p>
 </template>
 
 <script setup>
@@ -108,27 +101,28 @@ const error = ref("");
 const notice = ref("");
 const validation = ref(null);
 const publishResult = ref(null);
-const values = reactive({
-  title: "",
-  amount: "",
-  applicant: "",
-  department: "",
-  claim_date: "",
-  category: "",
-  remark: "",
-});
+const values = reactive({});
 
 const runningFields = computed(() => form.value?.running_fields || []);
 
 function inputType(type) {
-  if (type === "money" || type === "number") return "number";
-  if (type === "date") return "date";
+  const normalized = String(type || "").toLowerCase();
+  if (normalized === "number" || normalized === "numeric" || normalized === "integer" || normalized === "money") {
+    return "number";
+  }
+  if (normalized === "date" || normalized === "timestamptz") {
+    return "date";
+  }
   return "text";
 }
 
 async function reload() {
   form.value = await p3.getForm(route.params.id);
-  validation.value = form.value.last_validation || null;
+  for (const field of form.value.running_fields || []) {
+    if (values[field.code] === undefined) {
+      values[field.code] = "";
+    }
+  }
 }
 
 onMounted(async () => {
@@ -141,10 +135,15 @@ onMounted(async () => {
 
 async function submitFill() {
   try {
-    const result = await p3.fillForm(route.params.id, { ...values });
-    notice.value = `已写入 MOCK 记录 ${result.record?.id}，并生成待办 ${result.todo?.id}。未发起真实流程。`;
+    const payload = {};
+    for (const field of runningFields.value) {
+      payload[field.code] = values[field.code];
+    }
+    const result = await p3.fillForm(route.params.id, { values: payload });
+    notice.value = `已提交 ${result.record?.submission_id || result.record?.submissionId || "submission"}。${result.note || ""}`;
+    error.value = "";
   } catch (err) {
-    error.value = err.message;
+    error.value = `${err.code || ""} ${err.message}`;
   }
 }
 
@@ -154,13 +153,18 @@ async function onValidate() {
 }
 
 async function onPublish() {
-  publishResult.value = await p3.publishForm(route.params.id);
-  await reload();
+  try {
+    publishResult.value = await p3.publishForm(route.params.id);
+    await reload();
+    error.value = "";
+  } catch (err) {
+    error.value = `${err.code || ""} ${err.message}`;
+    publishResult.value = err.body || { message: err.message };
+  }
 }
 
-async function onFail() {
+async function onLog() {
   publishResult.value = await p3.simulatePublishFailure(route.params.id);
-  await reload();
 }
 </script>
 
