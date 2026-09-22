@@ -13,7 +13,7 @@ Already on `main` (do not redo):
 
 This leftover is a **narrower honesty inventory**. Live Redis 3.2 process-down and live PolicySnapshot PUBLISH/SUBSCRIBE are **SKIP** unless Redis is actually listening **and** a process-down / live invalidate walk was observed. A dead client on port `1` (#83 / #121) is **not** a live Redis process-down. `RedisInvalidationTest` skipping PING/SUBSCRIBE is **not** a live invalidate PASS. Product G9 close stays `NOT_CLAIMED`.
 
-Keep **both** leftover rows in [docs/README.md](./README.md): [g9-policysnapshot-invalidate.md](./g9-policysnapshot-invalidate.md) (#83) and [g9-failover-remainder.md](./g9-failover-remainder.md) (#121). Keep this file. Keep [g9-sentinel-cluster-honesty.md](./g9-sentinel-cluster-honesty.md) (#148), [g9-live-multi-jvm-replica.md](./g9-live-multi-jvm-replica.md) (#161), and [g3-claim-crash-window.md](./g3-claim-crash-window.md) (#170).
+Keep **both** leftover rows in [docs/README.md](./README.md): [g9-policysnapshot-invalidate.md](./g9-policysnapshot-invalidate.md) (#83) and [g9-failover-remainder.md](./g9-failover-remainder.md) (#121). Keep this file. Remainder leftover beyond this inventory is [g9-redis-down-invalidate-remainder.md](./g9-redis-down-invalidate-remainder.md) (dead-client harness PASS; live Redis-down / live invalidate still SKIP). Keep [g9-sentinel-cluster-honesty.md](./g9-sentinel-cluster-honesty.md) (#148), [g9-live-multi-jvm-replica.md](./g9-live-multi-jvm-replica.md) (#161), [s0s1-live-redis-minio-isolation-honesty.md](./s0s1-live-redis-minio-isolation-honesty.md) (#185), and [g3-claim-crash-window.md](./g3-claim-crash-window.md) (#170).
 
 ## What this leftover covers
 

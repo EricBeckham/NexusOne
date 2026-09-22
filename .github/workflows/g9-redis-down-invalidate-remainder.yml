@@ -1,0 +1,100 @@
+name: g9-redis-down-invalidate-remainder
+
+# Honesty gate for the G9 Redis-down / PolicySnapshot invalidate remainder
+# leftover beyond #174. Dead-client harness PASS. Live Redis-down / live
+# invalidate stay SKIP. Does not start Redis. Does not redo
+# #83/#100/#121/#128/#148/#161/#174. Not product G9 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g9-redis-down-invalidate-remainder.sh"
+      - "scripts/g9-redis-down-invalidate-remainder/**"
+      - ".github/workflows/g9-redis-down-invalidate-remainder.yml"
+      - "docs/g9-redis-down-invalidate-remainder.md"
+      - "docs/engineering/g9-redis-down-invalidate-remainder-EVIDENCE.md"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/redis/G9RedisDownInvalidateRemainder.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/engine/G9RedisDownInvalidateRemainderTest.java"
+  pull_request:
+    paths:
+      - "scripts/g9-redis-down-invalidate-remainder.sh"
+      - "scripts/g9-redis-down-invalidate-remainder/**"
+      - ".github/workflows/g9-redis-down-invalidate-remainder.yml"
+      - "docs/g9-redis-down-invalidate-remainder.md"
+      - "docs/engineering/g9-redis-down-invalidate-remainder-EVIDENCE.md"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/redis/G9RedisDownInvalidateRemainder.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/engine/G9RedisDownInvalidateRemainderTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g9-redis-down-invalidate-remainder.sh --verify-report scripts/g9-redis-down-invalidate-remainder/fixtures/honest-skip.env
+      - name: Fake live Redis-down PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-remainder.sh --verify-report \
+            scripts/g9-redis-down-invalidate-remainder/fixtures/fake-live-redis-down-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live Redis-down PASS without redis_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live Redis-down PASS rejected"
+      - name: Fake live invalidate PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-remainder.sh --verify-report \
+            scripts/g9-redis-down-invalidate-remainder/fixtures/fake-live-invalidate-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live invalidate PASS without redis_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live invalidate PASS rejected"
+      - name: Fake product G9 close is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-remainder.sh --verify-report \
+            scripts/g9-redis-down-invalidate-remainder/fixtures/fake-g9-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g9_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G9 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect dead-client PASS and honest live SKIP
+        run: |
+          chmod +x ./scripts/g9-redis-down-invalidate-remainder.sh
+          ./scripts/g9-redis-down-invalidate-remainder.sh --skip-tests \
+            --out "$RUNNER_TEMP/g9-redis-down-invalidate-remainder"
+          ./scripts/g9-redis-down-invalidate-remainder.sh \
+            --verify-report "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^dead_client_harness=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^live_redis_down=SKIP$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^live_invalidate=SKIP$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^dead_client_is_not_live_down=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^g9_close=NOT_CLAIMED$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^g9_83_100_121_128_148_161_174_redone=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g9-redis-down-invalidate-remainder
+          path: ${{ runner.temp }}/g9-redis-down-invalidate-remainder
