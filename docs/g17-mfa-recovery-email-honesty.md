@@ -2,7 +2,7 @@
 
 S0+S1 remainder after the #154 request contract ([g17-admin-mfa-recovery-email.md](./g17-admin-mfa-recovery-email.md)). Rebased onto `origin/main` `3cdccca` (after #165 claim-list tip align). **G18 stays closed.** This leftover does **not** redo #96 `AdminMfaPolicy`, #118 HTTP TOTP, #133 enrollment UX, #154 local recovery codes / email request contract, #158 Vue otp write-back, or #160 Tongsuo handshake. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. It does **not** write otp / recovery-authn-codes from Vue. It does **not** claim 等保 / 密评 / 完整 G17. G17 close is **NOT_CLAIMED**.
 
-Keep **both** leftover rows in [docs/README.md](./README.md): `g17-admin-mfa-recovery-email` (#154) and this file. Also keep newly landed sibling leftovers `g15-wx-dt-prod-gap-honesty` (#167), `g4-export-wizard-deny` (#166), and `g10-file-reconcile-honesty` (#169).
+Keep **both** leftover rows in [docs/README.md](./README.md): `g17-admin-mfa-recovery-email` (#154) and this file. Also keep newly landed sibling leftovers `g15-wx-dt-prod-gap-honesty` (#167), `g4-export-wizard-deny` (#166), and `g10-file-reconcile-honesty` (#169). Follow-on honest PASS/SKIP leftover (does **not** redo this leftover): [g17-mfa-recovery-vue-otp-honesty.md](./g17-mfa-recovery-vue-otp-honesty.md).
 
 #154 already issues local one-time recovery codes and an email MFA **request** contract that SKIPs when SMTP is off. The leftover here is the **honesty gate** for live delivery: Keycloak `recovery-authn-codes` and SMTP / email OTP are **PASS** only when they were actually observed. Missing Keycloak recovery-authn-codes or SMTP is honest **SKIP**. It never fabricates `PASS`.
 
