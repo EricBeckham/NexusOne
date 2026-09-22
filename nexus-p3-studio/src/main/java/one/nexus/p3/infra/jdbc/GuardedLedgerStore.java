@@ -34,8 +34,8 @@ import one.nexus.permission.scope.QueryAstScopedQuery;
 /**
  * Ledger row access. Writes go through Query AST + GuardedJdbc. List / detail
  * / count opt into {@link QueryAstScopedQuery} so SAFE SELF/DEPT + single-column
- * multi-value {@code IN} + FieldPolicy visibility compile through
- * {@code QueryCompiler}. Mixed-column OR (SELF∨DEPT) leftovers still bind
+ * multi-value {@code IN} + mixed-column OR (SELF∨DEPT) + FieldPolicy visibility
+ * compile through {@code QueryCompiler}. Unencodable leftovers still bind
  * beside the AST, then execute as leftover-bound {@link RenderedSql} through
  * {@code kernel.jdbc()} — raw {@code BoundSql} cannot bypass DataScope.
  * Mask / second-auth stay on {@code FieldPolicyProjector}.

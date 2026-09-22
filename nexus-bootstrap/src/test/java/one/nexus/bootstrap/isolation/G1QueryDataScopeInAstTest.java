@@ -33,9 +33,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * G1 leftover: encode single-column multi-value IN (DEPT_AND_CHILDREN /
- * SPECIFIED) into the Query AST. Mixed-column SELF∨DEPT stays fail-closed on
- * {@link PermissionQueryBinder}. Does not invent a second tenant context and
- * does not change same-TX {@code AuditPort.append} joining.
+ * SPECIFIED) and mixed-column SELF∨DEPT OR into the Query AST. Empty IN and
+ * unencodable leftovers stay fail-closed on {@link PermissionQueryBinder}.
+ * Does not invent a second tenant context and does not change same-TX
+ * {@code AuditPort.append} joining. Does not claim product G1 closed.
  */
 class G1QueryDataScopeInAstTest {
     private final CollectingAuditSink collecting = new CollectingAuditSink();
@@ -57,7 +58,7 @@ class G1QueryDataScopeInAstTest {
     }
 
     @Test
-    void deptAndChildrenInCompilesThroughQueryCompilerAndSelfOrDeptStaysOnBinder() {
+    void deptAndChildrenInAndSelfOrDeptCompileThroughQueryCompiler() {
         bind("alpha");
         Subject subject = new Subject("alpha", "user-alpha", Set.of(), Set.of(), Set.of("d1"),
                 Map.of("d1", "/d1/", "d2", "/d1/d2/"));
@@ -95,17 +96,21 @@ class G1QueryDataScopeInAstTest {
         Predicate orScope = Predicate.anyOf(
                 Predicate.atom("owner_id", "=", "user-alpha"),
                 Predicate.atom("department_id", "=", "d1"));
-        QueryAstPolicyCompiler.Encoding leftover = QueryAstPolicyCompiler.encode(
+        QueryAstScopedQuery.CompiledRead compiledOr = QueryAstScopedQuery.compile(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
-                orScope,
-                Map.of(),
-                kernel.registry().require("ledger_entry"));
-        assertFalse(leftover.scopeFullyEncoded());
-        assertTrue(leftover.query().filters().isEmpty());
-        var bound = PermissionQueryBinder.bind("alpha", leftover.leftoverScope());
-        assertTrue(bound.whereSql().startsWith("tenant_id = ? AND "));
-        assertTrue(bound.whereSql().contains("owner_id"));
-        assertTrue(bound.whereSql().contains("department_id"));
+                new Decision(true, "self_or_dept", orScope, Map.of(), 1L),
+                kernel.registry().require("ledger_entry"),
+                kernel.compiler(),
+                AccessContextHolder.current());
+        assertTrue(compiledOr.scopeFullyEncoded());
+        assertEquals(1, compiledOr.encoding().query().disjunctions().size());
+        assertEquals(
+                List.of(Map.of("owner_id", "user-alpha"), Map.of("department_id", "d1")),
+                compiledOr.encoding().query().disjunctions().getFirst().branches());
+        assertTrue(compiledOr.compiled().sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
+        assertTrue(compiledOr.compiled().sql().contains("\"tenant_id\" = ?"));
+        assertEquals(compiledOr.compiled().sql(), compiledOr.bound().sql());
+        assertEquals(List.of("alpha", "user-alpha", "d1"), compiledOr.compiled().parameters());
 
         QueryAstPolicyCompiler.Encoding emptyIn = QueryAstPolicyCompiler.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),

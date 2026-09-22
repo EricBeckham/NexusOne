@@ -16,9 +16,9 @@ import java.util.Objects;
  * may add ORDER BY + LIMIT/OFFSET; INSERT may be a multi-row batch. Each tenant
  * table still gets its own {@code tenant_id} predicate. Safe SELF/DEPT DataScope
  * equality atoms and single-column multi-value {@code IN} lists may already sit
- * in {@link #filters()}; FieldPolicy-visible columns may already sit in
- * {@link #projection()}. Mixed-column OR trees (SELF∨DEPT) and masks stay
- * outside this AST.
+ * in {@link #filters()}; mixed-column OR (SELF∨DEPT) may sit in
+ * {@link #disjunctions()}; FieldPolicy-visible columns may already sit in
+ * {@link #projection()}. Masks stay outside this AST.
  */
 public final class QueryAst {
     private final QueryKind kind;
@@ -26,6 +26,7 @@ public final class QueryAst {
     private final List<String> projection;
     private final Map<String, Object> values;
     private final Map<String, Object> filters;
+    private final List<QueryOr> disjunctions;
     private final List<QueryJoin> joins;
     private final List<QuerySubquery> subqueries;
     private final List<QuerySort> sorts;
@@ -38,6 +39,7 @@ public final class QueryAst {
             List<String> projection,
             Map<String, Object> values,
             Map<String, Object> filters,
+            List<QueryOr> disjunctions,
             List<QueryJoin> joins,
             List<QuerySubquery> subqueries,
             List<QuerySort> sorts,
@@ -49,6 +51,7 @@ public final class QueryAst {
         this.projection = List.copyOf(projection);
         this.values = copyAllowingNulls(values);
         this.filters = copyFilters(filters);
+        this.disjunctions = List.copyOf(disjunctions);
         this.joins = List.copyOf(joins);
         this.subqueries = List.copyOf(subqueries);
         this.sorts = List.copyOf(sorts);
@@ -92,27 +95,27 @@ public final class QueryAst {
             List<QueryJoin> joins
     ) {
         return new QueryAst(
-                QueryKind.SELECT, table, projection, Map.of(), filters, joins, List.of(), List.of(), null, List.of());
+                QueryKind.SELECT, table, projection, Map.of(), filters, List.of(), joins, List.of(), List.of(), null, List.of());
     }
 
     public static QueryAst insert(String table, Map<String, Object> values) {
         return new QueryAst(
-                QueryKind.INSERT, table, List.of(), values, Map.of(), List.of(), List.of(), List.of(), null, List.of());
+                QueryKind.INSERT, table, List.of(), values, Map.of(), List.of(), List.of(), List.of(), List.of(), null, List.of());
     }
 
     public static QueryAst insertBatch(String table, List<Map<String, Object>> rows) {
         return new QueryAst(
-                QueryKind.INSERT, table, List.of(), Map.of(), Map.of(), List.of(), List.of(), List.of(), null, rows);
+                QueryKind.INSERT, table, List.of(), Map.of(), Map.of(), List.of(), List.of(), List.of(), List.of(), null, rows);
     }
 
     public static QueryAst update(String table, Map<String, Object> values, Map<String, Object> filters) {
         return new QueryAst(
-                QueryKind.UPDATE, table, List.of(), values, filters, List.of(), List.of(), List.of(), null, List.of());
+                QueryKind.UPDATE, table, List.of(), values, filters, List.of(), List.of(), List.of(), List.of(), null, List.of());
     }
 
     public static QueryAst delete(String table, Map<String, Object> filters) {
         return new QueryAst(
-                QueryKind.DELETE, table, List.of(), Map.of(), filters, List.of(), List.of(), List.of(), null, List.of());
+                QueryKind.DELETE, table, List.of(), Map.of(), filters, List.of(), List.of(), List.of(), List.of(), null, List.of());
     }
 
     public QueryKind kind() {
@@ -133,6 +136,10 @@ public final class QueryAst {
 
     public Map<String, Object> filters() {
         return filters;
+    }
+
+    public List<QueryOr> disjunctions() {
+        return disjunctions;
     }
 
     public List<QueryJoin> joins() {
@@ -156,34 +163,38 @@ public final class QueryAst {
     }
 
     public QueryAst withValues(Map<String, Object> nextValues) {
-        return new QueryAst(kind, table, projection, nextValues, filters, joins, subqueries, sorts, page, batchRows);
+        return new QueryAst(kind, table, projection, nextValues, filters, disjunctions, joins, subqueries, sorts, page, batchRows);
     }
 
     public QueryAst withProjection(List<String> nextProjection) {
-        return new QueryAst(kind, table, nextProjection, values, filters, joins, subqueries, sorts, page, batchRows);
+        return new QueryAst(kind, table, nextProjection, values, filters, disjunctions, joins, subqueries, sorts, page, batchRows);
     }
 
     public QueryAst withFilters(Map<String, Object> nextFilters) {
-        return new QueryAst(kind, table, projection, values, nextFilters, joins, subqueries, sorts, page, batchRows);
+        return new QueryAst(kind, table, projection, values, nextFilters, disjunctions, joins, subqueries, sorts, page, batchRows);
+    }
+
+    public QueryAst withDisjunctions(List<QueryOr> nextDisjunctions) {
+        return new QueryAst(kind, table, projection, values, filters, nextDisjunctions, joins, subqueries, sorts, page, batchRows);
     }
 
     public QueryAst withJoins(List<QueryJoin> nextJoins) {
-        return new QueryAst(kind, table, projection, values, filters, nextJoins, subqueries, sorts, page, batchRows);
+        return new QueryAst(kind, table, projection, values, filters, disjunctions, nextJoins, subqueries, sorts, page, batchRows);
     }
 
     public QueryAst withSubqueries(List<QuerySubquery> nextSubqueries) {
-        return new QueryAst(kind, table, projection, values, filters, joins, nextSubqueries, sorts, page, batchRows);
+        return new QueryAst(kind, table, projection, values, filters, disjunctions, joins, nextSubqueries, sorts, page, batchRows);
     }
 
     public QueryAst withSorts(List<QuerySort> nextSorts) {
-        return new QueryAst(kind, table, projection, values, filters, joins, subqueries, nextSorts, page, batchRows);
+        return new QueryAst(kind, table, projection, values, filters, disjunctions, joins, subqueries, nextSorts, page, batchRows);
     }
 
     public QueryAst withPage(QueryPage nextPage) {
-        return new QueryAst(kind, table, projection, values, filters, joins, subqueries, sorts, nextPage, batchRows);
+        return new QueryAst(kind, table, projection, values, filters, disjunctions, joins, subqueries, sorts, nextPage, batchRows);
     }
 
     public QueryAst withBatchRows(List<Map<String, Object>> nextRows) {
-        return new QueryAst(kind, table, projection, values, filters, joins, subqueries, sorts, page, nextRows);
+        return new QueryAst(kind, table, projection, values, filters, disjunctions, joins, subqueries, sorts, page, nextRows);
     }
 }

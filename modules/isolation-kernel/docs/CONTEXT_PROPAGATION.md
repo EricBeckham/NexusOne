@@ -29,7 +29,7 @@ TenantContext  (ThreadLocal via AccessContextHolder)
 ```text
 QueryAst  (no SQL text; SELECT may INNER JOIN / IN-EXISTS including nested subquery-in-subquery / ORDER BY / LIMIT; INSERT may batch)
    → TenantInjector          (cannot be disabled; each join and every subquery level too; each batch row)
-   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id, join tenant, subquery/nested-subquery tenant, or batch tenant; may AND SELF/DEPT equality atoms or single-column IN lists)
+   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id, join tenant, subquery/nested-subquery tenant, or batch tenant; may AND SELF/DEPT equality atoms or single-column IN lists; mixed-column OR sits on QueryAst.disjunctions())
    → SoftDeleteInjector SPI
    → TableAccessPlan Guard   (primary + each join + each subquery level)
    → parameterized PostgreSQL renderer

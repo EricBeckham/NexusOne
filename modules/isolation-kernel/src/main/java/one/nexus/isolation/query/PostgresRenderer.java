@@ -7,6 +7,7 @@ import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
+import one.nexus.isolation.api.QueryOr;
 import one.nexus.isolation.api.QueryPage;
 import one.nexus.isolation.api.QuerySort;
 import one.nexus.isolation.api.QuerySubquery;
@@ -34,7 +35,7 @@ public final class PostgresRenderer {
                     appendJoin(sql, join, args);
                 }
             }
-            appendPredicates(sql, primaryAlias, query.filters(), query.subqueries(), query.joins(), args);
+            appendPredicates(sql, primaryAlias, query.filters(), query.disjunctions(), query.subqueries(), query.joins(), args);
             appendOrderBy(sql, primaryAlias, query.sorts());
             appendPage(sql, query.page(), args);
         } else if (query.kind() == QueryKind.INSERT) {
@@ -57,10 +58,10 @@ public final class PostgresRenderer {
                 sql.append(Identifiers.quote(entry.getKey())).append(" = ?");
                 args.add(entry.getValue());
             }
-            appendPredicates(sql, null, query.filters(), query.subqueries(), query.joins(), args);
+            appendPredicates(sql, null, query.filters(), query.disjunctions(), query.subqueries(), query.joins(), args);
         } else {
             sql.append("DELETE FROM ").append(Identifiers.quote(table.name()));
-            appendPredicates(sql, null, query.filters(), query.subqueries(), query.joins(), args);
+            appendPredicates(sql, null, query.filters(), query.disjunctions(), query.subqueries(), query.joins(), args);
         }
         return new RenderedSql(sql.toString(), args, plan);
     }
@@ -122,12 +123,16 @@ public final class PostgresRenderer {
             StringBuilder sql,
             String alias,
             Map<String, Object> filters,
+            List<QueryOr> disjunctions,
             List<QuerySubquery> subqueries,
             List<QueryJoin> joins,
             List<Object> args
     ) {
         List<QueryJoin> cross = joins.stream().filter(join -> !join.kind().requiresOn()).toList();
-        if (filters.isEmpty() && subqueries.isEmpty() && cross.stream().allMatch(join -> join.filters().isEmpty())) {
+        if (filters.isEmpty()
+                && disjunctions.isEmpty()
+                && subqueries.isEmpty()
+                && cross.stream().allMatch(join -> join.filters().isEmpty())) {
             return;
         }
         sql.append(" WHERE ");
@@ -141,6 +146,12 @@ public final class PostgresRenderer {
             }
             sql.append(Identifiers.quote(entry.getKey()));
             FilterAtoms.append(sql, args, entry.getValue());
+        }
+        for (QueryOr or : disjunctions) {
+            if (i++ > 0) {
+                sql.append(" AND ");
+            }
+            appendDisjunction(sql, alias, or, args);
         }
         for (QueryJoin join : cross) {
             for (Map.Entry<String, Object> entry : join.filters().entrySet()) {
@@ -157,6 +168,35 @@ public final class PostgresRenderer {
             }
             appendSubquery(sql, alias, subquery, args);
         }
+    }
+
+    private static void appendDisjunction(StringBuilder sql, String alias, QueryOr or, List<Object> args) {
+        sql.append('(');
+        int b = 0;
+        for (Map<String, Object> branch : or.branches()) {
+            if (b++ > 0) {
+                sql.append(" OR ");
+            }
+            boolean wrap = branch.size() > 1;
+            if (wrap) {
+                sql.append('(');
+            }
+            int c = 0;
+            for (Map.Entry<String, Object> entry : branch.entrySet()) {
+                if (c++ > 0) {
+                    sql.append(" AND ");
+                }
+                if (alias != null) {
+                    sql.append(Identifiers.quote(alias)).append('.');
+                }
+                sql.append(Identifiers.quote(entry.getKey()));
+                FilterAtoms.append(sql, args, entry.getValue());
+            }
+            if (wrap) {
+                sql.append(')');
+            }
+        }
+        sql.append(')');
     }
 
     private static void appendSubquery(StringBuilder sql, String outerAlias, QuerySubquery subquery, List<Object> args) {

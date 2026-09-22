@@ -11,6 +11,7 @@ import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
+import one.nexus.isolation.api.QueryOr;
 import one.nexus.isolation.api.QueryPage;
 import one.nexus.isolation.api.QuerySort;
 import one.nexus.isolation.api.QuerySubquery;
@@ -29,10 +30,10 @@ import one.nexus.isolation.spi.SoftDeleteInjector;
  * (including nested subquery-in-subquery), multi-row INSERT, ORDER BY, and
  * LIMIT/OFFSET of registered tables are compiled here. Each tenant-scoped table,
  * including every nested subquery level, gets its own {@code tenant_id} predicate.
- * SELF/DEPT equality atoms, single-column multi-value {@code IN} lists, and
- * FieldPolicy-visible projections may already be encoded on the AST;
- * {@link DataScopeInjector} may only AND extra predicates and cannot strip
- * {@code tenant_id}. Mixed-column OR (SELF∨DEPT) stays outside this compiler.
+ * SELF/DEPT equality atoms, single-column multi-value {@code IN} lists,
+ * mixed-column OR (SELF∨DEPT) disjunctions, and FieldPolicy-visible projections
+ * may already be encoded on the AST; {@link DataScopeInjector} may only AND extra
+ * predicates and cannot strip {@code tenant_id}.
  */
 public final class QueryCompiler {
     private final TableRegistry registry;
@@ -231,6 +232,9 @@ public final class QueryCompiler {
         for (Map.Entry<String, Object> entry : query.filters().entrySet()) {
             requireColumn(table, entry.getKey(), context);
             validateFilterValue(entry.getKey(), entry.getValue(), context, tenantIn);
+        }
+        for (QueryOr or : query.disjunctions()) {
+            validateDisjunction(table, or, context, tenantIn);
         }
         for (QueryJoin join : query.joins()) {
             validateJoin(query, table, aliases, join, context);
@@ -490,6 +494,29 @@ public final class QueryCompiler {
         Identifiers.require(column);
         if (!table.columns().contains(column)) {
             throw auditor.reject(IsolationErrorCode.UNREGISTERED_COLUMN, context, column);
+        }
+    }
+
+    private void validateDisjunction(
+            TableDescriptor table,
+            QueryOr or,
+            AccessContext context,
+            IsolationErrorCode tenantInCode
+    ) {
+        if (or.branches().size() < 2) {
+            throw auditor.reject(IsolationErrorCode.INVALID_IDENTIFIER, context, "OR requires at least two branches");
+        }
+        for (Map<String, Object> branch : or.branches()) {
+            if (branch.isEmpty()) {
+                throw auditor.reject(IsolationErrorCode.INVALID_IDENTIFIER, context, "empty OR branch");
+            }
+            for (Map.Entry<String, Object> entry : branch.entrySet()) {
+                if ("tenant_id".equals(entry.getKey())) {
+                    throw auditor.reject(tenantInCode, context, "tenant_id must not appear in an OR branch");
+                }
+                requireColumn(table, entry.getKey(), context);
+                validateFilterValue(entry.getKey(), entry.getValue(), context, tenantInCode);
+            }
         }
     }
 

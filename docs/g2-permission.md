@@ -45,7 +45,7 @@ This remainder does **not** close product-wide G2.
 - Isolation-only jobs with no P2 `TenantContext` still skip `AuthorizedSubmit` / list-detail tenant-only fallback (including studio-only form hosts that never bind P2). Form fill HTTP without P2 still stays tenant-only (`FormApiTest`).
 - General cache (`CacheKeyGuard` / Redis) is still isolation-only; only IsolatedExport `cacheStatus` rides the export Task grant.
 - Direct `IsolatedExport` / `JdbcTaskQueue` callers that skip `AuthorizedExport` / `TaskSubmitGuard` are not a platform-wide “every API” close. New raw engine / IsolatedExport / unguarded P3 surface callers fail the static gate in [g2-surfaceguard-bypass-ci.md](./g2-surfaceguard-bypass-ci.md) (orthogonal to the G1 QueryCompiler JDBC gate).
-- Isolation Query AST still cannot encode mixed-column OR (SELF∨DEPT); that leftover stays on `PermissionQueryBinder`. Single-column `IN` is [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md).
+- Isolation Query AST encodes mixed-column OR (SELF∨DEPT) on `QueryAst.disjunctions()`; unencodable leftovers stay on `PermissionQueryBinder`. See [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md).
 - G9 stale-snapshot / Redis-down evidence is the parallel package [g9-policysnapshot-invalidate.md](./g9-policysnapshot-invalidate.md). Sentinel/Cluster is still not claimed.
 - Full simulation / governance admin (time-bound, IP, ABAC DSL) is out of scope.
 - **AuditPort is unchanged.** Isolation reject-before-sink (`P1.M02.019` / `P1.M02.016`) stays; this slice only adds authorization deny (`P2.PERM.*`).

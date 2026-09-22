@@ -63,7 +63,7 @@ class QueryAstPolicyCompilerTest {
     }
 
     @Test
-    void encodesMultiValueInAndLeavesMixedColumnOrOnBinder() {
+    void encodesMultiValueInAndMixedColumnOr() {
         QueryAstPolicyCompiler.Encoding multiDept = QueryAstPolicyCompiler.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
                 Predicate.atom("department_id", "IN", List.of("d1", "d2")),
@@ -110,18 +110,34 @@ class QueryAstPolicyCompilerTest {
         Predicate orScope = Predicate.anyOf(
                 Predicate.atom("owner_id", "=", "u1"),
                 Predicate.atom("department_id", "=", "d1"));
-        QueryAstPolicyCompiler.Encoding leftover = QueryAstPolicyCompiler.encode(
+        QueryAstPolicyCompiler.Encoding encodedOr = QueryAstPolicyCompiler.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
                 orScope,
                 Map.of(),
                 table);
+        assertTrue(encodedOr.scopeFullyEncoded());
+        assertEquals(Predicate.TRUE, encodedOr.leftoverScope());
+        assertTrue(encodedOr.query().filters().isEmpty());
+        assertEquals(1, encodedOr.query().disjunctions().size());
+        assertEquals(
+                List.of(Map.of("owner_id", "u1"), Map.of("department_id", "d1")),
+                encodedOr.query().disjunctions().getFirst().branches());
+
+        Predicate unencodable = Predicate.anyOf(
+                Predicate.atom("title", "=", "x"),
+                Predicate.atom("phone", "=", "1"));
+        QueryAstPolicyCompiler.Encoding leftover = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                unencodable,
+                Map.of(),
+                table);
         assertFalse(leftover.scopeFullyEncoded());
-        assertEquals(orScope, leftover.leftoverScope());
-        assertTrue(leftover.query().filters().isEmpty());
+        assertEquals(unencodable, leftover.leftoverScope());
+        assertTrue(leftover.query().disjunctions().isEmpty());
         ScopedQuery bound = PermissionQueryBinder.bind("t1", leftover.leftoverScope());
         assertTrue(bound.whereSql().startsWith("tenant_id = ? AND "));
-        assertTrue(bound.whereSql().contains("owner_id"));
-        assertTrue(bound.whereSql().contains("department_id"));
+        assertTrue(bound.whereSql().contains("title"));
+        assertTrue(bound.whereSql().contains("phone"));
 
         QueryAstPolicyCompiler.Encoding emptyIn = QueryAstPolicyCompiler.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
@@ -165,7 +181,40 @@ class QueryAstPolicyCompilerTest {
                 table);
         assertEquals("u1", mixed.query().filters().get("owner_id"));
         assertEquals("active", mixed.query().filters().get("status"));
-        assertFalse(mixed.scopeFullyEncoded());
-        assertEquals("or", mixed.leftoverScope().op());
+        assertTrue(mixed.scopeFullyEncoded());
+        assertEquals(Predicate.TRUE, mixed.leftoverScope());
+        assertEquals(1, mixed.query().disjunctions().size());
+        assertEquals(
+                List.of(Map.of("department_id", "d1"), Map.of("id", List.of("r1", "r2"))),
+                mixed.query().disjunctions().getFirst().branches());
+
+        Predicate andOfOr = Predicate.allOf(
+                Predicate.anyOf(
+                        Predicate.atom("owner_id", "=", "u1"),
+                        Predicate.atom("department_id", "=", "d1")),
+                Predicate.anyOf(
+                        Predicate.atom("id", "=", "r1"),
+                        Predicate.atom("status", "=", "active")));
+        QueryAstPolicyCompiler.Encoding encodedAndOr = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                andOfOr,
+                Map.of(),
+                table);
+        assertTrue(encodedAndOr.scopeFullyEncoded());
+        assertEquals(2, encodedAndOr.query().disjunctions().size());
+
+        Predicate leftoverAndOr = Predicate.allOf(
+                Predicate.atom("owner_id", "=", "u1"),
+                Predicate.anyOf(
+                        Predicate.atom("title", "=", "x"),
+                        Predicate.atom("phone", "=", "1")));
+        QueryAstPolicyCompiler.Encoding leftover = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                leftoverAndOr,
+                Map.of(),
+                table);
+        assertEquals("u1", leftover.query().filters().get("owner_id"));
+        assertFalse(leftover.scopeFullyEncoded());
+        assertEquals("or", leftover.leftoverScope().op());
     }
 }

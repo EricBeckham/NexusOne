@@ -13,9 +13,10 @@ import one.nexus.permission.support.PermissionException;
  * Binds DataScope onto a tenant predicate. {@code tenant_id} is always the first
  * conjunct and cannot be stripped. list / detail / total / pagination share the
  * same WHERE so totals and pages cannot diverge from the filtered row set.
- * Safe SELF/DEPT equality atoms and single-column multi-value {@code IN} lists
- * can instead be encoded onto {@code QueryAst} via {@link QueryAstPolicyCompiler};
- * this binder remains the mixed-column OR (SELF∨DEPT) leftover path.
+ * Safe SELF/DEPT equality atoms, single-column multi-value {@code IN} lists,
+ * and mixed-column OR (SELF∨DEPT) can instead be encoded onto {@code QueryAst}
+ * via {@link QueryAstPolicyCompiler}; this binder remains the unencodable
+ * leftover path (empty {@code IN}, unsupported operators, AND-of-OR).
  */
 public final class PermissionQueryBinder {
     private static final Set<String> IDENT = Set.of();

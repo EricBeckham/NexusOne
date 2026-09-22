@@ -17,8 +17,8 @@ import one.nexus.permission.support.PermissionException;
  * first. This implementation may only AND extra equality atoms or single-column
  * multi-value {@code IN} lists and must never remove or replace the tenant
  * predicate. Wire with {@code IsolationKernel.create(..., injector, ...)} when
- * extras are known; per-request SELF/DEPT/IN encoding uses
- * {@link QueryAstPolicyCompiler}. Mixed-column OR (SELF∨DEPT) stays leftover.
+ * extras are known; per-request SELF/DEPT/IN/OR encoding uses
+ * {@link QueryAstPolicyCompiler}. This seam still only ANDs extra atoms.
  */
 public final class IsolationDataScopeInjector implements DataScopeInjector {
     private final Map<String, Object> extraAnds;

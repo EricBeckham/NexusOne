@@ -38,5 +38,5 @@ Filled after the honesty script on this VM.
 
 - Encoding mask / 二次授权 onto Query AST
 - IsolatedExport applying masks
-- Mixed-column SELF∨DEPT OR as an AST node
+- Unencodable DataScope leftovers / `COUNT(*)` as a Query AST node
 - Product-wide G1 close

@@ -32,7 +32,7 @@
 | [g2-report-surface-guard](./g2-report-surface-guard.md) | G2 leftover：报表 query/export 走同一 `SurfaceGuard`（`ledger/read` + `ledger.export.csv/submit`）；不是产品级 G2 关闭 |
 | [g2-physical-dump-surface](./g2-physical-dump-surface.md) | G2 leftover：物理 dump / 原始导出走同一 `SurfaceGuard`（#137；`AuthorizedExport.writeProjected`）；不是产品级 G2 关闭；不重做 #122/#124 |
 | [g1-queryast-product-optin](./g1-queryast-product-optin.md) | G1 leftover：产品 list/detail（`GuardedLedgerStore`）opt-in `QueryAstPolicyCompiler.encode`（#130）；OR/IN/mask/二次授权仍在 AST 旁；不宣称产品 G1 关闭 |
-| [g1-datascope-or-in-ast](./g1-datascope-or-in-ast.md) | G1 leftover：单列 DataScope `IN`（#142；`DEPT_AND_CHILDREN` / SPECIFIED）写入 Query AST；SELF∨DEPT 跨列 OR 仍 fail-closed 在 binder；不宣称产品 G1 关闭 |
+| [g1-datascope-or-in-ast](./g1-datascope-or-in-ast.md) | G1 leftover：单列 DataScope `IN`（#142）+ SELF∨DEPT 跨列 OR 写入 Query AST；empty IN / 不可编码 leftover 仍 binder；不宣称产品 G1 关闭 |
 | [g1-queryast-boundsql-guard](./g1-queryast-boundsql-guard.md) | G1 leftover：`GuardedLedgerStore` leftover BoundSql / COUNT 必须经 `QueryAstScopedQuery` → `GuardedJdbc`（#146）；raw BoundSql 不能绕过 Query AST / DataScope。不重做 #142 AST；不宣称产品 G1 关闭 |
 | [g2-surfaceguard-bypass-ci](./g2-surfaceguard-bypass-ci.md) | G2 leftover：CI / ArchUnit 门禁拦截绕过 `SurfaceGuard` / `PermissionEngine` 的调用方；不是产品级 G2 关闭；与 G1 QueryCompiler JDBC 门禁正交 |
 | [g2-tenant-only-catalog](./g2-tenant-only-catalog.md) | G2 leftover：isolation-only `tenant_only` fail-closed + catalog 定义 HTTP 走同一 `SurfaceGuard`（#144；`ledger/read` + `ledger/write`）；物理 dump 见 sibling leftover；不是产品级 G2 关闭；[证据](./engineering/g2-tenant-only-catalog-EVIDENCE.md) |

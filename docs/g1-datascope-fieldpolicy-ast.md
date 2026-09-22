@@ -48,7 +48,7 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 
 | Still open | Why |
 |---|---|
-| OR / multi-value IN DataScope | Single-column `IN` (`DEPT_AND_CHILDREN` / SPECIFIED) is [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md). Mixed-column SELF∨DEPT stays on `PermissionQueryBinder`. |
+| OR / multi-value IN DataScope | Single-column `IN` (`DEPT_AND_CHILDREN` / SPECIFIED) and mixed-column SELF∨DEPT are [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md). Unencodable leftovers stay on `PermissionQueryBinder`. |
 | FieldPolicy mask / second-auth | Honesty leftover: [g1-fieldpolicy-mask-second-auth.md](./g1-fieldpolicy-mask-second-auth.md). AST / export drop hidden columns. Mask merge and second-auth still run in `FieldPolicyProjector`. Export still rejects second-auth without grant. See [g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md). |
 | Product list / detail SQL | Ledger list/detail now opt in ([g1-queryast-product-optin.md](./g1-queryast-product-optin.md)). `PermissionDataScopeHook` / `PermissionService.scopedQuery` still bind `ScopedQuery` strings for callers that skip. |
 | Report UI / physical ledger dump | Report query HTTP inherits the list opt-in. Physical dump / report wizard stay open. `ledger.export.csv` is still the Task type. |

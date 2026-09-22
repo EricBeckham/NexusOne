@@ -38,11 +38,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * G1 leftover: leftover mixed-column OR and COUNT on GuardedLedgerStore must
- * stay on QueryAstScopedQuery → GuardedJdbc. Raw BoundSql cannot bypass
- * Query AST / DataScope the way unquoted tenant_id could. Does not redo #142
- * IN encoding. Does not invent a second tenant context or change same-TX
- * {@code AuditPort.append} joining.
+ * G1 leftover: leftover BoundSql and COUNT on GuardedLedgerStore must
+ * stay on QueryAstScopedQuery → GuardedJdbc. SELF∨DEPT now encodes on the AST;
+ * unencodable leftovers still bind beside compiler SQL. Raw BoundSql cannot
+ * bypass Query AST / DataScope. Does not redo #142 IN encoding. Does not
+ * invent a second tenant context or change same-TX {@code AuditPort.append}
+ * joining.
  */
 class G1QueryAstBoundSqlGuardTest {
     private final CollectingAuditSink collecting = new CollectingAuditSink();
@@ -79,7 +80,7 @@ class G1QueryAstBoundSqlGuardTest {
         Predicate orScope = Predicate.anyOf(
                 Predicate.atom("owner_id", "=", "user-alpha"),
                 Predicate.atom("department_id", "=", "d1"));
-        QueryAstScopedQuery.CompiledRead leftover = QueryAstScopedQuery.compile(
+        QueryAstScopedQuery.CompiledRead encodedOr = QueryAstScopedQuery.compile(
                 QueryAst.select("l_alpha_ticket", List.of("id"), filters("deleted_at", null))
                         .withSorts(List.of(QuerySort.asc("id")))
                         .withPage(QueryPage.of(10, 0)),
@@ -87,19 +88,36 @@ class G1QueryAstBoundSqlGuardTest {
                 kernel.registry().require("l_alpha_ticket"),
                 kernel.compiler(),
                 AccessContextHolder.current());
+        assertTrue(encodedOr.scopeFullyEncoded());
+        assertTrue(encodedOr.executed().sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
+        assertTrue(encodedOr.executed().sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
+        assertEquals(encodedOr.compiled().sql(), encodedOr.executed().sql());
+        assertEquals(encodedOr.compiled().plan(), encodedOr.executed().plan());
+
+        Predicate leftoverScope = Predicate.anyOf(
+                Predicate.atom("title", "=", "x"),
+                Predicate.atom("phone", "=", "1"));
+        QueryAstScopedQuery.CompiledRead leftover = QueryAstScopedQuery.compile(
+                QueryAst.select("l_alpha_ticket", List.of("id"), filters("deleted_at", null))
+                        .withSorts(List.of(QuerySort.asc("id")))
+                        .withPage(QueryPage.of(10, 0)),
+                new Decision(true, "leftover", leftoverScope, Map.of(), 1L),
+                kernel.registry().require("l_alpha_ticket"),
+                kernel.compiler(),
+                AccessContextHolder.current());
         assertFalse(leftover.scopeFullyEncoded());
         assertTrue(leftover.executed().sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
-        assertTrue(leftover.executed().sql().contains("owner_id = ?"));
+        assertTrue(leftover.executed().sql().contains("title = ?"));
         assertTrue(leftover.executed().sql().indexOf("AND (") < leftover.executed().sql().toLowerCase().indexOf(" order by "));
         assertEquals(leftover.compiled().plan(), leftover.executed().plan());
         var binder = PermissionQueryBinder.bind("alpha", leftover.encoding().leftoverScope());
         assertTrue(binder.whereSql().startsWith("tenant_id = ? AND "));
 
-        var count = QueryAstScopedQuery.countExecuted(leftover);
+        var count = QueryAstScopedQuery.countExecuted(encodedOr);
         assertTrue(count.sql().startsWith("SELECT count(*) FROM ("));
         assertTrue(count.sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
-        assertTrue(count.sql().contains("owner_id = ?"));
-        assertEquals(leftover.compiled().plan(), count.plan());
+        assertTrue(count.sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
+        assertEquals(encodedOr.compiled().plan(), count.plan());
 
         QueryAstScopedQuery.CompiledRead specified = QueryAstScopedQuery.compile(
                 QueryAst.select("l_alpha_ticket", List.of("id"), filters("deleted_at", null)),

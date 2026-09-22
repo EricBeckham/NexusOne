@@ -86,7 +86,7 @@ mvn -pl nexus-permission-core -am test
 | `PredicateSqlCompilerTest` | Golden parameterized SQL; unknown column rejected |
 | `ListDetailTotalPaginationTest` | list / detail / total / page share `tenant_id = ? AND (scope)` |
 | `IsolationDataScopeInjectorTest` | Extra AND filters; refuses missing/replaced `tenant_id`; Query AST injector ANDs SELF without stripping tenant |
-| `QueryAstPolicyCompilerTest` | SELF/DEPT equality + single-column IN onto Query AST; mixed-column OR leftover |
+| `QueryAstPolicyCompilerTest` | SELF/DEPT equality + single-column IN + SELF∨DEPT OR onto Query AST; unencodable leftover |
 | `FieldPolicyProjectorTest` | Drop hidden; FULL mask without second auth |
 | `GoldenPostgresDataScopeTest` | Rows Alpha + Beta; r4/r9 excluded; cross-tenant UPDATE of r9 rejected |
 | `DualTenantIsolationTest` | Tenant A grants do not appear in B snapshot; evaluate(A, B) is `tenant_boundary` |
@@ -202,7 +202,7 @@ Harness and script are on this branch. Suite counts are recorded after `./script
 | `JdbcG9DualReaderPartitionIT` | PG 15: `iam.perm_policy_version` bumps while both reader LRU stay stale; each node's poll converges independently |
 
 - Time/IP context evaluation (upstream Predicate only)
-- Isolation-kernel QueryAst still cannot encode mixed-column OR (SELF∨DEPT); SELF/DEPT equality + single-column `IN` + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler` ([docs/g1-datascope-or-in-ast.md](../docs/g1-datascope-or-in-ast.md)). Product list/detail (`GuardedLedgerStore`) opts in via `QueryAstScopedQuery` ([docs/g1-queryast-product-optin.md](../docs/g1-queryast-product-optin.md)). Leftover mixed-column OR / COUNT cannot use raw BoundSql ([docs/g1-queryast-boundsql-guard.md](../docs/g1-queryast-boundsql-guard.md)). `PermissionService.scopedQuery` and hook `.query()` strings still skip. Export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md). Mask / second-auth honesty leftover is [docs/g1-fieldpolicy-mask-second-auth.md](../docs/g1-fieldpolicy-mask-second-auth.md).
+- Isolation-kernel QueryAst encodes SELF/DEPT equality + single-column `IN` + SELF∨DEPT OR + FieldPolicy visibility via `QueryAstPolicyCompiler` ([docs/g1-datascope-or-in-ast.md](../docs/g1-datascope-or-in-ast.md)). Unencodable leftovers and `COUNT(*)` stay beside the AST. Product list/detail (`GuardedLedgerStore`) opts in via `QueryAstScopedQuery` ([docs/g1-queryast-product-optin.md](../docs/g1-queryast-product-optin.md)). Leftover BoundSql / COUNT cannot use raw BoundSql ([docs/g1-queryast-boundsql-guard.md](../docs/g1-queryast-boundsql-guard.md)). `PermissionService.scopedQuery` and hook `.query()` strings still skip. Export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md). Mask / second-auth honesty leftover is [docs/g1-fieldpolicy-mask-second-auth.md](../docs/g1-fieldpolicy-mask-second-auth.md).
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
 - Demo `tenant_member` ALL-scope seed remains for the closed G18 walk and is not permission-complete
 - Redis Sentinel / Cluster / replica promotion / live multi-JVM network partition remain open after the in-process dual-reader harness. Sentinel / Cluster honesty SKIP is [docs/g9-sentinel-cluster-honesty.md](../docs/g9-sentinel-cluster-honesty.md). Live multi-JVM / replica promotion honesty SKIP is [docs/g9-live-multi-jvm-replica.md](../docs/g9-live-multi-jvm-replica.md).
