@@ -4,7 +4,7 @@ S0+S1 remainder after the #135 dry-run contract ([g6-recovery-port-dry-run.md](.
 
 #135 locked the product bean as `DryRunRecoveryPort` (`pg_dump --version` probe only). This leftover is **honesty only**: that dry-run is **not** product HA, **not** minute-level RPO, and **not** delivery-grade HA.
 
-Keep both leftover rows in [docs/README.md](./README.md): `g6-recovery-port-dry-run` and this file.
+Keep both leftover rows in [docs/README.md](./README.md): `g6-recovery-port-dry-run` and this file. Follow-on honest PASS/SKIP leftover (does **not** redo this leftover): [g6-recovery-port-dry-run-honesty.md](./g6-recovery-port-dry-run-honesty.md). Keep ALL sibling leftover rows.
 
 ## What this leftover states
 
