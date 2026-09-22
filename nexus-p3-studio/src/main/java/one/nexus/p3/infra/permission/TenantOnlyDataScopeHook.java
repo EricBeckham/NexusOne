@@ -1,16 +1,12 @@
 package one.nexus.p3.infra.permission;
 
 import java.util.Map;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Component;
 import one.nexus.p3.port.DataScopeHook;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.scope.PermissionQueryBinder;
 
-/** Default list/detail filter: {@code tenant_id = ? AND (TRUE)}. */
-@Component
-@ConditionalOnMissingBean(DataScopeHook.class)
+/** Default list/detail filter: {@code tenant_id = ? AND (TRUE)}. Registered from {@code P3Configuration}. */
 public class TenantOnlyDataScopeHook implements DataScopeHook {
     @Override
     public ScopedRead bind(String tenantId, String resource, String action) {

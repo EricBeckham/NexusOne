@@ -1,12 +1,9 @@
 package one.nexus.p3.infra.quota;
 
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Component;
 import one.nexus.p3.port.QuotaHook;
 
-@Component
-@ConditionalOnMissingBean(QuotaHook.class)
+/** Default QuotaHook when P1 QuotaService is not a bean. Registered from {@code P3Configuration}. */
 public class NoopQuotaHook implements QuotaHook {
     @Override
     public void consumeApp(UUID tenantId, String idempotencyKey) {}
