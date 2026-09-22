@@ -37,13 +37,14 @@ HTTP: `POST /api/v1/p3/exports` (`{"ledger_code":"leave"}`). Isolation is the ex
 
 ## Proven vs still open
 
-**Proven** (see evidence section after the IT run):
+**Proven** (agent VM **2026-09-22T15:41:02Z**, OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PG **15.18**):
 
-- Accepted export events on the hash chain, findable by `trace_id`
-- Export `append` rolls back with the business TX
+- Accepted export events on the hash chain, findable by `trace_id` (`G4ExportAuditIT` 2/2; `AuditCaptureAndChainTest` 4/4)
+- Export `append` rolls back with the business TX; commit is queryable by trace (`JdbcAuditChainTransactionTest` **5/5**, including the original 4 same-TX cases)
 - Cross-tenant export still writes `GUARD_REJECT` via `appendNewTransaction` and does not write `p3.export.*`
-- Retention Job classifies 90-day hot / past-hot, does not drop rows, reports archive deferred
-- Product boot still wires `AuditHotRetentionJob` + `AuditedExport`
+- Retention Job classifies 90-day hot / past-hot, does not drop rows, reports archive deferred (`AuditHotRetentionJobTest` 2/2; handler 1/1)
+- Product boot still wires `AuditHotRetentionJob` + `AuditedExport` (`NexusOneProductBootTest` 1/1)
+- `IssuedTenantIsolationFilter` handles `POST /api/v1/p3/exports` (5/5)
 
 **Still open:**
 
@@ -55,8 +56,19 @@ HTTP: `POST /api/v1/p3/exports` (`{"ledger_code":"leave"}`). Isolation is the ex
 
 ## Tests
 
+Recorded **2026-09-22T15:41:02Z**. No Docker. Live `127.0.0.1:5432` not required (Zonky).
+
 ```bash
 mvn -pl nexus-audit-core,nexus-bootstrap -am test \
-  -Dtest=AuditCaptureAndChainTest,AuditHotRetentionJobTest,JdbcAuditChainTransactionTest,G4ExportAuditIT,NexusOneProductBootTest \
+  -Dtest=AuditCaptureAndChainTest,AuditHotRetentionJobTest,JdbcAuditChainTransactionTest,AuditFlywayContractTest,G4ExportAuditIT,AuditHotRetentionHandlerTest,NexusOneProductBootTest \
   -Dsurefire.failIfNoSpecifiedTests=false
+# BUILD SUCCESS  2026-09-22T15:41:02Z
+# JdbcAuditChainTransactionTest 5/5
+# G4ExportAuditIT 2/2
+# NexusOneProductBootTest 1/1
+
+mvn -pl nexus-p3-studio -am test \
+  -Dtest=IssuedTenantIsolationFilterTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+# BUILD SUCCESS  2026-09-22T15:41:20Z  (5/5)
 ```
