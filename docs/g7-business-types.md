@@ -57,7 +57,7 @@ Browser / JAR (same G18 loop: stub login, issued `X-Nexus-Context-Id`, never `X-
 
 1. 台账 → 创建台账 → pick 请假 / 报销 / 出差 → 开通此类业务（Validate + Publish）。
 2. 表单填报 `submit-start`。
-3. 待办：同意或驳回；或「我发起」点 **撤回**（`data-testid=todo-withdraw`）。
+3. 待办：同意或驳回；或「我发起」点 **撤回**（`data-testid=todo-withdraw`）。浏览器 leftover（stub login，不宣称 G7 产品关闭）见 [g7-withdraw-browser.md](./g7-withdraw-browser.md)。
 4. 台账记录 `approval_status` = `APPROVED` / `REJECTED` / `WITHDRAWN`；通知与按 trace 审计可查。
 
 ## Withdraw evidence (scripted, #69 IT)

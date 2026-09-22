@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "test": "vitest run",
+    "test:g7-withdraw": "vitest run src/views/studio/todo-withdraw.browser.test.js",
     "assert:isolation": "node scripts/assert-client-isolation.mjs",
     "assert:p3-live": "node scripts/assert-p3-live.mjs",
     "assert:h5": "node scripts/assert-h5-mobile.mjs",
@@ -21,6 +22,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^20.0.0",
     "vite": "^6.2.0",
     "vitest": "^3.2.4"
   }
