@@ -1,6 +1,6 @@
 # G2 leftover: form.write / POST submissions + submit-start dual-check honesty evidence
 
-Recorded **pending-this-run** on this agent VM after rebase onto `origin/main` `f1b135c` (Merge #170; also #165 at `3cdccca`). **Not** a product G2 close. **Not** a redo of #112 / #116 / #137 / #144 / #150 / #155 / #163. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded on this agent VM after rebase onto `origin/main` `e63d918` (Merge #168; also #170 at `f1b135c`). **Not** a product G2 close. **Not** a redo of #112 / #116 / #137 / #144 / #150 / #155 / #163. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
 See [docs/g2-form-write-honesty.md](../g2-form-write-honesty.md). Keep both leftover rows: [g2-form-submission-write.md](../g2-form-submission-write.md) and [g2-submit-start-form-write.md](../g2-submit-start-form-write.md).
 
