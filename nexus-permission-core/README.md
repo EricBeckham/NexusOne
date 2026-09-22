@@ -105,7 +105,7 @@ export NEXUS_REDIS_PORT=6379
 ## Explicitly out of scope
 
 - Full G17 (GM TLS / classified / 密码机). Duty catalog is one slice; admin MFA is a separate slice on main ([docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md))
-- Product-wide G2 (report / H5). Form studio + form fill / POST submissions + path submit-start dual-check (`form.write` + process start) + export Task type + Job/Task submit + export cacheStatus are on SurfaceGuard; general cache and report UI are not.
+- Product-wide G2 (report / H5). Form studio + form fill / POST submissions + path submit-start dual-check (`form.write` + process start) + export Task type + Job/Task submit + export cacheStatus are on SurfaceGuard; general cache and report UI are not. Raw `PermissionEngine` / IsolatedExport / unguarded P3 surface callers fail the static gate ([docs/g2-surfaceguard-bypass-ci.md](../docs/g2-surfaceguard-bypass-ci.md)).
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
 - Redis failover / Cluster / Sentinel (P2-down timeout-then-reject is on `SnapshotManager`, not Sentinel)

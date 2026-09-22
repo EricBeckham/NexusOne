@@ -1,0 +1,56 @@
+name: permission-surfaceguard
+
+on:
+  push:
+    paths:
+      - "nexus-permission-core/**"
+      - "nexus-p3-studio/src/main/**"
+      - "nexus-bootstrap/src/main/**"
+      - "nexus-bootstrap/src/test/java/one/nexus/bootstrap/permission/**"
+      - "docs/g2-surfaceguard-bypass-ci.md"
+      - ".github/workflows/permission-surfaceguard.yml"
+  pull_request:
+    paths:
+      - "nexus-permission-core/**"
+      - "nexus-p3-studio/src/main/**"
+      - "nexus-bootstrap/src/main/**"
+      - "nexus-bootstrap/src/test/java/one/nexus/bootstrap/permission/**"
+      - "docs/g2-surfaceguard-bypass-ci.md"
+      - ".github/workflows/permission-surfaceguard.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: SurfaceGuard bypass gate tests (Java 21)
+        run: >
+          mvn -B -pl nexus-permission-core -am test
+          -Dtest=SurfaceGuardBypassGateTest
+          -Dsurefire.failIfNoSpecifiedTests=false
+      - name: SurfaceGuard bypass gate (product src/main must pass)
+        run: >
+          mvn -B -f nexus-permission-core/pom.xml -q exec:java@surfaceguard-bypass
+          -Dexec.args="--repo ${{ github.workspace }}"
+      - name: SurfaceGuard bypass gate (IsolatedExport fixture must fail)
+        run: |
+          set +e
+          mvn -B -f nexus-permission-core/pom.xml -q exec:java@surfaceguard-bypass \
+            -Dexec.args="--source nexus-permission-core/src/test/resources/surfaceguard-bypass-fixtures/negative/export --no-allowlist"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected IsolatedExport fixture to fail the static gate"
+            exit 1
+          fi
+          echo "PASS static rejection: isolated-export-bypass"
+      - name: SurfaceGuard bypass ArchUnit (bootstrap layers + intentional fixture)
+        run: >
+          mvn -B -pl nexus-bootstrap -am test
+          -Dtest=G2SurfaceGuardBypassTest,SurfaceGuardBypassArchTest
+          -Dsurefire.failIfNoSpecifiedTests=false
