@@ -1,0 +1,23 @@
+{
+  "leftover": "g7-withdraw-browser-honesty",
+  "result": "SKIP",
+  "reason": "live_jar_not_healthy",
+  "liveJar": false,
+  "issuedContext": false,
+  "idp": "absent",
+  "chromePresent": true,
+  "withdrawClickObserved": false,
+  "stubWalkIsNotLive": true,
+  "g7Close": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "redo103": false,
+  "redo113": false,
+  "redo140": false,
+  "redo159": false,
+  "leftoverRowsKept": [
+    "g7-withdraw-browser",
+    "g7-query-expense-travel"
+  ],
+  "timestampUtc": "2026-09-22T19:43:46Z",
+  "evidence": "scripts/g7-withdraw-browser-honesty.sh"
+}
