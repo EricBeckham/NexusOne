@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,7 +87,7 @@ class G1QueryAstProductOptInTest {
                 QueryAst.select(
                                 "l_alpha_ticket",
                                 List.of("id", "title", "phone", "secret"),
-                                Map.of("deleted_at", null))
+                                filters("deleted_at", null))
                         .withSorts(List.of(QuerySort.asc("id")))
                         .withPage(QueryPage.of(20, 0)),
                 self,
@@ -107,7 +108,7 @@ class G1QueryAstProductOptInTest {
                 QueryAst.select(
                         "l_alpha_ticket",
                         List.of("id", "title", "phone", "secret"),
-                        Map.of("id", "r1", "deleted_at", null)),
+                        filters("id", "r1", "deleted_at", null)),
                 self,
                 kernel.registry().require("l_alpha_ticket"),
                 kernel.compiler(),
@@ -116,7 +117,7 @@ class G1QueryAstProductOptInTest {
         assertTrue(detail.compiled().sql().contains("\"deleted_at\" IS NULL"));
 
         var count = QueryAstScopedQuery.count(QueryAstScopedQuery.compile(
-                QueryAst.select("l_alpha_ticket", List.of("id"), Map.of("deleted_at", null)),
+                QueryAst.select("l_alpha_ticket", List.of("id"), filters("deleted_at", null)),
                 self,
                 kernel.registry().require("l_alpha_ticket"),
                 kernel.compiler(),
@@ -128,7 +129,7 @@ class G1QueryAstProductOptInTest {
                 Predicate.atom("owner_id", "=", "user-alpha"),
                 Predicate.atom("department_id", "=", "d1"));
         QueryAstScopedQuery.CompiledRead leftover = QueryAstScopedQuery.compile(
-                QueryAst.select("l_alpha_ticket", List.of("id"), Map.of("deleted_at", null))
+                QueryAst.select("l_alpha_ticket", List.of("id"), filters("deleted_at", null))
                         .withSorts(List.of(QuerySort.asc("id")))
                         .withPage(QueryPage.of(10, 0)),
                 new Decision(true, "or", orScope, Map.of(), 1L),
@@ -169,6 +170,14 @@ class G1QueryAstProductOptInTest {
                         && AuditCaptures.GUARD_REJECT.equals(event.event().eventType())
                         && "P1.M02.021".equals(event.event().resourceId())));
         assertTrue(port.verifyChain().intact());
+    }
+
+    private static Map<String, Object> filters(Object... pairs) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (int i = 0; i < pairs.length; i += 2) {
+            result.put((String) pairs[i], pairs[i + 1]);
+        }
+        return result;
     }
 
     private void bind(String tenantId) {

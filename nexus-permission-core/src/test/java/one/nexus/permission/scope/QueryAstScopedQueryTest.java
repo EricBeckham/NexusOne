@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +59,7 @@ class QueryAstScopedQueryTest {
                 QueryAst.select(
                                 "ledger_entry",
                                 List.of("id", "title", "secret"),
-                                Map.of("deleted_at", null))
+                                filters("deleted_at", null))
                         .withSorts(List.of(QuerySort.asc("id")))
                         .withPage(QueryPage.of(20, 0)),
                 self,
@@ -78,7 +79,7 @@ class QueryAstScopedQueryTest {
                 QueryAst.select(
                         "ledger_entry",
                         List.of("id", "title"),
-                        Map.of("id", "r1", "deleted_at", null)),
+                        filters("id", "r1", "deleted_at", null)),
                 self,
                 table,
                 kernel.compiler(),
@@ -88,7 +89,7 @@ class QueryAstScopedQueryTest {
         assertFalse(detail.compiled().sql().contains("tenant_id = ? AND"));
 
         BoundSql count = QueryAstScopedQuery.count(QueryAstScopedQuery.compile(
-                QueryAst.select("ledger_entry", List.of("id"), Map.of("deleted_at", null)),
+                QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null)),
                 self,
                 table,
                 kernel.compiler(),
@@ -109,7 +110,7 @@ class QueryAstScopedQueryTest {
                 Predicate.atom("department_id", "=", "d1"));
         Decision mixed = new Decision(true, "or", orScope, Map.of(), 1L);
         QueryAstScopedQuery.CompiledRead leftover = QueryAstScopedQuery.compile(
-                QueryAst.select("ledger_entry", List.of("id"), Map.of("deleted_at", null))
+                QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null))
                         .withSorts(List.of(QuerySort.asc("id")))
                         .withPage(QueryPage.of(10, 0)),
                 mixed,
@@ -129,7 +130,7 @@ class QueryAstScopedQueryTest {
         assertEquals(List.of("alpha", "u1", "d1", 10, 0), leftover.bound().parameters());
 
         BoundSql count = QueryAstScopedQuery.count(QueryAstScopedQuery.compile(
-                QueryAst.select("ledger_entry", List.of("id"), Map.of("deleted_at", null)),
+                QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null)),
                 mixed,
                 table,
                 kernel.compiler(),
@@ -141,6 +142,14 @@ class QueryAstScopedQueryTest {
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
                 new Decision(true, "bad", Predicate.atom("tenant_id", "=", "beta"), Map.of(), 1L),
                 table));
+    }
+
+    private static Map<String, Object> filters(Object... pairs) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (int i = 0; i < pairs.length; i += 2) {
+            result.put((String) pairs[i], pairs[i + 1]);
+        }
+        return result;
     }
 
     private static IsolationKernel kernel() {
