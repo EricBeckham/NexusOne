@@ -76,8 +76,8 @@ class FormPublishStateMachineTest {
 
     @Test
     void submitWritesThroughLedgerRecordSink() {
-        UUID ledgerId = UUID.fromString("0199a1c0-0000-7000-8000-00000000led1");
-        UUID recordId = UUID.fromString("0199a1c0-0000-7000-8000-00000000rec1");
+        UUID ledgerId = UUID.fromString("0199a1c0-0000-7000-8000-00000000aed1");
+        UUID recordId = UUID.fromString("0199a1c0-0000-7000-8000-00000000aec1");
         AtomicReference<String> code = new AtomicReference<>();
         AtomicReference<Map<String, Object>> captured = new AtomicReference<>();
         LedgerRecordSink sink = new LedgerRecordSink() {

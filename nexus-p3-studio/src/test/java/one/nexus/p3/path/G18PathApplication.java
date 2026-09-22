@@ -8,17 +8,19 @@ import one.nexus.crypto.CryptoSuite;
 import one.nexus.crypto.JcaCryptoPort;
 import one.nexus.p3.P3StudioTestApplication;
 import one.nexus.p3.flow.NexusP3FlowApplication;
+import org.flywaydb.core.Flyway;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.context.annotation.Import;
 
 /** Test-only G18 path. Product boot is {@code one.nexus.bootstrap.NexusOneApplication}. */
-@SpringBootApplication(
-        scanBasePackages = {
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@ComponentScan(
+        basePackages = {
             "one.nexus.p3",
             "one.nexus.p2",
             "one.nexus.permission",
@@ -31,10 +33,22 @@ import org.springframework.context.annotation.Import;
                     type = FilterType.ASSIGNABLE_TYPE,
                     classes = {P3StudioTestApplication.class, NexusP3FlowApplication.class})
         })
-@Import(FlywayAutoConfiguration.class)
 public class G18PathApplication {
     public static void main(String[] args) {
         SpringApplication.run(G18PathApplication.class, args);
+    }
+
+    @Bean
+    Flyway flyway(DataSource dataSource) {
+        Flyway flyway = Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .schemas("platform")
+                .defaultSchema("platform")
+                .createSchemas(true)
+                .load();
+        flyway.migrate();
+        return flyway;
     }
 
     @Bean

@@ -287,10 +287,13 @@ class G18BusinessPathIT {
         String token = StubIdentityProvider.token(username, email, username, name);
         MvcResult login = mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"accessToken\":\"" + token + "\"}"))
+                        .content("{\"access_token\":\"" + token + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
-        String contextId = extract(login.getResponse().getContentAsString(), "contextId");
+        String contextId = extract(login.getResponse().getContentAsString(), "context_id");
+        if (contextId == null || "null".equals(contextId)) {
+            contextId = extract(login.getResponse().getContentAsString(), "contextId");
+        }
         if (contextId == null || "null".equals(contextId)) {
             throw new IllegalStateException("expected auto-issued context for " + email + ": "
                     + login.getResponse().getContentAsString());
@@ -302,21 +305,21 @@ class G18BusinessPathIT {
         String token = StubIdentityProvider.token(username, email, username, name);
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"accessToken\":\"" + token + "\"}"))
+                        .content("{\"access_token\":\"" + token + "\"}"))
                 .andExpect(status().isOk());
         var account = identity.repository().findAccountByEmail(email).orElseThrow();
         mvc.perform(post("/api/v1/memberships")
                         .header("Authorization", "Bearer " + admin.token)
                         .header("X-Nexus-Context-Id", admin.contextId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"accountId\":\"" + account.id() + "\"}"))
+                        .content("{\"account_id\":\"" + account.id() + "\"}"))
                 .andExpect(status().isOk());
         MvcResult created = mvc.perform(post("/api/v1/persons")
                         .header("Authorization", "Bearer " + admin.token)
                         .header("X-Nexus-Context-Id", admin.contextId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"displayName\":\"" + name + "\",\"email\":\"" + email
-                                + "\",\"accountId\":\"" + account.id() + "\"}"))
+                        .content("{\"display_name\":\"" + name + "\",\"email\":\"" + email
+                                + "\",\"account_id\":\"" + account.id() + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         UUID personId = UUID.fromString(extract(created.getResponse().getContentAsString(), "id"));
