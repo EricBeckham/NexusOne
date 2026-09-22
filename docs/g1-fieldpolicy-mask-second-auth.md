@@ -58,7 +58,7 @@ mvn -pl nexus-permission-core,nexus-bootstrap -am test \
 
 Java 21 / Boot **4.1.1**. Isolation-kernel compile path is in-process. No Docker.
 
-See [engineering/g1-fieldpolicy-mask-second-auth-EVIDENCE.md](./engineering/g1-fieldpolicy-mask-second-auth-EVIDENCE.md).
+See [engineering/g1-fieldpolicy-mask-second-auth-EVIDENCE.md](./engineering/g1-fieldpolicy-mask-second-auth-EVIDENCE.md). Live JAR / IsolatedExport mask / 二次授权 PASS/SKIP honesty beyond this leftover is [g1-fieldpolicy-mask-second-auth-honesty.md](./g1-fieldpolicy-mask-second-auth-honesty.md). Keep both leftover rows (`g1-datascope-or-in-ast` and `g1-fieldpolicy-mask-second-auth`) in [README.md](./README.md).
 
 ## Honest leftovers (not claimed)
 
