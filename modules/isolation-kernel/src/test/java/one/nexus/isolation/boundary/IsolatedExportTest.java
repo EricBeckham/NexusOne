@@ -242,6 +242,56 @@ class IsolatedExportTest {
         assertEquals(3, sql.parameters().stream().filter("alpha"::equals).count());
     }
 
+    @Test
+    void exportCompileRejectsStolenOuterAndCrossJoin() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+        registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+        IsolationKernel tables = IsolationKernel.create(registry, Set.of("ops.summary"), sink);
+        TenantContext context = tables.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-alpha"), "alpha", "mem-alpha", Set.of("alpha")), "trace-alpha");
+        AccessContextHolder.set(context);
+        Map<String, ExportFieldRule> policy = Map.of(
+                "id", ExportFieldRule.allow(),
+                "amount", ExportFieldRule.allow());
+        IsolationException stolenLeft = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.left("ledger_line", "line", List.of(
+                                new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                                Map.of("tenant_id", "beta")))),
+                "alpha",
+                policy,
+                false));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_JOIN, stolenLeft.error());
+        IsolationException stolenCross = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id"), Map.of(), List.of(
+                        QueryJoin.cross("ledger_line", "line", Map.of("tenant_id", "beta")))),
+                "alpha",
+                policy,
+                false));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_JOIN, stolenCross.error());
+        var left = IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("ledger_entry.id", "line.amount"), Map.of(), List.of(
+                        QueryJoin.left("ledger_line", "line", List.of(
+                                new JoinOn("ledger_entry", "id", "line", "entry_id"))))),
+                "alpha",
+                policy,
+                false);
+        assertTrue(left.sql().contains("LEFT OUTER JOIN"));
+        assertTrue(left.sql().contains("\"line\".\"tenant_id\" = ?"));
+        var crossed = IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("ledger_entry.id", "line.amount"), Map.of(), List.of(
+                        QueryJoin.cross("ledger_line", "line"))),
+                "alpha",
+                policy,
+                false);
+        assertTrue(crossed.sql().contains("CROSS JOIN"));
+        assertTrue(crossed.sql().contains("\"line\".\"tenant_id\" = ?"));
+    }
     private void bind(String tenantId) {
         TenantContext context = kernel.tenants().issue(new AuthenticatedMembership(
                 Actor.person("user-" + tenantId), tenantId, "mem-" + tenantId, Set.of(tenantId)),

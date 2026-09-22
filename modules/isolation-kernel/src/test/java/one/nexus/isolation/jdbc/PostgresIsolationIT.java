@@ -363,6 +363,106 @@ class PostgresIsolationIT {
         }
     }
 
+    @Test
+    void outerAndCrossJoinSameTenantAndRejectBeforeJdbc() throws Exception {
+        try (Connection raw = postgres.getPostgresDatabase().getConnection()) {
+            raw.setAutoCommit(false);
+            try {
+                try (Statement fixture = raw.createStatement()) {
+                    fixture.execute("CREATE TABLE ledger_entry (id text PRIMARY KEY, tenant_id text NOT NULL, title text NOT NULL)");
+                    fixture.execute("""
+                            CREATE TABLE ledger_line (
+                                id text PRIMARY KEY,
+                                tenant_id text NOT NULL,
+                                entry_id text NOT NULL,
+                                amount text NOT NULL
+                            )
+                            """);
+                }
+                CollectingAuditSink sink = new CollectingAuditSink();
+                TableRegistry registry = new TableRegistry();
+                registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+                registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+                IsolationKernel kernel = IsolationKernel.create(registry, Set.of("ops.summary"), sink);
+                TenantContext alpha = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-a");
+                TenantContext beta = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-b"), "beta", "mem-b", Set.of("beta")), "trace-b");
+
+                AtomicInteger executions = new AtomicInteger();
+                Connection connection = counting(raw, executions);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map("id", "a1", "title", "alpha row")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_line", map("id", "al1", "entry_id", "a1", "amount", "10")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map("id", "a2", "title", "alpha orphan")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map("id", "b1", "title", "beta row")), beta);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_line", map("id", "bl1", "entry_id", "a1", "amount", "99")), beta);
+
+                QueryAst left = QueryAst.select(
+                        "ledger_entry",
+                        List.of("ledger_entry.id", "line.amount"),
+                        Map.of(),
+                        List.of(QueryJoin.left("ledger_line", "line", List.of(
+                                new JoinOn("ledger_entry", "id", "line", "entry_id")))));
+                List<Map<String, Object>> leftRows = kernel.jdbc().executeQuery(connection, left, alpha);
+                assertEquals(2, leftRows.size());
+                Map<String, String> amounts = new LinkedHashMap<>();
+                for (Map<String, Object> row : leftRows) {
+                    amounts.put(String.valueOf(row.get("id")), row.get("amount") == null ? null : String.valueOf(row.get("amount")));
+                }
+                assertEquals("10", amounts.get("a1"));
+                assertEquals(null, amounts.get("a2"));
+                assertTrue(leftRows.stream().noneMatch(row -> "99".equals(String.valueOf(row.get("amount")))));
+
+                QueryAst crossed = QueryAst.select(
+                        "ledger_entry",
+                        List.of("ledger_entry.id", "line.amount"),
+                        Map.of(),
+                        List.of(QueryJoin.cross("ledger_line", "line")));
+                List<Map<String, Object>> crossRows = kernel.jdbc().executeQuery(connection, crossed, alpha);
+                assertEquals(2, crossRows.size());
+                assertTrue(crossRows.stream().allMatch(row -> "10".equals(String.valueOf(row.get("amount")))));
+                assertTrue(crossRows.stream().noneMatch(row -> "99".equals(String.valueOf(row.get("amount")))));
+
+                int before = executions.get();
+                Connection unusable = unusable();
+                deny(IsolationErrorCode.CROSS_TENANT_JOIN, () ->
+                        kernel.jdbc().executeQuery(unusable, QueryAst.select(
+                                "ledger_entry",
+                                List.of("id"),
+                                Map.of(),
+                                List.of(QueryJoin.left("ledger_line", "line", List.of(
+                                        new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                                        map("tenant_id", "beta")))), alpha));
+                deny(IsolationErrorCode.CROSS_TENANT_JOIN, () ->
+                        kernel.jdbc().executeQuery(unusable, QueryAst.select(
+                                "ledger_entry",
+                                List.of("id"),
+                                Map.of(),
+                                List.of(QueryJoin.cross("ledger_line", "line", map("tenant_id", "beta")))), alpha));
+                deny(IsolationErrorCode.CROSS_TENANT_JOIN, () ->
+                        kernel.jdbc().executeQuery(unusable, QueryAst.select(
+                                "ledger_entry",
+                                List.of("id"),
+                                Map.of(),
+                                List.of(QueryJoin.of(QueryJoin.Kind.LEFT, "ledger_line", "line", List.of(), Map.of()))), alpha));
+                deny(IsolationErrorCode.CROSS_TENANT_JOIN, () ->
+                        kernel.jdbc().executeQuery(unusable, QueryAst.select(
+                                "ledger_entry",
+                                List.of("id"),
+                                Map.of(),
+                                List.of(QueryJoin.of(
+                                        QueryJoin.Kind.CROSS,
+                                        "ledger_line",
+                                        "line",
+                                        List.of(new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                                        Map.of()))), alpha));
+                assertEquals(before, executions.get(), "denied OUTER/CROSS JOIN must not reach JDBC");
+                assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_JOIN));
+            } finally {
+                raw.rollback();
+            }
+        }
+    }
     private static List<String> titles(IsolationKernel kernel, Connection connection, TenantContext tenant) throws Exception {
         return kernel.jdbc().executeQuery(connection, QueryAst.select("ledger_entry", List.of("title"), Map.of()), tenant)
                 .stream()

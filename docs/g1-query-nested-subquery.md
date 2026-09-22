@@ -47,7 +47,7 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 
 | Still open | Why |
 |---|---|
-| OUTER JOIN / CROSS JOIN | Not added to `QueryJoin`. INNER JOIN equality remains the only join shape. Parallel package. |
+| OUTER JOIN / CROSS JOIN | Evidenced in [g1-query-outer-cross-join.md](./g1-query-outer-cross-join.md). |
 | DataScope / FieldPolicy compilation into AST | Unchanged from [g1-query-join-field-policy.md](./g1-query-join-field-policy.md). |
 | Report UI / physical ledger dump | Unchanged. `ledger.export.csv` is still the Task type. |
 | Silent drop on API reads | Unchanged. Export still rejects hidden/second-auth instead of dropping. |

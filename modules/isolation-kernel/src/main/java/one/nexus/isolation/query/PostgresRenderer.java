@@ -31,10 +31,10 @@ public final class PostgresRenderer {
                 sql.append(" FROM ").append(Identifiers.quote(table.name()))
                         .append(' ').append(Identifiers.quote(table.name()));
                 for (QueryJoin join : query.joins()) {
-                    appendInnerJoin(sql, join, args);
+                    appendJoin(sql, join, args);
                 }
             }
-            appendPredicates(sql, primaryAlias, query.filters(), query.subqueries(), args);
+            appendPredicates(sql, primaryAlias, query.filters(), query.subqueries(), query.joins(), args);
             appendOrderBy(sql, primaryAlias, query.sorts());
             appendPage(sql, query.page(), args);
         } else if (query.kind() == QueryKind.INSERT) {
@@ -57,10 +57,10 @@ public final class PostgresRenderer {
                 sql.append(Identifiers.quote(entry.getKey())).append(" = ?");
                 args.add(entry.getValue());
             }
-            appendPredicates(sql, null, query.filters(), query.subqueries(), args);
+            appendPredicates(sql, null, query.filters(), query.subqueries(), query.joins(), args);
         } else {
             sql.append("DELETE FROM ").append(Identifiers.quote(table.name()));
-            appendPredicates(sql, null, query.filters(), query.subqueries(), args);
+            appendPredicates(sql, null, query.filters(), query.subqueries(), query.joins(), args);
         }
         return new RenderedSql(sql.toString(), args, plan);
     }
@@ -85,10 +85,14 @@ public final class PostgresRenderer {
         }
     }
 
-    private static void appendInnerJoin(StringBuilder sql, QueryJoin join, List<Object> args) {
-        sql.append(" INNER JOIN ").append(Identifiers.quote(join.table()))
-                .append(' ').append(Identifiers.quote(join.alias()))
-                .append(" ON ");
+    private static void appendJoin(StringBuilder sql, QueryJoin join, List<Object> args) {
+        sql.append(' ').append(join.kind().sql()).append(' ')
+                .append(Identifiers.quote(join.table()))
+                .append(' ').append(Identifiers.quote(join.alias()));
+        if (!join.kind().requiresOn()) {
+            return;
+        }
+        sql.append(" ON ");
         int i = 0;
         for (JoinOn on : join.on()) {
             if (i++ > 0) {
@@ -124,9 +128,11 @@ public final class PostgresRenderer {
             String alias,
             Map<String, Object> filters,
             List<QuerySubquery> subqueries,
+            List<QueryJoin> joins,
             List<Object> args
     ) {
-        if (filters.isEmpty() && subqueries.isEmpty()) {
+        List<QueryJoin> cross = joins.stream().filter(join -> !join.kind().requiresOn()).toList();
+        if (filters.isEmpty() && subqueries.isEmpty() && cross.stream().allMatch(join -> join.filters().isEmpty())) {
             return;
         }
         sql.append(" WHERE ");
@@ -144,6 +150,20 @@ public final class PostgresRenderer {
             } else {
                 sql.append(" = ?");
                 args.add(entry.getValue());
+            }
+        }
+        for (QueryJoin join : cross) {
+            for (Map.Entry<String, Object> entry : join.filters().entrySet()) {
+                if (i++ > 0) {
+                    sql.append(" AND ");
+                }
+                sql.append(Identifiers.quote(join.alias())).append('.').append(Identifiers.quote(entry.getKey()));
+                if (entry.getValue() == null) {
+                    sql.append(" IS NULL");
+                } else {
+                    sql.append(" = ?");
+                    args.add(entry.getValue());
+                }
             }
         }
         for (QuerySubquery subquery : subqueries) {

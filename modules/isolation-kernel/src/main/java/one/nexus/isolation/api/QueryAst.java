@@ -10,11 +10,10 @@ import java.util.Objects;
 /**
  * Restricted Query AST. Callers cannot supply SQL text or unregistered identifiers.
  * Single-table equality + IS NULL remains the write / default read path. SELECT may
- * add INNER JOIN of registered tables; SELECT / UPDATE / DELETE may add IN / EXISTS
- * subqueries, including nested subquery-in-subquery; SELECT may add ORDER BY +
- * LIMIT/OFFSET; INSERT may be a multi-row batch. Each tenant table still gets
- * its own {@code tenant_id} predicate. OUTER JOIN / CROSS JOIN stay out of this
- * type.
+ * add INNER / OUTER / CROSS JOIN of registered tables; SELECT / UPDATE / DELETE
+ * may add IN / EXISTS subqueries, including nested subquery-in-subquery; SELECT
+ * may add ORDER BY + LIMIT/OFFSET; INSERT may be a multi-row batch. Each tenant
+ * table still gets its own {@code tenant_id} predicate.
  */
 public final class QueryAst {
     private final QueryKind kind;

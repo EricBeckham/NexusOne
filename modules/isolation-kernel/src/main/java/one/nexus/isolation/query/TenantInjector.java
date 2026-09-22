@@ -57,9 +57,9 @@ public final class TenantInjector {
     }
 
     /**
-     * Same mandatory tenant predicate on a joined tenant table. A foreign
-     * {@code tenant_id} on the join is {@code CROSS_TENANT_JOIN} and never
-     * reaches the renderer.
+     * Same mandatory tenant predicate on a joined tenant table (INNER / OUTER /
+     * CROSS). A foreign {@code tenant_id} on the join is {@code CROSS_TENANT_JOIN}
+     * and never reaches the renderer.
      */
     public static QueryJoin injectJoin(
             QueryJoin join,
