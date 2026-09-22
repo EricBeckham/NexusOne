@@ -1,8 +1,8 @@
 # G10 leftover — identity drift-fix apply / dry-run honesty evidence
 
-Recorded on this branch after rebase onto `origin/main` `135ba83` (Merge #178 claim-list tip align; also #175 at `607394e`). **Not** a product G10 close. **Not** identity apply. **Not** a redo of #141 / #169. **Not** SAML / LDAP / SMS MFA. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded on this branch after rebase onto `origin/main` `25b7d85` (Merge #181 G15 native-bridge honesty; also #177 at `476ceaa`). **Not** a product G10 close. **Not** identity apply. **Not** a redo of #141 / #169. **Not** SAML / LDAP / SMS MFA. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
-See [docs/g10-identity-drift-honesty.md](../g10-identity-drift-honesty.md). Keep **both** leftover rows in [docs/README.md](../README.md): [g10-identity-drift-dry-run.md](../g10-identity-drift-dry-run.md) (#141) and [g10-file-reconcile-honesty.md](../g10-file-reconcile-honesty.md) (#169).
+See [docs/g10-identity-drift-honesty.md](../g10-identity-drift-honesty.md). Keep **ALL** sibling leftover rows in [docs/README.md](../README.md): [g10-identity-drift-dry-run.md](../g10-identity-drift-dry-run.md) (#141), [g10-file-reconcile-honesty.md](../g10-file-reconcile-honesty.md) (#169), [g5-browser-failed-publish.md](../g5-browser-failed-publish.md) (#171), [s0-secret-getenv-snapshot-honesty.md](../s0-secret-getenv-snapshot-honesty.md) (#180), [g4-pkce-spa-verifier-honesty.md](../g4-pkce-spa-verifier-honesty.md) (#177), and [g15-native-bridge-honesty.md](../g15-native-bridge-honesty.md) (#181).
 
 ## Versions
 

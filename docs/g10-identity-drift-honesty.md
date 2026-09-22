@@ -1,8 +1,8 @@
 # G10 leftover — identity drift-fix apply / dry-run honesty beyond #141
 
-S0+S1 remainder after the identity dry-run leftover ([g10-identity-drift-dry-run.md](./g10-identity-drift-dry-run.md) / #141). Rebased onto `origin/main` `135ba83` (after #178). **G18 stays closed.** This slice does **not** redo the identity apply product path ([g10-identity-reconcile.md](./g10-identity-reconcile.md)), does **not** redo #141 or #169, and does **not** claim product G10 / SAML / LDAP / SMS MFA.
+S0+S1 remainder after the identity dry-run leftover ([g10-identity-drift-dry-run.md](./g10-identity-drift-dry-run.md) / #141). Rebased onto `origin/main` `25b7d85` (after #181 G15 native-bridge honesty; includes #177/#180/#171). **G18 stays closed.** This slice does **not** redo the identity apply product path ([g10-identity-reconcile.md](./g10-identity-reconcile.md)), does **not** redo #141 or #169, and does **not** claim product G10 / SAML / LDAP / SMS MFA.
 
-Keep **both** leftover rows in [docs/README.md](./README.md): `g10-identity-drift-dry-run` (#141) and `g10-file-reconcile-honesty` (#169). Keep this file.
+Keep **ALL** sibling leftover rows in [docs/README.md](./README.md), including `g10-identity-drift-dry-run` (#141), `g10-file-reconcile-honesty` (#169), `g5-browser-failed-publish` (#171), `s0-secret-getenv-snapshot-honesty` (#180), `g4-pkce-spa-verifier-honesty` (#177), and `g15-native-bridge-honesty` (#181). Keep this file.
 
 #141 already lists proposed `repairs` on preview (`GET` / `apply=false`) and refuses `NEXUS_G10_APPLY=1`. The leftover here is the **honesty harness**: live Keycloak **8080** dry-run is **PASS** only when the issuer is up **and** a dry-run walk was observed. Missing listener / OIDC discovery is honest **SKIP**. It never fabricates `PASS`. Live apply stays **SKIP** — apply remains on `nexus-p2-iam/scripts/run-g10-identity-reconcile.sh`. This leftover does not start Keycloak.
 
