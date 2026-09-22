@@ -61,7 +61,7 @@ Recorded on this agent VM after the live walk. Fill the table from the script ou
 | Still open | Why |
 |---|---|
 | Human browser click / Chromium UI | Desktop Playwright leftover (stub IdP, not product close) is [g4-pkce-browser-click.md](./g4-pkce-browser-click.md). HTTPS loopback driver is [g4-pkce-https-browser.md](./g4-pkce-https-browser.md). A laptop + live Keycloak click still needs to trust that CA. `GET /api/v1/auth/callback` still does not carry the verifier. |
-| SPA-generated verifier | This walk is BFF-shaped: the authorize-url response includes `code_verifier`. A production public-client page should generate the verifier in the browser and never ask the backend to mint it. |
+| SPA-generated verifier | Evidence path leftover is [g4-pkce-spa-verifier.md](./g4-pkce-spa-verifier.md) (live Keycloak SKIP if unreachable). This #108 walk stays BFF-shaped. |
 | Full G4 product close | HTTP export wizard, switching P1 tenant audit-events off staging. 90-day hot purge leftover is [g4-hot-purge-90d.md](./g4-hot-purge-90d.md). Object-store cold archive is on `main` via #104. |
 | G17 / G6 | Not this package |
 | G18 reopen | **No.** Stub IdP + fabricated admin MFA token is unchanged |
