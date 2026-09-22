@@ -102,6 +102,7 @@ requireIncludes("doc", files.doc, [
 requireIncludes("catalog keeps both leftover rows", files.catalog, [
   "g1-queryast-boundsql-guard",
   "g17-admin-mfa-recovery-email",
+  "g17-mfa-recovery-email-honesty",
   "g5-mid-publish-failure",
   "g2-tenant-only-catalog",
   "g2-todo-http-surface",

@@ -63,6 +63,8 @@ npm run test:g17-totp-enroll
 npm run assert:g17-totp-enroll
 npm run test:g17-vue-otp-writeback
 npm run assert:g17-vue-otp-writeback
+npm run test:g17-mfa-recovery-email-honesty
+npm run assert:g17-mfa-recovery-email-honesty
 npm run build
 ```
 
@@ -83,8 +85,8 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p2/org` | `/api/v1/departments/tree` | |
 | `/p2/positions` | positions + employments | Position ≠ Role |
 | `/p2/mfa/enroll` | in-app TOTP leftover | Copy + 6-digit confirm + error paths. Keycloak otp write-back honesty panel (`totp-writeback-*`) SKIP when live IdP / product endpoint is absent. [docs/g17-totp-enrollment-ux.md](../docs/g17-totp-enrollment-ux.md) · [docs/g17-vue-otp-writeback.md](../docs/g17-vue-otp-writeback.md) |
-| `/p2/mfa/recovery` | recovery-code leftover | Local one-time codes after TOTP leftover. Not Keycloak write. [docs/g17-admin-mfa-recovery-email.md](../docs/g17-admin-mfa-recovery-email.md) |
-| `/p2/mfa/email` | email MFA leftover | Request contract; SMTP off → honest SKIP. Not a mailbox delivery. [docs/g17-admin-mfa-recovery-email.md](../docs/g17-admin-mfa-recovery-email.md) |
+| `/p2/mfa/recovery` | recovery-code leftover | Local one-time codes after TOTP leftover. Not Keycloak write. [docs/g17-admin-mfa-recovery-email.md](../docs/g17-admin-mfa-recovery-email.md) · delivery honesty [docs/g17-mfa-recovery-email-honesty.md](../docs/g17-mfa-recovery-email-honesty.md) |
+| `/p2/mfa/email` | email MFA leftover | Request contract; SMTP off → honest SKIP. Not a mailbox delivery. [docs/g17-admin-mfa-recovery-email.md](../docs/g17-admin-mfa-recovery-email.md) · delivery honesty [docs/g17-mfa-recovery-email-honesty.md](../docs/g17-mfa-recovery-email-honesty.md) |
 | `/p2/permissions/*` | `/api/v1/permission/health\|snapshot\|check` | No GET role catalog |
 | `/p3/ledgers` | GET list + POST `/api/v1/p3/business-types/{code}/provision` | G7 请假/报销/出差；quota from P1 if platform mode |
 | `/p3/ledgers/:id` | ledger + `.../records` + POST `.../fields` | No field PUT. G7 leftover list/detail/query for expense+travel: [docs/g7-query-expense-travel.md](../docs/g7-query-expense-travel.md) |

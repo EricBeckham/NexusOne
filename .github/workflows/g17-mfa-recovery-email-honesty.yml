@@ -1,0 +1,91 @@
+name: g17-mfa-recovery-email-honesty
+
+# Honesty gate for the G17 recovery-code / email delivery leftover beyond #154.
+# Does not start Keycloak or SMTP. Does not redo #96/#118/#133/#154/#158/#160.
+# Not product G17 / 等保 / 密评.
+
+on:
+  push:
+    paths:
+      - "scripts/g17-mfa-recovery-email-honesty.sh"
+      - "scripts/g17-mfa-recovery-email-honesty/**"
+      - ".github/workflows/g17-mfa-recovery-email-honesty.yml"
+      - "docs/g17-mfa-recovery-email-honesty.md"
+      - "docs/engineering/g17-mfa-recovery-email-honesty-EVIDENCE.md"
+      - "nexus-p2-iam/src/main/java/one/nexus/p2/idp/G17MfaRecoveryEmailHonesty.java"
+      - "nexus-p2-iam/src/test/java/one/nexus/p2/idp/G17MfaRecoveryEmailHonestyTest.java"
+      - "web/src/auth/recoveryEmailHonesty.js"
+      - "web/scripts/assert-g17-mfa-recovery-email-honesty.mjs"
+  pull_request:
+    paths:
+      - "scripts/g17-mfa-recovery-email-honesty.sh"
+      - "scripts/g17-mfa-recovery-email-honesty/**"
+      - ".github/workflows/g17-mfa-recovery-email-honesty.yml"
+      - "docs/g17-mfa-recovery-email-honesty.md"
+      - "docs/engineering/g17-mfa-recovery-email-honesty-EVIDENCE.md"
+      - "nexus-p2-iam/src/main/java/one/nexus/p2/idp/G17MfaRecoveryEmailHonesty.java"
+      - "nexus-p2-iam/src/test/java/one/nexus/p2/idp/G17MfaRecoveryEmailHonestyTest.java"
+      - "web/src/auth/recoveryEmailHonesty.js"
+      - "web/scripts/assert-g17-mfa-recovery-email-honesty.mjs"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g17-mfa-recovery-email-honesty.sh --verify-report scripts/g17-mfa-recovery-email-honesty/fixtures/honest-skip.env
+      - name: Fake live delivery PASS without SMTP / mailbox is rejected
+        run: |
+          set +e
+          ./scripts/g17-mfa-recovery-email-honesty.sh --verify-report \
+            scripts/g17-mfa-recovery-email-honesty/fixtures/fake-delivery-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake email_delivery=PASS without smtp_enabled=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake delivery PASS rejected"
+      - name: Fake product G17 close is rejected
+        run: |
+          set +e
+          ./scripts/g17-mfa-recovery-email-honesty.sh --verify-report \
+            scripts/g17-mfa-recovery-email-honesty/fixtures/fake-g17-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g17_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G17 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest SMTP / recovery-authn-codes SKIP
+        run: |
+          chmod +x ./scripts/g17-mfa-recovery-email-honesty.sh
+          ./scripts/g17-mfa-recovery-email-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g17-mfa-recovery-email-honesty"
+          ./scripts/g17-mfa-recovery-email-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^email_delivery=SKIP$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^recovery_live=SKIP$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^mailbox_observed=false$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^g17_close=NOT_CLAIMED$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^redo_154=false$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+          grep -E '^vue_writes_keycloak_otp=false$' "$RUNNER_TEMP/g17-mfa-recovery-email-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g17-mfa-recovery-email-honesty
+          path: ${{ runner.temp }}/g17-mfa-recovery-email-honesty
