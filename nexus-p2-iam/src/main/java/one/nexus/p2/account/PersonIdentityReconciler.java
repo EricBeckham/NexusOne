@@ -68,6 +68,7 @@ public final class PersonIdentityReconciler {
             int staleBinding,
             int unmatchedIdp,
             int conflicts,
+            int proposed,
             int repaired,
             List<Finding> findings,
             List<Repair> repairs
@@ -131,8 +132,10 @@ public final class PersonIdentityReconciler {
                 } else {
                     findings.add(finding(Kind.DRIFT, person, account, bound,
                             "email/phone/username drifted between person and Keycloak user"));
-                    maybeRepair(apply, repairs, Kind.DRIFT, Action.SYNC_P2, person, account, bound,
-                            "synced P2 account/person identity fields from Keycloak");
+                    propose(repairs, Kind.DRIFT, Action.SYNC_P2, person, account, bound,
+                            apply
+                                    ? "synced P2 account/person identity fields from Keycloak"
+                                    : "would sync P2 account/person identity fields from Keycloak");
                     if (apply) {
                         syncFromIdp(person, bound);
                     }
@@ -152,8 +155,10 @@ public final class PersonIdentityReconciler {
                 boundSubjects.add(emailMatch.subject());
                 findings.add(finding(Kind.STALE_BINDING, person, account, emailMatch,
                         "Keycloak user id is stale; email matches " + emailMatch.subject()));
-                maybeRepair(apply, repairs, Kind.STALE_BINDING, Action.REBIND, person, account, emailMatch,
-                        "rebound P2 account to Keycloak user " + emailMatch.subject());
+                propose(repairs, Kind.STALE_BINDING, Action.REBIND, person, account, emailMatch,
+                        apply
+                                ? "rebound P2 account to Keycloak user " + emailMatch.subject()
+                                : "would rebind P2 account to Keycloak user " + emailMatch.subject());
                 if (apply) {
                     syncFromIdp(person, emailMatch);
                 }
@@ -165,26 +170,29 @@ public final class PersonIdentityReconciler {
                     firstNonBlank(account.email(), person.email()),
                     account.keycloakUserId(), null,
                     "no Keycloak user for subject or email"));
-            if (apply) {
-                IdentityProviderPort.ProvisionedUser provisioned = idp.ensureUser(
-                        firstNonBlank(account.email(), person.email()),
-                        firstNonBlank(account.username(), account.email(), person.email()),
-                        firstNonBlank(account.displayName(), person.displayName(), account.username()));
-                IdentityProviderPort.DirectoryUser created = idp.findUser(provisioned.subject())
-                        .orElseGet(() -> new IdentityProviderPort.DirectoryUser(
-                                provisioned.subject(), provisioned.email(), provisioned.username(),
-                                firstNonBlank(account.displayName(), person.displayName()),
-                                firstNonBlank(account.phone(), person.phone()), true));
-                if (subjectTakenByOther(created.subject(), account.id())) {
-                    findings.add(finding(Kind.CONFLICT, person, account, created,
-                            "provisioned Keycloak user is already bound to another P2 account"));
-                    continue;
-                }
-                boundSubjects.add(created.subject());
-                syncFromIdp(person, created);
-                repairs.add(new Repair(Kind.MISSING_IDP, Action.PROVISION_IDP, person.id(), account.id(),
-                        created.subject(), "provisioned Keycloak user and bound P2 account"));
+            if (!apply) {
+                propose(repairs, Kind.MISSING_IDP, Action.PROVISION_IDP, person, account, null,
+                        "would provision Keycloak user and bind P2 account");
+                continue;
             }
+            IdentityProviderPort.ProvisionedUser provisioned = idp.ensureUser(
+                    firstNonBlank(account.email(), person.email()),
+                    firstNonBlank(account.username(), account.email(), person.email()),
+                    firstNonBlank(account.displayName(), person.displayName(), account.username()));
+            IdentityProviderPort.DirectoryUser created = idp.findUser(provisioned.subject())
+                    .orElseGet(() -> new IdentityProviderPort.DirectoryUser(
+                            provisioned.subject(), provisioned.email(), provisioned.username(),
+                            firstNonBlank(account.displayName(), person.displayName()),
+                            firstNonBlank(account.phone(), person.phone()), true));
+            if (subjectTakenByOther(created.subject(), account.id())) {
+                findings.add(finding(Kind.CONFLICT, person, account, created,
+                        "provisioned Keycloak user is already bound to another P2 account"));
+                continue;
+            }
+            boundSubjects.add(created.subject());
+            syncFromIdp(person, created);
+            propose(repairs, Kind.MISSING_IDP, Action.PROVISION_IDP, person, account, created,
+                    "provisioned Keycloak user and bound P2 account");
         }
 
         if (tenantId == null) {
@@ -208,10 +216,12 @@ public final class PersonIdentityReconciler {
                             Kind.STALE_BINDING, null, null, account.id(), account.email(),
                             emailMatch.subject(), emailMatch.email(),
                             "account has no person; rebound by email"));
+                    repairs.add(new Repair(
+                            Kind.STALE_BINDING, Action.REBIND, null, account.id(),
+                            emailMatch.subject(),
+                            apply ? "rebound account without person" : "would rebind account without person"));
                     if (apply) {
                         accounts.reconcile(emailMatch.toClaims());
-                        repairs.add(new Repair(Kind.STALE_BINDING, Action.REBIND, null, account.id(),
-                                emailMatch.subject(), "rebound account without person"));
                     }
                 }
             }
@@ -287,8 +297,7 @@ public final class PersonIdentityReconciler {
                 detail);
     }
 
-    private static void maybeRepair(
-            boolean apply,
+    private static void propose(
             List<Repair> repairs,
             Kind kind,
             Action action,
@@ -297,10 +306,8 @@ public final class PersonIdentityReconciler {
             IdentityProviderPort.DirectoryUser user,
             String detail
     ) {
-        if (apply) {
-            repairs.add(new Repair(kind, action, person.id(), account.id(),
-                    user == null ? account.keycloakUserId() : user.subject(), detail));
-        }
+        repairs.add(new Repair(kind, action, person.id(), account.id(),
+                user == null ? account.keycloakUserId() : user.subject(), detail));
     }
 
     private static Report summarize(boolean apply, List<Finding> findings, List<Repair> repairs) {
@@ -320,9 +327,10 @@ public final class PersonIdentityReconciler {
                 case CONFLICT -> conflicts++;
             }
         }
+        int proposed = repairs.size();
         return new Report(
                 apply, PLATFORM_PATH, matched, drifted, missing, stale, unmatched, conflicts,
-                repairs.size(), List.copyOf(findings), List.copyOf(repairs));
+                proposed, apply ? proposed : 0, List.copyOf(findings), List.copyOf(repairs));
     }
 
     @SafeVarargs

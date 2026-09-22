@@ -60,6 +60,7 @@ class PersonIdentityReconcileTest {
         assertEquals("identity.reconcile", report.path());
         assertEquals(2, report.matched());
         assertEquals(0, report.drifted());
+        assertEquals(0, report.proposed());
         assertEquals(0, report.repaired());
         assertTrue(report.findings().stream().allMatch(item -> item.kind() == PersonIdentityReconciler.Kind.MATCHED));
     }
@@ -75,12 +76,16 @@ class PersonIdentityReconcileTest {
 
         PersonIdentityReconciler.Report preview = module.personReconciler().reconcile(false);
         assertEquals(1, preview.drifted());
+        assertEquals(1, preview.proposed());
         assertEquals(0, preview.repaired());
+        assertEquals(PersonIdentityReconciler.Action.SYNC_P2, preview.repairs().getFirst().action());
+        assertTrue(preview.repairs().getFirst().detail().startsWith("would "));
         assertEquals("stale-a@example.com",
                 module.repository().findPerson(tenantA, adminA.personId()).orElseThrow().email());
 
         PersonIdentityReconciler.Report applied = module.personReconciler().reconcile(true);
         assertTrue(applied.applied());
+        assertEquals(1, applied.proposed());
         assertEquals(1, applied.repaired());
         assertEquals(1, applied.repairs().size());
         assertEquals(PersonIdentityReconciler.Action.SYNC_P2, applied.repairs().getFirst().action());
@@ -101,6 +106,9 @@ class PersonIdentityReconcileTest {
 
         PersonIdentityReconciler.Report preview = module.personReconciler().reconcile(false);
         assertEquals(1, preview.staleBinding());
+        assertEquals(1, preview.proposed());
+        assertEquals(0, preview.repaired());
+        assertEquals(PersonIdentityReconciler.Action.REBIND, preview.repairs().getFirst().action());
         assertEquals("gone-sub",
                 module.repository().findAccount(adminA.accountId()).orElseThrow().keycloakUserId());
 
@@ -127,6 +135,9 @@ class PersonIdentityReconcileTest {
 
         PersonIdentityReconciler.Report preview = module.personReconciler().reconcile(false);
         assertEquals(1, preview.missingIdp());
+        assertEquals(1, preview.proposed());
+        assertEquals(0, preview.repaired());
+        assertEquals(PersonIdentityReconciler.Action.PROVISION_IDP, preview.repairs().getFirst().action());
         assertTrue(idp.findUser("ghost-sub").isEmpty());
 
         PersonIdentityReconciler.Report applied = module.personReconciler().reconcile(true);

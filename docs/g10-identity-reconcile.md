@@ -61,3 +61,5 @@ export NEXUS_KEYCLOAK_ISSUER=http://127.0.0.1:8080/realms/nexus
 Command log and honest gaps: `nexus-p2-iam/EVIDENCE.md`.
 
 Recorded **2026-09-22T15:31:58Z**: Stub `mvn -pl nexus-p2-iam -am test` → 25 run / 0 fail / 3 skip. Live `LiveKeycloakPersonReconcileTest` against Keycloak **26.5.2** `http://127.0.0.1:8080/realms/nexus` → 1/1 match + email repair + unmatched-IdP report-only. That live IdP used native `start-dev` H2 because PostgreSQL was not listening on this VM.
+
+Drift-fix **dry-run leftover** (detect + proposed `repairs` without writes by default): [g10-identity-drift-dry-run.md](./g10-identity-drift-dry-run.md). That leftover does **not** redo this apply walk and does **not** redo file reconcile.

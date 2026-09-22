@@ -182,6 +182,25 @@ mvn -pl nexus-p2-iam -am test
 | Live Keycloak admin OTP walk | not run |
 | G18 reopen | **no** |
 
+## G10 leftover — Keycloak 8080 drift-fix dry-run (this PR)
+
+Detect + proposed `repairs` without writes. Existing apply walk (#76 / `LiveKeycloakPersonReconcileTest`) is not redone here. File reconcile is not this PR. Recorded after rebase onto `origin/main` `23656f3`. See [docs/g10-identity-drift-dry-run.md](../docs/g10-identity-drift-dry-run.md).
+
+```bash
+./scripts/g10-identity-drift-dry-run.sh
+```
+
+Default `NEXUS_G10_APPLY=1` is refused. Stub suites: `PersonIdentityDriftDryRunTest`, `PersonIdentityReconcileTest`, `IdentityApiTest`. Live: `LiveKeycloakIdentityDriftDryRunTest` against `http://127.0.0.1:8080/realms/nexus` when `kc.sh` / OIDC discovery is present.
+
+| Check | Result |
+|---|---|
+| Dry-run proposes `SYNC_P2` / `REBIND` / `PROVISION_IDP` | pending this run |
+| Dry-run leaves P2 / IdP rows unchanged | pending this run |
+| Live Keycloak 8080 dry-run | pending this run |
+| SAML / LDAP / SMS MFA | not claimed |
+| File metadata ↔ object | not this PR |
+| G18 reopen | **no** |
+
 ## Honest gaps (not verified here)
 
 - **`nexus-bootstrap` packaged JAR** was not the process under test; the live app was `SpringBootTest` `DEFINED_PORT` `:18088`.

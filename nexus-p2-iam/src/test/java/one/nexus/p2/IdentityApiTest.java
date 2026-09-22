@@ -136,6 +136,17 @@ class IdentityApiTest {
                 drifted.id(), drifted.tenantId(), drifted.accountId(), drifted.displayName(), drifted.employeeNo(),
                 "stale-carol@example.com", drifted.phone(), drifted.hiredOn(), drifted.status(),
                 drifted.createdAt(), java.time.Instant.now(), drifted.deletedAt(), drifted.version() + 1));
+        mvc.perform(get("/api/v1/identity/reconcile")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.applied").value(false))
+                .andExpect(jsonPath("$.proposed").value(1))
+                .andExpect(jsonPath("$.repaired").value(0))
+                .andExpect(jsonPath("$.repairs[0].action").value("SYNC_P2"));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "stale-carol@example.com",
+                module.repository().findPerson(tenantA, drifted.id()).orElseThrow().email());
         mvc.perform(post("/api/v1/identity/reconcile")
                         .header("Authorization", "Bearer " + token)
                         .header("X-Nexus-Context-Id", contextId)
@@ -143,6 +154,7 @@ class IdentityApiTest {
                         .content("{\"apply\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.applied").value(true))
+                .andExpect(jsonPath("$.proposed").value(1))
                 .andExpect(jsonPath("$.repaired").value(1));
         org.junit.jupiter.api.Assertions.assertEquals(
                 "carol@example.com",
