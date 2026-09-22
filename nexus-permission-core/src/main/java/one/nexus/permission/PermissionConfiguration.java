@@ -1,5 +1,6 @@
 package one.nexus.permission;
 
+import one.nexus.audit.AuditPort;
 import one.nexus.p2.IdentityModule;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.persist.JdbcPolicyRepository;
@@ -9,6 +10,7 @@ import one.nexus.permission.redis.PolicyInvalidationPort;
 import one.nexus.permission.redis.Redis32Client;
 import one.nexus.permission.redis.RedisPolicyInvalidation;
 import org.flywaydb.core.Flyway;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -57,9 +59,10 @@ public class PermissionConfiguration {
     PermissionModule permissionModule(
             PolicyRepository repository,
             IdentityModule identity,
-            PolicyInvalidationPort invalidation
+            PolicyInvalidationPort invalidation,
+            ObjectProvider<AuditPort> audits
     ) {
-        return PermissionModule.create(repository, identity.repository(), invalidation);
+        return PermissionModule.create(repository, identity.repository(), invalidation, audits.getIfAvailable());
     }
 
     @ConfigurationProperties(prefix = "nexus.permission")

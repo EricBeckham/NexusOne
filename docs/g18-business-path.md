@@ -5,7 +5,7 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.1.0**, Fly
 
 **Product G18 is closed** for the one vertical slice in 需求规格 V1.1 §12: 租户 → 组织权限 → 台账 → 表单 → 发布 → 业务数据 → 顺序审批 → 待办 → 查询 → 站内通知 → 审计. Closed **2026-09-22** on `main` `38f1a73` by the browser record below, plus the already-recorded same-transaction rollback (`G18RollbackProbe`) and dispatcher timing (`docs/m0-09-outbox-api.md`).
 
-Still open, and not part of this close: G7 (three business types), G4 (login / permission / admin / export / guard-reject on the same chain), G15 H5, G1 leftovers listed in [g1-isolation-surfaces.md](./g1-isolation-surfaces.md) (UI/H5/join-AST/FieldPolicy export; the export/file/cache/Job/Task guards themselves are evidenced there), G6, G17, and the target Linux/ARM profile. G2 list/detail/flow + role matrix is a later S0+S1 slice (`docs/g2-permission.md`) and does not reopen this G18 close. Product-wide G2 (report / export / H5) remains open.
+Still open, and not part of this close: G7 (three business types), remaining G4 (90-day hot + 365-day archive, export audit; login / permission-change / admin / guard-reject wiring is [g4-audit-coverage.md](./engineering/g4-audit-coverage.md)), G15 H5, G1 leftovers listed in [g1-isolation-surfaces.md](./g1-isolation-surfaces.md) (UI/H5/join-AST/FieldPolicy export; the export/file/cache/Job/Task guards themselves are evidenced there), G6, G17, and the target Linux/ARM profile. G2 list/detail/flow + role matrix is a later S0+S1 slice (`docs/g2-permission.md`) and does not reopen this G18 close. Product-wide G2 (report / export / H5) remains open.
 
 ## Browser walkthrough on `38f1a73` (G18 close)
 
@@ -191,4 +191,4 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 | Outbox dispatcher P95 / 30s alarm | Cited as G18 evidence: `docs/m0-09-outbox-api.md`, P95 **238 ms**, product poller **25 ms**, lag alarm **30s**. The live walk delivered both inbox rows. G18 IT still leaves the poller off so it can assert `PENDING` |
 | Concurrent G18 submits holding the chain lock for the whole business TX | Accepted trade-off vs private commit (keeps gapless hash indexes + rollback atomicity) |
 | `appendNewTransaction` from a TX that already called `append` | Deadlock on `audit_chain_meta`; G18 path does not do this |
-| Full G4/G6/G17 | Unchanged |
+| Full G4 (archive / export) / G6 / G17 | G4 login/permission/admin/guard-reject wiring is [g4-audit-coverage.md](./engineering/g4-audit-coverage.md); archive/export still open. G6 dedicated drill is on `main` (`docs/engineering/g6-recovery-drill-EVIDENCE.md`); product `RecoveryPort` remains dry-run. G17 unchanged |

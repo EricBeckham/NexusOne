@@ -19,6 +19,10 @@
     </dependency>
     <dependency>
       <groupId>one.nexus</groupId>
+      <artifactId>nexus-audit-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
       <artifactId>nexus-p2-iam</artifactId>
     </dependency>
     <dependency>

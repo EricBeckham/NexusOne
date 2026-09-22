@@ -7,10 +7,13 @@ import one.nexus.audit.JdbcHashChainedAuditPort;
 import one.nexus.audit.recovery.DryRunRecoveryPort;
 import one.nexus.audit.recovery.RecoveryPort;
 import one.nexus.crypto.CryptoPort;
+import one.nexus.p1.infra.audit.JdbcAuditPort;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class AuditConfiguration {
@@ -32,5 +35,18 @@ public class AuditConfiguration {
     @Bean
     RecoveryPort recoveryPort() {
         return new DryRunRecoveryPort();
+    }
+
+    /**
+     * P1 tenant/quota/admin writes keep staging {@code platform.audit_event} and
+     * also land on the existing hash chain. Same method as the caller used:
+     * {@code append} joins the business TX; {@code appendNewTransaction} commits
+     * privately (disable-reject / quota-reject).
+     */
+    @Bean
+    @Primary
+    @ConditionalOnBean(JdbcAuditPort.class)
+    one.nexus.p1.port.AuditPort hashChainedP1AuditPort(JdbcAuditPort staging, AuditPort chain) {
+        return new HashChainedP1AuditPort(staging, chain);
     }
 }

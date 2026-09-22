@@ -1,6 +1,7 @@
 package one.nexus.permission;
 
 import java.util.UUID;
+import one.nexus.audit.AuditPort;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.permission.admin.PolicyAdminService;
 import one.nexus.permission.admin.RoleMatrixService;
@@ -26,11 +27,21 @@ public final class PermissionModule {
             SnapshotManager snapshots,
             PolicyInvalidationPort invalidation
     ) {
+        this(repository, subjects, snapshots, invalidation, null);
+    }
+
+    public PermissionModule(
+            PolicyRepository repository,
+            SubjectDirectory subjects,
+            SnapshotManager snapshots,
+            PolicyInvalidationPort invalidation,
+            AuditPort audits
+    ) {
         this.repository = repository;
         this.subjects = subjects;
         this.snapshots = snapshots;
         this.invalidation = invalidation;
-        this.admin = new PolicyAdminService(repository, invalidation);
+        this.admin = new PolicyAdminService(repository, invalidation, audits);
         this.service = new PermissionService(repository, subjects, snapshots);
         this.matrix = new RoleMatrixService(repository, admin, service);
     }
@@ -40,11 +51,20 @@ public final class PermissionModule {
             IdentityRepository identity,
             PolicyInvalidationPort invalidation
     ) {
+        return create(repository, identity, invalidation, null);
+    }
+
+    public static PermissionModule create(
+            PolicyRepository repository,
+            IdentityRepository identity,
+            PolicyInvalidationPort invalidation,
+            AuditPort audits
+    ) {
         SubjectDirectory directory = new IamSubjectDirectory(identity, repository);
         SnapshotManager manager = new SnapshotManager(
                 tenant -> repository.currentVersion(UUID.fromString(tenant)),
                 tenant -> repository.loadSnapshot(UUID.fromString(tenant)));
-        return new PermissionModule(repository, directory, manager, invalidation);
+        return new PermissionModule(repository, directory, manager, invalidation, audits);
     }
 
     public PolicyRepository repository() {

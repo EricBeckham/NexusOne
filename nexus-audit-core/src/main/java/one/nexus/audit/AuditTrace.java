@@ -15,8 +15,9 @@ import one.nexus.common.trace.TraceIds;
  * Trace-wide correlation helpers compatible with M0-01 {@link TraceIds}
  * ({@code X-Trace-Id}, MDC {@code traceId}/{@code trace_id}, W3C {@code traceparent}).
  *
- * <p>Full cross-module reconstruction of a live business request is deferred
- * until P1/P2/P3/isolation emit through {@link AuditPort}.
+ * <p>G4 emitters (login, permission-change, admin, guard-reject) and G18
+ * data/approval write through {@link AuditPort}. Correlate with
+ * {@link #correlate(AuditPort, String)} / {@code findByTraceId}.
  */
 public final class AuditTrace {
     private AuditTrace() {}

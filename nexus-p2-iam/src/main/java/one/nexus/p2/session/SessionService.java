@@ -1,5 +1,8 @@
 package one.nexus.p2.session;
 
+import one.nexus.audit.AuditCaptures;
+import one.nexus.audit.AuditPort;
+import one.nexus.common.trace.TraceIds;
 import one.nexus.p2.account.AccountReconciler;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.domain.Model;
@@ -12,7 +15,9 @@ import one.nexus.common.id.UuidV7;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -39,6 +44,7 @@ public final class SessionService {
     private final IdentityProviderPort idp;
     private final Clock clock;
     private final Duration contextTtl;
+    private final AuditPort audits;
 
     public SessionService(
             IdentityRepository repository,
@@ -47,11 +53,23 @@ public final class SessionService {
             Clock clock,
             Duration contextTtl
     ) {
+        this(repository, reconciler, idp, clock, contextTtl, null);
+    }
+
+    public SessionService(
+            IdentityRepository repository,
+            AccountReconciler reconciler,
+            IdentityProviderPort idp,
+            Clock clock,
+            Duration contextTtl,
+            AuditPort audits
+    ) {
         this.repository = repository;
         this.reconciler = reconciler;
         this.idp = idp;
         this.clock = clock;
         this.contextTtl = contextTtl;
+        this.audits = audits;
     }
 
     public IdentityProviderPort.AuthorizeUrl authorizationUrl(String state, String redirectUri) {
@@ -64,19 +82,37 @@ public final class SessionService {
     }
 
     public SessionView loginWithAccessToken(String accessToken) {
-        IdentityProviderPort.IdentityClaims claims = idp.validate(accessToken);
-        Model.GlobalAccount account = reconciler.reconcile(claims);
-        if (account.status() != Model.AccountStatus.ACTIVE) {
-            throw DomainException.forbidden("account is not active");
+        boolean accepted = false;
+        try {
+            IdentityProviderPort.IdentityClaims claims;
+            try {
+                claims = idp.validate(accessToken);
+            } catch (IllegalArgumentException ex) {
+                throw DomainException.unauthorized(ex.getMessage());
+            }
+            Model.GlobalAccount account = reconciler.reconcile(claims);
+            if (account.status() != Model.AccountStatus.ACTIVE) {
+                throw DomainException.forbidden("account is not active");
+            }
+            List<MembershipView> memberships = membershipsOf(account.id());
+            List<MembershipView> active = memberships.stream()
+                    .filter(item -> item.status() == Model.MembershipStatus.ACTIVE)
+                    .toList();
+            SessionView view = active.size() == 1
+                    ? issue(account, claims.subject(), active.getFirst().tenantId(), memberships)
+                    : new SessionView(
+                            account.id(), account.email(), account.displayName(), null, null, null, memberships);
+            accepted = true;
+            appendLogin(true, view.tenantId(), view.accountId(), view.contextId(), "accepted", Map.of(
+                    "email", account.email(),
+                    "account_id", account.id().toString()));
+            return view;
+        } catch (RuntimeException ex) {
+            if (!accepted) {
+                appendLoginRejected(ex);
+            }
+            throw ex;
         }
-        List<MembershipView> memberships = membershipsOf(account.id());
-        List<MembershipView> active = memberships.stream()
-                .filter(item -> item.status() == Model.MembershipStatus.ACTIVE)
-                .toList();
-        if (active.size() == 1) {
-            return issue(account, claims.subject(), active.getFirst().tenantId(), memberships);
-        }
-        return new SessionView(account.id(), account.email(), account.displayName(), null, null, null, memberships);
     }
 
     public SessionView switchTenant(AuthenticatedIdentity identity, UUID requestedTenantId) {
@@ -124,9 +160,21 @@ public final class SessionService {
     }
 
     public void logout(AuthenticatedIdentity identity, String refreshToken, String idTokenHint) {
+        TenantContext current = TenantContextHolder.get();
         repository.revokeContextsForAccount(identity.account().id());
         TenantContextHolder.clear();
         idp.logout(refreshToken, idTokenHint);
+        if (audits != null) {
+            audits.append(AuditCaptures.logout(
+                    current == null ? null : current.tenantId(),
+                    identity.account().id(),
+                    current == null || current.contextId() == null
+                            ? identity.account().id().toString()
+                            : current.contextId().toString(),
+                    "logout",
+                    TraceIds.currentOrUnknown(),
+                    Map.of("account_id", identity.account().id().toString())));
+        }
     }
 
     public AuthenticatedIdentity authenticate(String accessToken) {
@@ -150,6 +198,50 @@ public final class SessionService {
         return new SessionView(
                 account.id(), account.email(), account.displayName(),
                 stored.id(), tenantId, person.id(), memberships);
+    }
+
+    private void appendLogin(
+            boolean accepted,
+            UUID tenantId,
+            UUID actorSubjectId,
+            UUID resourceId,
+            String reason,
+            Map<String, ?> details) {
+        if (audits == null) {
+            return;
+        }
+        var event = AuditCaptures.login(
+                accepted,
+                tenantId,
+                actorSubjectId,
+                resourceId == null ? "session" : resourceId.toString(),
+                reason,
+                TraceIds.currentOrUnknown(),
+                details);
+        if (accepted) {
+            audits.append(event);
+        } else {
+            audits.appendNewTransaction(event);
+        }
+    }
+
+    private void appendLoginRejected(RuntimeException ex) {
+        if (audits == null) {
+            return;
+        }
+        try {
+            String reason = ex.getMessage() == null || ex.getMessage().isBlank()
+                    ? ex.getClass().getSimpleName()
+                    : ex.getMessage();
+            Map<String, String> details = new LinkedHashMap<>();
+            details.put("error", ex.getClass().getSimpleName());
+            if (ex instanceof DomainException domain) {
+                details.put("code", domain.code());
+            }
+            appendLogin(false, null, null, null, reason, details);
+        } catch (RuntimeException auditEx) {
+            ex.addSuppressed(auditEx);
+        }
     }
 
     private List<MembershipView> membershipsOf(UUID accountId) {
