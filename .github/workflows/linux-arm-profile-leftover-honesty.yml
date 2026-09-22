@@ -111,6 +111,8 @@ jobs:
           grep -E 'g6-recovery-port-dry-run-honesty' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
           grep -E '^leftover_185_kept=true$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
           grep -E '^leftover_186_kept=true$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E 'g4-p1-staging-audit-events-honesty' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^leftover_190_kept=true$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
           grep -E '^redone_157=false$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
           grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
           grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"

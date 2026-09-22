@@ -20,7 +20,7 @@ LIFECYCLE_ARTIFACT="$ROOT/docs/engineering/linux-arm-profile/agent-vm-x86_64-lif
 HONESTY_ARTIFACT="$ROOT/docs/engineering/linux-arm-profile/agent-vm-x86_64-honesty.txt"
 README="$ROOT/docs/README.md"
 
-REQUIRED_LEFTOVER_ROWS="linux-arm-profile-honesty linux-arm-profile-leftover-honesty g4-hot-purge-90d g4-hot-purge-90d-honesty g17-separation-of-duties g17-separation-honesty g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g10-identity-drift-honesty g15-native-bridge-honesty g4-pkce-spa-verifier-honesty s0-secret-getenv-snapshot-honesty g5-browser-failed-publish s0s1-live-redis-minio-isolation-honesty g6-recovery-port-dry-run g6-recovery-port-honesty g6-recovery-port-dry-run-honesty"
+REQUIRED_LEFTOVER_ROWS="linux-arm-profile-honesty linux-arm-profile-leftover-honesty g4-hot-purge-90d g4-hot-purge-90d-honesty g17-separation-of-duties g17-separation-honesty g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g10-identity-drift-honesty g15-native-bridge-honesty g4-pkce-spa-verifier-honesty s0-secret-getenv-snapshot-honesty g5-browser-failed-publish s0s1-live-redis-minio-isolation-honesty g6-recovery-port-dry-run g6-recovery-port-honesty g6-recovery-port-dry-run-honesty g4-p1-staging-audit-events g4-p1-staging-audit-events-honesty"
 
 usage() {
   cat <<'EOF'
@@ -64,7 +64,7 @@ artifact_get() {
 verify_report() {
   local file="$1"
   [ -f "$file" ] || fail "report not found: $file"
-  local required="schema_version timestamp_utc host_uname_m host_arch_family java_feature boot_parent_version boot_parent_match docker_used leftover_157_cells_honest leftover_rows_kept leftover_rows leftover_157_kept leftover_183_kept leftover_185_kept leftover_186_kept leftover_187_kept target_arm_01_status target_arm_01_install target_arm_01_upgrade target_arm_01_rollback target_arm_01_offline target_arm_01_crypto_international target_arm_01_crypto_gm supply_chain_rows supply_chain_status supply_chain_any_collected committed_collect_aarch64_build committed_collect_profile_acceptance committed_lifecycle_aarch64_install committed_lifecycle_profile_acceptance committed_honesty_target_arm_01 committed_honesty_supply_chain committed_honesty_profile_acceptance x86_lifecycle_note x86_note_extrapolated aarch64_pass_claimed native_aarch64_host native_aarch64_install native_aarch64_upgrade native_aarch64_rollback native_aarch64_offline native_aarch64_sbom native_aarch64_observed native_aarch64_skip_reason redone_105 redone_127 redone_157 collect_rerun lifecycle_rerun honesty_157_rerun profile_acceptance g18_status audit_port_changed p0_m0_redone"
+  local required="schema_version timestamp_utc host_uname_m host_arch_family java_feature boot_parent_version boot_parent_match docker_used leftover_157_cells_honest leftover_rows_kept leftover_rows leftover_157_kept leftover_183_kept leftover_185_kept leftover_186_kept leftover_187_kept leftover_190_kept target_arm_01_status target_arm_01_install target_arm_01_upgrade target_arm_01_rollback target_arm_01_offline target_arm_01_crypto_international target_arm_01_crypto_gm supply_chain_rows supply_chain_status supply_chain_any_collected committed_collect_aarch64_build committed_collect_profile_acceptance committed_lifecycle_aarch64_install committed_lifecycle_profile_acceptance committed_honesty_target_arm_01 committed_honesty_supply_chain committed_honesty_profile_acceptance x86_lifecycle_note x86_note_extrapolated aarch64_pass_claimed native_aarch64_host native_aarch64_install native_aarch64_upgrade native_aarch64_rollback native_aarch64_offline native_aarch64_sbom native_aarch64_observed native_aarch64_skip_reason redone_105 redone_127 redone_157 collect_rerun lifecycle_rerun honesty_157_rerun profile_acceptance g18_status audit_port_changed p0_m0_redone"
   local key
   for key in $required; do
     [ -n "$(report_get "$file" "$key")" ] || fail "missing key $key in $file"
@@ -93,6 +93,7 @@ verify_report() {
   [ "$(report_get "$file" leftover_185_kept)" = "true" ] || fail "leftover_185_kept must stay true (keep s0s1-live-redis-minio-isolation-honesty)"
   [ "$(report_get "$file" leftover_186_kept)" = "true" ] || fail "leftover_186_kept must stay true (keep g6-recovery-port-dry-run-honesty)"
   [ "$(report_get "$file" leftover_187_kept)" = "true" ] || fail "leftover_187_kept must stay true (keep g17-separation-honesty)"
+  [ "$(report_get "$file" leftover_190_kept)" = "true" ] || fail "leftover_190_kept must stay true (keep g4-p1-staging-audit-events-honesty)"
 
   local rows
   rows="$(report_get "$file" leftover_rows)"
@@ -331,6 +332,7 @@ LEFTOVER_183_KEPT=false
 LEFTOVER_185_KEPT=false
 LEFTOVER_186_KEPT=false
 LEFTOVER_187_KEPT=false
+LEFTOVER_190_KEPT=false
 for required_row in $REQUIRED_LEFTOVER_ROWS; do
   if grep -Fq "[${required_row}](./${required_row}.md)" "$README"; then
     if [ "$required_row" = "linux-arm-profile-honesty" ]; then
@@ -348,6 +350,9 @@ for required_row in $REQUIRED_LEFTOVER_ROWS; do
     if [ "$required_row" = "g17-separation-honesty" ]; then
       LEFTOVER_187_KEPT=true
     fi
+    if [ "$required_row" = "g4-p1-staging-audit-events-honesty" ]; then
+      LEFTOVER_190_KEPT=true
+    fi
   else
     LEFTOVER_ROWS_KEPT=false
     MISSING_ROWS="${MISSING_ROWS} ${required_row}"
@@ -359,6 +364,7 @@ done
 [ "$LEFTOVER_185_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover s0s1-live-redis-minio-isolation-honesty (#185)"
 [ "$LEFTOVER_186_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g6-recovery-port-dry-run-honesty (#186)"
 [ "$LEFTOVER_187_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g17-separation-honesty (#187)"
+[ "$LEFTOVER_190_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g4-p1-staging-audit-events-honesty (#190)"
 
 NATIVE_OBSERVED=false
 if [ "${NEXUS_ARM_NATIVE_WALK_OBSERVED:-false}" = "true" ]; then
@@ -408,6 +414,7 @@ GIT_BRANCH="$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unk
   kv leftover_185_kept "$LEFTOVER_185_KEPT"
   kv leftover_186_kept "$LEFTOVER_186_KEPT"
   kv leftover_187_kept "$LEFTOVER_187_KEPT"
+  kv leftover_190_kept "$LEFTOVER_190_KEPT"
   kv collect_rerun false
   kv lifecycle_rerun false
   kv honesty_157_rerun false
