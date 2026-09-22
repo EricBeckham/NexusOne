@@ -1,6 +1,6 @@
 # S0 leftover: env / process secret rotate-without-restart evidence
 
-Recorded **2026-09-22T18:52:12Z** on this agent VM; rebased onto `origin/main` `7735636` (Merge #145). **Not** a product S0 close. **Not** OpenBao / KMS. **Not** CORE-SEC-003. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded **2026-09-22T18:52:12Z** on this agent VM; rebased onto `origin/main` `42c1cd8` (Merge #146). **Not** a product S0 close. **Not** OpenBao / KMS. **Not** CORE-SEC-003. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
 See [docs/s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md). Secrets were supplied via injected env maps; none are committed.
 
