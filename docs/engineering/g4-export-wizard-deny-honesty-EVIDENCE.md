@@ -44,8 +44,8 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 | Check | Result | Notes |
 |---|---|---|
 | Honesty fixtures | **PASS** / fake live PASS rejected / fake `g4_close=CLOSED` rejected / fake redo rejected | after rebase onto `fb333a3` |
-| Guard deny harness | **PASS** | in-memory `SurfaceGuard` #136 pair |
-| Export wizard deny harness | **PASS** | begin then revoke/DENY; no IsolatedExport / `p3.export.completed` |
+| Guard deny harness | **PASS** (gate) | in-memory `SurfaceGuard` #136 pair; collect `--skip-tests` on this VM (unrelated `DualStackTlsProbe` / BouncyCastle compile) |
+| Export wizard deny harness | **PASS** (gate) | begin then revoke/DENY; no IsolatedExport / `p3.export.completed`; collect `--skip-tests` on this VM |
 | Same-TX append | **PASS** | reject uses `appendNewTransaction` |
 | Live JAR wizard deny | **SKIP** (expected) | no product JAR / walk not observed |
 | Live browser wizard | **SKIP** (expected) | Playwright / issued context missing |
