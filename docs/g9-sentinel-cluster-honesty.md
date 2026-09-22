@@ -74,7 +74,7 @@ Live multi-JVM / replica promotion honesty leftover (does not redo this Sentinel
 ./scripts/g9-live-multi-jvm-replica.sh
 ```
 
-See [g9-live-multi-jvm-replica.md](./g9-live-multi-jvm-replica.md).
+See [g9-live-multi-jvm-replica.md](./g9-live-multi-jvm-replica.md). Sentinel / Cluster remainder PASS/SKIP leftover (does not redo this inventory): [g9-sentinel-cluster-remainder-honesty.md](./g9-sentinel-cluster-remainder-honesty.md).
 
 ## Honest leftovers (not claimed)
 
