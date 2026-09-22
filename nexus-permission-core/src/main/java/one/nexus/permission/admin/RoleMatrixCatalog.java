@@ -15,13 +15,14 @@ public final class RoleMatrixCatalog {
     public static final String SELF_READER = "g2_self_reader";
     public static final String DEPT_MANAGER = "g2_dept_manager";
     public static final String APPROVER = "g2_approver";
+    public static final String FORM_DESIGNER = "g2_form_designer";
 
     public static final String SALARY_FIELD = "salary";
 
     public static final String COMPLETENESS_NOTE =
             "tenant_member ALL-scope seed is demo bootstrap only. G2 requires a role "
                     + "matrix with DataScope and field policy, evaluated by PermissionEngine "
-                    + "for list, detail, and flow. Report / export / H5 remain open.";
+                    + "for list, detail, flow, and form studio. Report / export / H5 remain open.";
 
     private RoleMatrixCatalog() {}
 
@@ -40,7 +41,8 @@ public final class RoleMatrixCatalog {
         return List.of(
                 new RoleSpec(SELF_READER, "G2 self reader"),
                 new RoleSpec(DEPT_MANAGER, "G2 department manager"),
-                new RoleSpec(APPROVER, "G2 process approver"));
+                new RoleSpec(APPROVER, "G2 process approver"),
+                new RoleSpec(FORM_DESIGNER, "G2 form designer"));
     }
 
     public static List<CellSpec> exampleCells() {
@@ -58,6 +60,8 @@ public final class RoleMatrixCatalog {
                 new CellSpec(DEPT_MANAGER, "GRANT", "form", "write", DataScopeKind.DEPT_AND_CHILDREN, Map.of()),
                 new CellSpec(APPROVER, "GRANT", "process.task", "approve", DataScopeKind.ALL, Map.of()),
                 new CellSpec(APPROVER, "GRANT", "process.task", "reject", DataScopeKind.ALL, Map.of()),
-                new CellSpec(APPROVER, "GRANT", "process.instance", "start", DataScopeKind.ALL, Map.of()));
+                new CellSpec(APPROVER, "GRANT", "process.instance", "start", DataScopeKind.ALL, Map.of()),
+                new CellSpec(FORM_DESIGNER, "GRANT", "form", "read", DataScopeKind.ALL, Map.of()),
+                new CellSpec(FORM_DESIGNER, "GRANT", "form", "write", DataScopeKind.ALL, Map.of()));
     }
 }

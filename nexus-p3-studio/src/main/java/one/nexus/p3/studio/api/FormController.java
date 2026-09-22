@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import one.nexus.p3.infra.permission.FormSurfaceGuard;
 import one.nexus.p3.studio.form.BindingValidator;
 import one.nexus.p3.studio.form.FormBinding;
 import one.nexus.p3.studio.form.FormRecord;
@@ -13,6 +14,7 @@ import one.nexus.p3.studio.form.FormVersion;
 import one.nexus.p3.studio.form.PublishLog;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,57 +29,68 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/p3/forms")
 public class FormController {
     private final FormService forms;
+    private final ObjectProvider<FormSurfaceGuard> surfaces;
 
-    public FormController(FormService forms) {
+    public FormController(FormService forms, ObjectProvider<FormSurfaceGuard> surfaces) {
         this.forms = forms;
+        this.surfaces = surfaces;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> create(@Valid @RequestBody UpsertRequest request) {
+        requireWrite();
         List<FormBinding> bindings = BindingValidator.parse(request.bindings());
         return toJson(forms.create(request.appCode(), request.formCode(), request.name(), request.description(), bindings));
     }
 
     @GetMapping
     public List<Map<String, Object>> list() {
+        requireRead();
         return forms.list().stream().map(FormController::toJson).toList();
     }
 
     @GetMapping("/{id}")
     public Map<String, Object> get(@PathVariable UUID id) {
+        requireRead();
         return toJson(forms.get(id));
     }
 
     @PutMapping("/{id}")
     public Map<String, Object> update(@PathVariable UUID id, @RequestBody UpsertRequest request) {
+        requireWrite();
         List<FormBinding> bindings = request.bindings() == null ? null : BindingValidator.parse(request.bindings());
         return toJson(forms.update(id, request.name(), request.description(), bindings));
     }
 
     @PostMapping("/{id}/validate")
     public Map<String, Object> validate(@PathVariable UUID id) {
+        requireWrite();
         return toJson(forms.validate(id));
     }
 
     @PostMapping("/{id}/publish")
     public Map<String, Object> publish(@PathVariable UUID id, @RequestBody(required = false) PublishRequest request) {
+        requireWrite();
         String notes = request == null ? null : request.notes();
         return toJson(forms.publish(id, notes));
     }
 
     @GetMapping("/{id}/running")
     public Map<String, Object> running(@PathVariable UUID id) {
+        requireRead();
         return versionJson(forms.running(id));
     }
 
     @GetMapping("/{id}/versions")
     public List<Map<String, Object>> versions(@PathVariable UUID id) {
+        requireRead();
         return forms.versions(id).stream().map(FormController::versionJson).toList();
     }
 
     @GetMapping("/{id}/publish-log")
     public List<Map<String, Object>> publishLog(@PathVariable UUID id) {
+        requireRead();
         return forms.publishLog(id).stream().map(FormController::logJson).toList();
     }
 
@@ -91,6 +104,20 @@ public class FormController {
     @GetMapping("/{id}/submissions")
     public List<Map<String, Object>> submissions(@PathVariable UUID id) {
         return forms.submissions(id).stream().map(FormController::submissionJson).toList();
+    }
+
+    private void requireRead() {
+        FormSurfaceGuard guard = surfaces.getIfAvailable();
+        if (guard != null) {
+            guard.requireRead();
+        }
+    }
+
+    private void requireWrite() {
+        FormSurfaceGuard guard = surfaces.getIfAvailable();
+        if (guard != null) {
+            guard.requireWrite();
+        }
     }
 
     private static Map<String, Object> toJson(FormRecord form) {

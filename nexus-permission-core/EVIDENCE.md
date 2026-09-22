@@ -4,7 +4,7 @@ Recorded on the agent VM against latest `main` (includes M0-01～04 + Keycloak s
 
 ## G2 (S0+S1) — role matrix + same engine
 
-G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow. Product-wide G2 (report / export / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
+G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio. Product-wide G2 (report / export / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
 
 ## Versions
 
@@ -34,7 +34,7 @@ mvn -pl nexus-permission-core -am test
 
 Result (M0-05 baseline): **27 tests, 0 failures, 0 errors, 0 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**.
 
-G2 additions: `G2SameEngineTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3).
+G2 additions: `G2SameEngineTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3). Form studio remainder: `FormSurfaceGuardTest`, `FormStudioPermissionApiTest`.
 
 Recorded **2026-09-22T15:29:11Z** on this agent VM (OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**). PostgreSQL was not listening; JDBC/golden tests skipped as designed.
 
@@ -48,6 +48,17 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 # BUILD SUCCESS at 2026-09-22T15:28:46Z
 # permission-core: G2SameEngine 2, FieldPolicy 1, G2RoleMatrixApi 1, PermissionApi 2, TenantMemberGrantSeed 1
 # p3-studio: PermissionDataScopeHook 4, G2SurfaceAgreement 3
+```
+
+Form studio remainder **2026-09-22T16:43:49Z** (same VM, OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1**):
+
+```bash
+mvn -pl nexus-permission-core,nexus-p3-studio -am test \
+  -Dtest=G2SameEngineTest,G2RoleMatrixApiTest,G2SurfaceAgreementTest,PermissionDataScopeHookTest,FormSurfaceGuardTest,FormStudioPermissionApiTest,FieldPolicyProjectorTest,PermissionApiTest,TenantMemberGrantSeedApiTest,FormApiTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+# BUILD SUCCESS
+# permission-core: 7 run / 0 fail
+# p3-studio: 18 run / 0 fail (FormStudioPermissionApiTest 3, FormSurfaceGuardTest 5, G2SurfaceAgreementTest 5)
 ```
 
 G9 failover evidence after rebase onto `main@215308f` (this VM, OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1**):
@@ -75,8 +86,9 @@ mvn -pl nexus-permission-core -am test
 | `JdbcDualTenantPermissionTest` | Flyway V200+V300 on **PostgreSQL 15.19**; `perm_grant` for B stays empty |
 | `RedisInvalidationTest` | Redis 3.2.13 PING / SET EX / GET / DEL / PUBLISH when present; publish failure is not truth; Redis-down still loads durable version; DB version failure still fail-closed |
 | `PermissionApiTest` | Boot 4.1.1 MockMvc; `X-Tenant-Id` → `P2.PERM.0013`; check after grant allows `ledger.read` |
-| `G2SameEngineTest` | Role-matrix cells (SELF + hidden salary, DEPT + masked salary, approver). List/detail share WHERE; flow `no_grant` denied by `SurfaceGuard` |
-| `G2RoleMatrixApiTest` | `GET /matrix` notes tenant_member is not complete; example install is differentiated; check uses `engine=PermissionEngine` |
+| `G2SameEngineTest` | Role-matrix cells (SELF + hidden salary, DEPT + masked salary, approver, form designer). List/detail share WHERE; flow / form.write `no_grant` denied by `SurfaceGuard` |
+| `G2RoleMatrixApiTest` | `GET /matrix` notes tenant_member is not complete; example install is differentiated; check uses `engine=PermissionEngine`; `form.read` allowed for self_reader, `form.write` is `no_grant` |
+| `FormSurfaceGuardTest` / `FormStudioPermissionApiTest` (p3) | Form list/create 403 `P2.PERM.0003`/`0002`/`0001`; isolation-only stays tenant-only; `g2_form_designer` can write |
 | `SchemaContractTest` | V300 lives in schema `iam`; tenant tables have `tenant_id NOT NULL` |
 
 Flyway history on `nexus_p2_perm_test` (schema `iam`):
