@@ -12,9 +12,9 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | Principals: user, role (with inheritance), position, department | `PermissionEngine.principals` |
 | DataScope compile: SELF / DEPT / DEPT_AND_CHILDREN / SPECIFIED / ALL | `DataScopeCompiler` |
 | FieldPolicy projection / masking / second-auth | `FieldPolicyProjector` |
-| list / detail / total / pagination share one WHERE (`tenant_id` first) | `PermissionQueryBinder` / `ScopedQuery` |
+| list / detail / total / pagination share one WHERE (`tenant_id` first) | `PermissionQueryBinder` / `ScopedQuery` (OR leftover); product list/detail opt-in is `QueryAstScopedQuery` |
 | Isolation kernel seam: AND extra filters, never strip `tenant_id` | `IsolationDataScopeInjector` |
-| Query AST SELF/DEPT + FieldPolicy visibility (opt-in) | `QueryAstPolicyCompiler` |
+| Query AST SELF/DEPT + FieldPolicy visibility (opt-in) | `QueryAstPolicyCompiler` / `QueryAstScopedQuery` |
 | PolicySnapshot version + LRU + fail-closed | `SnapshotManager` |
 | Short-cycle version poll (between requests) | `PolicySnapshotPoller` |
 | Redis 3.2 PUBLISH/SUBSCRIBE invalidate-only (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |

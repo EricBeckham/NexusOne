@@ -19,6 +19,9 @@ import org.springframework.stereotype.Component;
 import one.nexus.isolation.IsolationKernel;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.QueryPage;
+import one.nexus.isolation.api.QuerySort;
+import one.nexus.isolation.api.RenderedSql;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.p3.domain.FieldType;
 import one.nexus.p3.domain.LedgerDefinition;
@@ -31,11 +34,13 @@ import one.nexus.p3.port.DataScopeHook;
 import one.nexus.p3.port.DataScopeHook.ScopedRead;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.scope.BoundSql;
-import one.nexus.permission.scope.ScopedQuery;
+import one.nexus.permission.scope.QueryAstScopedQuery;
 
 /**
- * Ledger row access. Writes go through Query AST + GuardedJdbc. Reads use the
- * M0-05 scoped WHERE (tenant_id first) so list/detail/total share one filter.
+ * Ledger row access. Writes go through Query AST + GuardedJdbc. List / detail
+ * opt into {@link QueryAstScopedQuery} so SAFE SELF/DEPT + FieldPolicy
+ * visibility compile through {@code QueryCompiler}. OR / IN leftovers still
+ * bind beside the AST; mask / second-auth stay on {@code FieldPolicyProjector}.
  */
 @Component
 public class GuardedLedgerStore {
@@ -141,9 +146,11 @@ public class GuardedLedgerStore {
 
     public Map<String, Object> detail(LedgerDefinition ledger, List<LedgerField> fields, UUID id) {
         ScopedRead scoped = dataScope.bind(requireTenant(), "ledger", "read");
-        BoundSql bound = scoped.query().detail(ledger.physicalTable(), projection(fields), SystemColumns.ID, id);
-        BoundSql filtered = andDeletedNull(bound, false);
-        List<Map<String, Object>> rows = executeRead(filtered);
+        Map<String, Object> filters = new LinkedHashMap<>();
+        filters.put(SystemColumns.ID, id);
+        filters.put(SystemColumns.DELETED_AT, null);
+        QueryAst ast = QueryAst.select(ledger.physicalTable(), projection(fields), filters);
+        List<Map<String, Object>> rows = executeEncoded(ast, scoped.decision());
         if (rows.isEmpty()) {
             throw P3Exception.recordNotFound(id);
         }
@@ -160,20 +167,16 @@ public class GuardedLedgerStore {
             throw P3Exception.queryInvalid("page must be >= 0 and size in 1..200");
         }
         ScopedRead scoped = dataScope.bind(requireTenant(), "ledger", "read");
-        ScopedQuery query = scoped.query();
-        BoundSql count = andDeletedNull(andEquals(query.count(ledger.physicalTable()), equalsFilters, fields), false);
-        Map<String, Object> countRow = executeRead(count).getFirst();
-        Object countValue = countRow.get("count");
-        if (countValue == null) {
-            countValue = countRow.get("COUNT");
-        }
-        long total = ((Number) countValue).longValue();
-        BoundSql list = andDeletedNull(
-                andEquals(query.list(ledger.physicalTable(), projection(fields), SystemColumns.ID, size, page * size),
-                        equalsFilters, fields),
-                true);
+        Map<String, Object> filters = readFilters(equalsFilters, fields);
+        BoundSql countSql = QueryAstScopedQuery.count(compileBound(
+                QueryAst.select(ledger.physicalTable(), List.of(SystemColumns.ID), filters),
+                scoped.decision()));
+        long total = readCount(countSql);
+        QueryAst pageAst = QueryAst.select(ledger.physicalTable(), projection(fields), filters)
+                .withSorts(List.of(QuerySort.asc(SystemColumns.ID)))
+                .withPage(QueryPage.of(size, page * size));
         List<Map<String, Object>> items = new ArrayList<>();
-        for (Map<String, Object> row : executeRead(list)) {
+        for (Map<String, Object> row : executeEncoded(pageAst, scoped.decision())) {
             items.add(dataScope.project(requireTenantRow(row), scoped.decision()));
         }
         return new Page(items, total, page, size);
@@ -190,6 +193,47 @@ public class GuardedLedgerStore {
         } finally {
             SearchPathConnections.release(dataSource, connection);
         }
+    }
+
+    private List<Map<String, Object>> executeEncoded(QueryAst ast, Decision decision) {
+        QueryAstScopedQuery.CompiledRead compiled = compileRead(ast, decision);
+        if (compiled.scopeFullyEncoded()) {
+            return executeGuarded(compiled.compiled());
+        }
+        return executeRead(compiled.bound());
+    }
+
+    private BoundSql compileBound(QueryAst ast, Decision decision) {
+        return compileRead(ast, decision).bound();
+    }
+
+    private QueryAstScopedQuery.CompiledRead compileRead(QueryAst ast, Decision decision) {
+        return QueryAstScopedQuery.compile(
+                ast,
+                decision,
+                kernel.registry().require(ast.table()),
+                kernel.compiler(),
+                AccessContextHolder.current());
+    }
+
+    private List<Map<String, Object>> executeGuarded(RenderedSql sql) {
+        Connection connection = SearchPathConnections.open(dataSource);
+        try {
+            return kernel.jdbc().executeQuery(connection, sql);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("ledger read failed", ex);
+        } finally {
+            SearchPathConnections.release(dataSource, connection);
+        }
+    }
+
+    private long readCount(BoundSql count) {
+        Map<String, Object> countRow = executeRead(count).getFirst();
+        Object countValue = countRow.get("count");
+        if (countValue == null) {
+            countValue = countRow.get("COUNT");
+        }
+        return ((Number) countValue).longValue();
     }
 
     private List<Map<String, Object>> executeRead(BoundSql sql) {
@@ -255,28 +299,12 @@ public class GuardedLedgerStore {
         return columns;
     }
 
-    private static BoundSql andDeletedNull(BoundSql sql, boolean hasLimit) {
-        String text = sql.sql();
-        String extra = " AND deleted_at IS NULL";
-        String next;
-        if (hasLimit) {
-            int order = text.toLowerCase(Locale.ROOT).indexOf(" order by ");
-            next = text.substring(0, order) + extra + text.substring(order);
-        } else {
-            next = text + extra;
-        }
-        if (!next.toLowerCase(Locale.ROOT).contains("tenant_id")) {
-            throw P3Exception.missingTenant();
-        }
-        return new BoundSql(next, sql.parameters());
-    }
-
-    private static BoundSql andEquals(BoundSql sql, Map<String, Object> equalsFilters, List<LedgerField> fields) {
+    private static Map<String, Object> readFilters(Map<String, Object> equalsFilters, List<LedgerField> fields) {
+        Map<String, Object> filters = new LinkedHashMap<>();
+        filters.put(SystemColumns.DELETED_AT, null);
         if (equalsFilters == null || equalsFilters.isEmpty()) {
-            return sql;
+            return filters;
         }
-        StringBuilder extra = new StringBuilder();
-        List<Object> extraParams = new ArrayList<>();
         Map<String, LedgerField> byCode = new LinkedHashMap<>();
         fields.forEach(field -> byCode.put(field.fieldCode(), field));
         equalsFilters.forEach((name, value) -> {
@@ -284,27 +312,9 @@ public class GuardedLedgerStore {
             if (!byCode.containsKey(name)) {
                 throw P3Exception.queryInvalid("unknown query field: " + name);
             }
-            extra.append(" AND ").append(name).append(" = ?");
-            extraParams.add(coerce(byCode.get(name).fieldType(), value));
+            filters.put(name, coerce(byCode.get(name).fieldType(), value));
         });
-        String text = sql.sql();
-        int order = text.toLowerCase(Locale.ROOT).indexOf(" order by ");
-        String next = order >= 0
-                ? text.substring(0, order) + extra + text.substring(order)
-                : text + extra;
-        List<Object> params = new ArrayList<>(sql.parameters());
-        // list() appends LIMIT/OFFSET after the shared WHERE params. Extra equals
-        // placeholders sit before ORDER BY, so they must be inserted before those two.
-        boolean hasLimitOffset = order >= 0 && text.toLowerCase(Locale.ROOT).contains(" limit ?");
-        if (hasLimitOffset && params.size() >= 2) {
-            params.addAll(params.size() - 2, extraParams);
-        } else {
-            params.addAll(extraParams);
-        }
-        if (!next.toLowerCase(Locale.ROOT).contains("tenant_id")) {
-            throw P3Exception.missingTenant();
-        }
-        return new BoundSql(next, params);
+        return filters;
     }
 
     private static void putBusiness(
