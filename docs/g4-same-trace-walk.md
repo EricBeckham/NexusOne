@@ -58,7 +58,7 @@ This is **not** a product-wide G4 close.
 
 | Still open | Why |
 |---|---|
-| Browser Authorization Code + PKCE login | HTTP-driver + native Keycloak 26.x PKCE on the hash chain is [g4-pkce-login-audit.md](./g4-pkce-login-audit.md). HTTPS loopback leftover is [g4-pkce-https-browser.md](./g4-pkce-https-browser.md). Human laptop click still needs to trust the local CA. |
+| Browser Authorization Code + PKCE login | HTTP-driver + native Keycloak 26.x PKCE is [g4-pkce-login-audit.md](./g4-pkce-login-audit.md). HTTPS loopback leftover is [g4-pkce-https-browser.md](./g4-pkce-https-browser.md). Desktop Playwright leftover (stub IdP) is [g4-pkce-browser-click.md](./g4-pkce-browser-click.md). Human laptop + live Keycloak still needs to trust the local CA. |
 | 365-day archive expiry | Closed on `main` via #90 (`purgeImplemented=true`). Not reopened here. |
 | Hot purge after 90 days | Leftover implementation is [g4-hot-purge-90d.md](./g4-hot-purge-90d.md). This walk does not DELETE hot rows |
 | Object-store / cold archive | Same-PG table only |
