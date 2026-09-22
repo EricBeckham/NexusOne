@@ -1,6 +1,6 @@
 # G4 leftover — live Keycloak CA / SPA PKCE honesty beyond #147
 
-S0+S1 remainder after the #147 evidence path ([g4-pkce-spa-verifier.md](./g4-pkce-spa-verifier.md)). Rebased onto `origin/main` `84ac6f7` (after #171 G5 browser failed-publish honesty / #178 claim-list tip sync). **G18 stays closed.** This leftover does **not** redo #108 HTTP-driver PKCE, #120 HTTPS loopback, #125 desktop stub click, #147 SPA verifier leftover, #152 export wizard, or #166 complete-deny. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. It does **not** start `kc.sh`. It does **not** claim product G4 / G5 / G10 close. `g4_close=NOT_CLAIMED`.
+S0+S1 remainder after the #147 evidence path ([g4-pkce-spa-verifier.md](./g4-pkce-spa-verifier.md)). Rebased onto `origin/main` `ada0ede` (after #180 SecretPort getenv snapshot honesty / #171 G5 browser failed-publish honesty). **G18 stays closed.** This leftover does **not** redo #108 HTTP-driver PKCE, #120 HTTPS loopback, #125 desktop stub click, #147 SPA verifier leftover, #152 export wizard, or #166 complete-deny. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. It does **not** start `kc.sh`. It does **not** claim product G4 close. `g4_close=NOT_CLAIMED`.
 
 Keep **both** leftover rows in [docs/README.md](./README.md): `g4-pkce-spa-verifier` (#147) and this file.
 
