@@ -2,7 +2,7 @@
 # G7 leave-path withdraw evidence.
 # Always runs the Zonky HTTP IT (PostgreSQL 15.18, no Docker, no live listener).
 # If a product JAR is already healthy at NEXUS_BASE_URL, also runs the live HTTP script.
-# Does not start Docker. Does not touch AuditPort. Does not provision expense/travel.
+# Does not start Docker. Does not touch AuditPort. Does not rewrite expense/travel catalog.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

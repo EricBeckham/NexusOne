@@ -37,9 +37,10 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * G7 withdraw evidence on the existing G18 <em>leave</em> path.
  *
- * <p>Does not add expense/travel types (parallel #69). Does not touch
- * {@code AuditPort}. Product G18 browser close approved leave and did not click
- * withdraw — this IT is the scripted HTTP record for that missing step.
+ * <p>Does not rewrite expense/travel catalog (already on {@code main} via #69).
+ * Does not touch {@code AuditPort}. Product G18 browser close approved leave
+ * and did not click withdraw — this IT is the scripted HTTP record for that
+ * missing step.
  */
 @SpringBootTest(classes = G18PathApplication.class)
 @AutoConfigureMockMvc

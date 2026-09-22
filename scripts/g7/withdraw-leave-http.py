@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """G7 leave-path withdraw against a live product JAR.
 
-Uses the G18 请假 ledger/form + path APIs already on main. Does not provision
-expense/travel types (parallel #69). Talks HTTP only: issued Bearer +
+Uses the G18 请假 ledger/form + path APIs already on main. Does not rewrite
+the expense/travel catalog (#69 on main). Talks HTTP only: issued Bearer +
 X-Nexus-Context-Id, never X-Tenant-Id. AuditPort is not mutated.
 
 Requires a running NexusOne JAR (see scripts/g7/run-withdraw-leave.sh).

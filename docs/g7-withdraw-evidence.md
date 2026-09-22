@@ -2,9 +2,9 @@
 
 S0+S1 remainder. **Not** a P0/M0 redo. Product **G18 stays closed**.
 
-Eric’s G18 browser walk on `38f1a73` approved 请假 and **did not click 撤回**. This package records that missing step as **scripted HTTP** on the existing leave path already on `main`. Parallel [#69](https://github.com/EricBeckham/NexusOne/pull/69) may add expense / travel types; this package stays orthogonal and does **not** touch those files, `AuditPort`, or the `tenant_member` seeder.
+Eric’s G18 browser walk on `38f1a73` approved 请假 and **did not click 撤回**. This package records that missing step as **scripted HTTP** on the leave path. Expense / travel catalog from [#69](https://github.com/EricBeckham/NexusOne/pull/69) is already on `main`; this package does **not** rewrite those files, `AuditPort`, or the seeder.
 
-**Not claimed:** G7 closed (still need three distinct real businesses), G2 / G4 remainder, full S0+S1 release.
+**Not claimed:** G7 three-type close (catalog is on main; this PR is leave-path withdraw evidence only), G2 / G4 remainder, full S0+S1 release.
 
 ## What is proven
 
@@ -18,7 +18,7 @@ Leave (G18 class `leave` / 请假):
 6. `GET /api/v1/audit/traces/{traceId}` includes `p3.path.submitted`, `p3.approval.started`, `p3.approval.withdrawn`
 7. Hash chain `verifyChain()` intact (IT). `AuditPort` implementation is unchanged.
 
-Travel / expense withdraw is left to #69 once it lands. Prefer re-running `scripts/g7/withdraw-leave-http.py` against a travel form after that merge; the path API is the same.
+Travel / expense catalog and dual-tenant walkthrough stay on main (`docs/g7-business-types.md`, #69 / #80). This package only adds the leave-path IT / live script.
 
 ## How to run
 
@@ -56,7 +56,7 @@ Same loop as the G18 close: stub login, issued `X-Nexus-Context-Id`, never `X-Te
 5. Ledger record `approval_status=WITHDRAWN`. 我发起 status `WITHDRAWN`.
 6. Sidebar 审计 → paste the withdraw `X-Trace-Id` → events include `p3.approval.withdrawn`.
 
-The withdraw control is the ghost **撤回** button on `/p3/todos?box=initiated` (only when the selected instance is still pending). Parallel #69 may add `data-testid=todo-withdraw`; this package does not edit that Vue file.
+The withdraw control is the ghost **撤回** button on `/p3/todos?box=initiated` (only when the selected instance is still pending). Main (#69) already has `data-testid=todo-withdraw`; this package does not edit that Vue file.
 
 This agent recorded the **HTTP** path. A second human click of 撤回 is optional confirmation, not required to keep G18 closed.
 
@@ -70,7 +70,7 @@ Recorded **2026-09-22T15:40:45Z** on this branch with `./scripts/g7/run-withdraw
 | Maven | **3.8.7** |
 | Spring Boot | **4.1.1** |
 | PostgreSQL | Zonky **15.18** (`Database: PostgreSQL 15.18`; Flyway V100→…→**V550**) |
-| Business class | **leave** (G18 请假). Travel deferred to #69 |
+| Business class | **leave** (G18 请假). Travel/expense catalog is on main (#69) |
 | `AuditPort` | **untouched** |
 | Docker | no |
 
@@ -85,7 +85,7 @@ Recorded **2026-09-22T15:40:45Z** on this branch with `./scripts/g7/run-withdraw
 |---|---|
 | Leave withdraw HTTP (submit-start → withdraw → query → audit) | **this package** |
 | Leave withdraw browser click | Documented above; G18 walk did not click it |
-| Expense / travel types | **#69**, not this PR |
-| `tenant_member` seed `process.instance/withdraw` | **#69**. Current `guard()` only hard-fails `explicit_deny` / `tenant_boundary`, so initiator withdraw already succeeds on `main` |
-| G7 three-type close | **open** |
+| Expense / travel catalog | **on main** (#69). Not rewritten here |
+| `tenant_member` seed `process.instance/withdraw` | **on main** (#69). `guard()` still only hard-fails `explicit_deny` / `tenant_boundary` |
+| G7 three-type close | **not claimed** |
 | G18 | **stays closed** |
