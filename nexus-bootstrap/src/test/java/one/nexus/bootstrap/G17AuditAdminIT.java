@@ -117,7 +117,7 @@ class G17AuditAdminIT {
                         .header("Authorization", "Bearer " + token)
                         .header("X-Nexus-Context-Id", contextId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.catalogInstalled").value(true));
+                .andExpect(jsonPath("$.catalog_installed").value(true));
 
         String auditRoleId = extractRoleId(mvc.perform(get("/api/v1/permission/roles")
                         .header("Authorization", "Bearer " + token)

@@ -34,8 +34,8 @@ public final class PlatformDutyCatalog {
             "platform_system_admin / platform_security_admin / platform_audit_admin are mutually "
                     + "exclusive in one tenant. Audit admin may read traces and verify the hash chain; "
                     + "audit.write / delete / admin / config / mute are DENY. Not a full G17 close "
-                    + "(no GM TLS, forced MFA, or classified delivery). tenant_member remains demo "
-                    + "bootstrap and is not a platform duty.";
+                    + "(no GM TLS or classified delivery). Admin MFA is a separate slice. "
+                    + "tenant_member remains demo bootstrap and is not a platform duty.";
 
     private PlatformDutyCatalog() {}
 
