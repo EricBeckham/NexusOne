@@ -95,8 +95,15 @@ public final class OutboxDispatcher implements SmartLifecycle {
 
     public boolean dispatchOne(OutboxRecord record) {
         IsolatedEnvelope envelope = record.envelope();
+        String dispatchKey = record.id().toString();
+        if (idempotency.exists("outbox-dispatched", dispatchKey)) {
+            store.markDispatched(record.id());
+            log(record, "DISPATCHED", "idempotent");
+            return true;
+        }
         try {
             isolation.runRestored(record.membership(), envelope, this::deliver);
+            idempotency.claim("outbox-dispatched", dispatchKey, record.tenantId(), record.traceId());
             store.markDispatched(record.id());
             log(record, "DISPATCHED", null);
             return true;
@@ -128,11 +135,6 @@ public final class OutboxDispatcher implements SmartLifecycle {
                         ErrorCode.EVT_UNKNOWN_DESTINATION,
                         500,
                         "no outbox handler for " + envelope.payloadType()));
-        String key = envelope.payloadType() + ":" + envelope.traceId() + ":" + envelope.payload().hashCode();
-        if (idempotency.claim("outbox-handler:" + envelope.payloadType(), key, envelope.tenantId(), envelope.traceId())
-                == IdempotencyStore.Claim.DUPLICATE) {
-            return;
-        }
         handler.onDispatch(envelope);
     }
 

@@ -11,6 +11,8 @@ public interface IdempotencyStore {
 
     Claim claim(String scope, String key, String tenantId, String traceId);
 
+    boolean exists(String scope, String key);
+
     default boolean first(String scope, String key, String tenantId, String traceId) {
         return claim(scope, key, tenantId, traceId) == Claim.FIRST;
     }

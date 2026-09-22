@@ -76,8 +76,15 @@ public final class TaskWorker implements SmartLifecycle {
 
     public boolean workOne(TaskRecord record) {
         IsolatedEnvelope envelope = record.envelope();
+        String key = record.id().toString();
+        if (idempotency.exists("task-succeeded", key)) {
+            queue.markSucceeded(record.id());
+            log(record, "SUCCEEDED", "idempotent");
+            return true;
+        }
         try {
             isolation.runRestored(record.membership(), envelope, this::execute);
+            idempotency.claim("task-succeeded", key, record.tenantId(), record.traceId());
             queue.markSucceeded(record.id());
             log(record, "SUCCEEDED", null);
             return true;
@@ -107,12 +114,6 @@ public final class TaskWorker implements SmartLifecycle {
                 .findFirst()
                 .orElseThrow(() -> new NexusException(
                         ErrorCode.JOB_UNKNOWN_TYPE, 500, "no task handler for " + envelope.payloadType()));
-        if (idempotency.claim("task-handler:" + envelope.payloadType(),
-                envelope.traceId() + ":" + envelope.payload().hashCode(),
-                envelope.tenantId(),
-                envelope.traceId()) == IdempotencyStore.Claim.DUPLICATE) {
-            return;
-        }
         handler.execute(envelope);
     }
 

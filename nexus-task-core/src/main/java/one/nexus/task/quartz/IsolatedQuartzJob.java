@@ -3,7 +3,6 @@ package one.nexus.task.quartz;
 import java.util.UUID;
 import one.nexus.common.error.ErrorCode;
 import one.nexus.common.error.NexusException;
-import one.nexus.event.IdempotencyStore;
 import one.nexus.event.isolation.StoredMembership;
 import one.nexus.isolation.boundary.IsolatedEnvelope;
 import one.nexus.task.TaskHandler;
@@ -73,14 +72,16 @@ public final class IsolatedQuartzJob implements Job {
                 .findFirst()
                 .orElseThrow(() -> new NexusException(
                         ErrorCode.JOB_UNKNOWN_TYPE, 500, "no quartz handler for " + envelope.payloadType()));
-        if (runtime.idempotency().claim(
-                "quartz-handler:" + envelope.payloadType(),
-                envelope.traceId() + ":" + envelope.payload().hashCode(),
-                envelope.tenantId(),
-                envelope.traceId()) == IdempotencyStore.Claim.DUPLICATE) {
+        String key = envelope.traceId() + ":" + envelope.payloadType() + ":" + envelope.payload().hashCode();
+        if (runtime.idempotency().exists("quartz-handler:" + envelope.payloadType(), key)) {
             return;
         }
         handler.execute(envelope);
+        runtime.idempotency().claim(
+                "quartz-handler:" + envelope.payloadType(),
+                key,
+                envelope.tenantId(),
+                envelope.traceId());
     }
 
     public static JobDataMap dataMap(StoredMembership membership, IsolatedEnvelope envelope) {

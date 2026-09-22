@@ -42,4 +42,20 @@ public final class JdbcIdempotencyStore implements IdempotencyStore {
             }
         });
     }
+
+    @Override
+    public boolean exists(String scope, String key) {
+        return Jdbc.call(dataSource, connection -> {
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    SELECT 1 FROM platform.exec_idempotency
+                    WHERE scope = ? AND idempotency_key = ?
+                    """)) {
+                ps.setString(1, scope);
+                ps.setString(2, key);
+                try (var rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        });
+    }
 }
