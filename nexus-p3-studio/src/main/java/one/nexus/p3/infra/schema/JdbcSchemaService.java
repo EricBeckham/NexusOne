@@ -141,6 +141,55 @@ public class JdbcSchemaService implements SchemaService {
     }
 
     @Override
+    @Transactional
+    public void ensurePhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
+        LedgerDefinition current = ledgers.findById(ledger.tenantId(), ledger.id()).orElse(ledger);
+        if (!physicalTableExists(current)) {
+            createPhysicalTable(current, fields);
+            return;
+        }
+        confirmPhysicalTable(current, fields);
+        Set<String> physical = physicalColumns(current);
+        List<LedgerField> onTable = new ArrayList<>();
+        for (LedgerField field : fields) {
+            if (physical.contains(field.fieldCode())) {
+                onTable.add(field);
+            }
+        }
+        for (LedgerField field : fields) {
+            if (physical.contains(field.fieldCode())) {
+                continue;
+            }
+            current = evolvePhysicalTable(current, List.copyOf(onTable), field);
+            onTable.add(field);
+            physical.add(field.fieldCode());
+        }
+    }
+
+    private boolean physicalTableExists(LedgerDefinition ledger) {
+        Connection connection = SearchPathConnections.open(dataSource);
+        try {
+            lock(connection);
+            return registryWriter.tableExists(connection, ledger.physicalTable());
+        } catch (SQLException ex) {
+            throw new IllegalStateException("SchemaService ensure failed for " + ledger.physicalTable(), ex);
+        } finally {
+            SearchPathConnections.release(dataSource, connection);
+        }
+    }
+
+    private Set<String> physicalColumns(LedgerDefinition ledger) {
+        Connection connection = SearchPathConnections.open(dataSource);
+        try {
+            return new LinkedHashSet<>(registryWriter.columnNames(connection, ledger.physicalTable()));
+        } catch (SQLException ex) {
+            throw new IllegalStateException("SchemaService ensure failed for " + ledger.physicalTable(), ex);
+        } finally {
+            SearchPathConnections.release(dataSource, connection);
+        }
+    }
+
+    @Override
     public void registerRuntime(LedgerDefinition ledger, List<LedgerField> fields) {
         Set<String> columns = new LinkedHashSet<>(SystemColumns.ALL);
         fields.forEach(field -> columns.add(LedgerIdentifiers.requireFieldCode(field.fieldCode())));

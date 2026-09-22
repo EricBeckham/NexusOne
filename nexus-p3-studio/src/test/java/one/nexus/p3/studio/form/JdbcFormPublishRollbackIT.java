@@ -47,10 +47,10 @@ import org.springframework.jdbc.support.JdbcTransactionManager;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * G5 form-publish failed paths on PostgreSQL 15: validate-fail stays DRAFT;
- * mid-publish failure (PublishHook stand-in, SchemaService confirm miss, and
- * SchemaService evolve DDL abort) leaves the Running pointer and published
- * snapshot unchanged.
+ * G5 form-publish paths on PostgreSQL 15: validate-fail stays DRAFT;
+ * product {@link SchemaServicePublishHook} CREATE/evolve on drift; mid-publish
+ * failure (PublishHook stand-in and SchemaService evolve DDL abort) leaves the
+ * Running pointer and published snapshot unchanged.
  */
 class JdbcFormPublishRollbackIT {
     private static final String TENANT = "11111111-1111-4111-8111-111111111111";
@@ -142,7 +142,49 @@ class JdbcFormPublishRollbackIT {
     }
 
     @Test
-    void schemaServiceConfirmMissLeavesRunningPointerAndSnapshotUnchanged() throws Exception {
+    void schemaServiceCreateOnMissingPhysicalTableSucceeds() throws Exception {
+        try (SchemaEnv env = SchemaEnv.start()) {
+            env.dropPhysicalTable();
+            assertEquals(0, env.countPhysicalTables());
+            FormService service = env.formService(env.schema);
+            FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
+            service.validate(form.formId());
+            FormRecord published = service.publish(form.formId(), "v1");
+            assertEquals(1, published.runningVersion());
+            assertEquals(1, env.countPhysicalTables());
+            assertEquals(1, env.countColumn("title"));
+            assertEquals(1, env.countColumn("days"));
+            assertEquals(1, env.countColumn("applicant"));
+            assertEquals(1, env.countRunning(form.formId()));
+            assertEquals(1, env.ledgerSchemaVersion());
+        }
+    }
+
+    @Test
+    void schemaServiceEvolveNewFieldOnPublishSucceeds() throws Exception {
+        try (SchemaEnv env = SchemaEnv.start()) {
+            FormService service = env.formService(env.schema);
+            FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
+            service.validate(form.formId());
+            service.publish(form.formId(), "v1");
+            assertEquals(0, env.countColumn("remark"));
+            assertEquals(1, env.ledgerSchemaVersion());
+
+            env.insertField(env.newField("remark", FieldType.TEXT, false, 3));
+            service.update(form.formId(), "请假单 v2", null, remarkBindings());
+            service.validate(form.formId());
+            FormRecord published = service.publish(form.formId(), "v2");
+            assertEquals(2, published.runningVersion());
+            assertEquals(1, env.countColumn("remark"));
+            assertEquals(2, env.ledgerSchemaVersion());
+            PublishedPointer after = env.readPointer(form.formId());
+            assertEquals(2, after.runningVersion());
+            assertTrue(after.snapshotJson().contains("remark"), after.snapshotJson());
+        }
+    }
+
+    @Test
+    void schemaServiceEvolveAbortLeavesRunningPointerAndSnapshotUnchanged() throws Exception {
         try (SchemaEnv env = SchemaEnv.start()) {
             FormService service = env.formService(env.schema);
             FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
@@ -150,38 +192,11 @@ class JdbcFormPublishRollbackIT {
             service.publish(form.formId(), "v1");
             PublishedPointer before = env.readPointer(form.formId());
             assertEquals(1, before.runningVersion());
-
-            env.dropPhysicalTable();
-            service.update(form.formId(), "请假单 v2", null, leaveBindings());
-            service.validate(form.formId());
-            NexusException failed = assertThrows(NexusException.class, () -> service.publish(form.formId(), "v2"));
-            assertEquals(ErrorCode.FORM_PUBLISH_FAILED, failed.errorCode());
-            assertTrue(
-                    String.valueOf(failed.details().get("cause")).contains("ledger physical table is not ready"),
-                    () -> String.valueOf(failed.details()));
-
-            PublishedPointer after = env.readPointer(form.formId());
-            assertEquals(before, after);
-            assertEquals(1, env.countVersions(form.formId()));
-            assertEquals(1, env.countRunning(form.formId()));
-            assertTrue(service.publishLog(form.formId()).stream().anyMatch(log -> "ROLLED_BACK".equals(log.outcome())));
-        }
-    }
-
-    @Test
-    void schemaServiceDdlAbortLeavesRunningPointerAndSnapshotUnchanged() throws Exception {
-        try (SchemaEnv env = SchemaEnv.start()) {
-            env.precreateCollidingColumn("drift_col");
-            SchemaService gate = new ConfirmThenAbortEvolve(env.schema, env.collidingField("drift_col"));
-            FormService service = env.formService(gate);
-            FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
-            service.validate(form.formId());
-            service.publish(form.formId(), "v1");
-            PublishedPointer before = env.readPointer(form.formId());
-            assertEquals(1, before.runningVersion());
             assertEquals(1, env.countPhysicalTables());
 
-            service.update(form.formId(), "请假单 v2", null, leaveBindings());
+            env.insertPhysicalRow();
+            env.insertField(env.newField("remark", FieldType.TEXT, true, 3));
+            service.update(form.formId(), "请假单 v2", null, remarkBindings());
             service.validate(form.formId());
             NexusException failed = assertThrows(NexusException.class, () -> service.publish(form.formId(), "v2"));
             assertEquals(ErrorCode.FORM_PUBLISH_FAILED, failed.errorCode());
@@ -194,6 +209,8 @@ class JdbcFormPublishRollbackIT {
             assertEquals(1, env.countVersions(form.formId()));
             assertEquals(1, env.countRunning(form.formId()));
             assertEquals(1, env.countPhysicalTables());
+            assertEquals(0, env.countColumn("remark"));
+            assertEquals(1, env.ledgerSchemaVersion());
             assertTrue(service.publishLog(form.formId()).stream().anyMatch(log -> "ROLLED_BACK".equals(log.outcome())));
         }
     }
@@ -203,6 +220,14 @@ class JdbcFormPublishRollbackIT {
                 new FormBinding("title", "leave_request", "title", true, false, WidgetType.TEXT, 0),
                 new FormBinding("days", "leave_request", "days", true, false, WidgetType.NUMBER, 1),
                 new FormBinding("applicant", "leave_request", "applicant", true, false, WidgetType.PERSON, 2));
+    }
+
+    private static List<FormBinding> remarkBindings() {
+        return List.of(
+                new FormBinding("title", "leave_request", "title", true, false, WidgetType.TEXT, 0),
+                new FormBinding("days", "leave_request", "days", true, false, WidgetType.NUMBER, 1),
+                new FormBinding("applicant", "leave_request", "applicant", true, false, WidgetType.PERSON, 2),
+                new FormBinding("remark", "leave_request", "remark", false, false, WidgetType.TEXTAREA, 3));
     }
 
     private record FormRow(String draftStatus, Integer runningVersion) {}
@@ -431,31 +456,65 @@ class JdbcFormPublishRollbackIT {
             }
         }
 
-        void precreateCollidingColumn(String column) throws Exception {
-            try (Connection connection = dataSource.getConnection();
-                    Statement statement = connection.createStatement()) {
-                statement.execute("ALTER TABLE business_data." + PHYSICAL_TABLE + " ADD COLUMN " + column + " text");
-            }
+        void insertField(LedgerField field) {
+            fields.insert(field);
         }
 
-        LedgerField collidingField(String fieldCode) {
+        LedgerField newField(String fieldCode, FieldType type, boolean required, int order) {
             Instant now = Instant.parse("2026-09-22T00:00:00Z");
             return new LedgerField(
                     UuidV7.generate(),
                     ledger.tenantId(),
                     ledger.id(),
                     fieldCode,
-                    "Drift",
-                    FieldType.TEXT,
+                    fieldCode,
+                    type,
+                    required,
                     false,
-                    false,
-                    99,
+                    order,
                     now,
                     "designer",
                     now,
                     "designer",
                     null,
                     1L);
+        }
+
+        void insertPhysicalRow() {
+            jdbc.sql(
+                            """
+                            insert into business_data.l_g5a_leave_request (
+                              id, tenant_id, created_at, created_by, updated_at, updated_by,
+                              version, schema_version, ext_data, title, days, applicant)
+                            values (
+                              :id, :tenant_id, :now, 'designer', :now, 'designer',
+                              1, 1, '{}'::jsonb, '年假', 3, 'alice')
+                            """)
+                    .param("id", UuidV7.generate())
+                    .param("tenant_id", TENANT)
+                    .param("now", java.sql.Timestamp.from(Instant.parse("2026-09-22T00:00:00Z")))
+                    .update();
+        }
+
+        int countColumn(String column) {
+            return jdbc.sql(
+                            """
+                            select count(*) from information_schema.columns
+                             where table_schema = 'business_data'
+                               and table_name = :name
+                               and column_name = :column
+                            """)
+                    .param("name", PHYSICAL_TABLE)
+                    .param("column", column)
+                    .query(Integer.class)
+                    .single();
+        }
+
+        int ledgerSchemaVersion() {
+            return jdbc.sql("select schema_version from business_meta.ledger where id = :id")
+                    .param("id", ledger.id())
+                    .query(Integer.class)
+                    .single();
         }
 
         int countPhysicalTables() {
@@ -539,50 +598,6 @@ class JdbcFormPublishRollbackIT {
                     "designer",
                     null,
                     1L);
-        }
-    }
-
-    /**
-     * Product gate ({@link SchemaService#confirmPhysicalTable}) plus a second-publish
-     * {@link SchemaService#evolvePhysicalTable} that hits a real PostgreSQL DDL abort.
-     */
-    private static final class ConfirmThenAbortEvolve implements SchemaService {
-        private final JdbcSchemaService real;
-        private final LedgerField colliding;
-        private final AtomicInteger confirms = new AtomicInteger();
-
-        ConfirmThenAbortEvolve(JdbcSchemaService real, LedgerField colliding) {
-            this.real = real;
-            this.colliding = colliding;
-        }
-
-        @Override
-        public LedgerDefinition createPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
-            return real.createPhysicalTable(ledger, fields);
-        }
-
-        @Override
-        public LedgerDefinition evolvePhysicalTable(
-                LedgerDefinition ledger, List<LedgerField> currentFields, LedgerField added) {
-            return real.evolvePhysicalTable(ledger, currentFields, added);
-        }
-
-        @Override
-        public one.nexus.p3.domain.SchemaAst astOf(LedgerDefinition ledger, List<LedgerField> fields) {
-            return real.astOf(ledger, fields);
-        }
-
-        @Override
-        public void registerRuntime(LedgerDefinition ledger, List<LedgerField> fields) {
-            real.registerRuntime(ledger, fields);
-        }
-
-        @Override
-        public void confirmPhysicalTable(LedgerDefinition ledger, List<LedgerField> fields) {
-            real.confirmPhysicalTable(ledger, fields);
-            if (confirms.incrementAndGet() >= 2) {
-                real.evolvePhysicalTable(ledger, fields, colliding);
-            }
         }
     }
 

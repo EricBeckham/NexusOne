@@ -265,6 +265,18 @@ Extends #70. Product publish now defaults to `SchemaServicePublishHook` → `Sch
 - Zonky PG 15: `JdbcSchemaService.evolvePhysicalTable` hits PostgreSQL `42701` (pre-created `drift_col`) → pointer/snapshot unchanged
 - HTTP / memory: same `SchemaServicePublishHook` + evolve-failed shape
 
+Superseded for the product gate by the G5 remainder below (`ensurePhysicalTable` CREATE/evolve). The #85 suites remain historical.
+
+# G5 remainder — SchemaService evolve/CREATE on publish (forms only)
+
+Extends #70 / #85. Product `SchemaServicePublishHook` now calls `SchemaService.ensurePhysicalTable` inside the publish TX:
+
+- Missing physical table → `createPhysicalTable`
+- Declared field not on the physical table → `evolvePhysicalTable`
+- No drift → `confirmPhysicalTable` (G18 leave publish stays on this path)
+
+Mid-evolve failure still rolls back the Running pointer / snapshot and writes the existing `ROLLED_BACK` log. Abort evidence is a required new column on a table that already has a row (PostgreSQL `23502`), not a `ConfirmThenAbortEvolve` wrapper.
+
 Agent VM **2026-09-22T15:42:29Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
 
 ```bash
