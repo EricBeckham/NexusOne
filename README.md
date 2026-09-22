@@ -14,7 +14,7 @@
 当前执行口径：数据库为本机 PostgreSQL 15，缓存为本机 Redis 3.2；Java 应用直接以本机 JAR/进程运行，**不使用 Docker**。凭据只通过本机环境变量或受控 Secret 提供，不写入仓库或 Issue。`poc/` 是此前验证资产，不能自动视为正式验收通过。
 
 M0-10（CachePort / File Service / 站内通知）见 [docs/m0-10-file-cache-notify.md](./docs/m0-10-file-cache-notify.md)。
-M0-07（基础表单与发布）见 [docs/m0-07-form-publish.md](./docs/m0-07-form-publish.md)。
+M0-07（基础表单与发布）见 [docs/m0-07-form-publish.md](./docs/m0-07-form-publish.md)。G5 表单失败回滚证据见 [docs/g5-form-publish-rollback.md](./docs/g5-form-publish-rollback.md)。
 
 ## 应用骨架（M0-01）
 

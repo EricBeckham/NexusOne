@@ -118,6 +118,43 @@ class FormApiTest {
         mvc.perform(get("/api/v1/p3/forms"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("CORE.CTX.0001"));
+
+        mvc.perform(post("/api/v1/p3/forms")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"app_code":"demo","form_code":"unknown_ledger_form","name":"未知台账",
+                                 "bindings":[{"widget_code":"title","ledger_code":"missing_ledger","field_code":"title","required":true}]}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.draft_status").value("DRAFT"));
+
+        MvcResult listedBad = mvc.perform(get("/api/v1/p3/forms")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String badId = null;
+        for (JsonNode node : mapper.readTree(listedBad.getResponse().getContentAsString())) {
+            if ("unknown_ledger_form".equals(node.get("form_code").asText())) {
+                badId = node.get("form_id").asText();
+            }
+        }
+        org.junit.jupiter.api.Assertions.assertNotNull(badId);
+
+        mvc.perform(post("/api/v1/p3/forms/" + badId + "/validate")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("P3.FORM.0005"));
+
+        mvc.perform(get("/api/v1/p3/forms/" + badId)
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.draft_status").value("DRAFT"))
+                .andExpect(jsonPath("$.running_version").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @SpringBootConfiguration

@@ -37,7 +37,7 @@ DRAFT --validate--> VALIDATED --publish--> RUNNING
 - 发布中途失败（`PublishHook` / 运行时异常）：**事务回滚**。RUNNING 指针与已发布 snapshot 不变；`form_publish_log.outcome=ROLLED_BACK`。
 - 编辑 VALIDATED 草稿会回到 DRAFT，必须重新校验。
 
-G5（Draft/Running、校验、失败回滚）由模块测试覆盖。G18 关闭记录在 `docs/g18-business-path.md`，浏览器走通了校验与发布，失败回滚仍以这里的模块测试为准。
+G5（Draft/Running、校验、失败回滚）只验收 **表单发布**。失败路径证据在 [g5-form-publish-rollback.md](./g5-form-publish-rollback.md)：`./scripts/g5-form-publish-rollback.sh`。G18 关闭记录在 `docs/g18-business-path.md`，浏览器走通了校验与**成功**发布；validate-fail→DRAFT 与 publish-fail→Running/snapshot 不变不在那次点击里。
 
 ## API
 
@@ -83,7 +83,9 @@ G5（Draft/Running、校验、失败回滚）由模块测试覆盖。G18 关闭�
 ## 测试
 
 ```bash
+./scripts/g5-form-publish-rollback.sh
+# or
 mvn -pl nexus-p3-studio,nexus-common,nexus-bootstrap -am test
 ```
 
-Zonky 嵌入式 PostgreSQL **15.18**（`JdbcFormPublishRollbackIT`），无 Docker。
+Zonky 嵌入式 PostgreSQL **15.18**（`JdbcFormPublishRollbackIT`：校验失败保持 DRAFT；发布失败后 RUNNING 指针与 `snapshot_json` 不变），无 Docker。
