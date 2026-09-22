@@ -43,7 +43,7 @@ Filled after the leftover honesty script on this VM. Live output is gitignored u
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** | honest SKIP accepted; fake handshake PASS / fake G17 close / fake #129/#160 redo rejected (`2026-09-22T20:54:50Z`) |
+| Honesty fixtures | **PASS** | honest SKIP accepted; fake handshake PASS / fake G17 close / fake #129/#160 redo rejected (`2026-09-22T20:57:00Z`) |
 | leftover #129 cells still honest | **PASS** | DualStackTlsProbe source + nginx templates present; parent honest SKIP accepted |
 | leftover #160 cells still honest | **PASS** | committed handshake SKIP; `g17_close=NOT_CLAIMED` |
 | DualStackTlsProbe harness | **PASS** | local Java leftover; **not** a Tongsuo handshake |
