@@ -1,0 +1,21 @@
+# Tongsuo / BabaSSL nginx wrapper for the G17 dual-stack leftover.
+# Stock OpenSSL nginx will not accept enable_ntls / ssl_ntls_* in the included
+# server file. The collect script SKIPs unless `nginx -V` reports Tongsuo.
+#
+# Rendered under .local/ (gitignored). Do not commit private keys.
+# Product JAR stays HTTP. This leftover does not enable server.ssl on Boot 4.1.1.
+
+worker_processes 1;
+error_log __PREFIX__/error.log info;
+pid __PREFIX__/nginx.pid;
+daemon off;
+
+events {
+    worker_connections 16;
+}
+
+http {
+    access_log __PREFIX__/access.log;
+    server_tokens off;
+    include __PREFIX__/dual-stack.conf;
+}
