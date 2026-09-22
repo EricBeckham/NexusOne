@@ -71,4 +71,4 @@ Export / Job / Task remainder on this branch (Boot **4.1.1** / OpenJDK **21.0.10
 # p3-studio: 8 tests (PermissionDataScopeHook 4, G2SurfaceAgreement 4)
 ```
 
-Form fill / POST submissions remainder: [g2-form-submission-write.md](./g2-form-submission-write.md). Path submit-start dual-check: [g2-submit-start-form-write.md](./g2-submit-start-form-write.md). See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.
+Form fill / POST submissions remainder: [g2-form-submission-write.md](./g2-form-submission-write.md). Path submit-start dual-check: [g2-submit-start-form-write.md](./g2-submit-start-form-write.md) (`G2SubmitStartFormWriteIT` **3/3** at **2026-09-22T17:38:56Z**; `G18BusinessPathIT` **4/4** at **2026-09-22T17:39:09Z**). See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.

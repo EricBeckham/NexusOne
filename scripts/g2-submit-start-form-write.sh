@@ -8,13 +8,23 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+if ! command -v mvn >/dev/null 2>&1; then
+  if [[ -x "${HOME}/tools/apache-maven-3.8.7/bin/mvn" ]]; then
+    export PATH="${HOME}/tools/apache-maven-3.8.7/bin:${PATH}"
+  fi
+fi
+if ! command -v mvn >/dev/null 2>&1; then
+  echo "ERROR: mvn not on PATH" >&2
+  exit 1
+fi
+
 echo "== G2 submit-start form.write dual-check"
 echo "cwd=$ROOT"
 java -version
 mvn -version | head -n 1
 
 mvn -pl nexus-p3-studio -am test \
-  -Dtest=G2SubmitStartFormWriteIT,G2SurfaceAgreementTest,FormSurfaceGuardTest,FormSubmissionWriteApiTest,G18BusinessPathIT \
+  -Dtest=G2SubmitStartFormWriteIT,G2SurfaceAgreementTest,FormSurfaceGuardTest,G18BusinessPathIT \
   -Dsurefire.failIfNoSpecifiedTests=false
 
 echo

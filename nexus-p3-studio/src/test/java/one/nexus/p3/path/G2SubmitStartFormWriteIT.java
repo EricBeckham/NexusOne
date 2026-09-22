@@ -30,7 +30,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
@@ -46,7 +45,6 @@ import tools.jackson.databind.ObjectMapper;
 @SpringBootTest(classes = G18PathApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("g18")
-@TestPropertySource(properties = "nexus.permission.seed-tenant-member-grants=false")
 class G2SubmitStartFormWriteIT {
     private static EmbeddedPostgres postgres;
 
@@ -64,6 +62,7 @@ class G2SubmitStartFormWriteIT {
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
         EmbeddedFlowSupport.register(registry, postgres);
+        registry.add("nexus.permission.seed-tenant-member-grants", () -> "false");
     }
 
     @AfterEach

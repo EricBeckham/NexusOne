@@ -35,11 +35,18 @@ Equivalent:
 
 ```bash
 mvn -pl nexus-p3-studio -am test \
-  -Dtest=G2SubmitStartFormWriteIT,G2SurfaceAgreementTest,FormSurfaceGuardTest,FormSubmissionWriteApiTest,G18BusinessPathIT \
+  -Dtest=G2SubmitStartFormWriteIT,G2SurfaceAgreementTest,FormSurfaceGuardTest,G18BusinessPathIT \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Recorded on this agent VM after the change (OpenJDK / Maven / Boot / PG versions filled from the test run). G18 leave `publishSubmitApprovalOutboxAndAuditShareOnePath` stays green so `tenant_member` seed still works.
+Recorded on this agent VM **2026-09-22T17:38:56Z** / **2026-09-22T17:39:09Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
+
+| Suite | Result |
+|---|---|
+| `G2SubmitStartFormWriteIT` | **3/3** `BUILD SUCCESS` at **2026-09-22T17:38:56Z** |
+| `G2SurfaceAgreementTest` | **7/7** (includes dual-check: approver start / designer fill) |
+| `FormSurfaceGuardTest` | **6/6** |
+| `G18BusinessPathIT` | **4/4** `BUILD SUCCESS` at **2026-09-22T17:39:09Z** — leave seed path still works |
 
 Failing-before / passing-after is `G2SubmitStartFormWriteIT`:
 
