@@ -139,6 +139,16 @@ class G9RedisDownInvalidateRemainderTest {
         assertTrue(leftover.contains("g9-redis-down-invalidate-honesty"));
         assertTrue(leftover.contains("s0s1-live-redis-minio-isolation-honesty"));
         assertTrue(leftover.contains("g6-recovery-port-dry-run-honesty"));
+        assertTrue(leftover.contains("g4-p1-staging-audit-events-honesty"));
+        assertTrue(leftover.contains("linux-arm-profile-leftover-honesty"));
+        assertTrue(leftover.contains("g7-query-expense-travel-honesty"));
+        assertTrue(leftover.contains("s0-secret-rotate-without-restart-honesty"));
+        assertTrue(leftover.contains("g15-wx-dt-native-bridge-honesty"));
+        assertTrue(leftover.contains("g1-queryast-boundsql-honesty"));
+        assertTrue(leftover.contains("g3-outbox-consume-crash-honesty"));
+        assertTrue(leftover.contains("g5-mid-publish-failure-honesty"));
+        assertTrue(leftover.contains("g10-leftover-honesty"));
+        assertTrue(leftover.contains("g4-export-wizard-deny-honesty"));
         assertTrue(leftover.contains("does **not** claim") || leftover.contains("Does **not** claim"));
         assertFalse(leftover.toLowerCase(Locale.ROOT).contains("product g9 is closed"));
         assertFalse(leftover.contains("产品 G9 已关闭"));

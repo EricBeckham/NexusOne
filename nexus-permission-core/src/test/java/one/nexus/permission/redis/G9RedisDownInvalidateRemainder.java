@@ -151,7 +151,17 @@ public final class G9RedisDownInvalidateRemainder {
                 "[g7-withdraw-browser-honesty](./g7-withdraw-browser-honesty.md)",
                 "[g3-claim-crash-window](./g3-claim-crash-window.md)",
                 "[s0s1-live-redis-minio-isolation-honesty](./s0s1-live-redis-minio-isolation-honesty.md)",
-                "[g6-recovery-port-dry-run-honesty](./g6-recovery-port-dry-run-honesty.md)"
+                "[g6-recovery-port-dry-run-honesty](./g6-recovery-port-dry-run-honesty.md)",
+                "[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)",
+                "[linux-arm-profile-leftover-honesty](./linux-arm-profile-leftover-honesty.md)",
+                "[g7-query-expense-travel-honesty](./g7-query-expense-travel-honesty.md)",
+                "[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)",
+                "[g15-wx-dt-native-bridge-honesty](./g15-wx-dt-native-bridge-honesty.md)",
+                "[g1-queryast-boundsql-honesty](./g1-queryast-boundsql-honesty.md)",
+                "[g3-outbox-consume-crash-honesty](./g3-outbox-consume-crash-honesty.md)",
+                "[g5-mid-publish-failure-honesty](./g5-mid-publish-failure-honesty.md)",
+                "[g10-leftover-honesty](./g10-leftover-honesty.md)",
+                "[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)"
         };
         for (String row : required) {
             if (!readme.contains(row)) {

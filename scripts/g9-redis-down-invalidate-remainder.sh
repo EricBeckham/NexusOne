@@ -172,7 +172,17 @@ if grep -Fq '[g9-policysnapshot-invalidate](./g9-policysnapshot-invalidate.md)' 
   && grep -Fq '[g7-withdraw-browser-honesty](./g7-withdraw-browser-honesty.md)' "$README" \
   && grep -Fq '[g3-claim-crash-window](./g3-claim-crash-window.md)' "$README" \
   && grep -Fq '[s0s1-live-redis-minio-isolation-honesty](./s0s1-live-redis-minio-isolation-honesty.md)' "$README" \
-  && grep -Fq '[g6-recovery-port-dry-run-honesty](./g6-recovery-port-dry-run-honesty.md)' "$README"; then
+  && grep -Fq '[g6-recovery-port-dry-run-honesty](./g6-recovery-port-dry-run-honesty.md)' "$README" \
+  && grep -Fq '[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)' "$README" \
+  && grep -Fq '[linux-arm-profile-leftover-honesty](./linux-arm-profile-leftover-honesty.md)' "$README" \
+  && grep -Fq '[g7-query-expense-travel-honesty](./g7-query-expense-travel-honesty.md)' "$README" \
+  && grep -Fq '[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)' "$README" \
+  && grep -Fq '[g15-wx-dt-native-bridge-honesty](./g15-wx-dt-native-bridge-honesty.md)' "$README" \
+  && grep -Fq '[g1-queryast-boundsql-honesty](./g1-queryast-boundsql-honesty.md)' "$README" \
+  && grep -Fq '[g3-outbox-consume-crash-honesty](./g3-outbox-consume-crash-honesty.md)' "$README" \
+  && grep -Fq '[g5-mid-publish-failure-honesty](./g5-mid-publish-failure-honesty.md)' "$README" \
+  && grep -Fq '[g10-leftover-honesty](./g10-leftover-honesty.md)' "$README" \
+  && grep -Fq '[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)' "$README"; then
   LEFTOVER_ROWS=true
 fi
 [ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep ALL sibling leftover rows + this leftover"
