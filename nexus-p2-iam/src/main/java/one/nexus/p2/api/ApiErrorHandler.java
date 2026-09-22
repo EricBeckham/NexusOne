@@ -2,13 +2,20 @@ package one.nexus.p2.api;
 
 import one.nexus.common.trace.TraceIds;
 import one.nexus.p2.support.DomainException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
 
-@RestControllerAdvice(assignableTypes = {AuthController.class, OrganizationController.class})
+/**
+ * P2-specific advice. Named distinctly from bootstrap {@code ApiExceptionHandler}
+ * so a {@code P2.IAM.*} DomainException is not swallowed as {@code CORE.API.0099}.
+ */
+@RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiErrorHandler {
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<Map<String, Object>> handle(DomainException ex) {

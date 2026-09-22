@@ -47,6 +47,17 @@ info:
     java: "21"
     flyway-pin: "13.7.0"
 
+# Library application.yml files are not the monolith’s config source.
+# Bind P1/P2 env vars here so M0-12 scripts and the Vue shell can call merged APIs.
+nexus:
+  p1:
+    demo-context:
+      enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
+  iam:
+    persistence: ${NEXUS_IAM_PERSISTENCE:memory}
+    idp: ${NEXUS_IAM_IDP:stub}
+    platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:${NEXUS_IAM_PLATFORM_BOOTSTRAP_TOKEN:}}
+
 logging:
   structured:
     format:

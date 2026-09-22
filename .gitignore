@@ -24,3 +24,8 @@ Thumbs.db
 
 # Isolated local integration environment
 .local/
+
+# Vue / Node (M0-12)
+node_modules/
+web/dist/
+web/.vite/
