@@ -64,22 +64,22 @@ Same loop as the G18 close: stub login, issued `X-Nexus-Context-Id`, never `X-Te
 
 ## Evidence
 
-Recorded on this branch after `./scripts/g7/run-withdraw-expense-travel.sh`. Artifact: [it-run.json](./g7-withdraw-expense-travel/it-run.json).
+Recorded **2026-09-22T17:14:20Z** on this branch after rebase onto `92fd7b5` (`#100`) with `./scripts/g7/run-withdraw-expense-travel.sh`. Artifact: [it-run.json](./g7-withdraw-expense-travel/it-run.json).
 
 | Item | Value |
 |---|---|
-| JDK | OpenJDK **21** |
-| Maven | recorded in the IT artifact |
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
+| Maven | **3.8.7** |
 | Spring Boot | **4.1.1** |
-| PostgreSQL | Zonky **15.18** |
+| PostgreSQL | Zonky **15.18** (`Database: PostgreSQL 15.18`; Flyway V100→**V550**) |
 | Business classes | **expense** + **travel** (catalog #69). Leave withdraw is a sibling package |
 | `AuditPort` | **untouched** |
 | Docker | no |
 
 | Suite | Result |
 |---|---|
-| `G7ExpenseTravelWithdrawIT` | pending this run — see [it-run.json](./g7-withdraw-expense-travel/it-run.json) |
-| live `withdraw-expense-travel-http.py` | **SKIP** unless a product JAR is healthy on `:8080` |
+| `G7ExpenseTravelWithdrawIT` | **2/2** `BUILD SUCCESS` (9.535 s) — expense and travel: submit-start → non-initiator 403 → initiator `WITHDRAWN` → repeat withdraw stays `WITHDRAWN` (one `p3.approval.withdrawn`) → query type fields → initiated `WITHDRAWN` → `audit_record` ≥ 3 + `verifyChain()` intact |
+| live `withdraw-expense-travel-http.py` | **SKIP** — no product JAR on `:8080`. Script is ready for a live loop |
 
 ## Honest gaps
 
