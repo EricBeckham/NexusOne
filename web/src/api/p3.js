@@ -38,4 +38,7 @@ export const p3 = {
   withdrawTodo: (...args) => live.withdrawTodo(...args),
   listBusinessTypes: (...args) => live.listBusinessTypes(...args),
   provisionBusinessType: (...args) => live.provisionBusinessType(...args),
+  reportDecision: (...args) => live.reportDecision(...args),
+  queryReport: (...args) => live.queryReport(...args),
+  exportReport: (...args) => live.exportReport(...args),
 };

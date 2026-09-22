@@ -25,8 +25,8 @@ public final class RoleMatrixCatalog {
                     + "matrix with DataScope and field policy, evaluated by PermissionEngine "
                     + "for list, detail, flow, form studio, form fill / POST submissions, "
                     + "path submit-start (form.write + process.instance/start when form_id is "
-                    + "present), H5 /m/* list/detail/form/todo, export Task type, Job/Task submit, "
-                    + "and export cache. Report UI / physical ledger dump remain open. "
+                    + "present), H5 /m/* list/detail/form/todo, report query/export, export Task type, Job/Task submit, "
+                    + "and export cache. Physical ledger dump remains open. "
                     + "Not full product G2.";
 
     private RoleMatrixCatalog() {}

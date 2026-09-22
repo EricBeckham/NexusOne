@@ -18,7 +18,8 @@
     "assert:h5-runtime": "node scripts/assert-h5-runtime.mjs",
     "assert:h5-permission": "node scripts/assert-h5-permission.mjs",
     "assert:h5-app-webview": "node scripts/assert-h5-app-webview.mjs",
-    "assert:h5-pkce": "node scripts/assert-h5-pkce.mjs"
+    "assert:h5-pkce": "node scripts/assert-h5-pkce.mjs",
+    "assert:g2-report-surface": "node scripts/assert-g2-report-surface.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13",

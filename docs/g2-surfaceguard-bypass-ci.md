@@ -73,8 +73,8 @@ This is **not** a product-wide G2 close.
 |---|---|
 | `TodoController` / `TodoQueryService` | HTTP stays tenant-person filter. Allowlisted leftover. H5 UI still gates via `/check`. |
 | Ledger / application / business-type catalog HTTP | Definition list is not a record/form/flow surface. Unchanged. |
-| Isolation-only `tenant_only` | `FormSurfaceGuard` / `H5SurfaceGuard` / `PermissionDataScopeHook` still skip when no P2 `TenantContext`. |
-| Report UI / physical ledger dump | Unchanged. The gate blocks new raw dump callers; it does not add a report screen. |
+| Isolation-only `tenant_only` | `FormSurfaceGuard` / `H5SurfaceGuard` / `ReportSurfaceGuard` / `PermissionDataScopeHook` still skip when no P2 `TenantContext`. |
+| Report UI / physical ledger dump | Report query/export HTTP is the sibling leftover [g2-report-surface-guard.md](./g2-report-surface-guard.md). Physical dump stays open. The gate still blocks new raw dump callers. |
 | Regex / ArchUnit limits | Aliases, reflection, generated code, and JNI are not covered. Keep the allowlist tight. |
 | UI / H5 every page | Not re-walked. Desktop `/p3` unchanged. |
 | G1 QueryCompiler / JDBC callers | Orthogonal open leftover (#119). This package does not scan JDBC. |

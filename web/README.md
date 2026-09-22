@@ -52,6 +52,7 @@ npm run assert:h5-runtime
 npm run assert:h5-permission
 npm run assert:h5-app-webview
 npm run assert:h5-pkce
+npm run assert:g2-report-surface
 npm test
 npm run test:g7-withdraw
 npm run build
@@ -81,6 +82,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p3/todos` | `/api/v1/p3/todos` + `/api/v1/p3/path/tasks/*` + withdraw | 同意/驳回/「我发起」撤回 (`data-testid=todo-withdraw`). G7 leftover walk: [docs/g7-withdraw-browser.md](../docs/g7-withdraw-browser.md) |
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |
+| `/p3/reports` | `GET/POST /api/v1/p3/reports/*` after `ledger/read` + `ledger.export.csv/submit` | G2 leftover. Not a physical dump; desktop ledger/form/todo pages unchanged |
 | `/m/login` | stub token + **PKCE** (`mobile-pkce-login`) + safe `return` | F011 stub hop stays; H5 PKCE leftover: [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) |
 | `/m/callback` | `code` / `state` + sessionStorage `code_verifier` → `POST /api/v1/auth/login` | Strips query after hop; no token / verifier in URL |
 | `/m/p3/home` | session in `sessionStorage` | F013 refresh / back |
@@ -94,7 +96,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/m/p3/forms/:id` | `form/read` then `form/write` + `submit-start` | Fill published form. No Validate / Publish |
 | `/m/p3/lists`, `/m/p3/lists/:id` | `ledger/read` then ledgers + records | F010 record cards |
 | `/m/p3/todos`, `/m/p3/todos/:id` | `process.task/read` then path approve/reject/withdraw | F010 inbox / done / 我发起 |
-| `/m/p3/query` | `ledger/read` then `GET .../records?field=` | Field-equals query; never `tenant_id` |
+| `/m/p3/query` | `ledger/read` then `GET .../records?field=`; export button is `ledger.export.csv/submit` | Field-equals query; never `tenant_id`. Export is AuthorizedExport, not dump |
 | `/m/p3/notifications` | `/api/v1/notifications` | Jump to safe `/m/*` only |
 
 H5 `/m/*` Authorization Code + PKCE is the leftover in [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) (Playwright/stub). Product default authorize URL remains M0-04’s confidential client without PKCE. G15 F014 is accepted on the mobile-browser postMessage contract, the simulated 小程序 web-view parent, and the APP WebView **web** harness. APP WebView native binary and WeChat / DingTalk production are not accepted. Product G15 stays open.

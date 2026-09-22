@@ -18,7 +18,7 @@ A subject with only `process.instance` / `start` (`g2_approver`) cannot HTTP-sub
 
 | Item | Status |
 |---|---|
-| Product-wide G2 (report UI / H5 permission) | Open |
+| Product-wide G2 (physical dump) | Open. Report query/export is [g2-report-surface-guard.md](./g2-report-surface-guard.md). H5 is [g2-h5-permission.md](./g2-h5-permission.md) |
 | Submit-start **is** `form.write` only | Not claimed. Process start stays required. This is a dual-check |
 | `FormService.submit` in-process callers without HTTP / path | Not wrapped unless they go through `BusinessPathService.submitAndStart` |
 | Isolation-only `FormApiTest` (no P2 context) | Still tenant-only |

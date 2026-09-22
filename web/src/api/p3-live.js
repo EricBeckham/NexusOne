@@ -499,3 +499,15 @@ export async function withdrawTodo(_id, _comment, instanceId) {
     "initiated",
   );
 }
+
+export async function reportDecision() {
+  return wrap(await api("/api/v1/p3/reports/decision"));
+}
+
+export async function queryReport(body = {}) {
+  return wrap(await api("/api/v1/p3/reports/query", { method: "POST", body }));
+}
+
+export async function exportReport(body = {}) {
+  return wrap(await api("/api/v1/p3/reports/export", { method: "POST", body }));
+}

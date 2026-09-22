@@ -4,6 +4,7 @@
       <h3>查询</h3>
       <p class="m-muted">GET /api/v1/p3/ledgers/{id}/records 字段等值。不发明第二套 Query AST。</p>
       <MPermDecision :decision="decision" :cell="H5_SURFACES.listRead" />
+      <MPermDecision v-if="exportDecision" :decision="exportDecision" :cell="REPORT_SURFACES.export" />
     </div>
     <form class="m-card" @submit.prevent="onRun">
       <div class="m-field">
@@ -22,7 +23,13 @@
       <button class="m-btn primary" type="submit" :disabled="!ledgerId || busy" data-testid="m-query-run">
         {{ busy ? "查询中…" : "查询" }}
       </button>
+      <button class="m-btn ghost" type="button" :disabled="!ledgerId || exporting" data-testid="m-query-export" @click="onExport">
+        {{ exporting ? "导出中…" : "导出 Task" }}
+      </button>
     </form>
+    <p v-if="exportResult" class="m-muted" data-testid="m-query-export-result">
+      {{ exportResult.task_type || exportResult.taskType }} · physical_dump={{ exportResult.physical_dump }}
+    </p>
     <p v-if="error" class="m-error" data-testid="m-query-error">{{ error }}</p>
     <p v-if="ran && !rows.length && !error" class="m-muted" data-testid="m-query-empty">没有匹配记录。</p>
     <p v-if="ran" class="m-muted" data-testid="m-query-total">共 {{ total }} 条</p>
@@ -47,6 +54,7 @@ import { buildRecordQuery, isLedgerFieldCode } from "../../../runtime/recordQuer
 import MPermDecision from "../../../permission/MPermDecision.vue";
 import { H5_SURFACES } from "../../../permission/surfaceCatalog";
 import { useH5Surface } from "../../../permission/useH5Surface";
+import { REPORT_SURFACES } from "../../../../permission/reportCatalog";
 
 const route = useRoute();
 const router = useRouter();
@@ -59,6 +67,9 @@ const total = ref(0);
 const busy = ref(false);
 const ran = ref(false);
 const { decision, error, requireCell, capture } = useH5Surface();
+const exportDecision = ref(null);
+const exportResult = ref(null);
+const exporting = ref(false);
 
 const queryFields = computed(() =>
   (fields.value || []).filter((field) => isLedgerFieldCode(field.code)).slice(0, 6),
@@ -124,6 +135,22 @@ async function onRun() {
     total.value = 0;
   } finally {
     busy.value = false;
+  }
+}
+
+async function onExport() {
+  exporting.value = true;
+  exportResult.value = null;
+  try {
+    exportDecision.value = await requireCell(REPORT_SURFACES.export);
+    exportResult.value = await p3.exportReport({
+      ledger_id: ledgerId.value,
+      payload: JSON.stringify({ ledger: ledgerId.value, surface: "report" }),
+    });
+  } catch (err) {
+    capture(err);
+  } finally {
+    exporting.value = false;
   }
 }
 </script>

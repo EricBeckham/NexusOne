@@ -42,6 +42,7 @@ public final class SurfaceGuardBypassAllowlist {
             "nexus-permission-core/src/main/java/one/nexus/permission/engine/PermissionEngine.java",
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/FormSurfaceGuard.java",
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/H5SurfaceGuard.java",
+            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/ReportSurfaceGuard.java",
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/PermissionDataScopeHook.java",
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/TenantOnlyDataScopeHook.java");
 
@@ -60,6 +61,7 @@ public final class SurfaceGuardBypassAllowlist {
             "SurfaceGuard",
             "FormSurfaceGuard",
             "H5SurfaceGuard",
+            "ReportSurfaceGuard",
             "PermissionDataScopeHook",
             "AuthorizedExport",
             "AuthorizedSubmit",
@@ -82,12 +84,13 @@ public final class SurfaceGuardBypassAllowlist {
                             "nexus-permission-core/src/main/java/one/nexus/permission/api/PermissionController.java")),
             new Module(
                     "nexus-p3-studio",
-                    "Form / H5 / list-detail / flow / path wrappers around SurfaceGuard",
+                    "Form / H5 / report / list-detail / flow / path wrappers around SurfaceGuard",
                     List.of(
                             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/flow/SequentialApprovalService.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/path/BusinessPathService.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/studio/api/FormController.java",
+                            "nexus-p3-studio/src/main/java/one/nexus/p3/report/ReportController.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/application/LedgerRecordService.java")),
             new Module(
                     "nexus-bootstrap",

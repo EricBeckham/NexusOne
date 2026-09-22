@@ -25,6 +25,7 @@
         <router-link to="/p3/ledgers">台账</router-link>
         <router-link to="/p3/forms">表单</router-link>
         <router-link to="/p3/todos">待办</router-link>
+        <router-link to="/p3/reports">报表</router-link>
         <p class="group">通知 / 审计</p>
         <router-link to="/p3/notifications">站内通知</router-link>
         <router-link to="/p3/audit">审计哈希链</router-link>
