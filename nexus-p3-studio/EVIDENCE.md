@@ -245,23 +245,15 @@ Flyway **V531** (window V530–V549) adds `form_submission.ledger_id` / `ledger_
 
 ## Runnable evidence (this branch)
 
-Agent VM, **2026-09-22T12:53:57Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, Flowable **7.1.0**. No Docker.
+Agent VM, **2026-09-22T13:20:39Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, Flowable **7.1.0**. No Docker. No live `127.0.0.1:5432`.
 
 ```bash
-mvn -pl nexus-notification-core,nexus-p3-studio -am test \
-  -Dtest=G18BusinessPathIT,FormPublishStateMachineTest,IssuedTenantIsolationFilterTest,PermissionDataScopeHookTest \
+mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap -am test \
+  -Dtest=EventCoreConfigurationTest,NotificationApiTest,G18BusinessPathIT,NexusOneProductBootTest,NexusOnePostgresTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS`. `nexus-p3-studio`: **Tests run: 13, Failures: 0, Errors: 0** (`G18BusinessPathIT` **2/2**, `IssuedTenantIsolationFilterTest` **5/5**, `FormPublishStateMachineTest` **6/6**). `PermissionDataScopeHookTest` **4/4** in the same module.
-
-```bash
-mvn -pl modules/isolation-kernel,nexus-event-core test \
-  -Dtest=QueryCompilerTest,OutboxEventContractTest \
-  -Dsurefire.failIfNoSpecifiedTests=false
-```
-
-`BUILD SUCCESS` at **2026-09-22T12:32:28Z**. `QueryCompilerTest` **4/4**. `OutboxEventContractTest` **10/10**.
+`BUILD SUCCESS`. `EventCoreConfigurationTest` **4/4**. `G18BusinessPathIT` **2/2** (Outbox is product `JdbcOutboxStore`). `NexusOneProductBootTest` **1/1** (`NexusOneApplication`, Flyway through **V550** incl. **V531**, `NotificationService` ← `JdbcOutboxStore`). `NexusOnePostgresTest` skipped (no local listener).
 
 Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the same TX; `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`). Product `OutboxPort` is M0-09 `EventCoreConfiguration` auto-config (`JdbcOutboxStore` after DataSource). Vue live P3 APIs landed in #60. Product G18 is **not** closed until Eric re-runs the loop.
 

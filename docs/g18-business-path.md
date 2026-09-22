@@ -25,14 +25,14 @@ After #62, `nexus.notify.outbox=auto` no longer registers in-memory `RecordingOu
 
 `G18BusinessPathIT` still passed because `G18PathApplication` **declared** `JdbcOutboxStore` / `OutboxPort` itself. That is not product wiring.
 
-**Fix:** `EventCoreConfiguration` is now `@AutoConfiguration(after = DataSourceAutoConfiguration)` listed in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`. `@ConditionalOnBean(DataSource)` runs after the DataSource exists. The G18 host no longer declares those beans; it uses the same auto-config as the product.
+**Fix:** `EventCoreConfiguration` is now `@AutoConfiguration(after = DataSourceAutoConfiguration)` listed in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`. `@ConditionalOnBean(DataSource)` runs after the DataSource exists. Outbox beans take `Clock` via `ObjectProvider` because IAM `clock` and P3 `studioClock` can both exist. The G18 host no longer declares Outbox beans; it uses the same auto-config as the product.
 
 This unblocks empty-DB product boot / E2E. It does **not** close product G18.
 
 
 ## What is proven (runnable)
 
-Recorded on this branch at **2026-09-22T12:53:57Z** (G18 IT + filter/hook tests). Agent VM, no Docker.
+Recorded on this branch at **2026-09-22T13:20:39Z**. Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` skipped).
 
 | Component | Version |
 |---|---|
@@ -41,17 +41,14 @@ Recorded on this branch at **2026-09-22T12:53:57Z** (G18 IT + filter/hook tests)
 | Spring Boot | **4.1.1** |
 | PostgreSQL | Zonky embedded **15.18** |
 | Flowable | **7.1.0** in-process |
-| Flyway | **13.7.0** through **V550** (G18 adds **V531**) |
+| Flyway | **13.7.0** through **V550** (incl. **V531**) |
 
 | Suite | Result |
 |---|---|
-| `G18BusinessPathIT` | **2/2** (IAM ledger write/query, notify issued context, `platform.audit_record`) |
-| `IssuedTenantIsolationFilterTest` | **5/5** |
-| `PermissionDataScopeHookTest` | **4/4** |
-| `TenantMemberGrantSeederTest` | **1/1** |
-| `FormPublishStateMachineTest` | **6/6** (includes physical `LedgerRecordSink` submit) |
-| `OutboxEventContractTest` | **10/10** (includes `appendJoinsSpringTransactionAndRollsBack`) |
-| `QueryCompilerTest` | **4/4** (nullable JDBC binds) |
+| `EventCoreConfigurationTest` | **4/4** (DS → `JdbcOutboxStore`; no DS → no Outbox; two `Clock` beans still register Outbox) |
+| `NexusOneProductBootTest` | **1/1** — product `NexusOneApplication` on empty Zonky PG 15; Flyway **15** scripts to **v550**; `NotificationService` + `JdbcOutboxStore` |
+| `G18BusinessPathIT` | **2/2** (Outbox is `JdbcOutboxStore` from auto-config, not a G18 bean) |
+| `NotificationApiTest` | **1/1** (`outbox=record` still works without DataSource) |
 
 | Behavior | Evidence |
 |---|---|
@@ -66,10 +63,12 @@ Recorded on this branch at **2026-09-22T12:53:57Z** (G18 IT + filter/hook tests)
 Command:
 
 ```bash
-mvn -pl nexus-event-core,nexus-p3-studio -am test \
-    -Dtest=OutboxEventContractTest,G18BusinessPathIT,FormPublishStateMachineTest,IssuedTenantIsolationFilterTest,PermissionDataScopeHookTest \
+mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap -am test \
+    -Dtest=EventCoreConfigurationTest,NotificationApiTest,G18BusinessPathIT,NexusOneProductBootTest,NexusOnePostgresTest \
     -Dsurefire.failIfNoSpecifiedTests=false
 ```
+
+`BUILD SUCCESS` at **2026-09-22T13:20:39Z**. `NexusOnePostgresTest` skipped (no local PG listener).
 
 ## API (IAM session + M0-02 isolation)
 
