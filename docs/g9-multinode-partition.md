@@ -45,10 +45,16 @@ mvn -pl nexus-permission-core -am test \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Sentinel / Cluster / replica promotion / live multi-JVM honesty leftover (extends this harness, same snapshot store):
+Sentinel / Cluster honesty leftover (extends this harness, same snapshot store):
 
 ```bash
 ./scripts/g9-sentinel-cluster-honesty.sh
+```
+
+Live multi-JVM / replica promotion honesty leftover (does not redo #128 / #148):
+
+```bash
+./scripts/g9-live-multi-jvm-replica.sh
 ```
 
 Zonky in-process PostgreSQL **15.x**. No Docker. No Sentinel / Cluster. No live Redis required.
