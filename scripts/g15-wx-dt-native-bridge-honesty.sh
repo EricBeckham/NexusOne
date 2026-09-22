@@ -129,6 +129,7 @@ for row in \
   g10-identity-drift-honesty \
   g4-pkce-spa-verifier-honesty \
   s0-secret-getenv-snapshot-honesty \
+  s0-secret-rotate-without-restart-honesty \
   g5-browser-failed-publish \
   g7-withdraw-browser-honesty \
   g7-query-expense-travel-honesty \
