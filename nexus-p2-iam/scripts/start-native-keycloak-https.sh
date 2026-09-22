@@ -3,7 +3,7 @@
 # HTTP smoke on :8180 can stay running. Secrets stay in /tmp (0600), not git.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 KC_VER="${KEYCLOAK_VERSION:-26.5.2}"
 KC_DIST="${KEYCLOAK_HOME:-/home/ubuntu/keycloak-${KC_VER}}"
 KC_HOME="${KEYCLOAK_HTTPS_HOME:-/tmp/keycloak-${KC_VER}-https}"
