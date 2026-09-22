@@ -235,6 +235,18 @@ mvn -pl nexus-p3-studio test
 
 Coordinator merges when GitHub is CLEAN/MERGEABLE; this drop does not self-merge.
 
+# G5 form publish rollback (forms only)
+
+Failed paths were not in Eric’s G18 browser walk (success-only Validate/Publish). This section is the G5 **forms** evidence. Not a full G5 product close. G18 stays closed.
+
+Command:
+
+```bash
+./scripts/g5-form-publish-rollback.sh
+```
+
+Results: pending the PR test run on this branch. Suites: `JdbcFormPublishRollbackIT`, `FormPublishFailureApiTest`, `FormPublishStateMachineTest`. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md).
+
 # G18 one real business path (backend)
 
 See `docs/g18-business-path.md`. Product G18 is **closed** by the 2026-09-22 browser walk on `main` `38f1a73`. The paragraphs below are the earlier VM and `ace55ff` record.

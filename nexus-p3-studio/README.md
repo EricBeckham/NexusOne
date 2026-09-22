@@ -50,7 +50,7 @@ Demo tenant headers (test only, `nexus.p3.demo-context=true` and/or `nexus.studi
 
 Flow mutating routes require `Authorization: Bearer` and `X-Nexus-Context-Id`. `X-Tenant-Id` is rejected (`P3.FLOW.0006`).
 
-Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md). Sequential approval: [docs/engineering/m0-08-sequential-approval.md](../docs/engineering/m0-08-sequential-approval.md). One real backend path (publish → physical row → sequential approval → Outbox `notify.inbox` → audit hash chain): [docs/g18-business-path.md](../docs/g18-business-path.md). Product G18 is **closed** for that one slice; the browser record is [docs/g18-business-path.md](../docs/g18-business-path.md).
+Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md). G5 form failed-path rollback (validate→DRAFT, publish-fail→unchanged Running/snapshot): [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md). Sequential approval: [docs/engineering/m0-08-sequential-approval.md](../docs/engineering/m0-08-sequential-approval.md). One real backend path (publish → physical row → sequential approval → Outbox `notify.inbox` → audit hash chain): [docs/g18-business-path.md](../docs/g18-business-path.md). Product G18 is **closed** for that one slice; the browser record is [docs/g18-business-path.md](../docs/g18-business-path.md).
 
 ```bash
 mvn -pl nexus-p3-studio -am test

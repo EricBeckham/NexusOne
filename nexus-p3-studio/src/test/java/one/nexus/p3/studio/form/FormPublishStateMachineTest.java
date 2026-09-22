@@ -165,6 +165,29 @@ class FormPublishStateMachineTest {
     }
 
     @Test
+    void validateFailureAfterRunningKeepsDraftAndDoesNotMovePointer() {
+        FormService service = service(PublishHook.noop());
+        FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
+        service.validate(form.formId());
+        service.publish(form.formId(), "v1");
+        FormVersion running = service.running(form.formId());
+        assertEquals(1, running.snapshot().versionNo());
+
+        service.update(
+                form.formId(),
+                "请假单坏绑定",
+                null,
+                List.of(new FormBinding("w1", "missing_ledger", "title", true, false, WidgetType.TEXT, 0)));
+        NexusException failed = assertThrows(NexusException.class, () -> service.validate(form.formId()));
+        assertEquals(ErrorCode.FORM_VALIDATE_FAILED, failed.errorCode());
+        assertEquals(FormStatus.DRAFT, service.get(form.formId()).draftStatus());
+        assertEquals(1, service.get(form.formId()).runningVersion());
+        assertEquals(1, service.versions(form.formId()).size());
+        assertEquals(VersionStatus.RUNNING, service.running(form.formId()).status());
+        assertEquals(running.snapshot().toJson(), service.running(form.formId()).snapshot().toJson());
+    }
+
+    @Test
     void tenantBCannotSeeTenantAForm() {
         FormService service = service(PublishHook.noop());
         FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());

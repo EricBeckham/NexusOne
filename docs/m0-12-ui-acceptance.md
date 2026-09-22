@@ -79,7 +79,7 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G1 | Query AST / export / file / cache / Job / Task full path | **DEFERRED** | M0-02 kernel + later modules |
 | G1 | Guard-reject logs “zero leak” product claim | **DEFERRED** | isolation kernel evidence, not this UI |
 | G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 product-wide (UI/API/query/flow/report/export/H5, one engine) stays open |
-| G5 | Draft/Validate/Publish | **LIVE API** | M0-07 HTTP + Vue fill/publish; G5 rollback is server-side, not a G18 walkthrough |
+| G5 | Draft/Validate/Publish (forms) | **IT / script** | Success path is live HTTP + Vue. Failed paths: [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). Not a full G5 product close |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **LIVE API** | `GET /api/v1/permission/snapshot` with issued context |
 | G15 | H5 | **DEFERRED** | S1 |
@@ -87,7 +87,7 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
 | G18 | Permission views | **PASS** | `38f1a73`: snapshot `grant_count=7`, `ledger`/`read` allowed. Full matrix UI stays on G2 |
 | G18 | Ledger | **PASS** | `leave2231` READY, quota 1/10, table `l_ui2231_leave2231`. No field PUT |
-| G18 | Form / publish | **PASS** | `leave2231_form` Validate PASS, `running_version=1`. G5 failure rollback stays on the module test |
+| G18 | Form / publish | **PASS** | `leave2231_form` Validate PASS, `running_version=1`. G5 failed-path evidence is [g5-form-publish-rollback.md](./g5-form-publish-rollback.md), not this walk |
 | G18 | Business data / query | **PASS** | Record 年假 / 3 / 浏览器走通 / `APPROVED` after 同意 |
 | G18 | Sequential approval / todo | **PASS** | submit-start then path 同意. Withdraw was not clicked on this walk |
 | G18 | In-app notification | **PASS** | `approval.task.assigned` and `approval.task.approved` both `DELIVERED` |
