@@ -88,6 +88,7 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g15-native-bridge-stub",
   "g17-admin-mfa-recovery-email",
   "g2-ops-pg-dump",
+  "s0-secret-rotate-without-restart",
 ]);
 requireIncludes("doc", files.doc, [
   "POST /api/v1/p3/path/instances/{id}/withdraw",
