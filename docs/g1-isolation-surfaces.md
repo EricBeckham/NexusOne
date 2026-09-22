@@ -58,5 +58,6 @@ This is **not** a product-wide “zero leak” marketing close.
 | FieldPolicy on export | `IsolatedExport` is the guarded surface + Task type `ledger.export.csv`. No report UI, no FieldPolicy projection of a physical ledger dump. |
 | `P3RequestContext` | Some P3 HTTP still has a request snapshot beside `AccessContextHolder`. Export / file / cache / Job / Task do not add a third holder and do not use that snapshot as tenant truth. |
 | G4 same-request chain | Login / permission / admin / export / guard-reject on one real browser request remains G4. This package only wires **guard-reject** onto `AuditPort.appendNewTransaction`. |
-| GaussDB / live Redis 3.2 / live MinIO | Same as M0-10: memory / Fake Redis / counting storage prove reject-before-backend. |
+| GaussDB | PostgreSQL-only slice. |
+| Live Redis 3.2 / live MinIO | Optional drills: [g1-live-redis-minio.md](./g1-live-redis-minio.md). Skip when the service is absent. Memory / Fake Redis / counting storage remain the always-on reject-before-backend proof. |
 | Platform-wide “every API” | IAM / P1 / notify / Query AST already had G1 rows on M0-12. Those stay as previously recorded; this package only closes the deferred export / file / cache / Job / Task guards. |
