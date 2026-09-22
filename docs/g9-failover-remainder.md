@@ -45,16 +45,21 @@ Zonky in-process PostgreSQL **15.x**. No Docker. No Sentinel / Cluster.
 
 ## Evidence
 
-Recorded on this agent VM after rebase onto `main@860f5e5` (#111 claim-list). OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky PostgreSQL **15.x**. No Docker. No Sentinel / Cluster.
+Recorded **2026-09-22T17:50:40Z** on this agent VM after rebase onto `main@ec116a3` (#118). OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky PostgreSQL **15.18**. No Docker. No Sentinel / Cluster.
 
-Self-test timestamps will be filled after the first green run on this branch.
+```
+./scripts/g9-failover-remainder.sh
+# Tests run: 22, Failures: 0, Errors: 0, Skipped: 3  BUILD SUCCESS  2026-09-22T17:50:40Z
+```
 
-| Suite | What it proves |
-|---|---|
-| `G9FailoverRemainderTest` | Redis-down DENY after GRANT is `explicit_deny` == durable `PermissionEngine`; lost channel reloads deny; poller tick sees deny; durable miss is `P2.PERM.0005`; publish failure is not remote success |
-| `JdbcG9FailoverRemainderIT` | Zonky PG 15: writer DENY without the reader's channel; poll tick then `decide` fail-closes (no silent allow) |
-| `RedisInvalidationTest` | Dead Redis notify is observed and `lastRemoteNotifySucceeded()` is false |
-| `G9PolicySnapshotFailoverTest` | Existing Redis-down GRANT / ordinary fail-closed unchanged |
-| `PermissionEngineTest` | P0-02 truth table unchanged |
+Skipped 3 are live Redis `:6379` listener cases. JDBC proof is Zonky **15.18**.
+
+| Suite | Count | What it proves |
+|---|---|---|
+| `G9FailoverRemainderTest` | **5/5** | Redis-down DENY after GRANT is `explicit_deny` == durable `PermissionEngine`; lost channel reloads deny; poller tick sees deny; durable miss is `P2.PERM.0005`; publish failure is not remote success |
+| `JdbcG9FailoverRemainderIT` | **1/1** | Zonky PG **15.18**: writer DENY without the reader's channel; poll tick then `decide` fail-closes (no silent allow) |
+| `RedisInvalidationTest` | **1/4** (3 skip) | Dead Redis notify is observed and `lastRemoteNotifySucceeded()` is false; live PING/SUBSCRIBE skipped |
+| `G9PolicySnapshotFailoverTest` | **5/5** | Existing Redis-down GRANT / ordinary fail-closed unchanged |
+| `PermissionEngineTest` | **7/7** | P0-02 truth table unchanged |
 
 Details: `nexus-permission-core/EVIDENCE.md`.
