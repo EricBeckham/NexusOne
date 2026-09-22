@@ -15,6 +15,13 @@ public interface IdentityProviderPort {
 
     record EmailAction(String subject, List<String> actions, String kind) {}
 
+    /** Admin-directory view of an IdP user. Used by G10 person/Keycloak reconcile. */
+    record DirectoryUser(String subject, String email, String username, String displayName, String phone, boolean enabled) {
+        public IdentityClaims toClaims() {
+            return new IdentityClaims(subject, email, username, displayName, phone);
+        }
+    }
+
     AuthorizeUrl authorizationUrl(String state, String redirectUri);
 
     TokenSet exchangeAuthorizationCode(String code, String redirectUri);
@@ -28,4 +35,8 @@ public interface IdentityProviderPort {
     ProvisionedUser ensureUser(String email, String username, String displayName);
 
     EmailAction sendExecuteActionsEmail(String subject, List<String> actions, String kind);
+
+    List<DirectoryUser> listUsers();
+
+    Optional<DirectoryUser> findUser(String subject);
 }

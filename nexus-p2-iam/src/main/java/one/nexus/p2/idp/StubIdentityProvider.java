@@ -80,6 +80,26 @@ public final class StubIdentityProvider implements IdentityProviderPort {
         return action;
     }
 
+    @Override
+    public List<DirectoryUser> listUsers() {
+        return users.values().stream()
+                .map(StubIdentityProvider::toDirectory)
+                .toList();
+    }
+
+    @Override
+    public Optional<DirectoryUser> findUser(String subject) {
+        return Optional.ofNullable(users.get(subject)).map(StubIdentityProvider::toDirectory);
+    }
+
+    public void putUser(IdentityClaims claims) {
+        users.put(claims.subject(), claims);
+    }
+
+    public void removeUser(String subject) {
+        users.remove(subject);
+    }
+
     public List<EmailAction> sentEmails() {
         synchronized (sent) {
             return List.copyOf(sent);
@@ -106,5 +126,10 @@ public final class StubIdentityProvider implements IdentityProviderPort {
 
     private String encode(IdentityClaims claims) {
         return token(claims.subject(), claims.email(), claims.username(), claims.displayName());
+    }
+
+    private static DirectoryUser toDirectory(IdentityClaims claims) {
+        return new DirectoryUser(
+                claims.subject(), claims.email(), claims.username(), claims.displayName(), claims.phone(), true);
     }
 }

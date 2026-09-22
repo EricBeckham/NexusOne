@@ -113,5 +113,39 @@ class IdentityApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.displayName=='Carol A')]").exists())
                 .andExpect(jsonPath("$[?(@.displayName=='Carol B')]").doesNotExist());
+
+        mvc.perform(get("/api/v1/internal/identity/reconcile"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/internal/identity/reconcile")
+                        .header("X-Nexus-Bootstrap-Token", "test-bootstrap"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.path").value("identity.reconcile"))
+                .andExpect(jsonPath("$.applied").value(false))
+                .andExpect(jsonPath("$.matched").isNumber());
+
+        mvc.perform(get("/api/v1/identity/reconcile")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unmatchedIdp").value(0))
+                .andExpect(jsonPath("$.findings[?(@.tenantId=='" + tenantB + "')]").doesNotExist())
+                .andExpect(jsonPath("$.findings[?(@.tenantId=='" + tenantA + "')]").exists());
+
+        var drifted = module.repository().findPersonByAccount(tenantA, carol.id()).orElseThrow();
+        module.repository().savePerson(new one.nexus.p2.domain.Model.Person(
+                drifted.id(), drifted.tenantId(), drifted.accountId(), drifted.displayName(), drifted.employeeNo(),
+                "stale-carol@example.com", drifted.phone(), drifted.hiredOn(), drifted.status(),
+                drifted.createdAt(), java.time.Instant.now(), drifted.deletedAt(), drifted.version() + 1));
+        mvc.perform(post("/api/v1/identity/reconcile")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"apply\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.applied").value(true))
+                .andExpect(jsonPath("$.repaired").value(1));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "carol@example.com",
+                module.repository().findPerson(tenantA, drifted.id()).orElseThrow().email());
     }
 }

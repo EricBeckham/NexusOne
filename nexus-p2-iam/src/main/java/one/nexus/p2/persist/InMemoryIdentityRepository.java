@@ -45,6 +45,13 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
     }
 
     @Override
+    public List<Model.GlobalAccount> listAccounts() {
+        return accounts.values().stream()
+                .filter(item -> item.deletedAt() == null)
+                .toList();
+    }
+
+    @Override
     public Model.TenantMembership saveMembership(Model.TenantMembership membership) {
         memberships.put(membership.id(), membership);
         return membership;
@@ -98,6 +105,13 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
     public List<Model.Person> listPersons(UUID tenantId) {
         return persons.values().stream()
                 .filter(item -> item.deletedAt() == null && item.tenantId().equals(tenantId))
+                .toList();
+    }
+
+    @Override
+    public List<Model.Person> listAllPersons() {
+        return persons.values().stream()
+                .filter(item -> item.deletedAt() == null)
                 .toList();
     }
 

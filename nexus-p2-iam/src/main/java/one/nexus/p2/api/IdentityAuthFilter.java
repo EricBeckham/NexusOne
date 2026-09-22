@@ -99,6 +99,7 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/positions")
                 || path.startsWith("/api/v1/employments")
                 || path.startsWith("/api/v1/memberships")
+                || path.startsWith("/api/v1/identity")
                 || path.startsWith("/api/v1/internal/");
     }
 

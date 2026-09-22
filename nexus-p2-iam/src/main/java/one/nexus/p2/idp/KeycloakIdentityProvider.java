@@ -181,6 +181,64 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
     }
 
     @Override
+    public List<DirectoryUser> listUsers() {
+        String adminToken = clientCredentialsToken();
+        String adminUsers = issuer.replace("/realms/", "/admin/realms/") + "/users";
+        List<DirectoryUser> users = new java.util.ArrayList<>();
+        int first = 0;
+        int page = 100;
+        while (true) {
+            List<?> found = http.get()
+                    .uri(adminUsers + "?first=" + first + "&max=" + page)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .retrieve()
+                    .body(List.class);
+            if (found == null || found.isEmpty()) {
+                break;
+            }
+            for (Object row : found) {
+                if (row instanceof Map<?, ?> user) {
+                    DirectoryUser mapped = toDirectory(user);
+                    if (mapped != null && !isServiceAccount(mapped)) {
+                        users.add(mapped);
+                    }
+                }
+            }
+            if (found.size() < page) {
+                break;
+            }
+            first += page;
+        }
+        return List.copyOf(users);
+    }
+
+    @Override
+    public Optional<DirectoryUser> findUser(String subject) {
+        if (subject == null || subject.isBlank()) {
+            return Optional.empty();
+        }
+        String adminToken = clientCredentialsToken();
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> user = http.get()
+                    .uri(issuer.replace("/realms/", "/admin/realms/") + "/users/" + enc(subject))
+                    .header("Authorization", "Bearer " + adminToken)
+                    .retrieve()
+                    .body(Map.class);
+            if (user == null || user.get("id") == null) {
+                return Optional.empty();
+            }
+            DirectoryUser mapped = toDirectory(user);
+            return mapped == null ? Optional.empty() : Optional.of(mapped);
+        } catch (org.springframework.web.client.RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 404) {
+                return Optional.empty();
+            }
+            throw ex;
+        }
+    }
+
+    @Override
     public EmailAction sendExecuteActionsEmail(String subject, List<String> actions, String kind) {
         String adminToken = clientCredentialsToken();
         http.put()
@@ -253,5 +311,48 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
             }
         }
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static DirectoryUser toDirectory(Map<?, ?> user) {
+        if (user.get("id") == null) {
+            return null;
+        }
+        String first = stringOrNull(user.get("firstName"));
+        String last = stringOrNull(user.get("lastName"));
+        String display = firstNonBlank(
+                ((first == null ? "" : first) + (last == null || last.isBlank() ? "" : " " + last)).trim(),
+                stringOrNull(user.get("username")),
+                stringOrNull(user.get("email")));
+        Object enabled = user.get("enabled");
+        return new DirectoryUser(
+                String.valueOf(user.get("id")),
+                stringOrNull(user.get("email")),
+                stringOrNull(user.get("username")),
+                display,
+                attribute(user.get("attributes"), "phoneNumber", "phone_number", "phone"),
+                !(enabled instanceof Boolean flag) || flag);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String attribute(Object attributes, String... names) {
+        if (!(attributes instanceof Map<?, ?> map)) {
+            return null;
+        }
+        for (String name : names) {
+            Object value = map.get(name);
+            if (value instanceof List<?> list && !list.isEmpty() && list.getFirst() != null) {
+                return String.valueOf(list.getFirst());
+            }
+            if (value instanceof String text && !text.isBlank()) {
+                return text;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isServiceAccount(DirectoryUser user) {
+        String username = user.username();
+        return username != null && username.startsWith("service-account-");
     }
 }

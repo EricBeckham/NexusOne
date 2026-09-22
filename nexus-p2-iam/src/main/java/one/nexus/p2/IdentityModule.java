@@ -1,6 +1,7 @@
 package one.nexus.p2;
 
 import one.nexus.p2.account.AccountReconciler;
+import one.nexus.p2.account.PersonIdentityReconciler;
 import one.nexus.p2.admin.TenantAdminInitializer;
 import one.nexus.p2.admin.TenantAdminInitializerImpl;
 import one.nexus.p2.domain.IdentityRepository;
@@ -18,6 +19,7 @@ public final class IdentityModule {
     private final IdentityRepository repository;
     private final IdentityProviderPort idp;
     private final AccountReconciler reconciler;
+    private final PersonIdentityReconciler personReconciler;
     private final SessionService sessions;
     private final OrganizationService organization;
     private final MembershipService memberships;
@@ -35,6 +37,7 @@ public final class IdentityModule {
         this.idp = idp;
         this.smtp = smtp;
         this.reconciler = new AccountReconciler(repository, clock);
+        this.personReconciler = new PersonIdentityReconciler(repository, idp, this.reconciler, clock);
         this.organization = new OrganizationService(repository, clock);
         this.memberships = new MembershipService(repository, clock);
         this.sessions = new SessionService(repository, reconciler, idp, clock, contextTtl);
@@ -51,6 +54,10 @@ public final class IdentityModule {
 
     public AccountReconciler reconciler() {
         return reconciler;
+    }
+
+    public PersonIdentityReconciler personReconciler() {
+        return personReconciler;
     }
 
     public SessionService sessions() {
