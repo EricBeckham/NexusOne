@@ -32,17 +32,20 @@ public class AuthController {
     @GetMapping("/authorize-url")
     public Map<String, String> authorizeUrl(
             @RequestParam(required = false) String acr,
-            @RequestParam(required = false) String pkce) {
+            @RequestParam(required = false) String pkce,
+            @RequestParam(name = "code_challenge", required = false) String codeChallenge) {
         String state = UUID.randomUUID().toString();
-        Pkce.Challenge challenge = pkceChallenge(pkce);
+        Pkce.Challenge challenge = pkceChallenge(pkce, codeChallenge);
         var url = module.sessions().authorizationUrl(state, properties.keycloak().redirectUri(), acr, challenge);
         Map<String, String> body = new LinkedHashMap<>();
         body.put("url", url.url());
         body.put("state", url.state());
         if (challenge != null) {
             body.put("code_challenge", challenge.challenge());
-            body.put("code_verifier", challenge.verifier());
             body.put("code_challenge_method", challenge.method());
+            if (challenge.verifier() != null && !challenge.verifier().isBlank()) {
+                body.put("code_verifier", challenge.verifier());
+            }
         }
         return body;
     }
@@ -89,13 +92,25 @@ public class AuthController {
         return Map.of("status", "submitted");
     }
 
-    private static Pkce.Challenge pkceChallenge(String pkce) {
+    private static Pkce.Challenge pkceChallenge(String pkce, String codeChallenge) {
+        boolean hasChallenge = codeChallenge != null && !codeChallenge.isBlank();
         if (pkce == null || pkce.isBlank()) {
+            if (hasChallenge) {
+                throw one.nexus.p2.support.DomainException.badRequest(
+                        "P2.IAM.PKCE", "pkce must be s256 when code_challenge is set");
+            }
             return null;
         }
         if (!"s256".equalsIgnoreCase(pkce)) {
             throw one.nexus.p2.support.DomainException.badRequest(
                     "P2.IAM.PKCE", "pkce must be s256 when set");
+        }
+        if (hasChallenge) {
+            try {
+                return Pkce.clientHeld(codeChallenge);
+            } catch (IllegalArgumentException ex) {
+                throw one.nexus.p2.support.DomainException.badRequest("P2.IAM.PKCE", ex.getMessage());
+            }
         }
         return Pkce.s256();
     }

@@ -51,7 +51,7 @@ Business pages do not branch on WeChat / DingTalk (H5 规范 §80.2). All host d
 | APP WebView web harness | Same F014 envelope walked in [g15-app-webview-host.md](./g15-app-webview-host.md). |
 | APP WebView native binary | **Not accepted.** No iOS / Android package. |
 | 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). **WeChat / DingTalk production not accepted.** |
-| Keycloak Authorization Code + PKCE | **Not accepted.** `/m/callback` lands code/state and POSTs `/api/v1/auth/login`; the confidential client does not write Access Token into the SPA or URL. Browser session is still stub token, same as M0-12. |
+| Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md) (Playwright/stub). Live Keycloak laptop click / other hosts stay open. |
 | F010 full H5 runtime | Mobile-browser pages now in [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). Other hosts / PKCE still open. |
 | Live S3 / MinIO download | Product default `nexus.files.storage=memory`. Signed URL against real S3 is M0-10, not re-run here. |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. |
@@ -67,6 +67,7 @@ npm run assert:h5
 npm run assert:h5-host
 npm run assert:h5-mp-webview
 npm run assert:h5-app-webview
+npm run assert:h5-pkce
 npm run assert:isolation
 npm run assert:p3-live
 npm run build

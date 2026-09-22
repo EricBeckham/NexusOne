@@ -1,7 +1,7 @@
 # NexusOne Web (M0-12 + G15 H5 mobile)
 
 Vue 3 shell for tenant admin, org/identity, permission snapshot, and **P3 台账 / 表单 / 待办 / 通知 / 审计**.
-G15 adds a **separate** mobile tree under `src/mobile/` (`/m/login`, `/m/callback`, `/m/p3/home`, `/m/p3/files`, `/m/p3/forms`, `/m/p3/lists`, `/m/p3/todos`, `/m/p3/query`, `/m/p3/notifications`, `/m/host`, `/m/host-harness`, `/m/mp-webview-harness`, `/m/app-webview-harness`). Desktop ledger / form / todo pages are unchanged. F014 host messages are accepted on the **mobile browser** (postMessage + iframe harness). A **simulated** 小程序 web-view parent reuses the same HostBridgePort channels; WeChat / DingTalk production is not accepted. `/m/app-webview-harness` is a **web** simulation of APP WebView channels on the same envelope — not a native package. F010 runtime pages reuse the same live P3 / notify APIs. H5 list/detail/form/todo reads and writes call `POST /api/v1/permission/check` on the same PermissionEngine as desktop ([docs/g2-h5-permission.md](../docs/g2-h5-permission.md)). This is **not** a full G15 close — APP WebView native binary / WeChat/DingTalk production / PKCE stay open. See [docs/g15-h5-mobile.md](../docs/g15-h5-mobile.md), [docs/g15-f010-h5-runtime.md](../docs/g15-f010-h5-runtime.md), [docs/g15-miniprogram-webview.md](../docs/g15-miniprogram-webview.md), and [docs/g15-app-webview-host.md](../docs/g15-app-webview-host.md).
+G15 adds a **separate** mobile tree under `src/mobile/` (`/m/login`, `/m/callback`, `/m/p3/home`, `/m/p3/files`, `/m/p3/forms`, `/m/p3/lists`, `/m/p3/todos`, `/m/p3/query`, `/m/p3/notifications`, `/m/host`, `/m/host-harness`, `/m/mp-webview-harness`, `/m/app-webview-harness`). Desktop ledger / form / todo pages are unchanged. F014 host messages are accepted on the **mobile browser** (postMessage + iframe harness). A **simulated** 小程序 web-view parent reuses the same HostBridgePort channels; WeChat / DingTalk production is not accepted. `/m/app-webview-harness` is a **web** simulation of APP WebView channels on the same envelope — not a native package. F010 runtime pages reuse the same live P3 / notify APIs. H5 list/detail/form/todo reads and writes call `POST /api/v1/permission/check` on the same PermissionEngine as desktop ([docs/g2-h5-permission.md](../docs/g2-h5-permission.md)). This is **not** a full G15 close — APP WebView native binary / WeChat/DingTalk production stay open. Mobile-browser PKCE leftover is [docs/g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md). See [docs/g15-h5-mobile.md](../docs/g15-h5-mobile.md), [docs/g15-f010-h5-runtime.md](../docs/g15-f010-h5-runtime.md), [docs/g15-miniprogram-webview.md](../docs/g15-miniprogram-webview.md), and [docs/g15-app-webview-host.md](../docs/g15-app-webview-host.md).
 
 - Tenant / org pages talk to merged **M0-03** and **M0-04** HTTP APIs.
 - Permission pages talk to **M0-05** `/api/v1/permission` (health / snapshot / check).
@@ -51,6 +51,7 @@ npm run assert:h5-mp-webview
 npm run assert:h5-runtime
 npm run assert:h5-permission
 npm run assert:h5-app-webview
+npm run assert:h5-pkce
 npm test
 npm run test:g7-withdraw
 npm run build
@@ -80,8 +81,8 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p3/todos` | `/api/v1/p3/todos` + `/api/v1/p3/path/tasks/*` + withdraw | 同意/驳回/「我发起」撤回 (`data-testid=todo-withdraw`). G7 leftover walk: [docs/g7-withdraw-browser.md](../docs/g7-withdraw-browser.md) |
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |
-| `/m/login` | stub token + safe `return` | F011 mobile login redirect (not PKCE) |
-| `/m/callback` | `code` / `state` → `POST /api/v1/auth/login` | Strips query after hop; no token in URL |
+| `/m/login` | stub token + **PKCE** (`mobile-pkce-login`) + safe `return` | F011 stub hop stays; H5 PKCE leftover: [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) |
+| `/m/callback` | `code` / `state` + sessionStorage `code_verifier` → `POST /api/v1/auth/login` | Strips query after hop; no token / verifier in URL |
 | `/m/p3/home` | session in `sessionStorage` | F013 refresh / back |
 | `/m/p3/files` | `POST/GET /api/v1/files` | F012 size + MIME + signed download |
 | `/m/p3/files/:id` | metadata + signed-url | Deep link; tenant stays in issued context |
@@ -96,4 +97,4 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/m/p3/query` | `ledger/read` then `GET .../records?field=` | Field-equals query; never `tenant_id` |
 | `/m/p3/notifications` | `/api/v1/notifications` | Jump to safe `/m/*` only |
 
-Do not treat this shell as a Keycloak Authorization Code + PKCE acceptance. Product login remains M0-04’s confidential client. G15 F014 is accepted on the mobile-browser postMessage contract, the simulated 小程序 web-view parent, and the APP WebView **web** harness. APP WebView native binary and WeChat / DingTalk production are not accepted.
+H5 `/m/*` Authorization Code + PKCE is the leftover in [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) (Playwright/stub). Product default authorize URL remains M0-04’s confidential client without PKCE. G15 F014 is accepted on the mobile-browser postMessage contract, the simulated 小程序 web-view parent, and the APP WebView **web** harness. APP WebView native binary and WeChat / DingTalk production are not accepted. Product G15 stays open.

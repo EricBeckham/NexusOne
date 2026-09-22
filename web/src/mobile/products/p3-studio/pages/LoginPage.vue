@@ -11,7 +11,7 @@
     </div>
     <form class="m-card" @submit.prevent="onStubLogin">
       <h3>Stub 登录</h3>
-      <p class="m-muted">与桌面同一 stub.&lt;base64&gt; 格式。不是 Keycloak PKCE 验收。</p>
+      <p class="m-muted">与桌面同一 stub.&lt;base64&gt; 格式。M0-12 / F011 仍可用；人机 PKCE 走下面的按钮。</p>
       <div class="m-field">
         <label>邮箱</label>
         <input v-model="email" type="email" required autocomplete="username" data-testid="mobile-email" />
@@ -25,10 +25,21 @@
       </button>
     </form>
     <div class="m-card">
-      <h3>授权码回跳契约</h3>
+      <h3>Authorization Code + PKCE</h3>
       <p class="m-muted">
-        拉取 <code>/api/v1/auth/authorize-url</code>，把 code/state 落到
-        <code>/m/callback</code>。Confidential client 不把 Access Token 回写 SPA。
+        浏览器生成 S256 <code>code_verifier</code>（只进 sessionStorage），
+        再拉 <code>/api/v1/auth/authorize-url?pkce=s256</code>。
+        code/state 落到 <code>/m/callback</code>。Verifier / Token / tenant_id 不进地址栏。
+      </p>
+      <button class="m-btn primary" type="button" :disabled="busy" data-testid="mobile-pkce-login" @click="onPkceLogin">
+        {{ busy ? "PKCE 授权中…" : "PKCE 授权登录" }}
+      </button>
+      <p v-if="pkceHint" class="m-muted" data-testid="mobile-pkce-challenge">S256 {{ pkceHint }}</p>
+    </div>
+    <div class="m-card">
+      <h3>Confidential 授权回跳（无 PKCE）</h3>
+      <p class="m-muted">
+        拉取默认 <code>/api/v1/auth/authorize-url</code>。M0-04 confidential client 不把 Access Token 回写 SPA。
       </p>
       <button class="m-btn ghost" type="button" :disabled="busy" data-testid="mobile-authorize" @click="onAuthorize">
         开始授权回跳
@@ -47,6 +58,8 @@ import { useRoute, useRouter } from "vue-router";
 import { stubAccessToken } from "../../../../api/client";
 import { p2 } from "../../../../api/client";
 import { loginWithAccessToken, persist, session } from "../../../../api/session";
+import { authorizeUrlHasSecret, createS256 } from "../../../auth/pkce";
+import { savePendingPkce } from "../../../auth/pkceSession";
 import { isSafeMobileReturn, savePendingRedirect, safeMobileReturn } from "../../../auth/safeReturn";
 import { postHost } from "../../../host/hostBridge";
 
@@ -56,6 +69,7 @@ const email = ref("h5-admin@example.com");
 const name = ref("H5 管理员");
 const busy = ref(false);
 const error = ref("");
+const pkceHint = ref("");
 
 const rawReturn = computed(() => route.query.return);
 const returnTo = computed(() => safeMobileReturn(rawReturn.value));
@@ -78,6 +92,7 @@ async function onStubLogin() {
     session.accessToken = access;
     session.email = email.value;
     session.displayName = name.value;
+    session.loginMethod = "stub";
     persist();
     try {
       await loginWithAccessToken(access);
@@ -113,6 +128,43 @@ async function onAuthorize() {
     window.location.assign(body.url);
   } catch (err) {
     error.value = `${err.code || "AUTHORIZE"} ${err.message}`;
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function onPkceLogin() {
+  error.value = "";
+  busy.value = true;
+  try {
+    const pair = await createS256();
+    pkceHint.value = `${pair.challenge.slice(0, 8)}…`;
+    const body = await p2.authorizeUrl({ pkce: "s256", code_challenge: pair.challenge });
+    const state = body.state || "";
+    savePendingPkce({
+      state,
+      verifier: pair.verifier,
+      challenge: pair.challenge,
+      returnTo: returnTo.value,
+    });
+    if (body.code_verifier) {
+      throw Object.assign(new Error("authorize-url 不得回写浏览器已持有的 code_verifier"), { code: "PKCE" });
+    }
+    if (authorizeUrlHasSecret(body.url)) {
+      throw Object.assign(new Error("授权 URL 含 code_verifier / token，已拒绝跳转"), { code: "PKCE" });
+    }
+    const target = new URL(body.url, window.location.origin);
+    const code = target.searchParams.get("code");
+    if (code) {
+      await router.replace({
+        path: "/m/callback",
+        query: { code, state: target.searchParams.get("state") || state },
+      });
+      return;
+    }
+    window.location.assign(body.url);
+  } catch (err) {
+    error.value = `${err.code || "PKCE"} ${err.message}`;
   } finally {
     busy.value = false;
   }

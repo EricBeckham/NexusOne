@@ -84,8 +84,14 @@ requireIncludes("router", files.router, [
 ]);
 requireIncludes("App.vue", files.app, ["NxMobileShell", "route.meta.mobile", "route.meta.harness", "AppShell"]);
 requireIncludes("files API", files.filesApi, ["/api/v1/files", "signed-url", "ARCH-024"]);
-requireIncludes("login page", files.login, ["safeMobileReturn", "mobile-stub-login", "authorize-url", 'postHost("login"']);
-requireIncludes("callback", files.callback, ["consumePendingRedirect", "/m/callback"]);
+requireIncludes("login page", files.login, [
+  "safeMobileReturn",
+  "mobile-stub-login",
+  "mobile-pkce-login",
+  "authorize-url",
+  'postHost("login"',
+]);
+requireIncludes("callback", files.callback, ["consumePendingPkce", "code_verifier", "/m/callback"]);
 requireIncludes("files page", files.filesPage, [
   "validateUploadFile",
   "files.upload",

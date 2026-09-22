@@ -51,4 +51,22 @@ class AuthPkceApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accountId").exists());
     }
+
+    @Test
+    void clientHeldChallengeIsEchoedAndVerifierIsNotReturned() throws Exception {
+        String challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+        mvc.perform(get("/api/v1/auth/authorize-url")
+                        .param("pkce", "s256")
+                        .param("code_challenge", challenge))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value(containsString("code=stub-code")))
+                .andExpect(jsonPath("$.url").value(containsString("code_challenge=" + challenge)))
+                .andExpect(jsonPath("$.code_challenge").value(challenge))
+                .andExpect(jsonPath("$.code_challenge_method").value("S256"))
+                .andExpect(jsonPath("$.code_verifier").doesNotExist());
+
+        mvc.perform(get("/api/v1/auth/authorize-url").param("code_challenge", challenge))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("P2.IAM.PKCE"));
+    }
 }

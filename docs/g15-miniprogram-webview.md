@@ -4,7 +4,7 @@ Work package: a **mini-program-shaped harness** that acts as a simulated web-vie
 Same HostBridgePort channels as the mobile-browser iframe host (`login` / `route` / `file` / `close`).  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledger / form / todo pages are unchanged. G18 stays closed and is not redone.
 
-**This does not close product G15.** It does **not** accept WeChat or DingTalk production 小程序. APP WebView stays open. Keycloak Authorization Code + PKCE stays open.
+**This does not close product G15.** It does **not** accept WeChat or DingTalk production 小程序. APP WebView native stays open. Mobile-browser PKCE leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md).
 
 ## What this slice adds
 
@@ -36,7 +36,7 @@ Envelope (unchanged):
 | WeChat 小程序 production | **Not accepted.** No `wx.miniProgram`, no servicewechat.com allow, no WeChat domain walk. |
 | DingTalk 小程序 production | **Not accepted.** No DingTalk JSAPI, no h5.dingtalk.com allow. |
 | APP WebView | **Not accepted.** Same contract, no native host walk. |
-| Keycloak Authorization Code + PKCE | **Not accepted.** Browser session is still the stub token. |
+| Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Not walked inside this 小程序 harness. |
 | Product G15 | **Open** until production hosts are walked on the same contract. |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. |
 | Desktop P3 | Untouched. |

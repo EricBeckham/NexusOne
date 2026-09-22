@@ -41,7 +41,7 @@ Envelope (unchanged from [g15-h5-mobile.md](./g15-h5-mobile.md)):
 | APP WebView native binary | **Open.** No iOS / Android project, no WKWebView / Android WebView wiring, no store package. |
 | 小程序 web-view sim | Simulated parent is [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). |
 | WeChat / DingTalk production | **Open.** |
-| Keycloak Authorization Code + PKCE | **Open.** Browser session is still the M0-12 stub token. |
+| Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Not walked inside this APP harness. |
 | Product G15 | **Open** until a real native host (and 小程序) walk the same envelope. |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. Desktop P3 is not rewritten. |
 

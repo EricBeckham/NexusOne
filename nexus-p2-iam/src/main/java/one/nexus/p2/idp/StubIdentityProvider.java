@@ -23,9 +23,19 @@ public final class StubIdentityProvider implements IdentityProviderPort {
 
     @Override
     public AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues) {
+        return authorizationUrl(state, redirectUri, acrValues, null);
+    }
+
+    @Override
+    public AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues, Pkce.Challenge pkce) {
         String url = redirectUri + "?code=stub-code&state=" + state;
         if (acrValues != null && !acrValues.isBlank()) {
             url += "&acr_values=" + acrValues;
+        }
+        if (pkce != null && pkce.challenge() != null && !pkce.challenge().isBlank()) {
+            url += "&code_challenge=" + pkce.challenge()
+                    + "&code_challenge_method="
+                    + (pkce.method() == null || pkce.method().isBlank() ? Pkce.METHOD_S256 : pkce.method());
         }
         return new AuthorizeUrl(url, state);
     }
