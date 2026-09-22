@@ -39,6 +39,16 @@ export S3_ENDPOINT=http://127.0.0.1:19000
 
 This VM had no native MinIO listener on `:19000` or `:9000`, and `S3_*` was unset. Live slice recorded as **SKIP**. Fake/counting storage still passed.
 
+## G10 leftover honesty (this PR)
+
+Always-green counting preview vs apply + tenant-prefix guards. Live MinIO / object-store is honest **SKIP** when `S3_*` is unset or the endpoint is down. Does **not** claim product G10 close. Does **not** redo identity drift (#141) or G6 object restore.
+
+```bash
+./scripts/g10-file-reconcile-honesty.sh
+```
+
+See [docs/g10-file-reconcile-honesty.md](../docs/g10-file-reconcile-honesty.md). Keep both leftover rows: identity drift (#141) and this file leftover.
+
 ## Honest gaps
 
 - Not G6 object restore (missing objects are marked `MISSING`; bytes are not reconstructed).

@@ -66,4 +66,6 @@ The live suite **skips** when `S3_*` is unset or the endpoint is down. Fake/coun
 
 Command log and honest gaps: `nexus-file-core/EVIDENCE.md`.
 
+Leftover honesty (live MinIO PASS/SKIP, preview vs apply, tenant-prefix guards; does **not** claim product G10 close): [g10-file-reconcile-honesty.md](./g10-file-reconcile-honesty.md).
+
 Recorded **2026-09-22T16:49:54Z**: Counting / memory `mvn -pl nexus-file-core,nexus-bootstrap,nexus-common -am test` (selected suites) → file-core **21 run / 0 fail / 1 skip**, bootstrap handler **2/2**. Live `LiveMinioFileReconcileOptionalTest` skipped (`S3_ENDPOINT` unset; nothing on `:19000` / `:9000`). Java **21.0.10**, Maven **3.9.11**, Boot **4.1.1**. No Docker.
