@@ -15,7 +15,7 @@
 | [g15-h5-pkce-browser](./g15-h5-pkce-browser.md) | G15 leftover：移动浏览器 `/m/*` Authorization Code + PKCE（Playwright/stub；HTTPS loopback 见 #120）。不宣称产品 G15 关闭；不重做 APP / 小程序 harness |
 | [g15-wx-dt-prod-host](./g15-wx-dt-prod-host.md) | G15 leftover：微信 / 钉钉**生产宿主契约桩**（同一 F014 envelope + 通道/源白名单）。不是生产验收；产品 G15 仍开放 |
 | [g15-native-bridge-stub](./g15-native-bridge-stub.md) | G15 leftover：APP WebView **原生桥契约桩**（iOS WK / Android JS 形状，同一 F014 envelope）。不是上架 IPA/APK；对比 #114/#117/#132 网页模拟；产品 G15 仍开放 |
-| [g7-business-types](./g7-business-types.md) | G7 请假/报销/出差 catalog（#69）+ 双租户撤回/驳回走通证据；[报销/出差撤回 403](./g7-withdraw-expense-travel.md) 已在 main（#103）；[浏览器撤回 leftover](./g7-withdraw-browser.md) 走 Vue `todo-withdraw`（#113）；[报销/出差 list/detail/todo 查询 leftover](./g7-query-expense-travel.md)（#140），仍不宣称 G7 产品关闭、不重开 G18 |
+| [g7-business-types](./g7-business-types.md) | G7 请假/报销/出差 catalog（#69）+ 双租户撤回/驳回走通证据；[报销/出差撤回 403](./g7-withdraw-expense-travel.md) 已在 main（#103）；[浏览器撤回 leftover](./g7-withdraw-browser.md) 走 Vue `todo-withdraw`（#113）并证明 UI 可达 `POST /api/v1/p3/path/instances/{id}/withdraw`（live JAR/IdP 诚实 SKIP）；[报销/出差 list/detail/todo 查询 leftover](./g7-query-expense-travel.md)（#140），仍不宣称 G7 产品关闭、不重开 G18 |
 | [g17-separation-of-duties](./g17-separation-of-duties.md) | G17 三权分立 slice（ARCH-CMP-002）；不是完整 G17 关闭；[证据](./engineering/g17-separation-EVIDENCE.md) |
 | [g17-gm-tls-dual-cert](./g17-gm-tls-dual-cert.md) | G17 leftover：本地国密 TLS 双证书（SM2 签名+加密证书 + RFC 8998 TLS_SM4_GCM_SM3）；不是等保/密码机/Nginx 国密关闭；[证据](./engineering/g17-gm-tls-EVIDENCE.md) |
 | [g17-admin-totp-enrollment](./g17-admin-totp-enrollment.md) | G17 leftover：管理员 TOTP 注册 + 原生 Keycloak OTP 走通（#118）。HTTP 驱动，不是应用内 authenticator 页；不是完整 G17 关闭 |

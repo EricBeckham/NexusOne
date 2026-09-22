@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-09-22T19:00:00Z",
+  "result": "SKIP",
+  "reason": "forged product close",
+  "surface": "POST /api/v1/p3/path/instances/{id}/withdraw",
+  "live_jar": false,
+  "issued_context": false,
+  "chrome_present": false,
+  "idp": "absent",
+  "g7_product_close": true,
+  "g18": "stays closed",
+  "audit_port": "untouched"
+}

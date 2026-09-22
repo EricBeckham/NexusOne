@@ -55,6 +55,7 @@ npm run assert:h5-wx-dt
 npm run assert:h5-native-bridge
 npm run assert:h5-pkce
 npm run assert:g2-report-surface
+npm run assert:g7-withdraw-browser
 npm test
 npm run test:g7-withdraw
 npm run test:g4-pkce

@@ -1,8 +1,9 @@
 /**
  * @vitest-environment happy-dom
  *
- * G7 leftover: click the existing Vue data-testid=todo-withdraw control.
- * Stubs the live P3 adapter (no JAR, no Docker). Not a G7 three-type close.
+ * G7 leftover: click the existing Vue data-testid=todo-withdraw control
+ * for leave / expense / travel. Stubs the live P3 adapter (no JAR, no Docker).
+ * Not a G7 three-type product close. Does not reopen G18.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
@@ -35,22 +36,43 @@ vi.mock("../../api/session", () => ({
 
 import TodoInboxView from "./TodoInboxView.vue";
 
-const leaveRow = {
-  id: "todo-leave-1",
-  instance_id: "inst-leave-1",
-  title: "请假审批",
-  process: "leave",
-  biz_no: "LEAVE-G7-UI-001",
-  arrived_at: "2026-09-22T17:00:00Z",
-  status: "RUNNING",
-};
+const TYPES = [
+  {
+    type: "leave",
+    id: "todo-leave-1",
+    instance_id: "inst-leave-1",
+    title: "请假审批",
+    process: "leave",
+    biz_no: "LEAVE-G7-UI-001",
+  },
+  {
+    type: "expense",
+    id: "todo-expense-1",
+    instance_id: "inst-expense-1",
+    title: "报销审批",
+    process: "expense",
+    biz_no: "EXPENSE-G7-UI-001",
+  },
+  {
+    type: "travel",
+    id: "todo-travel-1",
+    instance_id: "inst-travel-1",
+    title: "出差审批",
+    process: "travel",
+    biz_no: "TRAVEL-G7-UI-001",
+  },
+];
 
-function pendingItems() {
-  return { items: [{ ...leaveRow }] };
-}
-
-function withdrawnItems() {
-  return { items: [{ ...leaveRow, status: "WITHDRAWN" }] };
+function rowOf(spec, status = "RUNNING") {
+  return {
+    id: spec.id,
+    instance_id: spec.instance_id,
+    title: spec.title,
+    process: spec.process,
+    biz_no: spec.biz_no,
+    arrived_at: "2026-09-22T17:00:00Z",
+    status,
+  };
 }
 
 async function mountInbox() {
@@ -74,19 +96,19 @@ describe("todo-withdraw control", () => {
     listTodos.mockReset();
     getTodo.mockReset();
     withdrawTodo.mockReset();
-    listTodos.mockResolvedValue(pendingItems());
     getTodo.mockRejectedValue(new Error("use list row"));
+  });
+
+  it.each(TYPES)("clicks data-testid=todo-withdraw on pending $type", async (spec) => {
+    listTodos.mockResolvedValue({ items: [rowOf(spec)] });
     withdrawTodo.mockImplementation(async () => {
-      listTodos.mockResolvedValue(withdrawnItems());
+      listTodos.mockResolvedValue({ items: [rowOf(spec, "WITHDRAWN")] });
       return {
-        ...leaveRow,
-        status: "WITHDRAWN",
+        ...rowOf(spec, "WITHDRAWN"),
         approval_status: "WITHDRAWN",
       };
     });
-  });
 
-  it("clicks data-testid=todo-withdraw on a pending initiated leave row", async () => {
     const wrapper = await mountInbox();
     expect(wrapper.find('[data-testid="todo-withdraw"]').exists()).toBe(false);
 
@@ -99,9 +121,44 @@ describe("todo-withdraw control", () => {
     await flushPromises();
 
     expect(withdrawTodo).toHaveBeenCalledTimes(1);
-    expect(withdrawTodo).toHaveBeenCalledWith("todo-leave-1", "", "inst-leave-1");
+    expect(withdrawTodo).toHaveBeenCalledWith(spec.id, "", spec.instance_id);
     expect(wrapper.text()).toContain("已 withdraw");
     expect(wrapper.text()).toContain("approval_status=WITHDRAWN");
     expect(wrapper.find('[data-testid="todo-withdraw"]').exists()).toBe(false);
+  });
+
+  it("walks leave + expense + travel on the same initiated box", async () => {
+    const pending = TYPES.map((spec) => rowOf(spec));
+    const withdrawn = new Set();
+    listTodos.mockImplementation(async () => ({
+      items: pending.map((row) =>
+        withdrawn.has(row.process) ? { ...row, status: "WITHDRAWN" } : row,
+      ),
+    }));
+    withdrawTodo.mockImplementation(async (_id, _comment, instanceId) => {
+      const spec = TYPES.find((item) => item.instance_id === instanceId);
+      withdrawn.add(spec.process);
+      return { ...rowOf(spec, "WITHDRAWN"), approval_status: "WITHDRAWN" };
+    });
+
+    const wrapper = await mountInbox();
+    expect(wrapper.findAll("[data-testid=todo-table] tbody tr")).toHaveLength(3);
+
+    for (const spec of TYPES) {
+      const row = wrapper.findAll("[data-testid=todo-table] tbody tr")
+        .find((item) => item.text().includes(spec.title));
+      expect(row).toBeTruthy();
+      await row.trigger("click");
+      await flushPromises();
+      const button = wrapper.get('[data-testid="todo-withdraw"]');
+      await button.trigger("click");
+      await flushPromises();
+      expect(wrapper.text()).toContain("已 withdraw");
+    }
+
+    expect(withdrawTodo).toHaveBeenCalledTimes(3);
+    expect(withdrawTodo.mock.calls.map((call) => call[2])).toEqual(
+      TYPES.map((spec) => spec.instance_id),
+    );
   });
 });
