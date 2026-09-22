@@ -12,8 +12,13 @@ import one.nexus.p1.api.ApiModels.ErrorBody;
 import one.nexus.p1.domain.DomainException;
 import one.nexus.p1.domain.ErrorCode;
 
+/**
+ * P1-specific advice. Named distinctly from
+ * {@code one.nexus.bootstrap.web.ApiExceptionHandler} so both can live on the
+ * {@code one.nexus} component scan without a bean-name clash.
+ */
 @RestControllerAdvice
-public class ApiExceptionHandler {
+public class P1ApiExceptionHandler {
 
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ErrorBody> domain(DomainException ex, HttpServletRequest request) {
