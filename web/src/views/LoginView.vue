@@ -7,6 +7,7 @@
     <div class="nx-grid" style="grid-template-columns: 1fr 1fr;">
       <form class="nx-card" @submit.prevent="onStubLogin">
         <h3>Stub 登录（NEXUS_IAM_IDP=stub）</h3>
+        <p class="nx-muted">演示 token 带 <code>acr=mfa</code>（不是真实 TOTP）。管理员无 MFA 的产品门禁仍会拒绝签发特权会话。</p>
         <div class="nx-field">
           <label>邮箱</label>
           <input v-model="email" type="email" required />

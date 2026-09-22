@@ -9,6 +9,7 @@ import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.idp.IdentityProviderPort;
 import one.nexus.p2.membership.MembershipService;
 import one.nexus.p2.org.OrganizationService;
+import one.nexus.p2.session.AdminMfaPolicy;
 import one.nexus.p2.session.SessionService;
 import one.nexus.p2.smtp.SmtpHook;
 
@@ -34,7 +35,7 @@ public final class IdentityModule {
             Clock clock,
             Duration contextTtl
     ) {
-        this(repository, idp, smtp, clock, contextTtl, null);
+        this(repository, idp, smtp, clock, contextTtl, null, AdminMfaPolicy.forced());
     }
 
     public IdentityModule(
@@ -45,6 +46,18 @@ public final class IdentityModule {
             Duration contextTtl,
             AuditPort audits
     ) {
+        this(repository, idp, smtp, clock, contextTtl, audits, AdminMfaPolicy.forced());
+    }
+
+    public IdentityModule(
+            IdentityRepository repository,
+            IdentityProviderPort idp,
+            SmtpHook smtp,
+            Clock clock,
+            Duration contextTtl,
+            AuditPort audits,
+            AdminMfaPolicy mfaPolicy
+    ) {
         this.repository = repository;
         this.idp = idp;
         this.smtp = smtp;
@@ -52,7 +65,7 @@ public final class IdentityModule {
         this.personReconciler = new PersonIdentityReconciler(repository, idp, this.reconciler, clock);
         this.organization = new OrganizationService(repository, clock);
         this.memberships = new MembershipService(repository, clock);
-        this.sessions = new SessionService(repository, reconciler, idp, clock, contextTtl, audits);
+        this.sessions = new SessionService(repository, reconciler, idp, clock, contextTtl, audits, mfaPolicy);
         this.adminInitializer = new TenantAdminInitializerImpl(repository, idp, reconciler, organization, clock);
     }
 

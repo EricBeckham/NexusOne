@@ -17,6 +17,7 @@ PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **K
 | SMTP hooks for invite / password reset only | Keycloak `execute-actions-email`; disabled unless `nexus.iam.smtp.enabled=true` |
 | Dual-tenant membership isolation at the data model | tenant-scoped tables + tests |
 | G10 person ↔ Keycloak match + repair | `account/PersonIdentityReconciler`, `GET\|POST /api/v1/identity/reconcile` |
+| Admin MFA policy (platform + tenant admin, default forced) | `session/AdminMfaPolicy`, login / switch / load-context gate; `GET /api/v1/auth/authorize-url?acr=mfa` |
 
 `tenant_id` on the wire is **rejected**. Send `X-Tenant-Id` and the API returns `P2.IAM.CLIENT_TENANT_REJECTED`. Context is issued only after P2 membership is checked.
 
@@ -28,7 +29,7 @@ Runnable without Keycloak (`nexus.iam.persistence=memory`, `nexus.iam.idp=stub`)
 mvn -pl nexus-p2-iam -am test
 ```
 
-**25 tests, 0 failures, 3 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**. Skips: `LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest` (opt-in `NEXUS_KEYCLOAK_SMOKE=1`), and `JdbcDualTenantIsolationTest` when PostgreSQL 15 is unreachable.
+**36 tests, 0 failures, 3 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0** (includes G17 admin-MFA slice). Skips: `LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest` (opt-in `NEXUS_KEYCLOAK_SMOKE=1`), and `JdbcDualTenantIsolationTest` when PostgreSQL 15 is unreachable.
 
 G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). File/object reconcile is out of this module.
 
@@ -46,6 +47,7 @@ Covered by tests:
 - Flyway `V200__iam_identity.sql` in schema `iam`: tenant tables have `tenant_id UUID NOT NULL`; `iam.iam_global_account` is platform-scoped.
 - Invite / password-reset hooks record Keycloak execute-actions when SMTP is enabled.
 - HTTP login-form helper sends Keycloak 26 `Secure` loopback cookies (`AuthorizationCodeDriverTest`).
+- Admin MFA gate: tenant/platform admin without MFA cannot issue a privileged session (`P2.IAM.MFA_REQUIRED`); non-admin password-only still can. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md).
 
 `JdbcDualTenantIsolationTest` ran against **PostgreSQL 15.19** (`Ubuntu 15.19-1.pgdg24.04+2`):
 
@@ -63,7 +65,7 @@ These are **not** accepted:
 
 - SAML
 - LDAP / Active Directory federation
-- SMS MFA (and TOTP/email MFA product acceptance)
+- SMS MFA, hardware MFA / WebAuthn, TOTP enrollment UX, email MFA product acceptance (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); not a full G17 close)
 - Browser Authorization Code + PKCE as an accepted Web/H5 path (P0 listed PKCE as unverified). Product login uses a **confidential** backend client; `p0-smoke` direct-grant must not be copied into production.
 - Keycloak Organizations as Nexus org master data or acceptance evidence (Employment is not synced to Organizations)
 - File metadata ↔ object store reconcile (G1 isolation agent; not this module)

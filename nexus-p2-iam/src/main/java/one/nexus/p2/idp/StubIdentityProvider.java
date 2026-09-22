@@ -18,7 +18,16 @@ public final class StubIdentityProvider implements IdentityProviderPort {
 
     @Override
     public AuthorizeUrl authorizationUrl(String state, String redirectUri) {
-        return new AuthorizeUrl(redirectUri + "?code=stub-code&state=" + state, state);
+        return authorizationUrl(state, redirectUri, null);
+    }
+
+    @Override
+    public AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues) {
+        String url = redirectUri + "?code=stub-code&state=" + state;
+        if (acrValues != null && !acrValues.isBlank()) {
+            url += "&acr_values=" + acrValues;
+        }
+        return new AuthorizeUrl(url, state);
     }
 
     @Override
@@ -41,7 +50,9 @@ public final class StubIdentityProvider implements IdentityProviderPort {
                     field(json, "email"),
                     field(json, "preferred_username"),
                     field(json, "name"),
-                    field(json, "phone"));
+                    field(json, "phone"),
+                    firstNonBlank(field(json, "acr"), boolFlag(json, "mfa") ? "mfa" : null),
+                    field(json, "amr"));
             users.put(claims.subject(), claims);
             return claims;
         } catch (RuntimeException ex) {
@@ -106,11 +117,34 @@ public final class StubIdentityProvider implements IdentityProviderPort {
         }
     }
 
+    /**
+     * Demo / G18 stub token. Fabricates {@code acr=mfa} so the closed stub-IdP
+     * admin walk still issues a context. This is not a TOTP challenge.
+     */
     public static String token(String subject, String email, String username, String name) {
-        String json = "{\"sub\":\"" + subject + "\",\"email\":\"" + email
-                + "\",\"preferred_username\":\"" + username + "\",\"name\":\"" + name + "\"}";
+        return token(subject, email, username, name, "mfa", "otp");
+    }
+
+    /** Password-only stub token. Admin privileged session must be rejected. */
+    public static String tokenWithoutMfa(String subject, String email, String username, String name) {
+        return token(subject, email, username, name, null, null);
+    }
+
+    public static String token(
+            String subject, String email, String username, String name, String acr, String amr) {
+        StringBuilder json = new StringBuilder("{\"sub\":\"").append(escape(subject))
+                .append("\",\"email\":\"").append(escape(email))
+                .append("\",\"preferred_username\":\"").append(escape(username))
+                .append("\",\"name\":\"").append(escape(name)).append("\"");
+        if (acr != null && !acr.isBlank()) {
+            json.append(",\"acr\":\"").append(escape(acr)).append("\"");
+        }
+        if (amr != null && !amr.isBlank()) {
+            json.append(",\"amr\":\"").append(escape(amr)).append("\"");
+        }
+        json.append("}");
         return "stub." + Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(json.getBytes(StandardCharsets.UTF_8));
+                .encodeToString(json.toString().getBytes(StandardCharsets.UTF_8));
     }
 
     public static String field(String json, String name) {
@@ -125,7 +159,26 @@ public final class StubIdentityProvider implements IdentityProviderPort {
     }
 
     private String encode(IdentityClaims claims) {
-        return token(claims.subject(), claims.email(), claims.username(), claims.displayName());
+        String acr = claims.acr() == null || claims.acr().isBlank() ? "mfa" : claims.acr();
+        String amr = claims.amr() == null || claims.amr().isBlank() ? "otp" : claims.amr();
+        return token(claims.subject(), claims.email(), claims.username(), claims.displayName(), acr, amr);
+    }
+
+    private static boolean boolFlag(String json, String name) {
+        return json.contains("\"" + name + "\":true") || "true".equalsIgnoreCase(field(json, name));
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private static String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static DirectoryUser toDirectory(IdentityClaims claims) {

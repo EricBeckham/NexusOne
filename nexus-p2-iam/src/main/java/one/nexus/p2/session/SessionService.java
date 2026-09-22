@@ -45,6 +45,7 @@ public final class SessionService {
     private final Clock clock;
     private final Duration contextTtl;
     private final AuditPort audits;
+    private final AdminMfaPolicy mfaPolicy;
 
     public SessionService(
             IdentityRepository repository,
@@ -53,7 +54,7 @@ public final class SessionService {
             Clock clock,
             Duration contextTtl
     ) {
-        this(repository, reconciler, idp, clock, contextTtl, null);
+        this(repository, reconciler, idp, clock, contextTtl, null, AdminMfaPolicy.forced());
     }
 
     public SessionService(
@@ -64,16 +65,33 @@ public final class SessionService {
             Duration contextTtl,
             AuditPort audits
     ) {
+        this(repository, reconciler, idp, clock, contextTtl, audits, AdminMfaPolicy.forced());
+    }
+
+    public SessionService(
+            IdentityRepository repository,
+            AccountReconciler reconciler,
+            IdentityProviderPort idp,
+            Clock clock,
+            Duration contextTtl,
+            AuditPort audits,
+            AdminMfaPolicy mfaPolicy
+    ) {
         this.repository = repository;
         this.reconciler = reconciler;
         this.idp = idp;
         this.clock = clock;
         this.contextTtl = contextTtl;
         this.audits = audits;
+        this.mfaPolicy = mfaPolicy == null ? AdminMfaPolicy.forced() : mfaPolicy;
     }
 
     public IdentityProviderPort.AuthorizeUrl authorizationUrl(String state, String redirectUri) {
         return idp.authorizationUrl(state, redirectUri);
+    }
+
+    public IdentityProviderPort.AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues) {
+        return idp.authorizationUrl(state, redirectUri, acrValues);
     }
 
     public SessionView loginWithCode(String code, String redirectUri) {
@@ -99,13 +117,14 @@ public final class SessionService {
                     .filter(item -> item.status() == Model.MembershipStatus.ACTIVE)
                     .toList();
             SessionView view = active.size() == 1
-                    ? issue(account, claims.subject(), active.getFirst().tenantId(), memberships)
+                    ? issue(account, claims, active.getFirst().tenantId(), memberships)
                     : new SessionView(
                             account.id(), account.email(), account.displayName(), null, null, null, memberships);
             accepted = true;
             appendLogin(true, view.tenantId(), view.accountId(), view.contextId(), "accepted", Map.of(
                     "email", account.email(),
-                    "account_id", account.id().toString()));
+                    "account_id", account.id().toString(),
+                    "mfa_satisfied", Boolean.toString(claims.mfaSatisfied())));
             return view;
         } catch (RuntimeException ex) {
             if (!accepted) {
@@ -124,10 +143,18 @@ public final class SessionService {
         if (membership.status() != Model.MembershipStatus.ACTIVE) {
             throw DomainException.forbidden("tenant membership is not active");
         }
-        return issue(identity.account(), identity.claims().subject(), requestedTenantId, membershipsOf(identity.account().id()));
+        return issue(identity.account(), identity.claims(), requestedTenantId, membershipsOf(identity.account().id()));
+    }
+
+    public TenantContext loadContext(UUID contextId, AuthenticatedIdentity identity) {
+        return loadIssued(contextId, identity.claims().subject(), identity.claims());
     }
 
     public TenantContext loadContext(UUID contextId, String idpSubject) {
+        return loadIssued(contextId, idpSubject, null);
+    }
+
+    private TenantContext loadIssued(UUID contextId, String idpSubject, IdentityProviderPort.IdentityClaims claims) {
         Model.IssuedContext stored = repository.findContext(contextId)
                 .orElseThrow(() -> DomainException.unauthorized("tenant context is not issued"));
         if (stored.revokedAt() != null) {
@@ -139,6 +166,9 @@ public final class SessionService {
         }
         if (!stored.idpSubject().equals(idpSubject)) {
             throw DomainException.forbidden("tenant context does not belong to this identity");
+        }
+        if (claims != null) {
+            requireAdminMfa(stored.accountId(), stored.tenantId(), claims);
         }
         TenantContext context = new TenantContext(
                 stored.id(), stored.tenantId(), stored.accountId(), stored.personId(),
@@ -184,10 +214,17 @@ public final class SessionService {
         return new AuthenticatedIdentity(account, claims);
     }
 
-    private SessionView issue(Model.GlobalAccount account, String subject, UUID tenantId, List<MembershipView> memberships) {
+    private SessionView issue(
+            Model.GlobalAccount account,
+            IdentityProviderPort.IdentityClaims claims,
+            UUID tenantId,
+            List<MembershipView> memberships
+    ) {
+        requireAdminMfa(account.id(), tenantId, claims);
         Model.Person person = repository.findPersonByAccount(tenantId, account.id())
                 .orElseThrow(() -> DomainException.forbidden("person record is missing in the requested tenant"));
         Instant now = clock.instant();
+        String subject = claims.subject();
         Model.IssuedContext stored = new Model.IssuedContext(
                 UuidV7.generate(), tenantId, account.id(), person.id(), subject, now, now.plus(contextTtl), null);
         repository.saveContext(stored);
@@ -242,6 +279,20 @@ public final class SessionService {
         } catch (RuntimeException auditEx) {
             ex.addSuppressed(auditEx);
         }
+    }
+
+    private void requireAdminMfa(UUID accountId, UUID tenantId, IdentityProviderPort.IdentityClaims claims) {
+        if (!mfaPolicy.adminRequired()) {
+            return;
+        }
+        if (!AdminPrivilege.holdsAdminRole(repository, accountId, tenantId, mfaPolicy)) {
+            return;
+        }
+        if (claims != null && claims.mfaSatisfied()) {
+            return;
+        }
+        throw DomainException.mfaRequired(
+                "platform or tenant admin privileged session requires MFA");
     }
 
     private List<MembershipView> membershipsOf(UUID accountId) {

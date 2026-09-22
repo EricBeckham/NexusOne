@@ -89,7 +89,7 @@ public class FlowAuthFilter extends OncePerRequestFilter {
             if (contextId == null || contextId.isBlank()) {
                 throw FlowException.missingContext();
             }
-            var issued = identity.sessions().loadContext(UUID.fromString(contextId), session.claims().subject());
+            var issued = identity.sessions().loadContext(UUID.fromString(contextId), session);
             TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
             TenantContext isolationContext = isolation.tenants().issue(
                     new AuthenticatedMembership(

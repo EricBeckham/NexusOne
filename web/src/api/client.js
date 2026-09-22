@@ -18,8 +18,14 @@ export function saveSettings(next) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
-export function stubAccessToken({ sub, email, username, name }) {
-  const json = `{"sub":"${sub}","email":"${email}","preferred_username":"${username}","name":"${name}"}`;
+export function stubAccessToken({ sub, email, username, name, acr = "mfa", amr = "otp" }) {
+  // Fabricates acr=mfa so the closed G18 stub-IdP admin walk still issues a
+  // privileged context. This is not a TOTP / SMS / hardware challenge.
+  const strength =
+    acr || amr
+      ? `${acr ? `,"acr":"${acr}"` : ""}${amr ? `,"amr":"${amr}"` : ""}`
+      : "";
+  const json = `{"sub":"${sub}","email":"${email}","preferred_username":"${username}","name":"${name}"${strength}}`;
   const bytes = new TextEncoder().encode(json);
   let bin = "";
   bytes.forEach((b) => {

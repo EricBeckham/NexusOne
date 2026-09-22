@@ -15,3 +15,8 @@ nexus:
     smtp:
       enabled: ${NEXUS_IAM_SMTP_ENABLED:false}
     platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:}
+    mfa:
+      # ARCH-CMP-001 / P1-M05-G01-F006 / P2-M09-G04-F005: admin MFA default forced.
+      admin-required: ${NEXUS_IAM_MFA_ADMIN_REQUIRED:true}
+      platform-tenant-id: ${NEXUS_IAM_PLATFORM_TENANT_ID:01900000-0000-7000-8000-000000000001}
+      admin-position-codes: ${NEXUS_IAM_MFA_ADMIN_POSITION_CODES:TENANT_ADMIN,PLATFORM_ADMIN,SYSTEM_ADMIN,SECURITY_ADMIN,AUDIT_ADMIN}
