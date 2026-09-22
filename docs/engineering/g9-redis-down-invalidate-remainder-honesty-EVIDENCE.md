@@ -40,11 +40,11 @@ Do **not** treat `./scripts/g9-redis-down-invalidate-remainder.sh` or `./scripts
 
 ## Results (agent VM)
 
-Filled after the leftover remainder honesty script on this VM at `2026-09-22T21:46:29Z`. Live output is gitignored under `.local/g9-redis-down-invalidate-remainder-honesty/`. A sanitized copy is [`g9-redis-down-invalidate-remainder-honesty/agent-vm.env`](./g9-redis-down-invalidate-remainder-honesty/agent-vm.env).
+Filled after the leftover remainder honesty script on this VM at `2026-09-22T21:49:56Z`. Live output is gitignored under `.local/g9-redis-down-invalidate-remainder-honesty/`. A sanitized copy is [`g9-redis-down-invalidate-remainder-honesty/agent-vm.env`](./g9-redis-down-invalidate-remainder-honesty/agent-vm.env).
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** | honest SKIP accepted; fake live Redis-down / live invalidate PASS, fake `g9_close=CLOSED`, and fake #197 redo rejected (`2026-09-22T21:46:29Z`) |
+| Honesty fixtures | **PASS** | honest SKIP accepted; fake live Redis-down / live invalidate PASS, fake `g9_close=CLOSED`, and fake #197 redo rejected (`2026-09-22T21:49:56Z`) |
 | leftover #83 / #121 cells still honest | PASS | dead client `:1` stays a simulation, not a live crash |
 | leftover #174 cells still honest | PASS | parent leftover honesty fixtures stay PASS |
 | leftover #197 cells still honest | PASS | parent leftover remainder fixtures stay PASS |
