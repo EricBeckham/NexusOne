@@ -6,7 +6,8 @@
  * Keeps ALL sibling leftover rows including #188 g2-ops-pg-dump-honesty
  * and #209 g9-sentinel-cluster-remainder-honesty
  * and #217 g5-publishhook-ddl-honesty
- * and #210 g17-gm-tls-nginx-handshake-honesty.
+ * and #210 g17-gm-tls-nginx-handshake-honesty
+ * and #215 g1-queryast-export-honesty.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -130,13 +131,16 @@ check(files.doc.includes("g2-ops-pg-dump-honesty"), "doc keeps #188 leftover row
 check(files.doc.includes("g9-sentinel-cluster-remainder-honesty"), "doc keeps #209 leftover row");
 check(files.doc.includes("g5-publishhook-ddl-honesty"), "doc keeps #217 leftover row");
 check(files.doc.includes("g17-gm-tls-nginx-handshake-honesty"), "doc keeps #210 leftover row");
-check(files.doc.includes("c1d3150"), "doc points at origin/main c1d3150");
+check(files.doc.includes("g1-queryast-export-honesty"), "doc keeps #215 leftover row");
+check(files.doc.includes("f9d516e"), "doc points at origin/main f9d516e");
 check(files.claim.includes("g9-sentinel-cluster-remainder-honesty.md"), "claim-list keeps #209 leftover");
 check(files.claim.includes("g5-publishhook-ddl-honesty.md"), "claim-list keeps #217 leftover");
 check(files.claim.includes("g17-gm-tls-nginx-handshake-honesty.md"), "claim-list keeps #210 leftover");
+check(files.claim.includes("g1-queryast-export-honesty.md"), "claim-list keeps #215 leftover");
 check(files.docsIndex.includes("[g9-sentinel-cluster-remainder-honesty]"), "docs index keeps #209 leftover");
 check(files.docsIndex.includes("[g5-publishhook-ddl-honesty]"), "docs index keeps #217 leftover");
 check(files.docsIndex.includes("[g17-gm-tls-nginx-handshake-honesty]"), "docs index keeps #210 leftover");
+check(files.docsIndex.includes("[g1-queryast-export-honesty]"), "docs index keeps #215 leftover");
 check(!files.doc.includes("storeReady: true"), "doc must not claim store-ready");
 check(files.parentDoc.includes("g15-wx-dt-native-bridge-remainder"), "#198 doc points at remainder leftover");
 check(files.gapDoc.includes("g15-wx-dt-native-bridge-honesty"), "#167 doc keeps #198 leftover");

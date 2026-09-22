@@ -43,6 +43,7 @@ export const ALL_SIBLING_LEFTOVER_ROWS = Object.freeze([
     "g9-sentinel-cluster-remainder-honesty",
     "g5-publishhook-ddl-honesty",
     "g17-gm-tls-nginx-handshake-honesty",
+    "g1-queryast-export-honesty",
     "g17-mfa-recovery-vue-otp-honesty",
     "g9-redis-down-invalidate-remainder",
     "g2-h5-every-page-form-write-honesty",
