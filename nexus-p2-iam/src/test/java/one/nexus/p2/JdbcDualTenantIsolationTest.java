@@ -22,11 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Optional PostgreSQL persistence check. Skips when the database is unreachable.
- * This environment used PostgreSQL 16; product baseline remains PostgreSQL 15 — not a Profile acceptance.
+ * PostgreSQL 15.x persistence check. Skips when the database is unreachable.
+ * Fails if a reachable server is not PostgreSQL 15.x (do not count PG 16 as this retest).
  */
 class JdbcDualTenantIsolationTest {
     private IdentityModule module;
+    private String postgresVersion;
 
     @BeforeEach
     void setUp() {
@@ -35,17 +36,31 @@ class JdbcDualTenantIsolationTest {
         String user = System.getenv().getOrDefault("NEXUS_IAM_TEST_JDBC_USER", "ubuntu");
         String password = System.getenv().getOrDefault("NEXUS_IAM_TEST_JDBC_PASSWORD", "");
         DataSource dataSource = new DriverManagerDataSource(url, user, password);
+        JdbcTemplate probe = new JdbcTemplate(dataSource);
+        try {
+            postgresVersion = probe.queryForObject("select version()", String.class);
+        } catch (Exception ex) {
+            Assumptions.abort("PostgreSQL is not available for JDBC isolation: " + ex.getMessage());
+            return;
+        }
+        Assumptions.assumeTrue(postgresVersion != null, "PostgreSQL version() returned null");
+        org.junit.jupiter.api.Assertions.assertTrue(
+                postgresVersion.startsWith("PostgreSQL 15."),
+                "M0-04 retest requires PostgreSQL 15.x, got: " + postgresVersion);
         try {
             Flyway.configure()
                     .dataSource(dataSource)
                     .locations("classpath:db/migration")
+                    .schemas("iam")
+                    .defaultSchema("iam")
+                    .createSchemas(true)
                     .load()
                     .migrate();
         } catch (Exception ex) {
-            Assumptions.abort("PostgreSQL is not available for JDBC isolation: " + ex.getMessage());
+            throw new IllegalStateException("Flyway migrate failed on " + postgresVersion, ex);
         }
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        jdbc.execute("TRUNCATE iam_issued_context, iam_employment, iam_position, iam_department, iam_person, iam_tenant_membership, iam_global_account CASCADE");
+        jdbc.execute("TRUNCATE iam.iam_issued_context, iam.iam_employment, iam.iam_position, iam.iam_department, iam.iam_person, iam.iam_tenant_membership, iam.iam_global_account CASCADE");
         StubIdentityProvider idp = new StubIdentityProvider();
         module = new IdentityModule(
                 new JdbcIdentityRepository(jdbc),
@@ -88,6 +103,7 @@ class JdbcDualTenantIsolationTest {
                 "Pg Alice B", "PG-B", "pg-alice@example.com", null, null, alice.id()));
 
         SessionService.SessionView inA = module.sessions().switchTenant(module.sessions().authenticate(token), tenantA);
+        assertTrue(postgresVersion.startsWith("PostgreSQL 15."), postgresVersion);
         assertEquals(tenantA, inA.tenantId());
         assertEquals(1, module.organization().listPersons().stream().filter(p -> "Pg Alice A".equals(p.displayName())).count());
         assertTrue(module.organization().listPersons().stream().noneMatch(p -> "Pg Alice B".equals(p.displayName())));

@@ -52,6 +52,9 @@ public class IdentityConfiguration {
             Flyway.configure()
                     .dataSource(dataSource)
                     .locations("classpath:db/migration")
+                    .schemas("iam")
+                    .defaultSchema("iam")
+                    .createSchemas(true)
                     .load()
                     .migrate();
             return new JdbcIdentityRepository(new JdbcTemplate(dataSource));

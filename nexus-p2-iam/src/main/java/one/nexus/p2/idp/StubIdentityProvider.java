@@ -1,13 +1,9 @@
 package one.nexus.p2.idp;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,8 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Not a product authentication path; used when Keycloak is not running.
  */
 public final class StubIdentityProvider implements IdentityProviderPort {
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final Map<String, IdentityClaims> users = new ConcurrentHashMap<>();
+    private final java.util.Map<String, IdentityClaims> users = new ConcurrentHashMap<>();
     private final List<EmailAction> sent = new ArrayList<>();
 
     @Override
@@ -40,17 +35,16 @@ public final class StubIdentityProvider implements IdentityProviderPort {
             throw new IllegalArgumentException("not a stub token");
         }
         try {
-            byte[] json = Base64.getUrlDecoder().decode(accessToken.substring(5));
-            JsonNode node = mapper.readTree(json);
+            String json = new String(Base64.getUrlDecoder().decode(accessToken.substring(5)), StandardCharsets.UTF_8);
             IdentityClaims claims = new IdentityClaims(
-                    text(node, "sub"),
-                    text(node, "email"),
-                    text(node, "preferred_username"),
-                    text(node, "name"),
-                    text(node, "phone"));
+                    field(json, "sub"),
+                    field(json, "email"),
+                    field(json, "preferred_username"),
+                    field(json, "name"),
+                    field(json, "phone"));
             users.put(claims.subject(), claims);
             return claims;
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             throw new IllegalArgumentException("invalid stub token", ex);
         }
     }
@@ -99,9 +93,15 @@ public final class StubIdentityProvider implements IdentityProviderPort {
                 .encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static String text(JsonNode node, String field) {
-        JsonNode value = node.get(field);
-        return value == null || value.isNull() ? null : value.asText();
+    public static String field(String json, String name) {
+        String needle = "\"" + name + "\":\"";
+        int start = json.indexOf(needle);
+        if (start < 0) {
+            return null;
+        }
+        int from = start + needle.length();
+        int end = json.indexOf('"', from);
+        return end < 0 ? null : json.substring(from, end);
     }
 
     private String encode(IdentityClaims claims) {

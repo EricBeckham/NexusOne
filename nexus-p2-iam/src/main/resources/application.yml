@@ -4,9 +4,6 @@ server:
 spring:
   application:
     name: nexus-p2-iam
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
 
 nexus:
   iam:

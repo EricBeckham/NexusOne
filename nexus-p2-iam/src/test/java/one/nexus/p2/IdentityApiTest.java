@@ -3,7 +3,7 @@ package one.nexus.p2;
 import one.nexus.p2.idp.StubIdentityProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -96,9 +96,8 @@ class IdentityApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tenantId").value(tenantA.toString()))
                 .andReturn();
-        String contextId = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
-                .readTree(switched.getResponse().getContentAsString())
-                .get("contextId").asText();
+        String body = switched.getResponse().getContentAsString();
+        String contextId = one.nexus.p2.idp.StubIdentityProvider.field(body, "contextId");
 
         mvc.perform(get("/api/v1/persons")
                         .header("Authorization", "Bearer " + token)

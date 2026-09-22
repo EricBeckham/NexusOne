@@ -2,7 +2,7 @@
 
 Product-path identity and organization for NexusOne. This module owns Person / global account, department tree, positions, employments, tenant membership, Keycloak OIDC session bridging, and the admin-user initializer expected by M0-03. It consumes a server-issued `TenantContext` and does **not** implement the permission engine (M0-05) or SQL Guard (M0-02).
 
-PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **Keycloak 26.5.2**.
+PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **Keycloak 26.5.2**. Spring Boot parent: **4.1.1** (same as M0-01 PR #46). Flyway: **13.7.0**, window **V200–V299**, schema **`iam`**.
 
 ## What this delivers
 
@@ -21,12 +21,14 @@ PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **K
 
 ## Verified in this PR
 
-Runnable without Keycloak or PostgreSQL (`nexus.iam.persistence=memory`, `nexus.iam.idp=stub`):
+Runnable without Keycloak (`nexus.iam.persistence=memory`, `nexus.iam.idp=stub`):
 
 ```bash
 cd nexus-p2-iam
-mvn -q test
+mvn clean test
 ```
+
+**13 tests, 0 failures** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**.
 
 Covered by tests:
 
@@ -38,15 +40,24 @@ Covered by tests:
 - Org lookups (`getPerson`, department tree, positions) are tenant-scoped.
 - Missing `TenantContext` rejects org writes.
 - `X-Tenant-Id` is rejected on the HTTP path.
-- Flyway SQL: tenant tables have `tenant_id UUID NOT NULL`; `iam_global_account` is platform-scoped.
+- Flyway `V200__iam_identity.sql` in schema `iam`: tenant tables have `tenant_id UUID NOT NULL`; `iam.iam_global_account` is platform-scoped.
 - Invite / password-reset hooks record Keycloak execute-actions when SMTP is enabled.
 
-PostgreSQL persistence (`JdbcIdentityRepository` + `V20260922__iam_identity.sql`) is implemented. `JdbcDualTenantIsolationTest` ran successfully against **PostgreSQL 16.15** in this agent (Flyway migrate + dual-tenant person listing). That is **not** PostgreSQL 15.18 or target Linux/ARM Profile acceptance. The test skips when the database is unreachable (`NEXUS_IAM_TEST_JDBC_URL`, default `jdbc:postgresql:///nexus_p2_iam_test`). Live Keycloak 26.5.2 token exchange is implemented but not run in this environment (no native Keycloak process).
+`JdbcDualTenantIsolationTest` ran against **PostgreSQL 15.19** (`Ubuntu 15.19-1.pgdg24.04+2`):
 
-## Explicitly skipped this round (P0 closeout)
+```
+PostgreSQL 15.19 (Ubuntu 15.19-1.pgdg24.04+2) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit
+```
 
-These are **not** implemented and **must not** be treated as accepted:
+That is PostgreSQL **15.x**, not 16.15. It is **not** a target Linux/ARM Profile acceptance. The JDBC test **fails** if a reachable server is not 15.x and skips only when the database is unreachable. Exact command log: `nexus-p2-iam/EVIDENCE.md`.
 
+**Live Keycloak 26.5.2 was not started and is still pending.**
+
+## Explicitly skipped / still pending
+
+These are **not** accepted:
+
+- **Live Keycloak 26.5.2 smoke** (authorization-code, JWKS, logout, execute-actions-email against a real process) — still pending
 - SAML
 - LDAP / Active Directory federation
 - SMS MFA (and TOTP/email MFA product acceptance)
@@ -102,7 +113,7 @@ Keycloak SMTP (invite / reset) is configured in the Keycloak realm, not in this 
 
 ## Coordination
 
-- **M0-01**: artifact is `one.nexus:nexus-p2-iam:0.1.0-SNAPSHOT`, matching the parent module list. This branch keeps a standalone Spring Boot **3.4.10** parent so tests run before the M0-01 aggregator (Boot 4.1.1) is merged. After merge, re-parent to `nexusone` and align the Boot minor. Flyway scripts live in `classpath:db/migration`. Do not make Docker required.
+- **M0-01**: artifact is `one.nexus:nexus-p2-iam:0.1.0-SNAPSHOT`. Standalone parent is Spring Boot **4.1.1** (same BOM as PR #46). After the aggregator merges, re-parent to `nexusone`. Flyway **V200** is in schema `iam`. Do not make Docker required.
 - **M0-02**: consume `one.nexus.p2.kernel.TenantContext` / `TenantContextHolder`. Identity **issues** context after membership checks; isolation kernel **propagates** it to SQL Guard, jobs, cache, and files. Replace the in-module holder with the kernel holder when that module lands. Do not rewrite Guard or quota code here.
 - **M0-03**: call `TenantAdminInitializer.initialize(Command)` in-process, or `POST /api/v1/internal/tenants/{tenantId}/admin-users` with `X-Nexus-Bootstrap-Token`. That creates global account, Keycloak user, membership, person, root department `ROOT`, position `TENANT_ADMIN`, and primary employment.
 

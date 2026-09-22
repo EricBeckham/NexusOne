@@ -28,7 +28,7 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public Model.GlobalAccount saveAccount(Model.GlobalAccount account) {
         int updated = jdbc.update("""
-                INSERT INTO iam_global_account
+                INSERT INTO iam.iam_global_account
                   (id, keycloak_user_id, email, phone, username, display_name, status, created_at, updated_at, deleted_at, version)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT (id) DO UPDATE SET
@@ -53,23 +53,23 @@ public final class JdbcIdentityRepository implements IdentityRepository {
 
     @Override
     public Optional<Model.GlobalAccount> findAccount(UUID id) {
-        return one("SELECT * FROM iam_global_account WHERE id = ? AND deleted_at IS NULL", ACCOUNT, id);
+        return one("SELECT * FROM iam.iam_global_account WHERE id = ? AND deleted_at IS NULL", ACCOUNT, id);
     }
 
     @Override
     public Optional<Model.GlobalAccount> findAccountByKeycloakUserId(String keycloakUserId) {
-        return one("SELECT * FROM iam_global_account WHERE keycloak_user_id = ? AND deleted_at IS NULL", ACCOUNT, keycloakUserId);
+        return one("SELECT * FROM iam.iam_global_account WHERE keycloak_user_id = ? AND deleted_at IS NULL", ACCOUNT, keycloakUserId);
     }
 
     @Override
     public Optional<Model.GlobalAccount> findAccountByEmail(String email) {
-        return one("SELECT * FROM iam_global_account WHERE lower(email) = lower(?) AND deleted_at IS NULL", ACCOUNT, email);
+        return one("SELECT * FROM iam.iam_global_account WHERE lower(email) = lower(?) AND deleted_at IS NULL", ACCOUNT, email);
     }
 
     @Override
     public Model.TenantMembership saveMembership(Model.TenantMembership membership) {
         jdbc.update("""
-                INSERT INTO iam_tenant_membership
+                INSERT INTO iam.iam_tenant_membership
                   (id, tenant_id, account_id, status, joined_at, updated_at, deleted_at, version)
                 VALUES (?,?,?,?,?,?,?,?)
                 ON CONFLICT (id) DO UPDATE SET
@@ -86,7 +86,7 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public Optional<Model.TenantMembership> findMembership(UUID tenantId, UUID accountId) {
         return one("""
-                SELECT * FROM iam_tenant_membership
+                SELECT * FROM iam.iam_tenant_membership
                 WHERE tenant_id = ? AND account_id = ? AND deleted_at IS NULL
                 """, MEMBERSHIP, tenantId, accountId);
     }
@@ -94,21 +94,21 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public List<Model.TenantMembership> listMembershipsByAccount(UUID accountId) {
         return jdbc.query(
-                "SELECT * FROM iam_tenant_membership WHERE account_id = ? AND deleted_at IS NULL",
+                "SELECT * FROM iam.iam_tenant_membership WHERE account_id = ? AND deleted_at IS NULL",
                 MEMBERSHIP, accountId);
     }
 
     @Override
     public List<Model.TenantMembership> listMembershipsByTenant(UUID tenantId) {
         return jdbc.query(
-                "SELECT * FROM iam_tenant_membership WHERE tenant_id = ? AND deleted_at IS NULL",
+                "SELECT * FROM iam.iam_tenant_membership WHERE tenant_id = ? AND deleted_at IS NULL",
                 MEMBERSHIP, tenantId);
     }
 
     @Override
     public Model.Person savePerson(Model.Person person) {
         jdbc.update("""
-                INSERT INTO iam_person
+                INSERT INTO iam.iam_person
                   (id, tenant_id, account_id, display_name, employee_no, email, phone, hired_on, status, created_at, updated_at, deleted_at, version)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT (id) DO UPDATE SET
@@ -130,23 +130,23 @@ public final class JdbcIdentityRepository implements IdentityRepository {
 
     @Override
     public Optional<Model.Person> findPerson(UUID tenantId, UUID personId) {
-        return one("SELECT * FROM iam_person WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", PERSON, tenantId, personId);
+        return one("SELECT * FROM iam.iam_person WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", PERSON, tenantId, personId);
     }
 
     @Override
     public Optional<Model.Person> findPersonByAccount(UUID tenantId, UUID accountId) {
-        return one("SELECT * FROM iam_person WHERE tenant_id = ? AND account_id = ? AND deleted_at IS NULL", PERSON, tenantId, accountId);
+        return one("SELECT * FROM iam.iam_person WHERE tenant_id = ? AND account_id = ? AND deleted_at IS NULL", PERSON, tenantId, accountId);
     }
 
     @Override
     public List<Model.Person> listPersons(UUID tenantId) {
-        return jdbc.query("SELECT * FROM iam_person WHERE tenant_id = ? AND deleted_at IS NULL", PERSON, tenantId);
+        return jdbc.query("SELECT * FROM iam.iam_person WHERE tenant_id = ? AND deleted_at IS NULL", PERSON, tenantId);
     }
 
     @Override
     public Optional<Model.Person> findPersonByEmployeeNo(UUID tenantId, String employeeNo) {
         return one("""
-                SELECT * FROM iam_person
+                SELECT * FROM iam.iam_person
                 WHERE tenant_id = ? AND employee_no = ? AND deleted_at IS NULL
                 """, PERSON, tenantId, employeeNo);
     }
@@ -154,7 +154,7 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public Model.Department saveDepartment(Model.Department department) {
         jdbc.update("""
-                INSERT INTO iam_department
+                INSERT INTO iam.iam_department
                   (id, tenant_id, parent_id, code, name, path, sort_order, leader_person_id, status, created_at, updated_at, deleted_at, version)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT (id) DO UPDATE SET
@@ -177,23 +177,23 @@ public final class JdbcIdentityRepository implements IdentityRepository {
 
     @Override
     public Optional<Model.Department> findDepartment(UUID tenantId, UUID departmentId) {
-        return one("SELECT * FROM iam_department WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", DEPARTMENT, tenantId, departmentId);
+        return one("SELECT * FROM iam.iam_department WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", DEPARTMENT, tenantId, departmentId);
     }
 
     @Override
     public Optional<Model.Department> findDepartmentByCode(UUID tenantId, String code) {
-        return one("SELECT * FROM iam_department WHERE tenant_id = ? AND code = ? AND deleted_at IS NULL", DEPARTMENT, tenantId, code);
+        return one("SELECT * FROM iam.iam_department WHERE tenant_id = ? AND code = ? AND deleted_at IS NULL", DEPARTMENT, tenantId, code);
     }
 
     @Override
     public List<Model.Department> listDepartments(UUID tenantId) {
-        return jdbc.query("SELECT * FROM iam_department WHERE tenant_id = ? AND deleted_at IS NULL ORDER BY sort_order, name", DEPARTMENT, tenantId);
+        return jdbc.query("SELECT * FROM iam.iam_department WHERE tenant_id = ? AND deleted_at IS NULL ORDER BY sort_order, name", DEPARTMENT, tenantId);
     }
 
     @Override
     public long countChildDepartments(UUID tenantId, UUID parentId) {
         Long count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM iam_department WHERE tenant_id = ? AND parent_id = ? AND deleted_at IS NULL",
+                "SELECT COUNT(*) FROM iam.iam_department WHERE tenant_id = ? AND parent_id = ? AND deleted_at IS NULL",
                 Long.class, tenantId, parentId);
         return count == null ? 0 : count;
     }
@@ -201,7 +201,7 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public Model.Position savePosition(Model.Position position) {
         jdbc.update("""
-                INSERT INTO iam_position
+                INSERT INTO iam.iam_position
                   (id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT (id) DO UPDATE SET
@@ -222,23 +222,23 @@ public final class JdbcIdentityRepository implements IdentityRepository {
 
     @Override
     public Optional<Model.Position> findPosition(UUID tenantId, UUID positionId) {
-        return one("SELECT * FROM iam_position WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", POSITION, tenantId, positionId);
+        return one("SELECT * FROM iam.iam_position WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", POSITION, tenantId, positionId);
     }
 
     @Override
     public Optional<Model.Position> findPositionByCode(UUID tenantId, String code) {
-        return one("SELECT * FROM iam_position WHERE tenant_id = ? AND code = ? AND deleted_at IS NULL", POSITION, tenantId, code);
+        return one("SELECT * FROM iam.iam_position WHERE tenant_id = ? AND code = ? AND deleted_at IS NULL", POSITION, tenantId, code);
     }
 
     @Override
     public List<Model.Position> listPositions(UUID tenantId) {
-        return jdbc.query("SELECT * FROM iam_position WHERE tenant_id = ? AND deleted_at IS NULL ORDER BY name", POSITION, tenantId);
+        return jdbc.query("SELECT * FROM iam.iam_position WHERE tenant_id = ? AND deleted_at IS NULL ORDER BY name", POSITION, tenantId);
     }
 
     @Override
     public Model.Employment saveEmployment(Model.Employment employment) {
         jdbc.update("""
-                INSERT INTO iam_employment
+                INSERT INTO iam.iam_employment
                   (id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to, created_at, updated_at, deleted_at, version)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT (id) DO UPDATE SET
@@ -261,20 +261,20 @@ public final class JdbcIdentityRepository implements IdentityRepository {
 
     @Override
     public Optional<Model.Employment> findEmployment(UUID tenantId, UUID employmentId) {
-        return one("SELECT * FROM iam_employment WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", EMPLOYMENT, tenantId, employmentId);
+        return one("SELECT * FROM iam.iam_employment WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL", EMPLOYMENT, tenantId, employmentId);
     }
 
     @Override
     public List<Model.Employment> listEmploymentsByPerson(UUID tenantId, UUID personId) {
         return jdbc.query(
-                "SELECT * FROM iam_employment WHERE tenant_id = ? AND person_id = ? AND deleted_at IS NULL",
+                "SELECT * FROM iam.iam_employment WHERE tenant_id = ? AND person_id = ? AND deleted_at IS NULL",
                 EMPLOYMENT, tenantId, personId);
     }
 
     @Override
     public List<Model.Employment> listEmploymentsByDepartment(UUID tenantId, UUID departmentId) {
         return jdbc.query("""
-                SELECT * FROM iam_employment
+                SELECT * FROM iam.iam_employment
                 WHERE tenant_id = ? AND department_id = ? AND status = 'ACTIVE' AND deleted_at IS NULL
                 """, EMPLOYMENT, tenantId, departmentId);
     }
@@ -282,7 +282,7 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public Optional<Model.Employment> findPrimaryEmployment(UUID tenantId, UUID personId) {
         return one("""
-                SELECT * FROM iam_employment
+                SELECT * FROM iam.iam_employment
                 WHERE tenant_id = ? AND person_id = ? AND kind = 'PRIMARY' AND status = 'ACTIVE' AND deleted_at IS NULL
                 """, EMPLOYMENT, tenantId, personId);
     }
@@ -290,7 +290,7 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public Model.IssuedContext saveContext(Model.IssuedContext context) {
         jdbc.update("""
-                INSERT INTO iam_issued_context
+                INSERT INTO iam.iam_issued_context
                   (id, tenant_id, account_id, person_id, idp_subject, issued_at, expires_at, revoked_at)
                 VALUES (?,?,?,?,?,?,?,?)
                 ON CONFLICT (id) DO UPDATE SET revoked_at = EXCLUDED.revoked_at
@@ -302,13 +302,13 @@ public final class JdbcIdentityRepository implements IdentityRepository {
 
     @Override
     public Optional<Model.IssuedContext> findContext(UUID contextId) {
-        return one("SELECT * FROM iam_issued_context WHERE id = ?", CONTEXT, contextId);
+        return one("SELECT * FROM iam.iam_issued_context WHERE id = ?", CONTEXT, contextId);
     }
 
     @Override
     public void revokeContextsForAccount(UUID accountId) {
         jdbc.update(
-                "UPDATE iam_issued_context SET revoked_at = ? WHERE account_id = ? AND revoked_at IS NULL",
+                "UPDATE iam.iam_issued_context SET revoked_at = ? WHERE account_id = ? AND revoked_at IS NULL",
                 ts(Instant.now()), accountId);
     }
 
