@@ -5,6 +5,7 @@
     "g17-separation-honesty",
     "g17-separation-leftover-honesty",
     "g17-mfa-recovery-vue-otp-remainder-honesty",
+    "s0-secret-rotate-getenv-leftover-honesty",
     "g5-publishhook-ddl-remainder-honesty",
     "g1-fieldpolicy-mask-second-auth-remainder-honesty",
     "g7-query-expense-travel-honesty-remainder",
@@ -23,6 +24,6 @@
   "g17SodClose": "NOT_CLAIMED",
   "productDualControlClose": "NOT_CLAIMED",
   "g18": "closed_unchanged",
-  "timestampUtc": "2026-09-22T22:32:17Z",
+  "timestampUtc": "2026-09-22T22:33:25Z",
   "evidence": "scripts/g17-separation-leftover-honesty-remainder.sh"
 }
