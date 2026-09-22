@@ -1,4 +1,5 @@
 /**
- * FileRef contract is in nexus-common. Object storage adapter is M0-10.
+ * File Service: tenant prefix via {@code FileObjectKeyGuard}, file_id metadata, signed URL
+ * second authorization before S3. Object bytes live behind {@link one.nexus.file.ObjectStoragePort}.
  */
 package one.nexus.file;

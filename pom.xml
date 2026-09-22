@@ -26,6 +26,7 @@
     <module>nexus-expression-core</module>
     <module>nexus-event-core</module>
     <module>nexus-task-core</module>
+    <module>nexus-cache-core</module>
     <module>nexus-file-core</module>
     <module>nexus-notification-core</module>
     <module>nexus-audit-core</module>
@@ -84,6 +85,11 @@
       <dependency>
         <groupId>one.nexus</groupId>
         <artifactId>nexus-task-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>one.nexus</groupId>
+        <artifactId>nexus-cache-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -39,7 +39,7 @@ management:
     env:
       enabled: true
 
-# Single nexus map: M0-09 execution, M0-12 P1/P2 bindings, M0-11 crypto/audit.
+# Single nexus map: M0-09 execution, M0-12 P1/P2 bindings, M0-11 crypto/audit, M0-10 cache/files/notify.
 # Library application.yml files are not the monolith’s config source.
 nexus:
   execution:
@@ -67,6 +67,25 @@ nexus:
     master-key: ${NEXUS_CRYPTO_MASTER_KEY:}
   audit:
     persistence: ${NEXUS_AUDIT_PERSISTENCE:memory}
+  cache:
+    env: ${NEXUS_CACHE_ENV:dev}
+    mode: ${NEXUS_CACHE_MODE:auto}
+    host: ${NEXUS_REDIS_HOST:127.0.0.1}
+    port: ${NEXUS_REDIS_PORT:6379}
+  files:
+    persistence: jdbc
+    storage: ${NEXUS_FILE_STORAGE:memory}
+    bucket-alias: nexus-files
+    demo-context: false
+    s3:
+      endpoint: ${S3_ENDPOINT:}
+      access-key: ${S3_ACCESS_KEY:}
+      secret-key: ${S3_SECRET_KEY:}
+      bucket: ${S3_TEST_BUCKET:nexus-files}
+  notify:
+    persistence: jdbc
+    outbox: auto
+    demo-context: false
 
 info:
   app:
