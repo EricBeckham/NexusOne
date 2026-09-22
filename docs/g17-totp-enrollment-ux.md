@@ -63,6 +63,6 @@ Fill from `./scripts/g17/run-totp-enrollment-ux.sh`. Artifact: [g17-totp-enrollm
 | Email MFA product acceptance | Sibling leftover [g17-admin-mfa-recovery-email.md](./g17-admin-mfa-recovery-email.md) is the request contract + honest SKIP. |
 | SMS MFA / WebAuthn / passkeys | Not implemented. |
 | Forced OTP at the Keycloak flow layer | Same as #118: product gate is P2. |
-| Full G17 / 等保 / 密评 / 密码机 / 真实 Tongsuo 握手 | **Not claimed.** 三权 is [g17-separation-of-duties.md](./g17-separation-of-duties.md). Tongsuo leftover is [g17-gm-tls-nginx-dual-stack.md](./g17-gm-tls-nginx-dual-stack.md). |
+| Full G17 / 等保 / 密评 / 密码机 / 真实 Tongsuo 握手 | **Not claimed.** 三权 is [g17-separation-of-duties.md](./g17-separation-of-duties.md). Tongsuo dual-stack leftover is [g17-gm-tls-nginx-dual-stack.md](./g17-gm-tls-nginx-dual-stack.md). Handshake honesty leftover is [g17-gm-tls-nginx-handshake.md](./g17-gm-tls-nginx-handshake.md). |
 | G18 reopen | **No.** Default stub token still fabricates MFA. |
 | P0/M0 redo, Docker | Out of scope |

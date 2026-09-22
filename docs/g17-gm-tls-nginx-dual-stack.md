@@ -54,7 +54,7 @@ See [engineering/g17-gm-tls-nginx-EVIDENCE.md](./engineering/g17-gm-tls-nginx-EV
 
 ## Honest leftovers (not claimed)
 
-- Live Nginx/Tongsuo GMTLS handshake on this agent VM (nginx not installed; stock OpenSSL 3.x is not Tongsuo)
+- Live Nginx/Tongsuo GMTLS handshake honesty leftover is [g17-gm-tls-nginx-handshake.md](./g17-gm-tls-nginx-handshake.md) (SKIP without Tongsuo; does not redo this dual-stack leftover)
 - Full GM/T 0024 encryption-certificate **negotiation** inside the Java handshake. RFC 8998 TLS 1.3 still uses the sign cert; the encrypt cert is material + documented NTLS config only
 - Qualified GM/T Provider / 商用密码资质模块
 - 密码机 / HSM / OpenBao / cloud KMS

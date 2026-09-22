@@ -62,6 +62,6 @@ Fill from `./scripts/g17/run-mfa-recovery-email.sh`. Artifacts: [g17-admin-mfa-r
 | Keycloak `CONFIGURE_RECOVERY_AUTHN_CODES` required action | Driver can classify the form. This VM does not enroll it. |
 | SMS MFA / WebAuthn / passkeys | Not implemented. |
 | Forced OTP at the Keycloak flow layer | Same as #118: product gate is P2. |
-| Full G17 / 等保 / 密评 / 密码机 / 真实 Tongsuo 握手 | **Not claimed.** |
+| Full G17 / 等保 / 密评 / 密码机 / 真实 Tongsuo 握手 | **Not claimed.** Handshake honesty leftover is [g17-gm-tls-nginx-handshake.md](./g17-gm-tls-nginx-handshake.md). Dual-stack leftover is [g17-gm-tls-nginx-dual-stack.md](./g17-gm-tls-nginx-dual-stack.md). |
 | G18 reopen | **No.** Default stub token still fabricates MFA. |
 | P0/M0 redo, Docker, AuditPort same-TX | Out of scope |
