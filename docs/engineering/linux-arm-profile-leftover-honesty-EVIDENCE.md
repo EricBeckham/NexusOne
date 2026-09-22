@@ -1,6 +1,6 @@
 # Linux / ARM Profile leftover: TARGET-ARM-01 / supply-chain csv honesty beyond #157 — evidence
 
-Recorded on this branch after rebase onto `origin/main` `4c26d76` (Merge #186 G6 RecoveryPort dry-run leftover honesty; includes #185 live Redis/MinIO isolation leftover honesty / #189 claim-list tip / #187 G17 SoD leftover honesty / #183 G4 hot-purge leftover honesty / #184 G1 FieldPolicy leftover honesty). Operator: cloud agent. Live output: `.local/linux-arm-profile-leftover-honesty/` (gitignored). A sanitized copy is [`linux-arm-profile-leftover-honesty/agent-vm.env`](./linux-arm-profile-leftover-honesty/agent-vm.env) once recorded.
+Recorded on this branch after rebase onto `origin/main` `514c9b7` (Merge #194 S0+S1 claim-list tip sync after #186; includes #186 G6 RecoveryPort dry-run leftover honesty / #185 live Redis/MinIO isolation leftover honesty / #189 claim-list tip / #187 G17 SoD leftover honesty / #183 G4 hot-purge leftover honesty / #184 G1 FieldPolicy leftover honesty). Operator: cloud agent. Live output: `.local/linux-arm-profile-leftover-honesty/` (gitignored). A sanitized copy is [`linux-arm-profile-leftover-honesty/agent-vm.env`](./linux-arm-profile-leftover-honesty/agent-vm.env) once recorded.
 
 **Product target Linux/ARM Profile is NOT accepted.** This leftover does **not** redo #105 collect/verify, #127 lifecycle, or #157 honesty. It does **not** rewrite P0-10 / M0-01～M0-12. It does **not** change `AuditPort`. **G18 stays closed.**
 
