@@ -138,9 +138,9 @@ class QueryAstScopedQueryTest {
         BoundSql count = QueryAstScopedQuery.count(leftoverCount);
         assertTrue(count.sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
         assertTrue(count.sql().contains("owner_id"));
-        assertEquals(leftoverCount.compiled().plan(), leftoverCount.executed().plan());
-        assertTrue(leftoverCount.executed().sql().startsWith(leftoverCount.compiled().sql().substring(
-                0, leftoverCount.compiled().sql().indexOf(" ORDER"))));
+        assertEquals(leftover.compiled().plan(), leftover.executed().plan());
+        assertTrue(leftover.executed().sql().startsWith(leftover.compiled().sql().substring(
+                0, leftover.compiled().sql().indexOf(" ORDER"))));
 
         assertThrows(PermissionException.class, () -> QueryAstScopedQuery.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
