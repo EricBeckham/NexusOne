@@ -14,6 +14,7 @@ Focused Java 21 module for NexusOne tenant isolation. It is not the M0-01 applic
 | M0-10 | `CacheKeyGuard`, `FileObjectKeyGuard` |
 | Export / G1 | `ExportGuard`, `IsolatedExport` (`P1.M02.019`); FieldPolicy gate `P1.M02.021` |
 | Query AST JOIN / G1 | `QueryJoin` / `TenantInjector.injectJoin` (`P1.M02.020`) |
+| Query AST remainder / G1 | subquery `P1.M02.022`, batch write `P1.M02.023`, sort `P1.M02.024`, page `P1.M02.025` |
 | M0-11 | `IsolationAuditSink` / `IsolationAuditEvent` (static guards emit via `IsolationAuditorHolder`) |
 
 Tenant predicate injection has no disable flag. The only audited cross-tenant path is a whitelist `PlatformContext`.

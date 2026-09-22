@@ -19,6 +19,9 @@ import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
+import one.nexus.isolation.api.QueryPage;
+import one.nexus.isolation.api.QuerySort;
+import one.nexus.isolation.api.QuerySubquery;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.api.IsolationAuditEvent;
 import one.nexus.isolation.audit.CollectingAuditSink;
@@ -166,6 +169,42 @@ class IsolatedExportTest {
         assertTrue(csv.get().contains("a1,10"));
         assertFalse(sink.rejected(IsolationErrorCode.FIELD_POLICY_EXPORT));
         assertFalse(sink.rejected(IsolationErrorCode.CROSS_TENANT_JOIN));
+    }
+
+    @Test
+    void exportCompileRejectsStolenSubqueryAndAcceptsPagedSort() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+        registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+        IsolationKernel tables = IsolationKernel.create(registry, Set.of("ops.summary"), sink);
+        TenantContext context = tables.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-alpha"), "alpha", "mem-alpha", Set.of("alpha")), "trace-alpha");
+        AccessContextHolder.set(context);
+        Map<String, ExportFieldRule> policy = Map.of("id", ExportFieldRule.allow(), "title", ExportFieldRule.allow());
+        IsolationException stolen = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(
+                                QuerySubquery.in("id", "ledger_line", "entry_id", Map.of("tenant_id", "beta")))),
+                "alpha",
+                policy,
+                false));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_SUBQUERY, stolen.error());
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_SUBQUERY));
+        var sql = IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id", "title"), Map.of())
+                        .withSubqueries(List.of(QuerySubquery.in("id", "ledger_line", "entry_id", Map.of())))
+                        .withSorts(List.of(QuerySort.asc("title")))
+                        .withPage(QueryPage.of(10, 0)),
+                "alpha",
+                policy,
+                false);
+        assertTrue(sql.sql().contains("IN (SELECT"));
+        assertTrue(sql.sql().contains("ORDER BY"));
+        assertTrue(sql.sql().contains("LIMIT ?"));
+        assertFalse(sink.rejected(IsolationErrorCode.INVALID_SORT));
+        assertFalse(sink.rejected(IsolationErrorCode.UNBOUNDED_PAGE));
     }
 
     private void bind(String tenantId) {

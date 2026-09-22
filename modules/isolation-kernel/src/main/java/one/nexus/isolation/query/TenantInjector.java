@@ -1,6 +1,8 @@
 package one.nexus.isolation.query;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
@@ -8,6 +10,7 @@ import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
+import one.nexus.isolation.api.QuerySubquery;
 import one.nexus.isolation.api.TableDescriptor;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.audit.IsolationAuditor;
@@ -30,6 +33,9 @@ public final class TenantInjector {
         }
         String tenantId = tenant.tenantId();
         if (query.kind() == QueryKind.INSERT) {
+            if (!query.batchRows().isEmpty()) {
+                return injectBatch(query, tenantId, context, auditor);
+            }
             Object provided = query.values().get("tenant_id");
             if (provided != null && !tenantId.equals(provided)) {
                 throw auditor.reject(IsolationErrorCode.CROSS_TENANT_WRITE, context, "insert tenant_id mismatch");
@@ -77,5 +83,53 @@ public final class TenantInjector {
         Map<String, Object> filters = new LinkedHashMap<>(join.filters());
         filters.put("tenant_id", tenant.tenantId());
         return join.withFilters(filters);
+    }
+
+    /**
+     * Same mandatory tenant predicate on an IN / EXISTS subquery. A foreign
+     * {@code tenant_id} is {@code CROSS_TENANT_SUBQUERY} and never reaches
+     * the renderer.
+     */
+    public static QuerySubquery injectSubquery(
+            QuerySubquery subquery,
+            TableDescriptor table,
+            AccessContext context,
+            IsolationAuditor auditor
+    ) {
+        if (context == null) {
+            throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, null, "missing context");
+        }
+        if (!table.tenantRequired() || context instanceof PlatformContext) {
+            return subquery;
+        }
+        if (!(context instanceof TenantContext tenant)) {
+            throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, context, "tenant context required");
+        }
+        Object filtered = subquery.filters().get("tenant_id");
+        if (filtered != null && !tenant.tenantId().equals(filtered)) {
+            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_SUBQUERY, context, "subquery tenant_id mismatch");
+        }
+        Map<String, Object> filters = new LinkedHashMap<>(subquery.filters());
+        filters.put("tenant_id", tenant.tenantId());
+        return subquery.withFilters(filters);
+    }
+
+    private static QueryAst injectBatch(
+            QueryAst query,
+            String tenantId,
+            AccessContext context,
+            IsolationAuditor auditor
+    ) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Map<String, Object> row : query.batchRows()) {
+            Object provided = row.get("tenant_id");
+            if (provided != null && !tenantId.equals(provided)) {
+                throw auditor.reject(IsolationErrorCode.CROSS_TENANT_BATCH, context, "batch tenant_id mismatch");
+            }
+            Map<String, Object> values = new LinkedHashMap<>(row);
+            values.put("tenant_id", tenantId);
+            rows.add(values);
+        }
+        return query.withBatchRows(rows).withValues(rows.getFirst());
     }
 }

@@ -27,11 +27,11 @@ TenantContext  (ThreadLocal via AccessContextHolder)
 ## 2. Query / DB
 
 ```text
-QueryAst  (no SQL text; SELECT may INNER JOIN registered tables)
-   → TenantInjector          (cannot be disabled; each join table too)
-   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id or join tenant)
+QueryAst  (no SQL text; SELECT may INNER JOIN / IN-EXISTS / ORDER BY / LIMIT; INSERT may batch)
+   → TenantInjector          (cannot be disabled; each join and subquery table too; each batch row)
+   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id, join tenant, subquery tenant, or batch tenant)
    → SoftDeleteInjector SPI
-   → TableAccessPlan Guard   (primary + each join)
+   → TableAccessPlan Guard   (primary + each join + each subquery)
    → parameterized PostgreSQL renderer
    → GuardedJdbc (PreparedStatement only)
 ```
@@ -47,6 +47,10 @@ Rejects happen in compile, before `Connection.prepareStatement`.
 | Client tenant untrusted | P1.M02.009 |
 | Cross-tenant INNER JOIN | P1.M02.020 |
 | Export FieldPolicy | P1.M02.021 |
+| Cross-tenant subquery | P1.M02.022 |
+| Cross-tenant batch write | P1.M02.023 |
+| Invalid sort | P1.M02.024 |
+| Unbounded page | P1.M02.025 |
 
 ## 3. Async / Job / Outbox (M0-09)
 
@@ -80,7 +84,7 @@ Platform context may read tenant prefixes (ops/reconciliation) but tenant contex
 
 `ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`. Accepted submit / writeFile / dispatch emit `EXPORT_ACCEPTED`; product `AuditPortIsolationSink` persists those with `AuditPort.append` on the existing hash chain.
 
-`IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. Cross-tenant INNER JOIN is `P1.M02.020` and must not reach JDBC.
+`IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. Cross-tenant INNER JOIN is `P1.M02.020` and must not reach JDBC. Cross-tenant IN/EXISTS subquery is `P1.M02.022`; stolen batch INSERT is `P1.M02.023`; unregistered ORDER BY is `P1.M02.024`; LIMIT/OFFSET outside `1..1000` / `offset >= 0` is `P1.M02.025`. None of those reach JDBC.
 
 ## 7. Audit
 
