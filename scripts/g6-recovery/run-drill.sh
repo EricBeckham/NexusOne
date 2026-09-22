@@ -30,6 +30,7 @@ export PATH="$PG15_BIN:$PATH"
 mkdir -p "$WORK"/{logs,backup,object-backup,objects,evidence}
 chmod 700 "$WORK" || true
 
+now_ms() { python3 -c 'import time; print(int(time.time() * 1000))'; }
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
@@ -154,7 +155,7 @@ MINIO_VER="$("$MINIO_BIN" --version | head -n1)"
 MC_VER="$("$MC_BIN" --version | head -n1)"
 HOST_UNAME="$(uname -a)"
 JAVA_VER="$(java -version 2>&1 | head -n1 || true)"
-DRILL_START_EPOCH="$(date -u +%s)"
+DRILL_START_MS="$(now_ms)"
 DRILL_START_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 log "server_version=${PG_VERSION}"
@@ -186,17 +187,17 @@ SRC_COUNTS="$(psql_q -d "$SRC_DB" -Atc "SELECT 'audit_record='||count(*) FROM pl
 
 DUMP="$WORK/backup/${SRC_DB}.dump"
 log "pg_dump --format=custom ${SRC_DB} -> ${DUMP}"
-DUMP_T0="$(date -u +%s)"
+DUMP_T0="$(now_ms)"
 "$PG15_BIN/pg_dump" --format=custom --file="$DUMP" --dbname="$SRC_DB"
-DUMP_T1="$(date -u +%s)"
+DUMP_T1="$(now_ms)"
 DUMP_SHA="$(sha256sum "$DUMP" | awk '{print $1}')"
 DUMP_BYTES="$(wc -c <"$DUMP" | tr -d ' ')"
 
 log "CREATE DATABASE ${DST_DB} and pg_restore --exit-on-error"
 psql_q -d postgres -c "CREATE DATABASE ${DST_DB} TEMPLATE template0 ENCODING 'UTF8';"
-RESTORE_T0="$(date -u +%s)"
+RESTORE_T0="$(now_ms)"
 "$PG15_BIN/pg_restore" --dbname="$DST_DB" --exit-on-error "$DUMP"
-RESTORE_T1="$(date -u +%s)"
+RESTORE_T1="$(now_ms)"
 
 DST_AUDIT_SHA="$(table_sha "$DST_DB" platform.audit_record chain_index)"
 DST_META_SHA="$(table_sha "$DST_DB" platform.audit_chain_meta chain_id)"
@@ -234,13 +235,13 @@ KEY_M="platform/runtime/g6-marker.txt"
 
 rm -rf "$WORK/object-backup"
 mkdir -p "$WORK/object-backup"
-OBJ_DUMP_T0="$(date -u +%s)"
+OBJ_DUMP_T0="$(now_ms)"
 "$MC_BIN" mirror --overwrite "${MC_ALIAS}/${SRC_BUCKET}" "$WORK/object-backup/${SRC_BUCKET}" >/dev/null
-OBJ_DUMP_T1="$(date -u +%s)"
+OBJ_DUMP_T1="$(now_ms)"
 
-OBJ_RESTORE_T0="$(date -u +%s)"
+OBJ_RESTORE_T0="$(now_ms)"
 "$MC_BIN" mirror --overwrite "$WORK/object-backup/${SRC_BUCKET}" "${MC_ALIAS}/${DST_BUCKET}/${RESTORE_PREFIX}" >/dev/null
-OBJ_RESTORE_T1="$(date -u +%s)"
+OBJ_RESTORE_T1="$(now_ms)"
 
 restore_sha() {
   "$MC_BIN" cat "${MC_ALIAS}/${DST_BUCKET}/${RESTORE_PREFIX}/$1" | sha256sum | awk '{print $1}'
@@ -260,13 +261,13 @@ OBJ_PASS=PASS
 [ "$SRC_COUNT" = "3" ] && [ "$DST_COUNT" = "3" ] || { echo "object count mismatch src=$SRC_COUNT dst=$DST_COUNT"; OBJ_PASS=FAIL; }
 [ "$SRC_LIST" = "$DST_LIST" ] || { echo "object key list mismatch"; OBJ_PASS=FAIL; }
 
-DRILL_END_EPOCH="$(date -u +%s)"
+DRILL_END_MS="$(now_ms)"
 DRILL_END_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-PG_DUMP_S=$((DUMP_T1 - DUMP_T0))
-PG_RESTORE_S=$((RESTORE_T1 - RESTORE_T0))
-OBJ_DUMP_S=$((OBJ_DUMP_T1 - OBJ_DUMP_T0))
-OBJ_RESTORE_S=$((OBJ_RESTORE_T1 - OBJ_RESTORE_T0))
-WALL_S=$((DRILL_END_EPOCH - DRILL_START_EPOCH))
+PG_DUMP_MS=$((DUMP_T1 - DUMP_T0))
+PG_RESTORE_MS=$((RESTORE_T1 - RESTORE_T0))
+OBJ_DUMP_MS=$((OBJ_DUMP_T1 - OBJ_DUMP_T0))
+OBJ_RESTORE_MS=$((OBJ_RESTORE_T1 - OBJ_RESTORE_T0))
+WALL_MS=$((DRILL_END_MS - DRILL_START_MS))
 
 OVERALL=PASS
 [ "$PG_PASS" = PASS ] && [ "$OBJ_PASS" = PASS ] || OVERALL=FAIL
@@ -306,11 +307,11 @@ RESULT="$WORK/evidence/RESULT.txt"
   echo "restored_object_a_sha256=${DST_SHA_A}"
   echo "restored_object_b_sha256=${DST_SHA_B}"
   echo "restored_object_marker_sha256=${DST_SHA_M}"
-  echo "pg_dump_seconds=${PG_DUMP_S}"
-  echo "pg_restore_seconds=${PG_RESTORE_S}"
-  echo "object_backup_seconds=${OBJ_DUMP_S}"
-  echo "object_restore_seconds=${OBJ_RESTORE_S}"
-  echo "wall_seconds=${WALL_S}"
+  echo "pg_dump_ms=${PG_DUMP_MS}"
+  echo "pg_restore_ms=${PG_RESTORE_MS}"
+  echo "object_backup_ms=${OBJ_DUMP_MS}"
+  echo "object_restore_ms=${OBJ_RESTORE_MS}"
+  echo "wall_ms=${WALL_MS}"
   echo "started_utc=${DRILL_START_ISO}"
   echo "ended_utc=${DRILL_END_ISO}"
   echo "haopan_platform=not_touched"
@@ -367,7 +368,7 @@ EVIDENCE_MD="$WORK/evidence/drill.md"
   echo "$DST_TENANTS"
   echo '```'
   echo
-  echo "PostgreSQL verdict: **${PG_PASS}**. dump ${PG_DUMP_S}s, restore ${PG_RESTORE_S}s."
+  echo "PostgreSQL verdict: **${PG_PASS}**. dump ${PG_DUMP_MS}ms, restore ${PG_RESTORE_MS}ms."
   echo
   echo "## MinIO object restore"
   echo
@@ -377,7 +378,7 @@ EVIDENCE_MD="$WORK/evidence/drill.md"
   echo "| \`${KEY_B}\` | \`${SHA_B}\` | \`${DST_SHA_B}\` | $([ "$DST_SHA_B" = "$SHA_B" ] && echo PASS || echo FAIL) |"
   echo "| \`${KEY_M}\` | \`${SHA_M}\` | \`${DST_SHA_M}\` | $([ "$DST_SHA_M" = "$SHA_M" ] && echo PASS || echo FAIL) |"
   echo
-  echo "Object restore verdict: **${OBJ_PASS}**. backup ${OBJ_DUMP_S}s, restore ${OBJ_RESTORE_S}s. wall ${WALL_S}s."
+  echo "Object restore verdict: **${OBJ_PASS}**. backup ${OBJ_DUMP_MS}ms, restore ${OBJ_RESTORE_MS}ms. wall ${WALL_MS}ms."
 } >"$EVIDENCE_MD"
 
 log "RESULT ${OVERALL} postgres=${PG_PASS} minio=${OBJ_PASS} written to $RESULT"
