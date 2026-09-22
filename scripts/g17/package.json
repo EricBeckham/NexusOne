@@ -1,0 +1,9 @@
+{
+  "name": "nexusone-g17-totp-enrollment-ux",
+  "private": true,
+  "type": "module",
+  "description": "Playwright-core driver for the G17 leftover TOTP enrollment UX walk. Uses system Chrome; no Docker.",
+  "dependencies": {
+    "playwright-core": "^1.55.2"
+  }
+}

@@ -57,6 +57,8 @@ npm run assert:g2-report-surface
 npm test
 npm run test:g7-withdraw
 npm run test:g4-pkce
+npm run test:g17-totp-enroll
+npm run assert:g17-totp-enroll
 npm run build
 ```
 
@@ -76,6 +78,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p2/persons` | `/api/v1/persons` | Tenant-scoped by issued context |
 | `/p2/org` | `/api/v1/departments/tree` | |
 | `/p2/positions` | positions + employments | Position ≠ Role |
+| `/p2/mfa/enroll` | in-app TOTP leftover | Copy + 6-digit confirm + error paths. Not Keycloak write. [docs/g17-totp-enrollment-ux.md](../docs/g17-totp-enrollment-ux.md) |
 | `/p2/permissions/*` | `/api/v1/permission/health\|snapshot\|check` | No GET role catalog |
 | `/p3/ledgers` | GET list + POST `/api/v1/p3/business-types/{code}/provision` | G7 请假/报销/出差；quota from P1 if platform mode |
 | `/p3/ledgers/:id` | ledger + `.../records` + POST `.../fields` | No field PUT |
@@ -85,7 +88,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |
 | `/p3/reports` | `GET/POST /api/v1/p3/reports/*` after `ledger/read` + `ledger.export.csv/submit` | G2 leftover. Not a physical dump; desktop ledger/form/todo pages unchanged |
-| `/login` | stub token **or** `authorize-url?pkce=s256` | Stub card unchanged. Desktop PKCE leftover: `data-testid=pkce-login` → [docs/g4-pkce-browser-click.md](../docs/g4-pkce-browser-click.md) |
+| `/login` | stub token **or** `authorize-url?pkce=s256` | Stub card unchanged. Desktop PKCE leftover: `data-testid=pkce-login` → [docs/g4-pkce-browser-click.md](../docs/g4-pkce-browser-click.md). Password-only admin leftover: `admin-password-login` → `P2.IAM.MFA_REQUIRED` → `/p2/mfa/enroll` |
 | `/callback` | `POST /api/v1/auth/login` with `code` + `code_verifier` | Desktop leftover only. Not `/m/callback`. Not product Keycloak acceptance |
 | `/m/login` | stub token + **PKCE** (`mobile-pkce-login`) + safe `return` | F011 stub hop stays; H5 PKCE leftover: [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) |
 | `/m/callback` | `code` / `state` + sessionStorage `code_verifier` → `POST /api/v1/auth/login` | Strips query after hop; no token / verifier in URL |

@@ -57,7 +57,7 @@ Failing-before / passing-after is `AdminMfaSessionTest`:
 | G18 reopen | **No.** Product G18 remains closed. |
 | SAML | Not run |
 | SMS MFA / hardware token / WebAuthn | Not implemented. `amr=sms` is recognized if an IdP sent it; no SMS SPI. |
-| TOTP enrollment UX / recovery codes / email MFA product acceptance | Not this slice. Native Keycloak admin TOTP leftover is [g17-admin-totp-enrollment.md](./g17-admin-totp-enrollment.md) |
+| TOTP enrollment UX / recovery codes / email MFA product acceptance | Native Keycloak leftover is [g17-admin-totp-enrollment.md](./g17-admin-totp-enrollment.md). In-app UX leftover is [g17-totp-enrollment-ux.md](./g17-totp-enrollment-ux.md). Recovery codes / email MFA stay open. |
 | Browser Authorization Code + PKCE full walk | Not done. Product login stays the confidential client. |
 | Live Keycloak admin OTP challenge (carol smoke is password-only, not admin) | Leftover walk: [g17-admin-totp-enrollment.md](./g17-admin-totp-enrollment.md) |
 | LDAP / AD, Keycloak Organizations, Docker | Out of scope |

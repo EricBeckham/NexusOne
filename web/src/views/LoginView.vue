@@ -16,7 +16,12 @@
           <label>显示名</label>
           <input v-model="name" required />
         </div>
-        <button class="primary" type="submit" data-testid="stub-login">生成 token 并登录</button>
+        <div class="nx-row">
+          <button class="primary" type="submit" data-testid="stub-login">生成 token 并登录</button>
+          <button class="ghost" type="button" data-testid="admin-password-login" @click="onAdminPasswordLogin">
+            管理员口令登录（无 TOTP）
+          </button>
+        </div>
       </form>
       <form class="nx-card" @submit.prevent="onTokenLogin">
         <h3>粘贴 access token</h3>
@@ -54,7 +59,19 @@
         <input v-model="session.bootstrapToken" type="password" autocomplete="off" @change="persist" />
       </div>
     </div>
-    <p v-if="error" class="nx-error">{{ error }}</p>
+    <div v-if="mfaRequired" class="nx-card mfa-required" data-testid="mfa-required-panel">
+      <h3>{{ MFA_REQUIRED_COPY.title }}</h3>
+      <p>{{ MFA_REQUIRED_COPY.body }}</p>
+      <p class="nx-muted">{{ MFA_REQUIRED_COPY.hint }}</p>
+      <router-link
+        class="primary"
+        :to="{ path: '/p2/mfa/enroll', query: { reason: 'mfa_required', account: email } }"
+        data-testid="goto-totp-enroll"
+      >
+        {{ MFA_REQUIRED_COPY.cta }}
+      </router-link>
+    </div>
+    <p v-if="error" class="nx-error" data-testid="login-error">{{ error }}</p>
     <p v-if="session.accountId" class="nx-muted">
       已登录 {{ session.displayName }} / {{ session.email }}
       · context {{ session.contextId || "（无，需租户切换）" }}
@@ -68,20 +85,38 @@ import { useRouter } from "vue-router";
 import { p2, stubAccessToken } from "../api/client";
 import { DESKTOP_PKCE_TRACE, startDesktopPkceLogin } from "../api/pkce-desktop";
 import { loginWithAccessToken, persist, rememberTrace, session } from "../api/session";
+import { MFA_REQUIRED_COPY, isMfaRequiredError } from "../auth/totpEnrollment";
 
 const router = useRouter();
 const email = ref("admin-a@example.com");
 const name = ref("Admin A");
 const token = ref("");
 const error = ref("");
+const mfaRequired = ref(false);
 
 async function onStubLogin() {
   error.value = "";
+  mfaRequired.value = false;
   const access = stubAccessToken({
     sub: `local-${email.value}`,
     email: email.value,
     username: email.value,
     name: name.value,
+  });
+  token.value = access;
+  await submit(access);
+}
+
+async function onAdminPasswordLogin() {
+  error.value = "";
+  mfaRequired.value = false;
+  const access = stubAccessToken({
+    sub: `local-${email.value}`,
+    email: email.value,
+    username: email.value,
+    name: name.value,
+    acr: "",
+    amr: "",
   });
   token.value = access;
   await submit(access);
@@ -93,6 +128,7 @@ async function onTokenLogin() {
 
 async function onPkceLogin() {
   error.value = "";
+  mfaRequired.value = false;
   try {
     rememberTrace(DESKTOP_PKCE_TRACE);
     await startDesktopPkceLogin({
@@ -112,6 +148,7 @@ async function submit(access) {
     router.push("/");
   } catch (err) {
     error.value = `${err.code || "LOGIN"} ${err.message}`;
+    mfaRequired.value = isMfaRequiredError(err);
   }
 }
 </script>
@@ -124,5 +161,21 @@ async function submit(access) {
   border-radius: 6px;
   padding: 8px 14px;
   cursor: pointer;
+}
+.ghost {
+  background: #fff;
+  color: var(--nx-text-regular);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.mfa-required {
+  margin-top: 16px;
+  background: var(--nx-warning-light);
+}
+.mfa-required .primary {
+  display: inline-block;
+  margin-top: 8px;
 }
 </style>

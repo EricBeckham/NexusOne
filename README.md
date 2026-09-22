@@ -34,7 +34,7 @@ java -jar nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
 
 ## 前端与双租户验收（M0-12）
 
-最小 Vue 3 壳与 HTTP 对抗脚本。P1 租户 / P2 组织身份 / P3 台账表单待办 / 权限快照走已合并 live API。产品 G18（一条纵向闭环）已关闭，记录在 [docs/g18-business-path.md](./docs/g18-business-path.md)。G10 身份半边（P2 人员与 Keycloak 对账修复）见 [docs/g10-identity-reconcile.md](./docs/g10-identity-reconcile.md)；文件元数据与对象对账见 [docs/g10-file-reconcile.md](./docs/g10-file-reconcile.md)。G17 管理员强制 MFA 切片（非完整 G17）见 [docs/g17-admin-mfa.md](./docs/g17-admin-mfa.md)。G17 国密 TLS 双证书本地切片见 [docs/g17-gm-tls-dual-cert.md](./docs/g17-gm-tls-dual-cert.md)。G17 Nginx/Tongsuo（或本机双栈）国密 TLS leftover 见 [docs/g17-gm-tls-nginx-dual-stack.md](./docs/g17-gm-tls-nginx-dual-stack.md)（无 Tongsuo/Nginx 时诚实 SKIP，不宣称等保/密评/密码机）。清单与运行方式：[docs/m0-12-ui-acceptance.md](./docs/m0-12-ui-acceptance.md)，界面：[web/README.md](./web/README.md)。
+最小 Vue 3 壳与 HTTP 对抗脚本。P1 租户 / P2 组织身份 / P3 台账表单待办 / 权限快照走已合并 live API。产品 G18（一条纵向闭环）已关闭，记录在 [docs/g18-business-path.md](./docs/g18-business-path.md)。G10 身份半边（P2 人员与 Keycloak 对账修复）见 [docs/g10-identity-reconcile.md](./docs/g10-identity-reconcile.md)；文件元数据与对象对账见 [docs/g10-file-reconcile.md](./docs/g10-file-reconcile.md)。G17 管理员强制 MFA 切片（非完整 G17）见 [docs/g17-admin-mfa.md](./docs/g17-admin-mfa.md)。G17 国密 TLS 双证书本地切片见 [docs/g17-gm-tls-dual-cert.md](./docs/g17-gm-tls-dual-cert.md)。G17 Nginx/Tongsuo（或本机双栈）国密 TLS leftover 见 [docs/g17-gm-tls-nginx-dual-stack.md](./docs/g17-gm-tls-nginx-dual-stack.md)（无 Tongsuo/Nginx 时诚实 SKIP，不宣称等保/密评/密码机）。G17 TOTP 注册 UX leftover（应用内文案/错误路径，不重做 #118 驱动）见 [docs/g17-totp-enrollment-ux.md](./docs/g17-totp-enrollment-ux.md)。清单与运行方式：[docs/m0-12-ui-acceptance.md](./docs/m0-12-ui-acceptance.md)，界面：[web/README.md](./web/README.md)。
 
 ```bash
 export NEXUS_DB_URL='jdbc:postgresql://127.0.0.1:5432/nexusone'
