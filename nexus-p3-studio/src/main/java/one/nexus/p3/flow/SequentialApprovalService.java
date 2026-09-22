@@ -14,12 +14,14 @@ import one.nexus.p3.flow.ProcessRecords.TodoView;
 import one.nexus.p3.flow.engine.FlowEngineConfiguration;
 import one.nexus.p3.flow.persist.JdbcProcessStore;
 import one.nexus.permission.PermissionModule;
+import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import one.nexus.permission.surface.SurfaceGuard;
 import one.nexus.permission.support.PermissionException;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -33,19 +35,22 @@ public class SequentialApprovalService {
     private final JdbcProcessStore store;
     private final AssigneeResolver assignees;
     private final PermissionModule permission;
+    private final ObjectProvider<TenantMemberGrantSeeder> grantSeeder;
 
     public SequentialApprovalService(
             RuntimeService runtimeService,
             TaskService taskService,
             JdbcProcessStore store,
             AssigneeResolver assignees,
-            PermissionModule permission
+            PermissionModule permission,
+            ObjectProvider<TenantMemberGrantSeeder> grantSeeder
     ) {
         this.runtimeService = runtimeService;
         this.taskService = taskService;
         this.store = store;
         this.assignees = assignees;
         this.permission = permission;
+        this.grantSeeder = grantSeeder;
     }
 
     @Transactional
@@ -187,6 +192,10 @@ public class SequentialApprovalService {
 
     private void guard(String resource, String action) {
         try {
+            // Same demo seed as FormSurfaceGuard / PermissionDataScopeHook /
+            // FlowAuthFilter. In-process start (G18 rollback probe) never hits
+            // those HTTP filters.
+            TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
             SurfaceGuard.require(permission.service(), resource, action);
         } catch (PermissionException ex) {
             throw FlowException.forbidden(ex.getMessage());
