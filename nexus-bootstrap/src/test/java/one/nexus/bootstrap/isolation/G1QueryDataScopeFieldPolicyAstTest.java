@@ -17,7 +17,6 @@ import one.nexus.crypto.JcaCryptoPort;
 import one.nexus.isolation.IsolationKernel;
 import one.nexus.isolation.api.Actor;
 import one.nexus.isolation.api.AuthenticatedMembership;
-import one.nexus.isolation.api.ExportFieldRule;
 import one.nexus.isolation.api.IsolationAuditSink;
 import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.IsolationException;
@@ -70,7 +69,7 @@ class G1QueryDataScopeFieldPolicyAstTest {
     }
 
     @Test
-    void selfDeptAndVisibleProjectionCompileIntoAstAndExportStillRejectsHidden() {
+    void selfDeptAndVisibleProjectionCompileIntoAstAndExportDropsHidden() {
         bind("alpha");
         AtomicBoolean compileRanPastGuard = new AtomicBoolean(false);
         Map<String, FieldRule> fields = Map.of(
@@ -113,16 +112,23 @@ class G1QueryDataScopeFieldPolicyAstTest {
         assertTrue(deptSql.sql().contains("\"department_id\" = ?"));
         assertTrue(deptSql.sql().contains("\"tenant_id\" = ?"));
 
-        IsolationException hidden = assertThrows(IsolationException.class, () -> {
-            IsolatedExport.compile(
-                    kernel.compiler(),
-                    QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of()),
-                    "alpha",
-                    ExportFieldPolicies.from(fields),
-                    false);
-            compileRanPastGuard.set(true);
-        });
-        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hidden.error());
+        var dropped = IsolatedExport.compile(
+                kernel.compiler(),
+                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of()),
+                "alpha",
+                ExportFieldPolicies.from(fields),
+                false);
+        compileRanPastGuard.set(true);
+        assertFalse(dropped.sql().contains("secret"));
+        assertTrue(dropped.sql().startsWith("SELECT \"id\", \"title\" FROM"));
+
+        IsolationException hiddenOnly = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                kernel.compiler(),
+                QueryAst.select("ledger_entry", List.of("secret"), Map.of()),
+                "alpha",
+                ExportFieldPolicies.from(fields),
+                false));
+        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hiddenOnly.error());
 
         var allowed = IsolatedExport.compile(
                 kernel.compiler(),
@@ -155,7 +161,7 @@ class G1QueryDataScopeFieldPolicyAstTest {
         assertEquals("***", projected.get("phone"));
         assertFalse(projected.containsKey("secret"));
 
-        assertFalse(compileRanPastGuard.get());
+        assertTrue(compileRanPastGuard.get());
         assertTrue(collecting.rejected(IsolationErrorCode.FIELD_POLICY_EXPORT));
         var rows = port.findByTraceId("trace-alpha");
         assertTrue(rows.stream().anyMatch(event ->

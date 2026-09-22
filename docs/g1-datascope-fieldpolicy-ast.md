@@ -12,7 +12,7 @@ It does **not** invent a second tenant context. It does **not** change `AuditPor
 |---|---|---|---|
 | SELF / single-DEPT | `QueryAstPolicyCompiler` + `DataScopeInjector.andEquals` / `IsolationDataScopeInjector` | `owner_id = ?` / `department_id = ?` AND-ed after `tenant_id` | OR trees, multi-value `IN`, `DEPT_AND_CHILDREN`, CUSTOM |
 | FieldPolicy visibility | `QueryAst.withProjection` | Hidden fields dropped from SELECT | Mask / second-auth still `FieldPolicyProjector` |
-| Export FieldPolicy | `ExportFieldPolicyGuard` / `IsolatedExport.compile` | Unchanged reject-before-compile (`P1.M02.021`) | Export still rejects hidden/second-auth instead of dropping |
+| Export FieldPolicy | `ExportFieldPolicyGuard.dropHidden` / `IsolatedExport.compile` | Hidden Query AST columns dropped before compile | Second-auth / empty leftover / unmapped still `P1.M02.021` — [g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md) |
 
 `tenant_id` stays on `TenantInjector` / `AccessContextHolder`. DataScope must not author it. The kernel `DataScopeInjector` may only AND extra equality atoms and still cannot strip a tenant predicate.
 
@@ -37,10 +37,10 @@ mvn -pl nexus-permission-core,nexus-bootstrap -am test \
 |---|---|
 | `QueryCompilerTest` | SELF/DEPT equality atoms render beside `tenant_id`; `andEquals` cannot author `tenant_id`; hidden column dropped from projection before render |
 | `PostgresIsolationIT` | Same-tenant SELF / DEPT returns only the bound owner/dept row; stolen tenant and DataScope stripping `tenant_id` never reach JDBC |
-| `IsolatedExportTest` | Encoded SELF + visible projection compiles; hidden export still `P1.M02.021` |
+| `IsolatedExportTest` | Encoded SELF + visible projection compiles; mixed hidden is now dropped; second-auth / empty leftover still `P1.M02.021` |
 | `QueryAstPolicyCompilerTest` | SELF/DEPT + hidden drop encoded; OR / multi-value IN leftover; `tenant_id` authorship rejected |
 | `IsolationDataScopeInjectorTest` | Query AST injector ANDs `owner_id` without stripping `tenant_id`; kernel compile renders both |
-| `G1QueryDataScopeFieldPolicyAstTest` | Encoded SELF/DEPT compile through `QueryCompiler`; export hidden still `GUARD_REJECT` (`P1.M02.021`); OR leftover still `PermissionQueryBinder`; hash chain intact |
+| `G1QueryDataScopeFieldPolicyAstTest` | Encoded SELF/DEPT compile through `QueryCompiler`; export mixed hidden drops; hidden-only still `GUARD_REJECT` (`P1.M02.021`); OR leftover still `PermissionQueryBinder`; hash chain intact |
 
 ## Honest leftover G1 rows
 
@@ -49,9 +49,9 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 | Still open | Why |
 |---|---|
 | OR / multi-value IN DataScope | Query AST filters are single-value equality. `DEPT_AND_CHILDREN`, SPECIFIED lists, and SELF∨DEPT stay on `PermissionQueryBinder`. |
-| FieldPolicy mask / second-auth | AST can drop hidden columns. Mask merge and second-auth still run in `FieldPolicyProjector`. Export still rejects instead of dropping. |
+| FieldPolicy mask / second-auth | AST / export drop hidden columns. Mask merge and second-auth still run in `FieldPolicyProjector`. Export still rejects second-auth without grant. See [g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md). |
 | Product list / detail SQL | Ledger list/detail now opt in ([g1-queryast-product-optin.md](./g1-queryast-product-optin.md)). `PermissionDataScopeHook` / `PermissionService.scopedQuery` still bind `ScopedQuery` strings for callers that skip. |
-| Report UI / physical ledger dump | Report query HTTP inherits the list opt-in. Physical dump / report wizard stay open. |
+| Report UI / physical ledger dump | Report query HTTP inherits the list opt-in. Physical dump / report wizard stay open. `ledger.export.csv` is still the Task type. |
 | Silent drop on API reads | Unchanged for callers that still project rows after fetch. AST drop is opt-in. |
 | UI / H5 every page | Not re-walked. |
 | `P3RequestContext` | Unchanged. New AST encoding uses `AccessContextHolder` only. |

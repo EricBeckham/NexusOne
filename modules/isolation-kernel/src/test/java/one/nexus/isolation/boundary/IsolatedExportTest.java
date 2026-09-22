@@ -91,18 +91,29 @@ class IsolatedExportTest {
     }
 
     @Test
-    void exportFieldPolicyRejectsHiddenAndSecondAuthBeforeCompileOrFile() {
-        bind("alpha");
+    void exportFieldPolicyDropsHiddenOnQueryAstAndRejectsSecondAuthOrEmptyLeftover() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "secret");
+        IsolationKernel tables = IsolationKernel.create(registry, Set.of("ops.summary"), sink);
+        TenantContext context = tables.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-alpha"), "alpha", "mem-alpha", Set.of("alpha")), "trace-alpha");
+        AccessContextHolder.set(context);
         AtomicBoolean fileSink = new AtomicBoolean(false);
-        IsolationException hidden = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
-                kernel.compiler(),
-                QueryAst.select("ledger_entry", List.of("id", "secret"), Map.of()),
+        Map<String, ExportFieldRule> policy = Map.of(
+                "id", ExportFieldRule.allow(),
+                "title", ExportFieldRule.allow(),
+                "secret", ExportFieldRule.hidden());
+        var dropped = IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of()),
                 "alpha",
-                Map.of("id", ExportFieldRule.allow(), "secret", ExportFieldRule.hidden()),
-                false));
-        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hidden.error());
+                policy,
+                false);
+        assertTrue(dropped.sql().startsWith("SELECT \"id\", \"title\" FROM \"ledger_entry\""));
+        assertFalse(dropped.sql().contains("secret"));
+        assertTrue(dropped.sql().contains("\"tenant_id\" = ?"));
         IsolationException missing = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
-                kernel.compiler(),
+                tables.compiler(),
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
                 "alpha",
                 Map.of(),
@@ -117,7 +128,7 @@ class IsolatedExportTest {
                 false,
                 (key, body) -> fileSink.set(true)));
         assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, second.error());
-        IsolationException hiddenFile = assertThrows(IsolationException.class, () -> IsolatedExport.writeProjected(
+        IsolationException hiddenOnly = assertThrows(IsolationException.class, () -> IsolatedExport.writeProjected(
                 "alpha",
                 "export/x.csv",
                 List.of("secret"),
@@ -125,7 +136,26 @@ class IsolatedExportTest {
                 Map.of("secret", ExportFieldRule.hidden()),
                 false,
                 (key, body) -> fileSink.set(true)));
-        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hiddenFile.error());
+        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hiddenOnly.error());
+        IsolationException unmapped = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id", "unknown"), Map.of()),
+                "alpha",
+                policy,
+                false));
+        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, unmapped.error());
+        AtomicReference<String> csv = new AtomicReference<>();
+        IsolatedExport.writeProjected(
+                "alpha",
+                "export/ok.csv",
+                List.of("id", "secret"),
+                List.of(Map.of("id", "a1", "secret", "classified")),
+                policy,
+                false,
+                (key, body) -> csv.set(new String(body)));
+        assertTrue(csv.get().startsWith("id\n"));
+        assertTrue(csv.get().contains("a1"));
+        assertFalse(csv.get().contains("classified"));
         assertFalse(fileSink.get());
         assertTrue(sink.rejected(IsolationErrorCode.FIELD_POLICY_EXPORT));
         assertTrue(sink.rejectCount() >= 4);
@@ -309,25 +339,20 @@ class IsolatedExportTest {
         AccessContextHolder.set(context);
         Map<String, ExportFieldRule> policy = Map.of(
                 "id", ExportFieldRule.allow(),
-                "title", ExportFieldRule.allow());
-        IsolationException hidden = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
-                tables.compiler(),
-                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of()),
-                "alpha",
-                policy,
-                false));
-        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hidden.error());
+                "title", ExportFieldRule.allow(),
+                "secret", ExportFieldRule.hidden());
         var sql = IsolatedExport.compile(
                 tables.compiler(),
-                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of())
-                        .withProjection(List.of("id", "title")),
+                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of()),
                 "alpha",
                 policy,
                 false);
         assertTrue(sql.sql().contains("\"tenant_id\" = ?"));
         assertTrue(sql.sql().contains("\"owner_id\" = ?"));
         assertFalse(sql.sql().contains("secret"));
+        assertTrue(sql.sql().startsWith("SELECT \"id\", \"title\" FROM"));
         assertEquals(List.of("alpha", "user-alpha"), sql.parameters());
+        assertFalse(sink.rejected(IsolationErrorCode.FIELD_POLICY_EXPORT));
     }
 
     private void bind(String tenantId) {

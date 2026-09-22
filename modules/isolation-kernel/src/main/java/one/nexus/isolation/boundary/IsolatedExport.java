@@ -17,9 +17,11 @@ import one.nexus.isolation.query.QueryCompiler;
 /**
  * Product export surface. Query compile, file write, cache status, and Task
  * submit all go through {@link ExportGuard} plus the existing M0-02/09/10
- * guards. FieldPolicy is required on {@link #compile} / {@link #writeProjected}
- * and rejects before Query AST or the file sink. Accepted submit / writeFile /
- * dispatch emit {@code EXPORT_ACCEPTED}. No second tenant holder.
+ * guards. FieldPolicy is required on {@link #compile} / {@link #writeProjected}.
+ * Hidden Query AST columns are dropped before compile / file write;
+ * second-auth without grant still rejects as {@code P1.M02.021}. Accepted
+ * submit / writeFile / dispatch emit {@code EXPORT_ACCEPTED}. No second
+ * tenant holder.
  */
 public final class IsolatedExport {
     public static final String TASK_TYPE = "ledger.export.csv";
@@ -38,9 +40,9 @@ public final class IsolatedExport {
         Objects.requireNonNull(query, "query");
         AccessContext current = AccessContextHolder.currentOrNull();
         ExportGuard.assertExportTenant(current, resourceTenantId);
-        ExportFieldPolicyGuard.assertProjection(
+        ExportFieldPolicyGuard.Projection projected = ExportFieldPolicyGuard.dropHidden(
                 current, query.projection(), policy, secondAuthorizationGranted);
-        return compiler.compile(query, current);
+        return compiler.compile(query.withProjection(projected.visible()), current);
     }
 
     public static byte[] writeProjected(
@@ -54,8 +56,9 @@ public final class IsolatedExport {
     ) {
         AccessContext current = AccessContextHolder.currentOrNull();
         ExportGuard.assertExportTenant(current, resourceTenantId);
-        ExportFieldPolicyGuard.assertProjection(current, columns, policy, secondAuthorizationGranted);
-        byte[] body = csv(columns, rows);
+        List<String> visible = ExportFieldPolicyGuard.dropHidden(
+                current, columns, policy, secondAuthorizationGranted).visible();
+        byte[] body = csv(visible, rows);
         FileObjectKeyGuard.putObject(relativePath, body, key -> sink.accept(key, body));
         return body;
     }
