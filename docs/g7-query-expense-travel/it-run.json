@@ -1,0 +1,34 @@
+{
+  "recorded_at": "pending-this-run",
+  "command": "./scripts/g7/run-query-expense-travel.sh",
+  "jdk": "pending-this-run",
+  "maven": "pending-this-run",
+  "spring_boot": "4.1.1",
+  "postgresql": "Zonky 15.18",
+  "docker": false,
+  "base": "f5daa59",
+  "business": ["expense", "travel"],
+  "audit_port": "untouched",
+  "suite": "G7ExpenseTravelQueryIT",
+  "result": "pending-this-run",
+  "build": "pending-this-run",
+  "assertions": [
+    "catalog provision expense + travel (already on main #69)",
+    "GET /api/v1/p3/ledgers and GET /api/v1/p3/ledgers/{id}",
+    "two POST /api/v1/p3/path/submit-start → IN_APPROVAL / RUNNING",
+    "GET /api/v1/p3/ledgers/{id}/records list total=2 + type fields",
+    "GET .../records?field=value field-equals returns the primary row",
+    "miss filter total=0",
+    "GET .../records/{recordId} detail type fields + IN_APPROVAL",
+    "GET /api/v1/todos/pending + /api/v1/p3/todos + /api/v1/todos/{id} + /initiated",
+    "expense approve / travel reject then list+detail keep type fields",
+    "GET /api/v1/todos/done DONE; pending drops handled todo; initiated APPROVED/REJECTED"
+  ],
+  "live_jar": "SKIP unless NEXUS_BASE_URL is healthy; scripts/g7/query-expense-travel-http.py is the live path",
+  "not_claimed": [
+    "G7 three-type product close",
+    "G18 browser reopen",
+    "withdraw leftover rewrite",
+    "AuditPort rewrite"
+  ]
+}

@@ -89,5 +89,6 @@ Recorded **2026-09-22T17:14:20Z** on this branch after rebase onto `92fd7b5` (`#
 | Travel withdraw HTTP with non-initiator 403 + single `p3.approval.withdrawn` | **this package** (catalog travel withdraw without 403 was already on #69) |
 | Leave withdraw HTTP | sibling [g7-withdraw-evidence.md](./g7-withdraw-evidence.md); not rewritten |
 | Expense / travel catalog | **on main** (#69). Not rewritten here |
+| Expense / travel list / detail / todo query | sibling [g7-query-expense-travel.md](./g7-query-expense-travel.md); not this package |
 | G7 three-type product close | **not claimed** |
 | G18 | **stays closed** |
