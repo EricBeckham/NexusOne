@@ -1,4 +1,4 @@
-package one.nexus.p2;
+package one.nexus.p2.idp;
 
 import java.net.CookieHandler;
 import java.net.URI;
@@ -18,16 +18,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Confidential-client authorization-code helper. Drives Keycloak's login form over HTTP
- * with cookies (no browser, no PKCE, no direct-grant).
+ * Loopback HTTP helper for Keycloak's login form. Not a browser. Used by M0-04
+ * confidential-client smoke and the G4 Authorization Code + PKCE walk.
  *
  * <p>Keycloak 26 sets {@code AUTH_SESSION_ID} / {@code KC_RESTART} as {@code Secure; SameSite=None}
  * even on loopback HTTP. The JDK {@code CookieManager} will not send those cookies on {@code http://},
  * which produces "Restart login cookie not found". This driver stores and returns cookies
- * regardless of the Secure flag so the live HTTP smoke can complete. Product browsers on HTTPS
+ * regardless of the Secure flag so the live HTTP walk can complete. Product browsers on HTTPS
  * still honor Secure cookies normally.
  */
-final class AuthorizationCodeDriver {
+public final class AuthorizationCodeDriver {
     private static final Pattern FORM_ACTION = Pattern.compile(
             "(?i)<form[^>]*id=\"kc-form-login\"[^>]*action=\"([^\"]+)\"|(?i)<form[^>]*action=\"([^\"]+)\"[^>]*method=\"post\"");
     private static final Pattern HIDDEN = Pattern.compile(
@@ -35,7 +35,7 @@ final class AuthorizationCodeDriver {
 
     private final HttpClient http;
 
-    AuthorizationCodeDriver() {
+    public AuthorizationCodeDriver() {
         this.http = HttpClient.newBuilder()
                 .cookieHandler(new LoopbackSecureCookieHandler())
                 .followRedirects(HttpClient.Redirect.NEVER)
@@ -43,9 +43,9 @@ final class AuthorizationCodeDriver {
                 .build();
     }
 
-    record CodeAndState(String code, String state, String redirectUri) {}
+    public record CodeAndState(String code, String state, String redirectUri) {}
 
-    CodeAndState completeLogin(String authorizationUrl, String username, String password, String expectedRedirectPrefix)
+    public CodeAndState completeLogin(String authorizationUrl, String username, String password, String expectedRedirectPrefix)
             throws Exception {
         HttpResponse<String> first = send(GET(authorizationUrl));
         HttpResponse<String> loginPage = followUntilHtml(first, expectedRedirectPrefix);
@@ -201,7 +201,7 @@ final class AuthorizationCodeDriver {
     }
 
     /**
-     * Host-scoped cookie jar that ignores the Secure attribute. Used only by the live HTTP smoke.
+     * Host-scoped cookie jar that ignores the Secure attribute. Used only by the live HTTP walk.
      */
     static final class LoopbackSecureCookieHandler extends CookieHandler {
         private final Map<String, String> cookies = new LinkedHashMap<>();

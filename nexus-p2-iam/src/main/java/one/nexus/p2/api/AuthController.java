@@ -3,6 +3,7 @@ package one.nexus.p2.api;
 import one.nexus.p2.IdentityConfiguration;
 import one.nexus.p2.IdentityModule;
 import one.nexus.p2.domain.Model;
+import one.nexus.p2.idp.Pkce;
 import one.nexus.p2.session.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,10 +30,21 @@ public class AuthController {
     }
 
     @GetMapping("/authorize-url")
-    public Map<String, String> authorizeUrl(@RequestParam(required = false) String acr) {
+    public Map<String, String> authorizeUrl(
+            @RequestParam(required = false) String acr,
+            @RequestParam(required = false) String pkce) {
         String state = UUID.randomUUID().toString();
-        var url = module.sessions().authorizationUrl(state, properties.keycloak().redirectUri(), acr);
-        return Map.of("url", url.url(), "state", url.state());
+        Pkce.Challenge challenge = pkceChallenge(pkce);
+        var url = module.sessions().authorizationUrl(state, properties.keycloak().redirectUri(), acr, challenge);
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("url", url.url());
+        body.put("state", url.state());
+        if (challenge != null) {
+            body.put("code_challenge", challenge.challenge());
+            body.put("code_verifier", challenge.verifier());
+            body.put("code_challenge_method", challenge.method());
+        }
+        return body;
     }
 
     @PostMapping("/login")
@@ -43,7 +56,7 @@ public class AuthController {
             throw one.nexus.p2.support.DomainException.badRequest("P2.IAM.LOGIN", "code or accessToken is required");
         }
         String redirect = request.redirectUri() == null ? properties.keycloak().redirectUri() : request.redirectUri();
-        return module.sessions().loginWithCode(request.code(), redirect);
+        return module.sessions().loginWithCode(request.code(), redirect, request.codeVerifier());
     }
 
     @GetMapping("/callback")
@@ -76,6 +89,17 @@ public class AuthController {
         return Map.of("status", "submitted");
     }
 
+    private static Pkce.Challenge pkceChallenge(String pkce) {
+        if (pkce == null || pkce.isBlank()) {
+            return null;
+        }
+        if (!"s256".equalsIgnoreCase(pkce)) {
+            throw one.nexus.p2.support.DomainException.badRequest(
+                    "P2.IAM.PKCE", "pkce must be s256 when set");
+        }
+        return Pkce.s256();
+    }
+
     private static SessionService.AuthenticatedIdentity identity(HttpServletRequest http) {
         Object value = http.getAttribute(IdentityAuthFilter.ATTR_IDENTITY);
         if (value instanceof SessionService.AuthenticatedIdentity identity) {
@@ -84,7 +108,7 @@ public class AuthController {
         throw one.nexus.p2.support.DomainException.unauthorized("unauthenticated");
     }
 
-    public record LoginRequest(String code, String redirectUri, String accessToken) {}
+    public record LoginRequest(String code, String redirectUri, String accessToken, String codeVerifier) {}
     public record TenantSwitchRequest(UUID tenantId) {}
     public record LogoutRequest(String refreshToken, String idToken) {}
     public record PasswordResetRequest(String email) {}
