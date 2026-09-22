@@ -1,5 +1,7 @@
 -- G6 dedicated-source fixture only.
--- Whole-database restore (both tenants). Not a single-tenant logical export.
+-- Dual-tenant source for whole-database restore (run-drill.sh) and for the
+-- leftover single-tenant logical restore (run-single-tenant.sh), which copies
+-- one tenant's business rows into a dedicated empty database.
 -- Must never be applied to haopan_platform or a product live database.
 
 CREATE SCHEMA platform;
@@ -57,7 +59,9 @@ VALUES
     (2, '501', 'audit hash chain', 'SQL', 'V501__audit_hash_chain.sql', 501, 'g6-drill', 12, true),
     (3, '510', 'file object', 'SQL', 'V510__file_object.sql', 510, 'g6-drill', 8, true);
 
--- Two tenants. Full-database restore must keep both. Do not filter by tenant_id.
+-- Two tenants. Full-database restore (run-drill.sh) must keep both.
+-- Single-tenant leftover (run-single-tenant.sh) filters COPY by tenant_id
+-- into a dedicated empty database; it must not rewrite this fixture.
 INSERT INTO platform.audit_record
     (chain_index, event_id, tenant_id, event_type, event_hash, previous_hash, payload)
 VALUES

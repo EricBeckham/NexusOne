@@ -1,8 +1,17 @@
 # G6 recovery drill (ops only)
 
-Environment-level restore on a **dedicated** PostgreSQL 15 cluster and a **local** MinIO. This is not product runtime, not a single-tenant logical restore, and not G17.
+Environment-level restore on a **dedicated** PostgreSQL 15 cluster and a **local** MinIO. This is not product runtime and not G17.
 
-## What it does
+Two operator paths:
+
+| Script | What it restores |
+|---|---|
+| [`run-drill.sh`](./run-drill.sh) | Dual-tenant **whole database** + MinIO bucket into `nexusone_g6_dst` |
+| [`run-single-tenant.sh`](./run-single-tenant.sh) | **One** tenant's business rows into empty `nexusone_g6_one` |
+
+The leftover script does **not** claim a V1.1 product single-tenant restore capability (tenant export/import stays migration-only). It does **not** change `RecoveryPort`.
+
+## Dual-tenant whole-database + objects
 
 1. Starts (or reuses) a dedicated PostgreSQL 15 cluster on `127.0.0.1:55432` — never port `5432`, never `haopan_platform`.
 2. Creates `nexusone_g6_src`, seeds two tenants, takes `pg_dump --format=custom`, restores into empty `nexusone_g6_dst`.
@@ -10,22 +19,35 @@ Environment-level restore on a **dedicated** PostgreSQL 15 cluster and a **local
 4. Uploads tenant-prefixed objects, `mc mirror` to a local backup directory, restores into isolated bucket `nexusone-g6-dst/restore-YYYYMMDD`.
 5. Compares table COPY SHA-256 values, object SHA-256 values, and writes pass/fail under `.local/g6-recovery/evidence/` (gitignored).
 
-## Prerequisites
-
-- PostgreSQL 15 binaries (`pg_dump`, `pg_restore`, `initdb`, `pg_ctl`) at `/usr/lib/postgresql/15/bin` or `G6_PG15_BIN`.
-- MinIO and `mc` binaries. Default paths: `$HOME/.local/g6-recovery/bin/{minio,mc}`.
-- No Docker. Credentials only via `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` or a generated file in the workdir (`0600`).
-
 ```bash
 ./scripts/g6-recovery/run-drill.sh
 ```
 
-Do not point this script at a product database. It refuses `haopan_platform`, refuses port `5432`, and refuses identical source/restore names.
+## Single-tenant leftover (business rows only)
+
+1. Same dedicated cluster and dual-tenant source fixture.
+2. `pg_dump --schema-only` into empty `nexusone_g6_one` (`TEMPLATE template0`).
+3. `COPY` only `G6_TENANT_ID` (default `11111111-1111-4111-8111-111111111111`) from `platform.audit_record`, `files.file_object`, and `ledger.sample_row`.
+4. Copies `platform.flyway_schema_history` as schema metadata. Rebuilds `platform.audit_chain_meta` from the restored tenant's last audit row (does **not** copy the dual-tenant chain head).
+5. Fails if the other tenant appears in the dest, or if the source no longer holds both tenants.
+
+```bash
+./scripts/g6-recovery/run-single-tenant.sh
+G6_TENANT_ID=22222222-2222-4222-8222-222222222222 ./scripts/g6-recovery/run-single-tenant.sh
+```
+
+## Prerequisites
+
+- PostgreSQL 15 binaries (`pg_dump`, `pg_restore`, `initdb`, `pg_ctl`) at `/usr/lib/postgresql/15/bin` or `G6_PG15_BIN`.
+- Dual-tenant + MinIO path also needs MinIO and `mc`. Default paths: `$HOME/.local/g6-recovery/bin/{minio,mc}`.
+- No Docker. Credentials only via `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` or a generated file in the workdir (`0600`).
+
+Do not point these scripts at a product database. They refuse `haopan_platform`, refuse port `5432`, and refuse identical source/restore names.
 
 ## Out of scope
 
 - Minute-level RPO (WAL archive / replica / delivery-grade HA)
 - GaussDB, AIStor enterprise, target Linux/ARM Profile
 - G17 (classified / GM TLS / 三权分立)
-- Single-tenant logical restore (V1.1 explicitly excluded)
 - Changing `RecoveryPort` (product dry-run stays dry-run)
+- Claiming V1.1 now ships product single-tenant logical restore
