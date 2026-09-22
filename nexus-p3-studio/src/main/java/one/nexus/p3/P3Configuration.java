@@ -26,19 +26,18 @@ public class P3Configuration {
     }
 
     /**
-     * Fallback when P1 {@code QuotaService} is absent. {@code @ConditionalOnMissingBean}
-     * belongs on {@code @Bean} methods — the same annotation on a {@code @Component}
-     * is evaluated during component scan and can skip both the fallback and the P1 hook.
+     * Always-on fallback. P1 {@link one.nexus.p3.infra.quota.P1QuotaHook} is
+     * {@code @Primary} when {@code QuotaService} exists. Do not use
+     * {@code @ConditionalOnMissingBean} here: the P1 {@code @Component} definition
+     * is visible during condition evaluation even when QuotaService is absent.
      */
     @Bean
-    @ConditionalOnMissingBean(QuotaHook.class)
     QuotaHook quotaHook() {
         return new NoopQuotaHook();
     }
 
     /** Fallback list/detail filter: {@code tenant_id = ? AND (TRUE)}. */
     @Bean
-    @ConditionalOnMissingBean(DataScopeHook.class)
     DataScopeHook dataScopeHook() {
         return new TenantOnlyDataScopeHook();
     }
