@@ -81,7 +81,7 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 list/detail/flow now share `SurfaceGuard` + role matrix (`docs/g2-permission.md`). Report / export / H5 stay open |
 | G5 | Draft/Validate/Publish (forms) | **IT / script** | Success path is live HTTP + Vue. Failed paths: [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). Not a full G5 product close |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
-| G9 | PolicySnapshot | **LIVE API** | `GET /api/v1/permission/snapshot` with issued context |
+| G9 | PolicySnapshot | **PARTIAL** | `GET /api/v1/permission/snapshot` with issued context. Version poll + Redis invalidate-only: [g9-policy-snapshot.md](./g9-policy-snapshot.md). Failover leftover stays open |
 | G15 | H5 | **DEFERRED** | S1 |
 | G18 | Tenant create | **PASS** | P1 API + tenant admin UI |
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
