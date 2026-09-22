@@ -75,7 +75,7 @@ This is **not** a product-wide G4 close and **not** a human laptop UI acceptance
 |---|---|
 | Human browser click on a laptop | Operator must trust `.local/g4-https/server.crt` (or use the insecure-origin flag). This package is the loopback HTTPS + scripted driver. |
 | SPA-generated verifier | BFF still mints `code_verifier` on `authorize-url?pkce=s256`. A production public-client page should generate it in the browser. |
-| Full G4 product close | 90-day hot purge, HTTP export wizard, switching P1 tenant audit-events off staging. |
+| Full G4 product close | HTTP export wizard, switching P1 tenant audit-events off staging. 90-day hot purge leftover is [g4-hot-purge-90d.md](./g4-hot-purge-90d.md). |
 | G17 / G6 | Not this package. Local GM TLS dual-cert is [g17-gm-tls-dual-cert.md](./g17-gm-tls-dual-cert.md) and is a different leftover. |
 | G18 reopen | **No.** Stub IdP + fabricated admin MFA token is unchanged. |
 

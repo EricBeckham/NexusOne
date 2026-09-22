@@ -9,8 +9,10 @@ import java.time.Instant;
  * <p>Hot default is 90 days. Archive default is 365 days. The archive Job copies
  * hot rows older than {@link #HOT_RETENTION} into {@code platform.audit_record_archive}
  * and deletes archive rows older than {@link #ARCHIVE_RETENTION} ({@code occurred_at}).
- * It does <strong>not</strong> delete from the append-only hot table.
  * Object-store cold archive is a separate {@link AuditColdArchiveJob} copy.
+ * {@link AuditHotPurgeJob} may DELETE a hot prefix that is already cold-archived
+ * or still safely present in the 365-day same-PG archive. It does not DROP
+ * {@code platform.audit_record}.
  */
 public final class AuditRetentionPolicy {
     public static final Duration HOT_RETENTION = Duration.ofDays(90);

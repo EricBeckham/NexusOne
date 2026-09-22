@@ -75,7 +75,7 @@ This is **not** a product-wide G4 close.
 |---|---|
 | Login / permission / admin / guard-reject wiring | Already on `main` via #77 ([g4-audit-coverage.md](./engineering/g4-audit-coverage.md)); this PR does not redo it |
 | Same-request login→permission→admin→export→guard-reject | MockMvc + IsolatedExport same-trace walk: [g4-same-trace-walk.md](./g4-same-trace-walk.md). Browser Authorization Code + PKCE is still open |
-| Hot purge after 90 days | `platform.audit_record` is append-only (`REVOKE DELETE`). Archive is a **copy**; expiry deletes the copy after 365 days, not the hot chain. A still-hot expired row may be copied again and immediately purged on the next Job run |
+| Hot purge after 90 days | Leftover implementation is [g4-hot-purge-90d.md](./g4-hot-purge-90d.md). This archive Job still only copies hot rows and expires the archive copy |
 | 365-day archive expiry | **Closed on `main` via #90.** `purgeExpiredArchive` deletes same-PG archive rows older than 365 days (`purgeImplemented=true`). `AuditArchiveJob.run()` copies then purges |
 | Object-store / cold archive | **Closed on this remainder** — see [g4-object-cold-archive.md](./g4-object-cold-archive.md). Same-PG archive remains; cold is an extra object-store copy |
 | Tenant TaskQueue / IsolatedQuartzJob for archive | Those APIs require membership; archive is a platform Job |

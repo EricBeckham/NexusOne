@@ -93,6 +93,10 @@ nexus:
       # Opt-in daily Quartz (02:45 UTC) after the same-PG copy. Default off.
       # Object bytes go through ObjectStoragePort (Counting Fake or MinIO via SecretPort).
       schedule-enabled: ${NEXUS_AUDIT_COLD_ARCHIVE_SCHEDULE_ENABLED:false}
+    hot-purge:
+      # Opt-in daily Quartz (03:00 UTC) after archive copy + cold copy. Default off.
+      # Deletes only a copied 90-day hot prefix. Does not DROP platform.audit_record.
+      schedule-enabled: ${NEXUS_AUDIT_HOT_PURGE_SCHEDULE_ENABLED:false}
   permission:
     persistence: ${NEXUS_PERMISSION_PERSISTENCE:memory}
     seed-tenant-member-grants: ${NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS:true}

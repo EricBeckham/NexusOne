@@ -8,6 +8,9 @@ import one.nexus.audit.AuditArchivePort;
 import one.nexus.audit.AuditColdArchive;
 import one.nexus.audit.AuditColdArchiveJob;
 import one.nexus.audit.AuditColdArchivePort;
+import one.nexus.audit.AuditHotPurge;
+import one.nexus.audit.AuditHotPurgeJob;
+import one.nexus.audit.AuditHotPurgePort;
 import one.nexus.audit.AuditObjectStore;
 import one.nexus.audit.AuditPort;
 import one.nexus.audit.InMemoryAuditArchivePort;
@@ -85,12 +88,14 @@ public class AuditConfiguration {
     }
 
     @Bean
+    AuditObjectStore auditObjectStore(
+            ObjectProvider<ObjectStoragePort> storages, ObjectProvider<FileProperties> files) {
+        return objectStore(storages.getIfAvailable(), files.getIfAvailable());
+    }
+
+    @Bean
     AuditColdArchivePort auditColdArchivePort(
-            AuditPort auditPort,
-            AuditArchivePort archive,
-            ObjectProvider<ObjectStoragePort> storages,
-            ObjectProvider<FileProperties> files) {
-        AuditObjectStore store = objectStore(storages.getIfAvailable(), files.getIfAvailable());
+            AuditPort auditPort, AuditArchivePort archive, AuditObjectStore store) {
         if (archive instanceof JdbcAuditArchivePort jdbc) {
             return AuditColdArchive.jdbc(jdbc, store);
         }
@@ -112,6 +117,43 @@ public class AuditConfiguration {
     AuditColdArchiveRunner auditColdArchiveRunner(
             ExecutionIsolation isolation, AuditColdArchiveTaskHandler handler, AuditColdArchiveJob job) {
         return new AuditColdArchiveRunner(isolation, handler, job);
+    }
+
+    @Bean
+    AuditHotPurgePort auditHotPurgePort(
+            AuditPort auditPort,
+            AuditArchivePort archive,
+            AuditObjectStore store,
+            ObjectProvider<DataSource> dataSources,
+            @Value("${nexus.audit.persistence:jdbc}") String persistence) {
+        if ("jdbc".equalsIgnoreCase(persistence)) {
+            DataSource dataSource = dataSources.getIfAvailable();
+            if (dataSource == null) {
+                throw new IllegalStateException("nexus.audit.persistence=jdbc requires a DataSource");
+            }
+            return AuditHotPurge.jdbc(auditPort, archive, store, dataSource);
+        }
+        if (auditPort instanceof InMemoryHashChainedAuditPort memory) {
+            return AuditHotPurge.inMemory(memory, archive, store);
+        }
+        throw new IllegalStateException("hot purge requires JDBC or InMemoryHashChainedAuditPort");
+    }
+
+    @Bean
+    AuditHotPurgeJob auditHotPurgeJob(AuditHotPurgePort purge, ObjectProvider<Clock> clocks) {
+        return new AuditHotPurgeJob(purge, clocks.orderedStream().findFirst().orElseGet(Clock::systemUTC));
+    }
+
+    @Bean
+    AuditHotPurgeTaskHandler auditHotPurgeTaskHandler(AuditHotPurgeJob job) {
+        return new AuditHotPurgeTaskHandler(job);
+    }
+
+    @Bean
+    @ConditionalOnBean(ExecutionIsolation.class)
+    AuditHotPurgeRunner auditHotPurgeRunner(
+            ExecutionIsolation isolation, AuditHotPurgeTaskHandler handler, AuditHotPurgeJob job) {
+        return new AuditHotPurgeRunner(isolation, handler, job);
     }
 
     @Bean
@@ -163,6 +205,24 @@ public class AuditConfiguration {
                 TriggerBuilder.newTrigger()
                         .withIdentity("audit-archive-cold", "nexus-platform")
                         .withSchedule(CronScheduleBuilder.cronSchedule("0 45 2 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                                .withMisfireHandlingInstructionDoNothing())
+                        .build());
+    }
+
+    @Bean
+    @ConditionalOnBean(Scheduler.class)
+    @ConditionalOnProperty(name = "nexus.audit.hot-purge.schedule-enabled", havingValue = "true")
+    org.springframework.beans.factory.InitializingBean auditHotPurgeSchedule(Scheduler scheduler) {
+        return () -> scheduler.scheduleJob(
+                JobBuilder.newJob(PlatformAuditHotPurgeQuartzJob.class)
+                        .withIdentity("audit-hot-purge", "nexus-platform")
+                        .requestRecovery(true)
+                        .storeDurably()
+                        .build(),
+                TriggerBuilder.newTrigger()
+                        .withIdentity("audit-hot-purge", "nexus-platform")
+                        .withSchedule(CronScheduleBuilder.cronSchedule("0 0 3 * * ?")
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                                 .withMisfireHandlingInstructionDoNothing())
                         .build());
