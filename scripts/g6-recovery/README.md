@@ -49,5 +49,5 @@ Do not point these scripts at a product database. They refuse `haopan_platform`,
 - Minute-level RPO (WAL archive / replica / delivery-grade HA)
 - GaussDB, AIStor enterprise, target Linux/ARM Profile
 - G17 (classified / GM TLS / 三权分立)
-- Changing `RecoveryPort` (product dry-run stays dry-run). Honesty / mutation contract leftover: [docs/g6-recovery-port-dry-run.md](../../docs/g6-recovery-port-dry-run.md)
+- Changing `RecoveryPort` (product dry-run stays dry-run). Honesty / mutation contract leftover: [docs/g6-recovery-port-dry-run.md](../../docs/g6-recovery-port-dry-run.md). Still-dry-run honesty leftover (#135 is not product HA / minute RPO / delivery HA): [docs/g6-recovery-port-honesty.md](../../docs/g6-recovery-port-honesty.md)
 - Claiming V1.1 now ships product single-tenant logical restore

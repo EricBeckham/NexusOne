@@ -90,6 +90,11 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g2-ops-pg-dump",
   "s0-secret-rotate-without-restart",
   "g1-fieldpolicy-mask-second-auth",
+  "g17-vue-otp-writeback",
+  "g17-gm-tls-nginx-handshake",
+  "g9-live-multi-jvm-replica",
+  "g6-recovery-port-dry-run",
+  "g6-recovery-port-honesty",
 ]);
 requireIncludes("doc", files.doc, [
   "POST /api/v1/p3/path/instances/{id}/withdraw",

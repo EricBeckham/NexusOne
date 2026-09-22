@@ -12,7 +12,7 @@ This leftover **extends** the existing Vue control `data-testid=todo-withdraw` (
 
 **Not claimed:** G7 three-type product close, G18 browser reopen, live product-JAR / live IdP withdraw click, G2 / G4 remainder, full S0+S1 release. Vue `TodoInboxView.vue` is not rewritten. `AuditPort` is not touched.
 
-Keep sibling leftover rows in [docs/README.md](./README.md): `g9-sentinel-cluster-honesty`, `g4-export-wizard`, `g4-p1-staging-audit-events`, `g4-pkce-spa-verifier`, `g15-native-bridge-stub`.
+Keep sibling leftover rows in [docs/README.md](./README.md): `g9-sentinel-cluster-honesty`, `g9-live-multi-jvm-replica`, `g4-export-wizard`, `g4-p1-staging-audit-events`, `g4-pkce-spa-verifier`, `g15-native-bridge-stub`, `g17-vue-otp-writeback`, `g17-gm-tls-nginx-handshake`, `g6-recovery-port-dry-run`, `g6-recovery-port-honesty`.
 
 ## What is proven
 
