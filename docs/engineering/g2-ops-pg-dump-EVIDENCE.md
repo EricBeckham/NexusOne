@@ -1,6 +1,6 @@
 # G2 leftover: ops-level `pg_dump` honesty evidence
 
-Recorded **pending-this-run** on this agent VM after rebase onto `origin/main` `6ae90d0` (Merge #147; also #151 at `7f97ec1`, #156 at `057268b`, #148 at `573af03`, #152 at `8e5cdc3`). **Not** a product G2 close. **Not** a redo of #137 physical dump SurfaceGuard, #144 `tenant_only`/catalog, or #150 todo HTTP. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded **pending-this-run** on this agent VM after rebase onto `origin/main` `8a563e9` (Merge #154; also #147 at `6ae90d0`, #151 at `7f97ec1`, #156 at `057268b`, #148 at `573af03`, #152 at `8e5cdc3`). **Not** a product G2 close. **Not** a redo of #137 physical dump SurfaceGuard, #144 `tenant_only`/catalog, or #150 todo HTTP. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
 See [docs/g2-ops-pg-dump.md](../g2-ops-pg-dump.md).
 

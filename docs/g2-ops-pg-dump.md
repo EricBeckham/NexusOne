@@ -4,7 +4,7 @@ S0+S1 leftover from [g2-permission.md](./g2-permission.md) and [g2-physical-dump
 
 It does **not** redo #137 dump HTTP, #144 isolation-only `tenant_only` / catalog, or #150 todo HTTP. It does **not** put G6 runbooks through `SurfaceGuard`. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. **G18 stays closed.**
 
-Reuse only: the existing #137 dump path and the #135 `DryRunRecoveryPort` `--version` probe. Java 21 / Boot **4.1.1**. No Docker. Orthogonal to #152 HTTP export wizard, #148 Sentinel/Cluster honesty, #156 P1 staging audit-events, #151 native-bridge stub, and #147 SPA PKCE verifier.
+Reuse only: the existing #137 dump path and the #135 `DryRunRecoveryPort` `--version` probe. Java 21 / Boot **4.1.1**. No Docker. Orthogonal to #152 HTTP export wizard, #148 Sentinel/Cluster honesty, #156 P1 staging audit-events, #151 native-bridge stub, #147 SPA PKCE verifier, and #154 MFA recovery/email.
 
 ## What this leftover covers
 
