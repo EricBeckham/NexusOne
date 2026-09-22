@@ -48,7 +48,7 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 ./scripts/g2-h5-permission.sh
 ```
 
-Recorded **2026-09-22T17:39:26Z** (OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1** / Node **22.14.0**, no Docker):
+Rebased onto `main@440a504` (#113 G7 browser withdraw). Recorded **2026-09-22T17:42:07Z** (OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1** / Node **22.14.0**, no Docker):
 
 ```
 npm test -- src/mobile/permission/surfaceGuard.test.js   # 6/6
