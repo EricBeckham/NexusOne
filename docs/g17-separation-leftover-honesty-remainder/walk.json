@@ -1,0 +1,28 @@
+{
+  "leftover": "g17-separation-leftover-honesty-remainder",
+  "siblings": [
+    "g17-separation-of-duties",
+    "g17-separation-honesty",
+    "g17-separation-leftover-honesty",
+    "g17-mfa-recovery-vue-otp-remainder-honesty",
+    "g5-publishhook-ddl-remainder-honesty",
+    "g1-fieldpolicy-mask-second-auth-remainder-honesty",
+    "g7-query-expense-travel-honesty-remainder",
+    "g9-redis-down-invalidate-remainder-honesty",
+    "g2-h5-every-page-form-write-remainder-honesty"
+  ],
+  "catalog_99_inventory": "PASS",
+  "leftover_216_honesty_gate": "PASS",
+  "leftover_216_is_not_live_admin_force": "true",
+  "leftover_216_is_not_live_dual_control": "true",
+  "no_admin_force_bypass_api": "true",
+  "live_admin_force_walk": "SKIP",
+  "live_dual_control_walk": "SKIP",
+  "product_dual_control_ui_status": "OPEN",
+  "g17Close": "NOT_CLAIMED",
+  "g17SodClose": "NOT_CLAIMED",
+  "productDualControlClose": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "timestampUtc": "2026-09-22T22:32:17Z",
+  "evidence": "scripts/g17-separation-leftover-honesty-remainder.sh"
+}

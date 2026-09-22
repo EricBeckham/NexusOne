@@ -1,0 +1,130 @@
+name: g17-separation-leftover-honesty-remainder
+
+# Honesty leftover remainder beyond #216/#187/#99.
+# Parent leftover harness fixtures stay PASS.
+# #216 harness PASS is not a live admin-force / dual-control walk.
+# Live IdP / admin-force / dual-control stay SKIP unless observed.
+# Does not redo #96/#99/#187/#216. Not product G17 / SoD / dual-control close.
+# G18 stays closed. No P0/M0 redo. AuditPort same-TX untouched.
+
+on:
+  push:
+    paths:
+      - "scripts/g17-separation-leftover-honesty-remainder.sh"
+      - "scripts/g17-separation-leftover-honesty-remainder/**"
+      - ".github/workflows/g17-separation-leftover-honesty-remainder.yml"
+      - "docs/g17-separation-leftover-honesty-remainder.md"
+      - "docs/engineering/g17-separation-leftover-honesty-remainder-EVIDENCE.md"
+      - "docs/engineering/g17-separation-leftover-honesty-remainder/agent-vm.env"
+      - "docs/README.md"
+  pull_request:
+    paths:
+      - "scripts/g17-separation-leftover-honesty-remainder.sh"
+      - "scripts/g17-separation-leftover-honesty-remainder/**"
+      - ".github/workflows/g17-separation-leftover-honesty-remainder.yml"
+      - "docs/g17-separation-leftover-honesty-remainder.md"
+      - "docs/engineering/g17-separation-leftover-honesty-remainder-EVIDENCE.md"
+      - "docs/engineering/g17-separation-leftover-honesty-remainder/agent-vm.env"
+      - "docs/README.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g17-separation-leftover-honesty-remainder.sh --verify-report \
+          scripts/g17-separation-leftover-honesty-remainder/fixtures/honest-skip.env
+      - name: Fake live admin-force PASS without a walk is rejected
+        run: ./scripts/g17-separation-leftover-honesty-remainder.sh --verify-report \
+          scripts/g17-separation-leftover-honesty-remainder/fixtures/fake-live-admin-force-pass.env fail
+      - name: Fake live dual-control PASS without a walk is rejected
+        run: ./scripts/g17-separation-leftover-honesty-remainder.sh --verify-report \
+          scripts/g17-separation-leftover-honesty-remainder/fixtures/fake-live-dual-control-pass.env fail
+      - name: Fake product G17 / SoD close is rejected
+        run: ./scripts/g17-separation-leftover-honesty-remainder.sh --verify-report \
+          scripts/g17-separation-leftover-honesty-remainder/fixtures/fake-g17-close.env fail
+      - name: Fake product dual-control close is rejected
+        run: ./scripts/g17-separation-leftover-honesty-remainder.sh --verify-report \
+          scripts/g17-separation-leftover-honesty-remainder/fixtures/fake-dual-control-close.env fail
+      - name: Fake #96/#99/#187/#216 redo is rejected
+        run: ./scripts/g17-separation-leftover-honesty-remainder.sh --verify-report \
+          scripts/g17-separation-leftover-honesty-remainder/fixtures/fake-redo.env fail
+      - name: Fake #216 harness as live walk is rejected
+        run: ./scripts/g17-separation-leftover-honesty-remainder.sh --verify-report \
+          scripts/g17-separation-leftover-honesty-remainder/fixtures/fake-harness-as-live.env fail
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest leftover #99/#187/#216 PASS / live SKIP
+        run: |
+          chmod +x ./scripts/g17-separation-leftover-honesty-remainder.sh
+          ./scripts/g17-separation-leftover-honesty-remainder.sh \
+            --out "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder"
+          ./scripts/g17-separation-leftover-honesty-remainder.sh \
+            --verify-report "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_99_cells_honest=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_187_cells_honest=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_216_cells_honest=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_216_honesty_gate=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_216_is_not_live_admin_force=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_216_is_not_live_dual_control=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^catalog_99_inventory=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^no_admin_force_bypass_api=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^surfaceguard_still_required=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^g4_deny_on_chain_unchanged=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^same_tx_append_unchanged=PASS$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^live_admin_force_walk=SKIP$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^live_dual_control_walk=SKIP$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^live_admin_force_observed=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^live_dual_control_observed=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^g17_close=NOT_CLAIMED$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^g17_sod_close=NOT_CLAIMED$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^product_dual_control_close=NOT_CLAIMED$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g17-separation-leftover-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g17-mfa-recovery-vue-otp-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g10-file-object-reconcile-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 's0-secret-rotate-getenv-leftover-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g5-publishhook-ddl-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g1-fieldpolicy-mask-second-auth-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g7-query-expense-travel-honesty-remainder' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g9-redis-down-invalidate-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E 'g2-h5-every-page-form-write-remainder-honesty' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_99_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_187_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_216_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_243_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_241_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_233_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_235_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_238_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_239_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_237_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_232_kept=true$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^leftover_216_redone=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^redo_99=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^redo_187=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g17-separation-leftover-honesty-remainder/report.env"
+          grep -F 'g17-mfa-recovery-vue-otp-remainder-honesty' docs/README.md
+          grep -F 'g10-file-object-reconcile-remainder-honesty' docs/README.md
+          grep -F 's0-secret-rotate-getenv-leftover-honesty' docs/README.md
+          grep -F 'g5-publishhook-ddl-remainder-honesty' docs/README.md
+          grep -F 'g1-fieldpolicy-mask-second-auth-remainder-honesty' docs/README.md
+          grep -F 'g7-query-expense-travel-honesty-remainder' docs/README.md
+          grep -F 'g9-redis-down-invalidate-remainder-honesty' docs/README.md
+          grep -F 'g2-h5-every-page-form-write-remainder-honesty' docs/README.md
+          grep -F 'g17-separation-leftover-honesty-remainder' docs/README.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g17-separation-leftover-honesty-remainder
+          path: ${{ runner.temp }}/g17-separation-leftover-honesty-remainder
