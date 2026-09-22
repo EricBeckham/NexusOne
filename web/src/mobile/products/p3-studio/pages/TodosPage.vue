@@ -16,6 +16,7 @@
       <label>筛选</label>
       <input v-model="queryText" placeholder="单号 / 任务名" data-testid="m-todo-filter" />
     </div>
+    <MPermDecision :decision="decision" :cell="H5_SURFACES.todoRead" />
     <p v-if="!session.contextId" class="m-error">没有 TenantContext。办理需要已签发上下文。</p>
     <p v-if="error" class="m-error" data-testid="m-todos-error">{{ error }}</p>
     <p v-if="!filtered.length && !error" class="m-muted" data-testid="m-todos-empty">此箱为空。</p>
@@ -38,6 +39,9 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p3 } from "../../../../api/p3";
 import { session } from "../../../../api/session";
+import MPermDecision from "../../../permission/MPermDecision.vue";
+import { H5_SURFACES } from "../../../permission/surfaceCatalog";
+import { useH5Surface } from "../../../permission/useH5Surface";
 
 const route = useRoute();
 const router = useRouter();
@@ -49,7 +53,7 @@ const boxes = [
 const box = ref(route.query.box || "inbox");
 const rows = ref([]);
 const queryText = ref("");
-const error = ref("");
+const { decision, error, requireCell, capture } = useH5Surface();
 
 const filtered = computed(() => {
   const q = queryText.value.trim();
@@ -62,6 +66,7 @@ const filtered = computed(() => {
 });
 
 async function reload() {
+  await requireCell(H5_SURFACES.todoRead);
   const body = await p3.listTodos(box.value);
   rows.value = body.items || [];
 }
@@ -76,7 +81,8 @@ watch(
   (next) => {
     box.value = next || "inbox";
     reload().catch((err) => {
-      error.value = `${err.code || ""} ${err.message}`;
+      rows.value = [];
+      capture(err);
     });
   },
 );
@@ -85,7 +91,8 @@ onMounted(async () => {
   try {
     await reload();
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
+    rows.value = [];
+    capture(err);
   }
 });
 </script>

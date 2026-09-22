@@ -5,6 +5,7 @@
       <p class="m-muted">{{ todo.process }} · {{ todo.biz_no || "—" }}</p>
       <p class="m-muted">状态 {{ todo.status || "—" }} · instance {{ todo.instance_id || "—" }}</p>
       <p v-if="todo.approval_status" class="m-muted">approval_status {{ todo.approval_status }}</p>
+      <MPermDecision :decision="decision" :cell="permCell" />
     </div>
     <p v-if="error" class="m-error" data-testid="m-todo-detail-error">{{ error }}</p>
     <p v-if="notice" class="m-ok" data-testid="m-todo-detail-ok">{{ notice }}</p>
@@ -56,21 +57,36 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { p3 } from "../../../../api/p3";
 import { isPendingTodo } from "../../../runtime/display";
+import MPermDecision from "../../../permission/MPermDecision.vue";
+import { H5_SURFACES } from "../../../permission/surfaceCatalog";
+import { useH5Surface } from "../../../permission/useH5Surface";
 
 const route = useRoute();
 const todo = ref(null);
 const comment = ref("");
-const error = ref("");
 const notice = ref("");
 const busy = ref(false);
+const permCell = ref(H5_SURFACES.todoRead);
+const { decision, error, requireCell, capture } = useH5Surface();
 const box = computed(() => route.query.box || "inbox");
+
+const writeCell = {
+  approve: H5_SURFACES.todoApprove,
+  reject: H5_SURFACES.todoReject,
+  withdraw: H5_SURFACES.todoWithdraw,
+};
 
 onMounted(async () => {
   try {
-    todo.value = await p3.getTodo(route.params.id);
+    await requireCell(H5_SURFACES.todoRead);
+    permCell.value = H5_SURFACES.todoRead;
+    try {
+      todo.value = await p3.getTodo(route.params.id);
+    } catch {
+      todo.value = { id: route.params.id, title: "待办", status: "PENDING", instance_id: "" };
+    }
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
-    todo.value = { id: route.params.id, title: "待办", status: "PENDING", instance_id: "" };
+    capture(err);
   }
 });
 
@@ -78,10 +94,12 @@ async function act(kind) {
   if (!todo.value?.id) {
     return;
   }
-  error.value = "";
   notice.value = "";
   busy.value = true;
   try {
+    const cell = writeCell[kind];
+    permCell.value = cell;
+    await requireCell(cell);
     if (kind === "approve") {
       todo.value = await p3.approveTodo(todo.value.id);
     }
@@ -93,7 +111,7 @@ async function act(kind) {
     }
     notice.value = `已 ${kind}。approval_status=${todo.value?.approval_status || "—"}`;
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
+    capture(err);
   } finally {
     busy.value = false;
   }

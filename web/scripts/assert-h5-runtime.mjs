@@ -88,13 +88,13 @@ requireIncludes("home", files.home, [
   'to="/m/p3/query"',
   'to="/m/p3/notifications"',
 ]);
-requireIncludes("forms", files.forms, ["listForms", "/m/p3/forms/"]);
-requireIncludes("fill", files.fill, ["submitStart", "running_fields", "nexusSequentialApproval"]);
-requireIncludes("lists", files.lists, ["listLedgers", "/m/p3/lists/"]);
-requireIncludes("list records", files.listRecords, ["listRecords", "listFields"]);
-requireIncludes("record", files.record, ["getRecord"]);
-requireIncludes("todos", files.todos, ["listTodos", 'box: next']);
-requireIncludes("todo detail", files.todoDetail, ["approveTodo", "rejectTodo", "withdrawTodo"]);
+requireIncludes("forms", files.forms, ["listForms", "/m/p3/forms/", "H5_SURFACES.formRead"]);
+requireIncludes("fill", files.fill, ["submitStart", "running_fields", "nexusSequentialApproval", "H5_SURFACES.formWrite"]);
+requireIncludes("lists", files.lists, ["listLedgers", "/m/p3/lists/", "H5_SURFACES.listRead"]);
+requireIncludes("list records", files.listRecords, ["listRecords", "listFields", "H5_SURFACES.listRead"]);
+requireIncludes("record", files.record, ["getRecord", "H5_SURFACES.listRead"]);
+requireIncludes("todos", files.todos, ["listTodos", 'box: next', "H5_SURFACES.todoRead"]);
+requireIncludes("todo detail", files.todoDetail, ["approveTodo", "rejectTodo", "withdrawTodo", "H5_SURFACES.todoApprove"]);
 requireIncludes("query", files.query, ["buildRecordQuery", "listRecords", "m-query-run"]);
 requireIncludes("notify", files.notify, ["resolveNotifyJump", "notify.list", "m-notify-demo-todo"]);
 requireIncludes("doc", files.doc, ["F010", "APP WebView", "PKCE", "X-Nexus-Context-Id"]);

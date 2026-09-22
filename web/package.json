@@ -14,7 +14,8 @@
     "assert:p3-live": "node scripts/assert-p3-live.mjs",
     "assert:h5": "node scripts/assert-h5-mobile.mjs",
     "assert:h5-host": "node scripts/assert-h5-host.mjs",
-    "assert:h5-runtime": "node scripts/assert-h5-runtime.mjs"
+    "assert:h5-runtime": "node scripts/assert-h5-runtime.mjs",
+    "assert:h5-permission": "node scripts/assert-h5-permission.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13",
