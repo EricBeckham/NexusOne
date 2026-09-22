@@ -1,35 +1,43 @@
 # PostgreSQL 整库恢复（逻辑备份）
 
-**状态：runbook / dry-run 契约。不是 G6，不是目标 Profile 验收。**
+**状态：G6 S1 环境级整库恢复演练（专用库）。不是目标 Profile，不是分钟级 RPO，不是 G17，不是单租户逻辑恢复。**
 
-适用：NexusOne 业务库（PostgreSQL 15.x）。不覆盖 GaussDB，不覆盖单租户逻辑恢复（V1.1 明确不做）。
+适用：NexusOne 业务库形状的 PostgreSQL **15.x** 整库 `pg_dump` / `pg_restore`。不覆盖 GaussDB。V1.1 **不提供**单租户逻辑恢复。
+
+可复现脚本：[`scripts/g6-recovery/run-drill.sh`](../../../scripts/g6-recovery/run-drill.sh)。实测记录：[`g6-recovery-drill-EVIDENCE.md`](../g6-recovery-drill-EVIDENCE.md)。
 
 ## 原则
 
-- 恢复必须落到**独立实例**，备份命令成功不等于恢复通过。
-- 升级失败时按此流程回到升级**前**的库快照；不得假设旧程序能读升级后的 Schema。
-- 密码、`NEXUS_DB_PASSWORD`、`NEXUS_CRYPTO_MASTER_KEY` 只走环境变量。
-- 审计表是 append-only；恢复后应调用 `AuditPort.verifyChain()`（业务模块接线后）。当前只能在测试双上验证算法。
+- 恢复必须落到**独立实例 / 独立数据库**。备份命令成功不等于恢复通过。
+- G6 演练使用专用集群（默认 `127.0.0.1:55432`）和专用库名 `nexusone_g6_src` → `nexusone_g6_dst`。
+- **禁止**连接或创建 `haopan_platform`。脚本在名称含 `haopan` 或端口为 `5432` 时直接拒绝。
+- **禁止**按 `tenant_id` 过滤导出/导入。整库恢复必须保留源库全部租户行。
+- 密码只走环境变量或本机 workdir（`.local/g6-recovery/`，已 gitignore）。不要把 dump 提交进 Git。
+- 审计表是 append-only；产品路径接线后应再跑 `AuditPort.verifyChain()`。本演练校验表级 SHA-256 与行数。
 
-## 备份（示例，勿把密码写进命令历史文档）
+## 备份
 
 ```bash
-export PGPASSWORD  # env only
-pg_dump --format=custom --file=/secure/backup/nexusone.dump \
-  --host=127.0.0.1 --port=5432 --username=nexus nexusone
+export PATH="/usr/lib/postgresql/15/bin:$PATH"
+export PGHOST=127.0.0.1
+export PGPORT=55432
+# PGPASSWORD via env only when the cluster is not local trust
+pg_dump --format=custom --file="$WORK/backup/nexusone_g6_src.dump" \
+  --dbname=nexusone_g6_src
+sha256sum "$WORK/backup/nexusone_g6_src.dump"
 ```
 
-记录：PostgreSQL 精确版本、`pg_dump --version`、文件 SHA-256、时间、操作者。不要上传含数据的 dump 到 Git。
+记录：PostgreSQL 精确版本、`pg_dump --version`、dump SHA-256、UTC 时间。不要上传含数据的 dump。
 
-## 恢复到独立实例
+## 恢复到专用空库
 
-1. 安装**同一大版本** PostgreSQL 15.x，创建空库。
-2. `pg_restore --dbname=nexusone_restore --exit-on-error nexusone.dump`
-3. 检查 `platform.flyway_schema_history` 与迁移版本（含 M0-09 V500 与 M0-11 V501）。
-4. 比较关键表行数；业务模块接线后校验 `platform.audit_record` 哈希链。
-5. 应用以只读或隔离 URL 启动，跑契约测试。
-6. 记录 RPO/RTO。未完成上述步骤不得把 G6 标为通过。
+1. 同一大版本 PostgreSQL 15.x，`CREATE DATABASE nexusone_g6_dst TEMPLATE template0`。
+2. `pg_restore --dbname=nexusone_g6_dst --exit-on-error nexusone_g6_src.dump`
+3. 比较 `platform.flyway_schema_history` 与关键表的 `COPY … ORDER BY` SHA-256。
+4. 确认恢复库中的 **全部** `tenant_id` 仍在（本演练为两个租户）。出现“只恢复一个租户”即失败。
+5. `SELECT datname FROM pg_database WHERE datname ILIKE '%haopan%'` 必须为空。
+6. 记录 dump/restore 墙钟秒数。这是演练 RTO 观察值，**不是**交付等级分钟级 RPO 验收。
 
 ## 本仓库接口
 
-`one.nexus.audit.recovery.RecoveryPort.dryRunPostgres()` 只探测 `pg_dump --version`，**不会**执行 dump 或 restore。`profileAccepted` 恒为 false。
+`one.nexus.audit.recovery.RecoveryPort.dryRunPostgres()` 只探测 `pg_dump --version`，**不会**执行 dump 或 restore。`profileAccepted` 恒为 false。G6 演练走本 runbook / `scripts/g6-recovery/`，不改产品代码。
