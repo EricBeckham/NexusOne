@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:g7-withdraw": "vitest run src/views/studio/todo-withdraw.browser.test.js",
     "test:g4-pkce": "vitest run src/views/login-pkce.browser.test.js",
+    "test:g17-totp-enroll": "vitest run src/auth/totp.test.js src/auth/totpEnrollment.test.js src/views/login-mfa.browser.test.js src/views/org/totp-enroll.browser.test.js",
+    "assert:g17-totp-enroll": "node scripts/assert-g17-totp-enrollment-ux.mjs",
     "assert:isolation": "node scripts/assert-client-isolation.mjs",
     "assert:p3-live": "node scripts/assert-p3-live.mjs",
     "assert:h5": "node scripts/assert-h5-mobile.mjs",

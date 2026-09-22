@@ -71,7 +71,7 @@ Fill from `G17_ADMIN_TOTP_*` lines in the Surefire output after `./scripts/g17-a
 |---|---|
 | SMS MFA | `amr=sms` is recognized if an IdP sent it. No SMS SPI, no SMS OTP provider, no phone-number enrollment. |
 | WebAuthn / hardware token / passkeys | Not implemented. `amr=hwk` is recognized only if an IdP sent it. No WebAuthn policy, no resident-key UX. |
-| TOTP enrollment UX / recovery codes / email MFA product acceptance | This walk is the HTTP driver + required action, not an in-app authenticator page or recovery-code set. |
+| TOTP enrollment UX / recovery codes / email MFA product acceptance | In-app UX leftover is [g17-totp-enrollment-ux.md](./g17-totp-enrollment-ux.md) (copy / error paths only). Recovery codes and email MFA stay open. This walk remains the HTTP driver + required action. |
 | Human browser click / Chromium | Same loopback `Secure; SameSite=None` cookie limit as the G4 PKCE leftover. |
 | Forced OTP for every admin at the Keycloak flow layer | Product enforcement is the P2 gate. Conditional OTP runs only after a user has an OTP credential. Realm roles `TENANT_ADMIN` / `PLATFORM_ADMIN` are named, not bound as a Conditional OTP role rule. |
 | Full G17 (密码机, classified GM delivery) | Not this slice. 三权分立 is [g17-separation-of-duties.md](./g17-separation-of-duties.md). Local 国密 TLS leftover is [g17-gm-tls-dual-cert.md](./g17-gm-tls-dual-cert.md). |
