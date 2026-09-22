@@ -52,7 +52,7 @@ mvn -pl nexus-p3-studio -am test \
 
 ## 本次证据
 
-Agent VM **2026-09-22T15:42:29Z**. `./scripts/g5-form-publish-rollback.sh` → `BUILD SUCCESS`. No Docker.
+Agent VM **2026-09-22T16:44:54Z**. `./scripts/g5-form-publish-rollback.sh` → `BUILD SUCCESS`. No Docker.
 
 | Item | Value |
 |---|---|
@@ -61,16 +61,16 @@ Agent VM **2026-09-22T15:42:29Z**. `./scripts/g5-form-publish-rollback.sh` → `
 | Spring Boot | **4.1.1** |
 | PostgreSQL | Zonky **15.18** (IT asserts `server_version` starts with `15.`) |
 | Flyway | V100→…→**V530**→V531→V550 on schema `platform` |
-| Result | **Tests run: 17, Failures: 0, Errors: 0, Skipped: 0** |
+| Result | **Tests run: 18, Failures: 0, Errors: 0, Skipped: 0** |
 
 | Suite | Result |
 |---|---|
-| `JdbcFormPublishRollbackIT` | **5/5** — previous three #70 cases; `schemaServiceConfirmMissLeavesRunningPointerAndSnapshotUnchanged` (drop `l_g5a_leave_request` after v1); `schemaServiceDdlAbortLeavesRunningPointerAndSnapshotUnchanged` (`JdbcSchemaService.evolvePhysicalTable` + pre-created `drift_col`, cause `SchemaService evolve failed`) |
+| `JdbcFormPublishRollbackIT` | **6/6** — #70 validate/hook cases; `schemaServiceCreateOnMissingPhysicalTableSucceeds` (DROP `l_g5a_leave_request` then product CREATE); `schemaServiceEvolveNewFieldOnPublishSucceeds` (`remark` column + `schema_version=2`); `schemaServiceEvolveAbortLeavesRunningPointerAndSnapshotUnchanged` (required `remark` + existing row, cause `SchemaService evolve failed`, column absent, `ROLLED_BACK`) |
 | `FormPublishFailureApiTest` | **2/2** — HTTP `P3.FORM.0005` keeps DRAFT; HTTP `P3.FORM.0006` via `SchemaServicePublishHook` leaves Running v1 + snapshot + `ROLLED_BACK` |
 | `FormPublishStateMachineTest` | **8/8** — Hook regression + SchemaService-gate abort + success / tenant cases |
-| `SchemaServicePublishHookTest` | **2/2** — one confirm per ledger; evolve-failed / SQLState `42701` |
+| `SchemaServicePublishHookTest` | **2/2** — one `ensurePhysicalTable` per ledger; evolve-failed shape |
 
-`FormApiTest` (happy path + HTTP validate-fail) re-run **1/1** at **2026-09-22T15:42:48Z**.
+`FormApiTest` **1/1** at **2026-09-22T16:45:00Z**. G18 leave publish `G18BusinessPathIT#publishSubmitApprovalOutboxAndAuditShareOnePath` **1/1** at **2026-09-22T16:45:39Z**.
 
 ## 诚实缺口（不宣称完整 G5 产品）
 

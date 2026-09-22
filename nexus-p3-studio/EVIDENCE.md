@@ -265,7 +265,7 @@ Extends #70. Product publish now defaults to `SchemaServicePublishHook` → `Sch
 - Zonky PG 15: `JdbcSchemaService.evolvePhysicalTable` hits PostgreSQL `42701` (pre-created `drift_col`) → pointer/snapshot unchanged
 - HTTP / memory: same `SchemaServicePublishHook` + evolve-failed shape
 
-Superseded for the product gate by the G5 remainder below (`ensurePhysicalTable` CREATE/evolve). The #85 suites remain historical.
+Recorded **2026-09-22T15:42:29Z** (17 tests). Superseded for the product gate by the G5 remainder below.
 
 # G5 remainder — SchemaService evolve/CREATE on publish (forms only)
 
@@ -277,22 +277,22 @@ Extends #70 / #85. Product `SchemaServicePublishHook` now calls `SchemaService.e
 
 Mid-evolve failure still rolls back the Running pointer / snapshot and writes the existing `ROLLED_BACK` log. Abort evidence is a required new column on a table that already has a row (PostgreSQL `23502`), not a `ConfirmThenAbortEvolve` wrapper.
 
-Agent VM **2026-09-22T15:42:29Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
+Agent VM **2026-09-22T16:44:54Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
 
 ```bash
 ./scripts/g5-form-publish-rollback.sh
 ```
 
-`BUILD SUCCESS`. **Tests run: 17, Failures: 0, Errors: 0, Skipped: 0**.
+`BUILD SUCCESS`. **Tests run: 18, Failures: 0, Errors: 0, Skipped: 0**.
 
 | Suite | Result |
 |---|---|
-| `JdbcFormPublishRollbackIT` | **5/5** — #70 cases plus SchemaService confirm miss (drop `l_g5a_leave_request`) and `JdbcSchemaService.evolvePhysicalTable` DDL abort (`42701` / `SchemaService evolve failed`). Pointer + `snapshot_json` unchanged |
+| `JdbcFormPublishRollbackIT` | **6/6** — #70 cases plus product CREATE (drop `l_g5a_leave_request`), evolve `remark` success (`schema_version=2`), evolve abort (required `remark` + row) leaves pointer + `snapshot_json` + no `remark` column + `ROLLED_BACK` |
 | `FormPublishFailureApiTest` | **2/2** — HTTP via `SchemaServicePublishHook` |
 | `FormPublishStateMachineTest` | **8/8** |
 | `SchemaServicePublishHookTest` | **2/2** |
 
-`FormApiTest` **1/1** at **2026-09-22T15:42:48Z**. Not a full G5 close. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md).
+`FormApiTest` **1/1**. G18 leave publish `publishSubmitApprovalOutboxAndAuditShareOnePath` **1/1** at **2026-09-22T16:45:39Z**. Not a full G5 close. See [docs/g5-form-publish-rollback.md](../docs/g5-form-publish-rollback.md).
 
 # G18 one real business path (backend)
 
