@@ -21,7 +21,7 @@
         <router-link to="/p2/permissions/roles">角色授权</router-link>
         <router-link to="/p2/permissions/datascope">数据范围</router-link>
         <router-link to="/p2/permissions/fields">字段权限</router-link>
-        <p class="group">星构 · 业务延后</p>
+        <p class="group">星构 · 台账/表单/待办</p>
         <router-link to="/p3/ledgers">台账</router-link>
         <router-link to="/p3/forms">表单</router-link>
         <router-link to="/p3/todos">待办</router-link>
