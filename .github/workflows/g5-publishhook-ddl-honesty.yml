@@ -81,6 +81,7 @@ jobs:
           grep -F 'g9-redis-down-invalidate-remainder' docs/README.md
           grep -F 'g17-mfa-recovery-vue-otp-honesty' docs/README.md
           grep -F 'g2-ops-pg-dump-honesty' docs/README.md
+          grep -F 'g9-sentinel-cluster-remainder-honesty' docs/README.md
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -116,7 +116,7 @@ verify_report_inner() {
 
   local rows
   rows="$(report_get "$file" leftover_rows_kept)"
-  for row in g5-mid-publish-failure g5-browser-failed-publish g5-mid-publish-failure-honesty g9-redis-down-invalidate-remainder g2-h5-every-page-form-write-honesty g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty; do
+  for row in g5-mid-publish-failure g5-browser-failed-publish g5-mid-publish-failure-honesty g9-redis-down-invalidate-remainder g2-h5-every-page-form-write-honesty g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty; do
     echo "$rows" | grep -Fq "$row" || { echo "FAIL: leftover_rows_kept must keep $row" >&2; return 1; }
   done
 
@@ -254,6 +254,7 @@ g9-redis-down-invalidate-honesty
 g2-h5-every-page-form-write-honesty
 g17-mfa-recovery-vue-otp-honesty
 g2-ops-pg-dump-honesty
+g9-sentinel-cluster-remainder-honesty
 g2-h5-every-page
 g2-form-write-honesty
 g2-form-submission-write
@@ -382,7 +383,7 @@ REPORT="$OUT/report.env"
   kv memory_harness_is_real_ddl false
   kv confirm_then_abort_wrapper_is_real_ddl false
   kv zonky_94_145_is_this_leftover_pass false
-  kv leftover_rows_kept "g5-mid-publish-failure,g5-browser-failed-publish,g5-mid-publish-failure-honesty,g9-redis-down-invalidate-remainder,g2-h5-every-page-form-write-honesty,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty"
+  kv leftover_rows_kept "g5-mid-publish-failure,g5-browser-failed-publish,g5-mid-publish-failure-honesty,g9-redis-down-invalidate-remainder,g2-h5-every-page-form-write-honesty,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty"
   kv leftover_rows_all "$LEFTOVER_ROWS_ALL"
   kv live_pg15_listener "$LIVE_PG15"
   kv schema_service_ddl_abort_observed "$DDL_OBSERVED"
@@ -412,7 +413,7 @@ MATRIX="$OUT/matrix.md"
   echo "| Memory harness is real DDL | false | honesty gate |"
   echo "| ConfirmThenAbortEvolve is real DDL | false | wrapper is not SchemaService DDL |"
   echo "| Zonky #94/#145 as this leftover PASS | false | sibling leftovers |"
-  echo "| leftover rows kept | true | #145/#171/#196 + #197 + #204 + #205 + #188 + all sibling leftover rows |"
+  echo "| leftover rows kept | true | #145/#171/#196 + #197 + #204 + #205 + #188 + #209 + all sibling leftover rows |"
   echo "| Real SchemaService DDL abort | $REAL_DDL | ${REAL_DDL_REASON} |"
   echo "| PublishHook → real DDL | $HOOK_DDL | ${HOOK_REASON} |"
   echo "| #94/#145/#171/#196 redo | false | sibling leftovers |"

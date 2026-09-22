@@ -1,8 +1,8 @@
 # G5 leftover: PublishHook / real SchemaService DDL honesty evidence
 
-Recorded on this branch after rebase onto `origin/main` `eff62d8` (Merge #214 tip-sync after #188). **Not** a product G5 close. **Not** a redo of #94 evolve DDL abort. **Not** a redo of #145 mid-publish failure rollback. **Not** a redo of #171 browser leftover. **Not** a redo of #196 mid-publish honesty leftover. **Not** a G18 reopen. **Not** a P0/M0 redo. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded on this branch after rebase onto `origin/main` `1c79ef3` (Merge #209 G9 Sentinel/Cluster remainder honesty after #214). **Not** a product G5 close. **Not** a redo of #94 evolve DDL abort. **Not** a redo of #145 mid-publish failure rollback. **Not** a redo of #171 browser leftover. **Not** a redo of #196 mid-publish honesty leftover. **Not** a G18 reopen. **Not** a P0/M0 redo. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
-See [docs/g5-publishhook-ddl-honesty.md](../g5-publishhook-ddl-honesty.md). Keep **all sibling leftover rows** in [docs/README.md](../README.md), including [g5-mid-publish-failure.md](../g5-mid-publish-failure.md) (#145), [g5-browser-failed-publish.md](../g5-browser-failed-publish.md) (#171), [g5-mid-publish-failure-honesty.md](../g5-mid-publish-failure-honesty.md) (#196), [g9-redis-down-invalidate-remainder.md](../g9-redis-down-invalidate-remainder.md) (#197), [g2-h5-every-page-form-write-honesty.md](../g2-h5-every-page-form-write-honesty.md) (#204), [g17-mfa-recovery-vue-otp-honesty.md](../g17-mfa-recovery-vue-otp-honesty.md) (#205), and [g2-ops-pg-dump-honesty.md](../g2-ops-pg-dump-honesty.md) (#188).
+See [docs/g5-publishhook-ddl-honesty.md](../g5-publishhook-ddl-honesty.md). Keep **all sibling leftover rows** in [docs/README.md](../README.md), including [g5-mid-publish-failure.md](../g5-mid-publish-failure.md) (#145), [g5-browser-failed-publish.md](../g5-browser-failed-publish.md) (#171), [g5-mid-publish-failure-honesty.md](../g5-mid-publish-failure-honesty.md) (#196), [g9-redis-down-invalidate-remainder.md](../g9-redis-down-invalidate-remainder.md) (#197), [g2-h5-every-page-form-write-honesty.md](../g2-h5-every-page-form-write-honesty.md) (#204), [g17-mfa-recovery-vue-otp-honesty.md](../g17-mfa-recovery-vue-otp-honesty.md) (#205), [g2-ops-pg-dump-honesty.md](../g2-ops-pg-dump-honesty.md) (#188), and [g9-sentinel-cluster-remainder-honesty.md](../g9-sentinel-cluster-remainder-honesty.md) (#209).
 
 ## Versions
 
@@ -57,7 +57,7 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 | Product G5 close | **NOT_CLAIMED** | honesty gate enforces `NOT_CLAIMED` |
 | #94 / #145 / #171 / #196 | not redone | `redone_94=false`, `redone_145=false`, `redone_171=false`, `redone_196=false` |
 | G18 / AuditPort / P0/M0 | unchanged | not reopened / not redesigned / not redone |
-| Sibling leftover rows | kept | includes #196 + #197 `g9-redis-down-invalidate-remainder` + #204 `g2-h5-every-page-form-write-honesty` + #205 `g17-mfa-recovery-vue-otp-honesty` + #188 `g2-ops-pg-dump-honesty` |
+| Sibling leftover rows | kept | includes #196 + #197 `g9-redis-down-invalidate-remainder` + #204 `g2-h5-every-page-form-write-honesty` + #205 `g17-mfa-recovery-vue-otp-honesty` + #188 `g2-ops-pg-dump-honesty` + #209 `g9-sentinel-cluster-remainder-honesty` |
 
 ## Honest leftovers
 
