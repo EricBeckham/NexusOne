@@ -9,7 +9,7 @@ import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.field.FieldPolicyProjector;
 import one.nexus.permission.scope.PermissionQueryBinder;
-import one.nexus.permission.support.PermissionException;
+import one.nexus.permission.surface.SurfaceGuard;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -17,9 +17,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /**
- * Uses M0-05 {@code PermissionService.decide} when a P2 tenant context is
- * issued. Falls back to tenant-only when the snapshot has no grant for this
- * resource. Explicit deny and tenant-boundary still 403.
+ * List / detail / write use {@link SurfaceGuard} so {@code no_grant} is deny,
+ * same as flow. Tenant-only remains only when no P2 TenantContext is bound
+ * (isolation-only jobs). Demo {@code tenant_member} seed may still run; it is
+ * not treated as G2-complete.
  */
 @Component
 @Primary
@@ -41,14 +42,8 @@ public class PermissionDataScopeHook implements DataScopeHook {
             return tenantOnly(tenantId);
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
-        Decision decision = permission.service().decide(resource, action);
-        if (decision.allowed()) {
-            return new ScopedRead(PermissionQueryBinder.bind(tenantId, decision), decision);
-        }
-        if ("explicit_deny".equals(decision.reason()) || "tenant_boundary".equals(decision.reason())) {
-            throw PermissionException.denied(decision.reason());
-        }
-        return tenantOnly(tenantId);
+        Decision decision = SurfaceGuard.require(permission.service(), resource, action);
+        return new ScopedRead(PermissionQueryBinder.bind(tenantId, decision), decision);
     }
 
     @Override

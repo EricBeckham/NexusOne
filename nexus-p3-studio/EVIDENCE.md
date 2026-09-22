@@ -2,6 +2,8 @@
 
 Recorded after PostgreSQL 15.x test run. **Forms / Flowable / UI were not built** in the M0-06 drop.
 
+G2 list/detail/flow agreement (`G2SurfaceAgreementTest`, `PermissionDataScopeHook`) is recorded in [docs/g2-permission.md](../docs/g2-permission.md). This file stays the M0-06 ledger evidence.
+
 ## Exact versions
 
 | Item | Value |

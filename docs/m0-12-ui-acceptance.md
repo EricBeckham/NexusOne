@@ -78,14 +78,14 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G1 | In-app notifications do not leak across tenants | **PASS** | enqueue in A, list in B empty |
 | G1 | Query AST / export / file / cache / Job / Task full path | **PARTIAL** | Query AST already on M0-02. Export / file / cache / Job / Task reject-before-execute + guard records: [g1-isolation-surfaces.md](./g1-isolation-surfaces.md). Not a product-wide zero-leak close. |
 | G1 | Guard-reject logs “zero leak” product claim | **PARTIAL** | Those four surfaces emit `ISOLATION_REJECT` + `AuditPort` `GUARD_REJECT`. UI/H5/join-AST/FieldPolicy export remain open. |
-| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 product-wide (UI/API/query/flow/report/export/H5, one engine) stays open |
+| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 list/detail/flow now share `SurfaceGuard` + role matrix (`docs/g2-permission.md`). Report / export / H5 stay open |
 | G5 | Draft/Validate/Publish (forms) | **IT / script** | Success path is live HTTP + Vue. Failed paths: [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). Not a full G5 product close |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **LIVE API** | `GET /api/v1/permission/snapshot` with issued context |
 | G15 | H5 | **DEFERRED** | S1 |
 | G18 | Tenant create | **PASS** | P1 API + tenant admin UI |
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
-| G18 | Permission views | **PASS** | `38f1a73`: snapshot `grant_count=7`, `ledger`/`read` allowed. Full matrix UI stays on G2 |
+| G18 | Permission views | **PASS** | `38f1a73`: snapshot `grant_count=7`, `ledger`/`read` allowed. G18 close unchanged. Matrix UI is the G2 slice |
 | G18 | Ledger | **PASS** | `leave2231` READY, quota 1/10, table `l_ui2231_leave2231`. No field PUT |
 | G18 | Form / publish | **PASS** | `leave2231_form` Validate PASS, `running_version=1`. G5 failed-path evidence is [g5-form-publish-rollback.md](./g5-form-publish-rollback.md), not this walk |
 | G18 | Business data / query | **PASS** | Record 年假 / 3 / 浏览器走通 / `APPROVED` after 同意 |
@@ -114,7 +114,7 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 | Form create / validate / publish | POST forms + validate + publish | List create + studio publish tab |
 | Form fill → physical row + Flowable | `POST /api/v1/p3/path/submit-start` | Default fill action; submissions API remains available but is not the G18 button |
 | Todo comment | approve/reject have no comment body | Local textarea only |
-| GET `/api/v1/permission/roles` | Does not exist | Snapshot + check only |
+| GET `/api/v1/permission/roles` | `GET /roles|/assignments|/grants|/matrix` | Role / DataScope / field tabs |
 | Quota on ledger list | P1 `/api/v1/p1/tenants/{id}/quotas` | Optional platform-header read |
 | Audit by trace | `GET /api/v1/audit/traces/{traceId}` | Sidebar page; tenant-filtered; no chain mutation |
 

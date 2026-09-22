@@ -5,7 +5,7 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.1.0**, Fly
 
 **Product G18 is closed** for the one vertical slice in 需求规格 V1.1 §12: 租户 → 组织权限 → 台账 → 表单 → 发布 → 业务数据 → 顺序审批 → 待办 → 查询 → 站内通知 → 审计. Closed **2026-09-22** on `main` `38f1a73` by the browser record below, plus the already-recorded same-transaction rollback (`G18RollbackProbe`) and dispatcher timing (`docs/m0-09-outbox-api.md`).
 
-Still open, and not part of this close: G7 (three business types), G4 (login / permission / admin / export / guard-reject on the same chain), G2 permission-matrix UI, G15 H5, G1 leftovers listed in [g1-isolation-surfaces.md](./g1-isolation-surfaces.md) (UI/H5/join-AST/FieldPolicy export; the export/file/cache/Job/Task guards themselves are evidenced there), G6, G17, and the target Linux/ARM profile.
+Still open, and not part of this close: G7 (three business types), G4 (login / permission / admin / export / guard-reject on the same chain), G15 H5, G1 leftovers listed in [g1-isolation-surfaces.md](./g1-isolation-surfaces.md) (UI/H5/join-AST/FieldPolicy export; the export/file/cache/Job/Task guards themselves are evidenced there), G6, G17, and the target Linux/ARM profile. G2 list/detail/flow + role matrix is a later S0+S1 slice (`docs/g2-permission.md`) and does not reopen this G18 close. Product-wide G2 (report / export / H5) remains open.
 
 ## Browser walkthrough on `38f1a73` (G18 close)
 
@@ -176,7 +176,7 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 - One running form binds a single `ledger_code`. The G18 ledger includes optional `approval_status`.
 - In-process Flowable 7.1.0 on the application `DataSource` / `PlatformTransactionManager` (already proven in M0-08).
 - Demo P3 headers are test-only for ledger/form **metadata** setup; record write/query, path API, and notify use server-issued IAM context (`Bearer` + `X-Nexus-Context-Id`).
-- `nexus.permission.seed-tenant-member-grants=true` seeds role `tenant_member` onto the current **person id** (not position code). Binders: `PermissionAuthFilter`, `FlowAuthFilter`, `IssuedTenantIsolationFilter`, `PermissionDataScopeHook`. `PermissionDataScopeHook` still falls back to tenant-only on leftover `no_grant`.
+- `nexus.permission.seed-tenant-member-grants=true` seeds role `tenant_member` onto the current **person id** (not position code). Binders: `PermissionAuthFilter`, `FlowAuthFilter`, `IssuedTenantIsolationFilter`, `PermissionDataScopeHook`. G2 (`docs/g2-permission.md`) now denies leftover `no_grant` on list/detail/flow via `SurfaceGuard`; the seed remains demo bootstrap, not permission-complete.
 - `X-Trace-Id` must be a UUID / OTEL trace (`TraceIds.resolve`). The IT uses UUIDv7-shaped ids.
 - `nexus.notify.outbox=auto` uses M0-09 `JdbcOutboxStore`. In-memory `RecordingOutboxPort` is only for `outbox=record`.
 - `nexus.audit.persistence=jdbc` writes `platform.audit_record`. `append` joins the ambient Spring TX; the chain lock is held until that TX ends (concurrent appends serialize on one meta row). `appendNewTransaction` remains a private commit.

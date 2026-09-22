@@ -10,7 +10,12 @@
         <router-link class="ghost" to="/p3/ledgers">返回列表</router-link>
       </div>
     </div>
-    <NxSourceBanner body="记录走 GET /api/v1/p3/ledgers/{id}/records。新增字段走 POST .../fields。G18 业务行由已发布表单的 submit-start 写入。" />
+    <NxSourceBanner body="记录走 GET /api/v1/p3/ledgers/{id}/records。新增字段走 POST .../fields。G18 业务行由已发布表单的 submit-start 写入。list/detail 与 /permission/check 同源 PermissionEngine。" />
+    <div v-if="readDecision" class="nx-card" style="margin-bottom:16px;" data-testid="g2-ledger-decision">
+      <h3>ledger/read 判定</h3>
+      <p class="nx-muted">POST /api/v1/permission/check — 与记录 list/detail 同一引擎，不是前端拼的权限码。</p>
+      <p class="nx-code">{{ JSON.stringify(readDecision) }}</p>
+    </div>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <div class="nx-tabs">
       <button :class="{ active: tab === 'records' }" type="button" @click="tab = 'records'">记录</button>
@@ -86,6 +91,7 @@ import { useRoute } from "vue-router";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
+import { perm } from "../../api/client";
 
 const route = useRoute();
 const ledger = ref(null);
@@ -95,6 +101,7 @@ const records = ref([]);
 const selected = ref(null);
 const tab = ref("records");
 const error = ref("");
+const readDecision = ref(null);
 
 const palette = [
   { type: "text", label: "文本 → TEXT" },
@@ -140,6 +147,11 @@ async function reload() {
   system.value = fieldBody.system || [];
   const recBody = await p3.listRecords(id);
   records.value = recBody.items || [];
+  try {
+    readDecision.value = await perm.check({ resource: "ledger", action: "read" });
+  } catch (err) {
+    readDecision.value = err.body || { allowed: false, message: err.message };
+  }
 }
 
 onMounted(async () => {

@@ -29,6 +29,7 @@ import one.nexus.p3.domain.P3Exception;
 import one.nexus.p3.domain.SystemColumns;
 import one.nexus.p3.port.DataScopeHook;
 import one.nexus.p3.port.DataScopeHook.ScopedRead;
+import one.nexus.permission.engine.Decision;
 import one.nexus.permission.scope.BoundSql;
 import one.nexus.permission.scope.ScopedQuery;
 
@@ -49,6 +50,7 @@ public class GuardedLedgerStore {
     }
 
     public UUID insert(LedgerDefinition ledger, List<LedgerField> fields, Map<String, Object> values) {
+        requireWrite(values);
         AccessContext context = AccessContextHolder.current();
         Map<String, Object> row = new LinkedHashMap<>();
         UUID id = values.get(SystemColumns.ID) instanceof UUID uuid
@@ -74,6 +76,7 @@ public class GuardedLedgerStore {
 
     public Map<String, Object> update(
             LedgerDefinition ledger, List<LedgerField> fields, UUID id, Map<String, Object> values, Long expectedVersion) {
+        requireWrite(values);
         AccessContext context = AccessContextHolder.current();
         Map<String, Object> patch = new LinkedHashMap<>();
         putBusiness(patch, fields, values, false);
@@ -123,6 +126,7 @@ public class GuardedLedgerStore {
     }
 
     public void softDelete(LedgerDefinition ledger, UUID id) {
+        requireWrite(Map.of());
         AccessContext context = AccessContextHolder.current();
         Map<String, Object> values = new LinkedHashMap<>();
         values.put(SystemColumns.DELETED_AT, Timestamp.from(Instant.now()));
@@ -225,6 +229,20 @@ public class GuardedLedgerStore {
             throw P3Exception.missingTenant();
         }
         return row;
+    }
+
+    private void requireWrite(Map<String, Object> values) {
+        Decision decision = dataScope.require(requireTenant(), "ledger", "write");
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+        List<String> names = new ArrayList<>();
+        for (String key : values.keySet()) {
+            if (!SystemColumns.ALL.contains(key)) {
+                names.add(key);
+            }
+        }
+        dataScope.requireWritableFields(decision, names);
     }
 
     private static String requireTenant() {

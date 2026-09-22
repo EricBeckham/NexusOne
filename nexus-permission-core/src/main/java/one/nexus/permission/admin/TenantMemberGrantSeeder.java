@@ -30,6 +30,11 @@ import org.springframework.stereotype.Component;
  * <p>Must run after a server-issued TenantContext is bound — including the
  * browser permission shell ({@code /api/v1/permission/snapshot|check}), not
  * only P3 ledger hooks. Call {@link #ensure()} from those filters.
+ *
+ * <p>This seed is <strong>not</strong> G2-complete: every cell is
+ * {@code DataScopeKind.ALL} with an empty field map. Use
+ * {@link RoleMatrixCatalog} / {@code POST /api/v1/permission/matrix/example}
+ * for SELF / DEPT_AND_CHILDREN + field policy.
  */
 @Component
 @ConditionalOnBean(PermissionModule.class)

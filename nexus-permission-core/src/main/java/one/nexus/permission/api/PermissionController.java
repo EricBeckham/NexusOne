@@ -4,11 +4,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import one.nexus.permission.PermissionModule;
+import one.nexus.permission.admin.RoleMatrixService;
 import one.nexus.permission.engine.DataScopeKind;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.FieldRule;
 import one.nexus.permission.engine.Mask;
 import one.nexus.permission.persist.PolicyRepository;
+import one.nexus.permission.surface.SurfaceGuard;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,11 +34,32 @@ public class PermissionController {
     @PostMapping("/check")
     public Map<String, Object> check(@RequestBody CheckBody body) {
         Decision decision = module.service().decide(body.resource(), body.action());
-        return Map.of(
-                "allowed", decision.allowed(),
-                "reason", decision.reason(),
-                "policy_version", decision.policyVersion() == null ? 0 : decision.policyVersion(),
-                "fields", decision.fields());
+        return SurfaceGuard.asApi(decision);
+    }
+
+    @GetMapping("/roles")
+    public List<RoleMatrixService.RoleView> roles() {
+        return module.matrix().roles().stream().map(RoleMatrixService.RoleView::from).toList();
+    }
+
+    @GetMapping("/assignments")
+    public List<RoleMatrixService.AssignmentView> assignments() {
+        return module.matrix().assignments().stream().map(RoleMatrixService.AssignmentView::from).toList();
+    }
+
+    @GetMapping("/grants")
+    public List<RoleMatrixService.CellView> grants() {
+        return module.matrix().grants();
+    }
+
+    @GetMapping("/matrix")
+    public RoleMatrixService.MatrixView matrix() {
+        return module.matrix().view();
+    }
+
+    @PostMapping("/matrix/example")
+    public RoleMatrixService.MatrixView installExample() {
+        return module.matrix().installExample();
     }
 
     @GetMapping("/snapshot")
