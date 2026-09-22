@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import one.nexus.audit.AuditPort;
 import one.nexus.audit.ChainedAuditEvent;
+import one.nexus.audit.HashChainVerification;
 import one.nexus.event.OutboxPort;
 import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.isolation.IsolationKernel;
@@ -159,6 +160,8 @@ class G18BusinessPathIT {
                 TRACE);
         assertTrue(auditRows != null && auditRows >= 3,
                 "expected platform.audit_record rows for the path, got " + auditRows + " events=" + decided);
+        HashChainVerification chain = auditPort.verifyChain();
+        assertTrue(chain.intact(), chain.failure());
         assertNotifyAcceptsIssuedContext(reviewer.session);
         assertNotifyAcceptsIssuedContext(admin);
 
@@ -194,6 +197,9 @@ class G18BusinessPathIT {
         String physicalTable = prepared.path("physical_table").asText();
         String businessTrace = "0199a1c0-0000-7000-8000-00000000a019";
 
+        Long chainHeadBefore = jdbc.queryForObject(
+                "select next_index from platform.audit_chain_meta where id = 1", Long.class);
+
         P3IsolationSupport.bind(isolationKernel, tenant, "g18b", person.id().toString(), businessTrace);
         identity.sessions().loadContext(UUID.fromString(admin.contextId), "g18-rollback");
         try {
@@ -223,6 +229,15 @@ class G18BusinessPathIT {
                 "select count(*) from platform.exec_outbox where trace_id = ?",
                 Integer.class,
                 businessTrace));
+        assertEquals(0, jdbc.queryForObject(
+                "select count(*) from platform.audit_record where trace_id = ?",
+                Integer.class,
+                businessTrace),
+                "hash-chain append must roll back with the business TX");
+        assertEquals(chainHeadBefore, jdbc.queryForObject(
+                "select next_index from platform.audit_chain_meta where id = 1", Long.class));
+        HashChainVerification afterRollback = auditPort.verifyChain();
+        assertTrue(afterRollback.intact(), afterRollback.failure());
     }
 
     private void assertIamLedgerWriteAndQuery(Session session, UUID ledgerId) throws Exception {

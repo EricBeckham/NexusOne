@@ -65,6 +65,10 @@ Flyway `V501__audit_hash_chain.sql`（V500 已由 M0-09 占用）。P1 的 `plat
 
 `nexus.audit.persistence=jdbc`（product default so `platform.audit_record` is written）or `memory`. Override with `NEXUS_AUDIT_PERSISTENCE`.
 
+`JdbcHashChainedAuditPort.append` joins an ambient Spring transaction through `DataSourceUtils` on the shared DataSource (same pattern as M0-09 `JdbcOutboxStore`). The chain-head `SELECT ... FOR UPDATE`, the `audit_record` INSERT, and the `audit_chain_meta` head update do **not** commit on a private connection. A business rollback therefore rolls the hash-chain writes back with the business row. Trade-off: the single-row chain lock is held until that transaction ends, so concurrent `append` callers serialize. That keeps `chain_index` gapless and append-only; a shorter private commit would re-introduce chain/business divergence. `appendNewTransaction` still commits privately so guard-reject can survive rollback, and must not be called from a TX that already holds the lock via `append`.
+
+G18 submit/approve/withdraw use `append`. This does **not** close product G18.
+
 ### 3. Trace 关联（兼容 M0-01）
 
 `TraceIds` 增加 `current()`、`logFields()`、`correlationOrTrace()`，仍使用 `X-Trace-Id`、MDC `traceId`/`trace_id`、W3C `traceparent`。
@@ -88,8 +92,9 @@ Runbook：
 
 | 项 | 原因 |
 |---|---|
-| 业务路径端到端哈希链（登录→权限→管理→数据→审批→守卫拒绝落在同一条真实请求上） | 依赖 M0-04/05/06/08 与隔离内核把事件打进 `AuditPort`。当前只有契约、采集形状、内存/JDBC 测试双与按 trace 关联 API |
-| 全路径哈希校验作为产品门禁 | 同上；内存与 JDBC 测试可验证**已写入**的链，不能代表真实业务闭环 |
+| 业务路径端到端哈希链（登录→权限→管理→数据→审批→守卫拒绝落在同一条真实请求上） | G18 submit/approve 已把 `DATA`/`APPROVAL` 打进 `AuditPort.append` 且与业务行同 TX。登录/权限/管理/守卫拒绝仍未全部接线。**不**声称产品 G18 关闭 |
+| 并发 `append` 把链锁持有到业务 TX 结束 | 与同 TX 回滚原子性的取舍；未改成更短的私有提交 |
+| 全路径哈希校验作为产品门禁 | 内存与 JDBC 测试可验证**已写入**的链，不能代表真实业务闭环 |
 | P1 `GET /tenants/{id}/audit-events` 切换到 M0-11 | P1 staging 表仍在；切换会改 M0-03 行为，留给接线 PR |
 | 把 `IsolationAuditSink` 接到 `AuditPort` | `isolation-kernel` 现为独立 reactor；本包提供 `GuardRejectCapture` 而不依赖该模块 |
 | G4 审计覆盖每个用户 / 热 90 天 + 归档 365 天 | 无业务写入与归档 Job |
@@ -106,6 +111,6 @@ Runbook：
 mvn -pl nexus-common,nexus-crypto-core,nexus-audit-core,nexus-bootstrap -am test
 ```
 
-JDBC 审计测试默认库 `nexus_m0_11_test`（用户 `ubuntu`，peer）。没有 PostgreSQL 15 时跳过；连上非 15.x 则失败。
+JDBC 审计测试默认库 `nexus_m0_11_test`（用户 `ubuntu`，peer）。没有 PostgreSQL 15 时 `JdbcAuditChainTest` 跳过；连上非 15.x 则失败。`JdbcAuditChainTransactionTest` 使用 Zonky embedded PostgreSQL 15，不依赖本机监听。
 
 本机记录见 [m0-11-EVIDENCE.md](./m0-11-EVIDENCE.md)。

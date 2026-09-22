@@ -38,7 +38,7 @@ mvn -pl nexus-common,nexus-crypto-core,nexus-audit-core,nexus-bootstrap -am test
 
 `nexus-crypto-core` includes `FixedVectorTest` (7) against published SHA-256 / SM3 / HMAC-SHA256 RFC 4231 / NIST AES-256-GCM / GM/T 0002 SM4-ECB / GM/T 0003 SM2 sample keys, plus BC 1.85.2 + Java 21 frozen SM4-GCM and HMAC-SM3.
 
-`nexus-audit-core` includes `JdbcAuditChainTest` against PostgreSQL 15.19 (`platform.audit_record` append + `verifyChain()`).
+`nexus-audit-core` includes `JdbcAuditChainTest` against PostgreSQL 15.19 (`platform.audit_record` append + `verifyChain()`) and `JdbcAuditChainTransactionTest` on Zonky PG 15 (`append` joins Spring TX / rolls back with the chain head; `appendNewTransaction` still survives).
 
 Bootstrap `NexusOnePostgresTest` asserts Flyway applied **≥ 8** versioned migrations including **V500** (M0-09) and **V501** (M0-11). After rebase onto #51–#53 a clean `nexusone` applied **9** SQL versions (V001–V003, V100–V101, V200, V300, V500, V501). `GET /api/v1/meta/runtime` returns `crypto_suite":"INTERNATIONAL"` without key material.
 
