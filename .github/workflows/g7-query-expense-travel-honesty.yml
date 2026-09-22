@@ -1,0 +1,89 @@
+name: g7-query-expense-travel-honesty
+
+# Honesty gate for the G7 expense/travel list/detail/todo query leftover.
+# Does not redo #103/#113/#140/#159/#175. Not product G7 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g7-query-expense-travel-honesty.sh"
+      - "scripts/g7-query-expense-travel-honesty/**"
+      - ".github/workflows/g7-query-expense-travel-honesty.yml"
+      - "docs/g7-query-expense-travel-honesty.md"
+      - "docs/engineering/g7-query-expense-travel-honesty-EVIDENCE.md"
+      - "nexus-p3-studio/src/main/java/one/nexus/p3/path/G7QueryExpenseTravelHonesty.java"
+      - "nexus-p3-studio/src/test/java/one/nexus/p3/path/G7QueryExpenseTravelHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/g7-query-expense-travel-honesty.sh"
+      - "scripts/g7-query-expense-travel-honesty/**"
+      - ".github/workflows/g7-query-expense-travel-honesty.yml"
+      - "docs/g7-query-expense-travel-honesty.md"
+      - "docs/engineering/g7-query-expense-travel-honesty-EVIDENCE.md"
+      - "nexus-p3-studio/src/main/java/one/nexus/p3/path/G7QueryExpenseTravelHonesty.java"
+      - "nexus-p3-studio/src/test/java/one/nexus/p3/path/G7QueryExpenseTravelHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g7-query-expense-travel-honesty.sh --verify-report scripts/g7-query-expense-travel-honesty/fixtures/honest-skip.env
+      - name: Fake live PASS without JAR/IdP is rejected
+        run: |
+          set +e
+          ./scripts/g7-query-expense-travel-honesty.sh --verify-report \
+            scripts/g7-query-expense-travel-honesty/fixtures/fake-live-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live PASS without live_jar=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live PASS rejected"
+      - name: Fake product G7 close is rejected
+        run: |
+          set +e
+          ./scripts/g7-query-expense-travel-honesty.sh --verify-report \
+            scripts/g7-query-expense-travel-honesty/fixtures/fake-g7-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g7_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G7 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest live JAR/IdP SKIP
+        run: |
+          chmod +x ./scripts/g7-query-expense-travel-honesty.sh
+          ./scripts/g7-query-expense-travel-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g7-query-expense-travel-honesty"
+          ./scripts/g7-query-expense-travel-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^query_surface=PASS$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^expense_query_surface=PASS$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^travel_query_surface=PASS$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^live_jar_idp_query=SKIP$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^query_walk_observed=false$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^g7_close=NOT_CLAIMED$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^g7_140_redone=false$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^g7_175_redone=false$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^withdraw_paths_redone=false$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g7-query-expense-travel-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g7-query-expense-travel-honesty
+          path: ${{ runner.temp }}/g7-query-expense-travel-honesty
