@@ -1,0 +1,14 @@
+{
+  "recorded_at": "2026-09-22T19:00:00Z",
+  "result": "PASS",
+  "reason": "forged live walk without JAR or IdP",
+  "surface": "POST /api/v1/p3/path/instances/{id}/withdraw",
+  "types_walked": ["leave", "expense", "travel"],
+  "live_jar": false,
+  "issued_context": false,
+  "chrome_present": false,
+  "idp": "stub",
+  "g7_product_close": false,
+  "g18": "stays closed",
+  "audit_port": "untouched"
+}

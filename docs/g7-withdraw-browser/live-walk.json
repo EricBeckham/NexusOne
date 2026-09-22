@@ -1,0 +1,22 @@
+{
+  "recorded_at": "2026-09-22T19:00:00Z",
+  "result": "SKIP",
+  "reason": "SKIP: live JAR not healthy (NEXUS_BASE_URL unset or not healthy)",
+  "surface": "POST /api/v1/p3/path/instances/{id}/withdraw",
+  "types": ["leave", "expense", "travel"],
+  "live_jar": false,
+  "jar_health": "SKIP",
+  "jar_reason": "NEXUS_BASE_URL unset or not healthy",
+  "issued_context": false,
+  "chrome_present": false,
+  "idp": "absent",
+  "g7_product_close": false,
+  "g18": "stays closed",
+  "audit_port": "untouched",
+  "http_already_proven": [
+    "docs/g7-withdraw-evidence.md",
+    "docs/g7-withdraw-expense-travel.md"
+  ],
+  "ui_reachability": "web/src/api/p3-withdraw-http-reachability.test.js",
+  "control": "data-testid=todo-withdraw"
+}

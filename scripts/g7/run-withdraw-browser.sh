@@ -42,8 +42,10 @@ if [[ ! -d "$G7_DIR/node_modules/playwright-core" ]]; then
   (cd "$G7_DIR" && npm install)
 fi
 
-echo "== Vitest Vue todo-withdraw click (happy-dom)"
-(cd "$WEB_DIR" && npm test -- src/views/studio/todo-withdraw.browser.test.js)
+echo "== Vitest Vue todo-withdraw + HTTP reachability (happy-dom)"
+(cd "$WEB_DIR" && npm run test:g7-withdraw)
+echo "== assert leftover rows + HTTP withdraw wiring"
+(cd "$WEB_DIR" && npm run assert:g7-withdraw-browser)
 
 echo "== Vite production preview + stub login API"
 (cd "$WEB_DIR" && npm run build)
@@ -83,6 +85,19 @@ node "$G7_DIR/withdraw-leave-browser.mjs" \
   --base "http://127.0.0.1:${WEB_PORT}" \
   --stub "http://${STUB_HOST}:${STUB_PORT}" \
   --json-out "${JSON_OUT}"
+
+echo "== live JAR + IdP browser (honest SKIP on this VM unless topology is present)"
+"$G7_DIR/run-withdraw-live-browser.sh"
+echo "== honesty fixtures (must reject fakes)"
+node "$G7_DIR/verify-withdraw-live-report.mjs" "$G7_DIR/fixtures/honest-skip.json"
+if node "$G7_DIR/verify-withdraw-live-report.mjs" "$G7_DIR/fixtures/fake-live-pass.json"; then
+  echo "FAIL: fake-live-pass.json must be rejected"
+  exit 1
+fi
+if node "$G7_DIR/verify-withdraw-live-report.mjs" "$G7_DIR/fixtures/fake-g7-close.json"; then
+  echo "FAIL: fake-g7-close.json must be rejected"
+  exit 1
+fi
 
 echo
 echo "See docs/g7-withdraw-browser.md"
