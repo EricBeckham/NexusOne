@@ -1,6 +1,6 @@
 # Linux / ARM Profile leftover: TARGET-ARM-01 / supply-chain-evidence honesty — evidence
 
-Recorded on this branch after rebase onto `origin/main` `8e5cdc3` (Merge #152). Operator: cloud agent. Live output: `.local/linux-arm-profile-honesty/` (gitignored). Committed copy: [`linux-arm-profile/agent-vm-x86_64-honesty.txt`](./linux-arm-profile/agent-vm-x86_64-honesty.txt) (filled after the first honesty run on this branch).
+Recorded on this branch after rebase onto `origin/main` `7f97ec1` (Merge #151). Operator: cloud agent. Live output: `.local/linux-arm-profile-honesty/` (gitignored). Committed copy: [`linux-arm-profile/agent-vm-x86_64-honesty.txt`](./linux-arm-profile/agent-vm-x86_64-honesty.txt) (filled after the honesty run on this branch).
 
 **Product target Linux/ARM Profile is NOT accepted.** This leftover does **not** redo #105 collect/verify or #127 lifecycle. It does **not** rewrite P0-10 / M0-01～M0-12. It does **not** change `AuditPort`. **G18 stays closed.**
 
@@ -45,10 +45,10 @@ Filled after the honesty script on this VM. Do **not** treat an x86_64 leftover 
 | Check | Result | Notes |
 |---|---|---|
 | `TARGET-ARM-01` install / upgrade / rollback / offline / crypto | **not-tested** | `poc/p0-10/deployment-matrix.csv` |
-| `supply-chain-evidence.csv` | **not-collected** | every component row |
+| `supply-chain-evidence.csv` | **not-collected** | 11 component rows |
 | Committed #105 aarch64 build/test | **SKIP / SKIP** | `docs/engineering/linux-arm-profile/agent-vm-x86_64.txt`; script not re-run |
 | Committed #127 aarch64 install/upgrade/rollback/offline/SBOM | **SKIP** | `docs/engineering/linux-arm-profile/agent-vm-x86_64-lifecycle.txt`; script not re-run |
-| Local x86 lifecycle note | this-host only | quote of the committed #127 artifact; **not** an aarch64 PASS |
+| Local x86 lifecycle note | this-host only | `#127` `x86_64_install=pending-first-run`; **not** an aarch64 PASS |
 | Product Profile acceptance | **NOT_CLAIMED** | honesty gate enforces `NOT_CLAIMED` |
 | #105 / #127 re-run | **false** | leftover reads committed artifacts only |
 | G18 / AuditPort / P0-M0 | unchanged | not reopened / not rewritten |
