@@ -56,4 +56,4 @@ This is **not** a product-wide “zero leak” close. Nested subquery-in-subquer
 | `P3RequestContext` | Unchanged. New AST nodes use `AccessContextHolder` only. |
 | G4 same-request chain | Unchanged. Guard-reject still uses `appendNewTransaction` only. |
 | GaussDB / live Redis / live MinIO | Unchanged. |
-| Platform-wide “every API” | Direct JDBC / raw SQL outside `QueryCompiler` is still a caller-wiring gap. |
+| Platform-wide “every API” | New raw JDBC / tenant-table SQL is rejected by the CI gate ([g1-querycompiler-bypass-ci.md](./g1-querycompiler-bypass-ci.md)). Existing allowlisted platform / catalog adapters stay. |
