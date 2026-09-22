@@ -1,0 +1,100 @@
+name: g7-query-withdraw-leftover-honesty
+
+# Honesty leftover remainder beyond #239/#212/#192.
+# Does not start the product JAR, IdP, or Playwright.
+# Does not redo #103/#113/#140/#159/#175/#192/#212/#239.
+# Not product G7 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g7-query-withdraw-leftover-honesty.sh"
+      - "scripts/g7-query-withdraw-leftover-honesty/**"
+      - ".github/workflows/g7-query-withdraw-leftover-honesty.yml"
+      - "docs/g7-query-withdraw-leftover-honesty.md"
+      - "docs/engineering/g7-query-withdraw-leftover-honesty-EVIDENCE.md"
+      - "docs/README.md"
+  pull_request:
+    paths:
+      - "scripts/g7-query-withdraw-leftover-honesty.sh"
+      - "scripts/g7-query-withdraw-leftover-honesty/**"
+      - ".github/workflows/g7-query-withdraw-leftover-honesty.yml"
+      - "docs/g7-query-withdraw-leftover-honesty.md"
+      - "docs/engineering/g7-query-withdraw-leftover-honesty-EVIDENCE.md"
+      - "docs/README.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g7-query-withdraw-leftover-honesty.sh --verify-report scripts/g7-query-withdraw-leftover-honesty/fixtures/honest-skip.env
+      - name: Fake live PASS without JAR/IdP is rejected
+        run: ./scripts/g7-query-withdraw-leftover-honesty.sh --verify-report \
+          scripts/g7-query-withdraw-leftover-honesty/fixtures/fake-live-pass.env fail
+      - name: Fake live browser query PASS is rejected
+        run: ./scripts/g7-query-withdraw-leftover-honesty.sh --verify-report \
+          scripts/g7-query-withdraw-leftover-honesty/fixtures/fake-browser-pass.env fail
+      - name: Fake live withdraw PASS is rejected
+        run: ./scripts/g7-query-withdraw-leftover-honesty.sh --verify-report \
+          scripts/g7-query-withdraw-leftover-honesty/fixtures/fake-withdraw-pass.env fail
+      - name: Fake product G7 close is rejected
+        run: ./scripts/g7-query-withdraw-leftover-honesty.sh --verify-report \
+          scripts/g7-query-withdraw-leftover-honesty/fixtures/fake-g7-close.env fail
+      - name: Fake #192/#212/#239 redo is rejected
+        run: ./scripts/g7-query-withdraw-leftover-honesty.sh --verify-report \
+          scripts/g7-query-withdraw-leftover-honesty/fixtures/fake-redone.env fail
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest query PASS / live JAR/IdP SKIP
+        run: |
+          chmod +x ./scripts/g7-query-withdraw-leftover-honesty.sh
+          ./scripts/g7-query-withdraw-leftover-honesty.sh \
+            --out "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty"
+          ./scripts/g7-query-withdraw-leftover-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_239_cells_honest=PASS$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_239_honesty_gate=PASS$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_212_cells_honest=PASS$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_192_cells_honest=PASS$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^query_surface=PASS$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^live_jar_idp_query=SKIP$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^live_browser_query_click=SKIP$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^live_jar_idp_browser_withdraw=SKIP$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^query_walk_observed=false$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^g7_close=NOT_CLAIMED$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 'g7-query-expense-travel-honesty-remainder' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 'g7-withdraw-browser-evidence-honesty' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 'g15-h5-pkce-miniprogram-remainder-honesty' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 'g2-h5-every-page-form-write-report-remainder-honesty' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 'linux-arm-profile-remainder-honesty' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 'g4-hot-purge-staging-pkce-remainder-honesty' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 'g10-file-object-reconcile-remainder-honesty' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E 's0-secret-rotate-getenv-leftover-honesty' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_239_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_240_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_254_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_236_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_251_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_243_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_241_kept=true$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_192_redone=false$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_212_redone=false$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^leftover_239_redone=false$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g7-query-withdraw-leftover-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g7-query-withdraw-leftover-honesty
+          path: ${{ runner.temp }}/g7-query-withdraw-leftover-honesty
