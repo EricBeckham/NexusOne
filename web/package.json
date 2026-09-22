@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-    "description": "NexusOne Vue 3 shell: desktop M0-12 plus G15 H5 mobile login-redirect / files / routing / host-message / F010 runtime / simulated 小程序 web-view / APP WebView web-harness / WeChat-DingTalk production-host stub / native-bridge stub / WeChat-DingTalk production-gap honesty leftover / native-bridge honesty leftover / WeChat-DingTalk prod-gap + native-bridge honesty leftover.",
+    "description": "NexusOne Vue 3 shell: desktop M0-12 plus G15 H5 mobile login-redirect / files / routing / host-message / F010 runtime / simulated 小程序 web-view / APP WebView web-harness / WeChat-DingTalk production-host stub / native-bridge stub / WeChat-DingTalk production-gap honesty leftover / native-bridge honesty leftover / WeChat-DingTalk prod-gap + native-bridge honesty leftover / WeChat-DingTalk prod-gap + native-bridge remainder leftover.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -37,6 +37,7 @@
     "assert:h5-wx-dt-prod-gap": "node scripts/assert-h5-wx-dt-prod-gap.mjs",
     "assert:h5-native-bridge-honesty": "node scripts/assert-h5-native-bridge-honesty.mjs",
     "assert:h5-wx-dt-native-bridge-honesty": "node scripts/assert-h5-wx-dt-native-bridge-honesty.mjs",
+    "assert:h5-wx-dt-native-bridge-remainder": "node scripts/assert-h5-wx-dt-native-bridge-remainder.mjs",
     "assert:h5-pkce": "node scripts/assert-h5-pkce.mjs",
     "assert:g4-spa-verifier": "node scripts/assert-g4-spa-verifier.mjs",
     "assert:g2-report-surface": "node scripts/assert-g2-report-surface.mjs",
