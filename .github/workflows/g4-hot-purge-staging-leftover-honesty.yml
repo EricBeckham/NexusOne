@@ -1,0 +1,150 @@
+name: g4-hot-purge-staging-leftover-honesty
+
+# Honesty gate for the G4 90-day hot-purge / P1 staging remainder leftover
+# beyond #183 / #190. Does not start PostgreSQL, the product JAR, Quartz, or MinIO.
+# Does not redo #123/#156/#183/#190/#222/#223/#225/#221/#228/#226/#229.
+# Does not DROP platform.audit_record. Does not switch GET off staging.
+# Not product G4 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g4-hot-purge-staging-leftover-honesty.sh"
+      - "scripts/g4-hot-purge-staging-leftover-honesty/**"
+      - ".github/workflows/g4-hot-purge-staging-leftover-honesty.yml"
+      - "docs/g4-hot-purge-staging-leftover-honesty.md"
+      - "docs/engineering/g4-hot-purge-staging-leftover-honesty-EVIDENCE.md"
+  pull_request:
+    paths:
+      - "scripts/g4-hot-purge-staging-leftover-honesty.sh"
+      - "scripts/g4-hot-purge-staging-leftover-honesty/**"
+      - ".github/workflows/g4-hot-purge-staging-leftover-honesty.yml"
+      - "docs/g4-hot-purge-staging-leftover-honesty.md"
+      - "docs/engineering/g4-hot-purge-staging-leftover-honesty-EVIDENCE.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g4-hot-purge-staging-leftover-honesty.sh --verify-report scripts/g4-hot-purge-staging-leftover-honesty/fixtures/honest-skip.env
+      - name: Fake live purge PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g4-hot-purge-staging-leftover-honesty.sh --verify-report \
+            scripts/g4-hot-purge-staging-leftover-honesty/fixtures/fake-live-purge-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_purge_window=PASS without live_purge_observed=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live purge PASS rejected"
+      - name: Fake live staging PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g4-hot-purge-staging-leftover-honesty.sh --verify-report \
+            scripts/g4-hot-purge-staging-leftover-honesty/fixtures/fake-live-staging-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_staging_5432=PASS without observed query/export to fail"
+            exit 1
+          fi
+          echo "PASS: fake live staging PASS rejected"
+      - name: Fake product G4 close is rejected
+        run: |
+          set +e
+          ./scripts/g4-hot-purge-staging-leftover-honesty.sh --verify-report \
+            scripts/g4-hot-purge-staging-leftover-honesty/fixtures/fake-g4-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g4_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G4 close rejected"
+      - name: Switching GET off staging is rejected
+        run: |
+          set +e
+          ./scripts/g4-hot-purge-staging-leftover-honesty.sh --verify-report \
+            scripts/g4-hot-purge-staging-leftover-honesty/fixtures/fake-switched-off-staging.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake switched_off_staging=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake switched_off_staging rejected"
+      - name: Fake #123/#156/#183/#190/#222/#223/#225/#221/#228/#226/#229 redo is rejected
+        run: |
+          set +e
+          ./scripts/g4-hot-purge-staging-leftover-honesty.sh --verify-report \
+            scripts/g4-hot-purge-staging-leftover-honesty/fixtures/fake-redo.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake redo flags to fail"
+            exit 1
+          fi
+          echo "PASS: fake redo rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest window/staging PASS / live JAR context SKIP
+        run: |
+          chmod +x ./scripts/g4-hot-purge-staging-leftover-honesty.sh
+          ./scripts/g4-hot-purge-staging-leftover-honesty.sh \
+            --out "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty"
+          ./scripts/g4-hot-purge-staging-leftover-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^leftover_183_cells_honest=PASS$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^leftover_190_cells_honest=PASS$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^window_policy=PASS$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^staging_like_path=PASS$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^hot_table_dropped=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^get_still_on_staging=true$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^switched_off_staging=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^live_purge_window=SKIP$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^live_staging_5432=SKIP$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^live_jar_context_walk=SKIP$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^g4_close=NOT_CLAIMED$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g4-hot-purge-90d-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g4-p1-staging-audit-events-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g4-pkce-spa-verifier-remainder-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 's0-secret-rotate-getenv-remainder-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g6-recovery-port-dry-run-remainder-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g2-report-physical-dump-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g10-leftover-honesty-remainder' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g3-outbox-consume-idempotent-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E 'g9-live-multi-jvm-replica-remainder-honesty' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^leftover_228_kept=true$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^leftover_226_kept=true$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^leftover_229_kept=true$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_123=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_156=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_183=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_190=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_222=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_223=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_225=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_221=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_228=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_226=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^redo_229=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g4-hot-purge-staging-leftover-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g4-hot-purge-staging-leftover-honesty
+          path: ${{ runner.temp }}/g4-hot-purge-staging-leftover-honesty
