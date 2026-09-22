@@ -73,4 +73,42 @@ describe("G4 export wizard leftover", () => {
     expect(completeExportWizard).toHaveBeenCalledWith({ wizard_id: "wiz-1" });
     expect(wrapper.get("[data-testid=g4-export-wizard-complete-result]").text()).toContain("complete");
   });
+
+  it("HTTP begin deny surfaces P2.PERM.0003 without complete", async () => {
+    const denied = Object.assign(new Error("no_grant"), {
+      status: 403,
+      code: "P2.PERM.0003",
+      body: { code: "P2.PERM.0003", reason: "no_grant" },
+    });
+    beginExportWizard.mockRejectedValue(denied);
+    const wrapper = await mountWizard();
+    await flushPromises();
+    await wrapper.get("[data-testid=g4-export-wizard-begin]").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid=g4-export-wizard-error]").text()).toContain("P2.PERM.0003");
+    expect(completeExportWizard).not.toHaveBeenCalled();
+  });
+
+  it("HTTP complete deny after begin surfaces P2.PERM.0002", async () => {
+    beginExportWizard.mockResolvedValue({
+      wizard_id: "wiz-deny",
+      step: "begin",
+      completed: false,
+      decision: { allowed: true, engine: "PermissionEngine" },
+    });
+    const denied = Object.assign(new Error("explicit_deny"), {
+      status: 403,
+      code: "P2.PERM.0002",
+      body: { code: "P2.PERM.0002", reason: "explicit_deny" },
+    });
+    completeExportWizard.mockRejectedValue(denied);
+    const wrapper = await mountWizard();
+    await flushPromises();
+    await wrapper.get("[data-testid=g4-export-wizard-begin]").trigger("click");
+    await flushPromises();
+    await wrapper.get("[data-testid=g4-export-wizard-complete]").trigger("click");
+    await flushPromises();
+    expect(completeExportWizard).toHaveBeenCalledWith({ wizard_id: "wiz-deny" });
+    expect(wrapper.get("[data-testid=g4-export-wizard-error]").text()).toContain("P2.PERM.0002");
+  });
 });

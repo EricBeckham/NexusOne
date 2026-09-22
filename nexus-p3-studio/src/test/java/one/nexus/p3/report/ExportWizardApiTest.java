@@ -78,6 +78,7 @@ class ExportWizardApiTest {
     private static final String BEGIN_TRACE = "0199a1c0-0000-7000-8000-00000000c255";
     private static final String DENY_TRACE = "0199a1c0-0000-7000-8000-00000000c256";
     private static final String DECISION_TRACE = "0199a1c0-0000-7000-8000-00000000c257";
+    private static final String COMPLETE_DENY_TRACE = "0199a1c0-0000-7000-8000-00000000c267";
 
     @Autowired
     MockMvc mvc;
@@ -166,6 +167,41 @@ class ExportWizardApiTest {
                 AuditCaptures.EXPORT_BEGUN.equals(event.event().eventType())), () -> "missing begin: " + found);
         org.junit.jupiter.api.Assertions.assertTrue(found.stream().anyMatch(event ->
                 AuditCaptures.EXPORT_COMPLETED.equals(event.event().eventType())), () -> "missing complete: " + found);
+        org.junit.jupiter.api.Assertions.assertTrue(audits.verifyChain().intact(), audits.verifyChain().failure());
+    }
+
+    @Test
+    void completeAfterBeginDenyLandsPairAndSkipsIsolatedExport() throws Exception {
+        permission.matrix().installExample();
+        roles.set(Set.of(RoleMatrixCatalog.DEPT_MANAGER));
+        bindAccess(TENANT.toString(), COMPLETE_DENY_TRACE);
+        TraceIds.putMdc(COMPLETE_DENY_TRACE);
+        MvcResult begun = mvc.perform(post("/api/v1/p3/exports/wizard/begin")
+                        .header("X-Trace-Id", COMPLETE_DENY_TRACE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"payload\":\"{\\\"surface\\\":\\\"export.wizard\\\"}\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.step").value("begin"))
+                .andReturn();
+        String wizardId = extract(begun.getResponse().getContentAsString(), "wizard_id");
+        roles.set(Set.of(RoleMatrixCatalog.SELF_READER));
+        mvc.perform(post("/api/v1/p3/exports/wizard/complete")
+                        .header("X-Trace-Id", COMPLETE_DENY_TRACE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"wizard_id\":\"" + wizardId + "\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("P2.PERM.0003"));
+        var found = audits.findByTraceId(COMPLETE_DENY_TRACE);
+        org.junit.jupiter.api.Assertions.assertTrue(found.stream().anyMatch(event ->
+                AuditCaptures.EXPORT_BEGUN.equals(event.event().eventType())), () -> "missing begin: " + found);
+        org.junit.jupiter.api.Assertions.assertTrue(found.stream().anyMatch(event ->
+                AuditCaptures.PERMISSION_DENIED.equals(event.event().eventType())), () -> "missing deny: " + found);
+        org.junit.jupiter.api.Assertions.assertTrue(found.stream().anyMatch(event ->
+                AuditCaptures.GUARD_REJECT.equals(event.event().eventType())), () -> "missing guard-reject: " + found);
+        org.junit.jupiter.api.Assertions.assertTrue(found.stream().noneMatch(event ->
+                AuditCaptures.EXPORT_COMPLETED.equals(event.event().eventType())), () -> "complete-deny wrote completed: " + found);
+        org.junit.jupiter.api.Assertions.assertTrue(found.stream().noneMatch(event ->
+                AuditCaptures.EXPORT_SUBMITTED.equals(event.event().eventType())), () -> "complete-deny wrote IsolatedExport: " + found);
         org.junit.jupiter.api.Assertions.assertTrue(audits.verifyChain().intact(), audits.verifyChain().failure());
     }
 

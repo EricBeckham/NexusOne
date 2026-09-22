@@ -47,6 +47,7 @@ This is **not** a product-wide G4 close.
 | Switching P1 `GET /tenants/{id}/audit-events` off staging | Honesty leftover is [g4-p1-staging-audit-events.md](./g4-p1-staging-audit-events.md). GET still reads staging. |
 | Isolation-only `tenant_only` skip | No P2 context still skips wizard audit writes (G2 leftover) |
 | Full product export UI / report BI / physical dump | Narrow HTTP begin/complete only |
+| Complete-deny after begin (revoke / `DENY`) | Follow-on leftover is [g4-export-wizard-deny.md](./g4-export-wizard-deny.md). #152 begin-deny is not that remainder. |
 | Browser click of `/p3/exports/wizard` | Honest SKIP unless Playwright + issued context are present |
 | G6 `RecoveryPort` / G17 classified | Not this package |
 

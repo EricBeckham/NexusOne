@@ -71,6 +71,15 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g4-pkce-browser-click",
   "g4-guard-deny-audit",
   "g4-export-wizard",
+  "g4-export-wizard-deny",
+  "g17-vue-otp-writeback",
+  "g17-gm-tls-nginx-handshake",
+  "g9-live-multi-jvm-replica",
+  "g6-recovery-port-honesty",
+  "g1-fieldpolicy-mask-second-auth",
+  "g2-h5-every-page",
+  "linux-arm-profile-honesty",
+  "g10-file-reconcile-honesty",
 ]);
 requireIncludes("doc", files.doc, [
   "p3.export.begun",
