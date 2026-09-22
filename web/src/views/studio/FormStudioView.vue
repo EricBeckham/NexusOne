@@ -89,7 +89,7 @@
         <div class="nx-row" style="margin-top:12px;">
           <button class="ghost" type="button" data-testid="form-validate" @click="onValidate">Validate</button>
           <button class="primary" type="button" data-testid="form-publish" @click="onPublish">Publish</button>
-          <button class="ghost" type="button" @click="onLog">查看 publish-log</button>
+          <button class="ghost" type="button" data-testid="form-publish-log" @click="onLog">查看 publish-log</button>
         </div>
       </div>
       <div class="nx-card">

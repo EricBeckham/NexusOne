@@ -306,6 +306,8 @@ Adds mid-publish cases that keep Running v1 + `snapshot_json` after a failed v2:
 
 See [docs/g5-mid-publish-failure.md](../docs/g5-mid-publish-failure.md).
 
+Browser failed-publish click / PublishHook honesty leftover (live browser/IdP/JAR SKIP; not a product G5 close; not a #94/#145 redo): [docs/g5-browser-failed-publish.md](../docs/g5-browser-failed-publish.md).
+
 Recorded **pending-this-run**. `./scripts/g5-form-publish-rollback.sh` → **pending**. No Docker.
 
 # G18 one real business path (backend)

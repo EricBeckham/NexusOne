@@ -4,7 +4,9 @@ S0+S1 remainder after the G5 forms package already on `main` (#70 validate/hook,
 
 This package only adds **mid-publish failure** evidence **beyond** the existing evolve `23502` abort: after Running v1 exists, a failed v2 publish keeps `form.running_version`, the RUNNING `form_version` row, and `snapshot_json` identical to the pre-failure pointer, and writes `form_publish_log.outcome=ROLLED_BACK`.
 
-**Not claimed:** product G5 close, browser failed-publish click, P4/app-package publish, form designer, G7/G2/G4/G1 remainder, G18 reopen.
+**Not claimed:** product G5 close, P4/app-package publish, form designer, G7/G2/G4/G1 remainder, G18 reopen.
+
+Browser failed-publish click / PublishHook honesty leftover is the sibling [g5-browser-failed-publish.md](./g5-browser-failed-publish.md) (live browser/IdP/JAR **SKIP**). Keep both leftover rows.
 
 Existing evolve-abort / validate-fail / CREATE-success evidence stays on [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). This leftover does not rewrite `FormService` / `SchemaService` / `AuditPort`.
 
@@ -57,7 +59,7 @@ Recorded **pending-this-run** on this agent VM. `./scripts/g5-form-publish-rollb
 | Still open | Why |
 |---|---|
 | Product G5 close | Forms failed-path IT only. App / P4 publish, designer, and browser fail-click are out of this package. |
-| Browser failed publish click | UI publish-log is read-only; no click that simulates CREATE/evolve abort |
+| Browser failed publish click | sibling leftover [g5-browser-failed-publish.md](./g5-browser-failed-publish.md); UI publish-log is read-only and is not a fail-click |
 | First-publish CREATE abort (no Running yet) | Leftover prefers the Running-pointer contract after v1 |
 | Live `127.0.0.1:5432` product JAR fail-publish | Evidence is Zonky / MockMvc |
 | G7 / G2 / G4 / G1 remainder | Parallel packages |
