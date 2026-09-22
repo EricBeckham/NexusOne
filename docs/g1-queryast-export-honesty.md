@@ -78,3 +78,5 @@ See [engineering/g1-queryast-export-honesty-EVIDENCE.md](./engineering/g1-querya
 - UI / H5 / report UI leftover BoundSql / COUNT / export FieldPolicy walk
 - Product-wide G1 close
 - Redo of #134 / #146 / #191 / #142 / #162 / #168 / #184
+
+FieldPolicy mask / second-auth remainder honesty beyond #184/#162/#215 is [g1-fieldpolicy-mask-second-auth-remainder-honesty.md](./g1-fieldpolicy-mask-second-auth-remainder-honesty.md). Keep this leftover row.
