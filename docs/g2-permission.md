@@ -48,4 +48,4 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Form studio remainder recorded after this slice (OpenJDK 21 / Maven 3.8.7 / Boot 4.1.1). See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.
+Recorded **2026-09-22T16:43:49Z** (OpenJDK 21.0.10 / Maven 3.8.7 / Boot 4.1.1, no Docker): permission-core targeted **7** run / **0** fail; p3-studio targeted **18** run / **0** fail (`FormStudioPermissionApiTest` 3, `FormSurfaceGuardTest` 5, `G2SurfaceAgreementTest` 5, `FormApiTest` 1, hook 4). Isolation-only `FormPublishFailureApiTest` **2/2** at **2026-09-22T16:44:11Z**. See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.
