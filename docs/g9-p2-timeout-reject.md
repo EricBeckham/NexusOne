@@ -47,17 +47,22 @@ Zonky in-process PostgreSQL **15.x**. No Docker. No Sentinel / Cluster.
 
 ## Evidence
 
-Recorded on this agent VM after rebase onto latest `main`. OpenJDK **21**, Maven, Spring Boot **4.1.1**. Zonky PostgreSQL **15.18**. No Docker.
+Recorded **2026-09-22T17:09:12Z** on this agent VM after rebase onto `main@d7abf34`. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky PostgreSQL **15.18**. No Docker. No Sentinel / Cluster.
 
 ```
 ./scripts/g9-p2-timeout-reject.sh
-# (filled after the IT run)
+# Tests run: 23, Failures: 0, Errors: 0, Skipped: 0  BUILD SUCCESS  2026-09-22T17:09:12Z
+
+mvn -pl nexus-permission-core -am test
+# Tests run: 66, Failures: 0, Errors: 0, Skipped: 5  BUILD SUCCESS  2026-09-22T17:09:55Z
 ```
 
-| Suite | What it proves |
-|---|---|
-| `G9P2TimeoutRejectTest` | `decide` rejects `P2.PERM.0005` after the configured timeout when version load hangs; healthy `decide` matches durable `PermissionEngine` |
-| `JdbcP2TimeoutRejectIT` | Zonky PG 15: healthy JDBC `decide` unchanged; `pg_sleep` on version load rejects near 200ms, not after the sleep |
-| `SnapshotManagerTest` | Version hang / snapshot hang reject near the clock; `pollCached` swallows timeout |
-| `G9PolicySnapshotFailoverTest` | Redis-down ordinary fail-closed unchanged |
-| `PermissionEngineTest` | P0-02 truth table unchanged |
+Skipped 5 are unchanged live-listener cases (Redis `:6379` / `127.0.0.1:5432`). JDBC timeout proof is Zonky **15.18**.
+
+| Suite | Count | What it proves |
+|---|---|---|
+| `G9P2TimeoutRejectTest` | **2/2** | `decide` rejects `P2.PERM.0005` after the configured timeout when version load hangs; healthy `decide` matches durable `PermissionEngine` |
+| `JdbcP2TimeoutRejectIT` | **1/1** | Zonky PG **15.18**: healthy JDBC `decide` unchanged; `pg_sleep(3)` on version load rejects near 200ms, not after the sleep |
+| `SnapshotManagerTest` | **8/8** | Version hang / snapshot hang reject near the clock; `pollCached` swallows timeout; existing poll / fail-closed cases unchanged |
+| `G9PolicySnapshotFailoverTest` | **5/5** | Redis-down ordinary fail-closed unchanged |
+| `PermissionEngineTest` | **7/7** | P0-02 truth table unchanged |
