@@ -109,6 +109,18 @@ mvn -pl nexus-p2-iam -am test
 
 `JdbcDualTenantIsolationTest` still ran against **PostgreSQL 15.19**. Flyway `V200` in schema `iam`.
 
+## G10 identity half (this PR)
+
+Person ↔ Keycloak match + repair on M0-04 IAM. File/object reconcile is not in this evidence.
+
+Default Stub IdP (no Keycloak process):
+
+```bash
+mvn -pl nexus-p2-iam -am test
+```
+
+Recorded after the test run in this PR. Live Keycloak on **8080** is opt-in (`NEXUS_KEYCLOAK_SMOKE=1`); see [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md).
+
 ## Honest gaps (not verified here)
 
 - **`nexus-bootstrap` packaged JAR** was not the process under test; the live app was `SpringBootTest` `DEFINED_PORT` `:18088`.

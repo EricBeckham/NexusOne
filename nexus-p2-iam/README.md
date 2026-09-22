@@ -16,6 +16,7 @@ PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **K
 | Admin-user initializer for M0-03 | `TenantAdminInitializer` and `POST /api/v1/internal/tenants/{id}/admin-users` |
 | SMTP hooks for invite / password reset only | Keycloak `execute-actions-email`; disabled unless `nexus.iam.smtp.enabled=true` |
 | Dual-tenant membership isolation at the data model | tenant-scoped tables + tests |
+| G10 person ↔ Keycloak match + repair | `account/PersonIdentityReconciler`, `GET\|POST /api/v1/identity/reconcile` |
 
 `tenant_id` on the wire is **rejected**. Send `X-Tenant-Id` and the API returns `P2.IAM.CLIENT_TENANT_REJECTED`. Context is issued only after P2 membership is checked.
 
@@ -29,9 +30,12 @@ mvn -pl nexus-p2-iam -am test
 
 **16 tests, 0 failures, 1 skipped** (`LiveKeycloakSmokeTest`) on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**. The skip is opt-in: set `NEXUS_KEYCLOAK_SMOKE=1` against a live 26.5.2 process.
 
+G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). File/object reconcile is out of this module.
+
 Covered by tests:
 
 - Login reconciles a global account from IdP claims.
+- G10 preview matches persons to IdP users; apply repairs email drift, stale `keycloak_user_id`, and missing IdP users. Unmatched IdP users are reported only.
 - No context is issued until the account has an active tenant membership (auto-issue when there is exactly one).
 - Dual-tenant membership: same natural person has distinct Person rows; listing persons in tenant A never returns tenant B rows.
 - Tenant switch to a non-member tenant is forbidden.
@@ -60,8 +64,9 @@ These are **not** accepted:
 - SAML
 - LDAP / Active Directory federation
 - SMS MFA (and TOTP/email MFA product acceptance)
-- Keycloak Organizations as Nexus org master data or acceptance evidence
 - Browser Authorization Code + PKCE as an accepted Web/H5 path (P0 listed PKCE as unverified). Product login uses a **confidential** backend client; `p0-smoke` direct-grant must not be copied into production.
+- Keycloak Organizations as Nexus org master data or acceptance evidence (Employment is not synced to Organizations)
+- File metadata ↔ object store reconcile (G1 isolation agent; not this module)
 - Keycloak old-version upgrade / rollback matrices (single version 26.5.2 only)
 - Target Linux / ARM / offline package / deployment Profile acceptance
 - Permission engine, roles, DataScope, FieldPolicy, PolicySnapshot (M0-05)

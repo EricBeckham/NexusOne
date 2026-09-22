@@ -13,6 +13,9 @@ public interface IdentityRepository {
 
     Optional<Model.GlobalAccount> findAccountByEmail(String email);
 
+    /** Platform-scoped. G10 identity reconcile only; not a tenant list. */
+    List<Model.GlobalAccount> listAccounts();
+
     Model.TenantMembership saveMembership(Model.TenantMembership membership);
 
     Optional<Model.TenantMembership> findMembership(UUID tenantId, UUID accountId);
@@ -28,6 +31,9 @@ public interface IdentityRepository {
     Optional<Model.Person> findPersonByAccount(UUID tenantId, UUID accountId);
 
     List<Model.Person> listPersons(UUID tenantId);
+
+    /** Platform-scoped. G10 identity reconcile only; callers must not treat this as a tenant list. */
+    List<Model.Person> listAllPersons();
 
     Optional<Model.Person> findPersonByEmployeeNo(UUID tenantId, String employeeNo);
 

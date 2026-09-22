@@ -67,6 +67,11 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     }
 
     @Override
+    public List<Model.GlobalAccount> listAccounts() {
+        return jdbc.query("SELECT * FROM iam.iam_global_account WHERE deleted_at IS NULL", ACCOUNT);
+    }
+
+    @Override
     public Model.TenantMembership saveMembership(Model.TenantMembership membership) {
         jdbc.update("""
                 INSERT INTO iam.iam_tenant_membership
@@ -141,6 +146,11 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     @Override
     public List<Model.Person> listPersons(UUID tenantId) {
         return jdbc.query("SELECT * FROM iam.iam_person WHERE tenant_id = ? AND deleted_at IS NULL", PERSON, tenantId);
+    }
+
+    @Override
+    public List<Model.Person> listAllPersons() {
+        return jdbc.query("SELECT * FROM iam.iam_person WHERE deleted_at IS NULL", PERSON);
     }
 
     @Override
