@@ -74,9 +74,9 @@ This is **not** a product-wide G4 close.
 | Still open | Why |
 |---|---|
 | Login / permission / admin / guard-reject wiring | Already on `main` via #77 ([g4-audit-coverage.md](./engineering/g4-audit-coverage.md)); this PR does not redo it |
-| Same-request login→permission→admin→export→guard-reject | Categories are wired; one real browser request is still open |
+| Same-request login→permission→admin→export→guard-reject | MockMvc + IsolatedExport same-trace walk: [g4-same-trace-walk.md](./g4-same-trace-walk.md). Browser Authorization Code + PKCE is still open |
 | Hot purge after 90 days | `platform.audit_record` is append-only (`REVOKE DELETE`). Archive is a **copy**; expiry deletes the copy after 365 days, not the hot chain. A still-hot expired row may be copied again and immediately purged on the next Job run |
-| 365-day archive expiry | **Closed this remainder.** `purgeExpiredArchive` deletes same-PG archive rows older than 365 days (`purgeImplemented=true`). `AuditArchiveJob.run()` copies then purges |
+| 365-day archive expiry | **Closed on `main` via #90.** `purgeExpiredArchive` deletes same-PG archive rows older than 365 days (`purgeImplemented=true`). `AuditArchiveJob.run()` copies then purges |
 | Object-store / cold archive | Same-PG table only |
 | Tenant TaskQueue / IsolatedQuartzJob for archive | Those APIs require membership; archive is a platform Job |
 | FieldPolicy / report UI export | Same leftover as G1: `ledger.export.csv` is the guarded surface, not a physical ledger dump |
