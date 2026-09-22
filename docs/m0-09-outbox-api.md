@@ -119,4 +119,4 @@ Worker / Quartz knobs (`worker-enabled`, `quartz-enabled`, `quartz-auto-startup`
 - `OutboxEventContractTest` — poller delivers `notify.inbox`; start-of-delivery P95 on 20 rows; lag alarm when oldest `PENDING` is aged 40s and not yet leasable.
 - `NexusOneOutboxDispatcherTest` — product `NexusOneApplication` on Zonky PG 15; PENDING → DISPATCHED; `notify.inbox` DELIVERED and `GET /api/v1/notifications` readable.
 
-Measurements are in-process Zonky PostgreSQL 15, not a multi-node load run. Product poll-interval 500ms is well under the 5s P95 cap; the 30s alarm is a log (`OUTBOX_LAG_ALARM`), not a pager webhook.
+Measurements are in-process Zonky PostgreSQL 15, not a multi-node load run. Recorded **2026-09-22T13:39:16Z**: event-core P95 **238 ms** (20 samples); product poller `dispatched_at - created_at` **25 ms**. Product poll-interval 500ms is well under the 5s P95 cap; the 30s alarm is a log (`OUTBOX_LAG_ALARM`), not a pager webhook.

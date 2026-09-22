@@ -255,6 +255,9 @@ class OutboxEventContractTest {
         long p95 = h.dispatcher.lagProbe().p95Ms().orElseThrow();
         assertTrue(p95 <= DeliveryLagProbe.TARGET_P95_MS,
                 "start-of-delivery P95 " + p95 + "ms exceeds 5000ms (Zonky PG 15, in-process)");
+        org.slf4j.LoggerFactory.getLogger(OutboxEventContractTest.class)
+                .info("OUTBOX_START_OF_DELIVERY_P95_MS={} samples={}",
+                        p95, h.dispatcher.lagProbe().sampleCount());
         for (UUID id : ids) {
             assertEquals("DISPATCHED", h.store.find(id).orElseThrow().status());
         }

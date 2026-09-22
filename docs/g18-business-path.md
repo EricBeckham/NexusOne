@@ -32,7 +32,7 @@ This unblocks empty-DB product boot / E2E. It does **not** close product G18.
 
 ## What is proven (runnable)
 
-Recorded on this branch at **2026-09-22T13:36:12Z**. Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` / `JdbcAuditChainTest` skipped).
+Recorded on this branch at **2026-09-22T13:39:16Z** (dispatcher SLO) after #64 same-TX audit (**2026-09-22T13:36:12Z**). Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` / `JdbcAuditChainTest` skipped). G18 IT still leaves the poller **off**. Product G18 is **not** closed.
 
 | Component | Version |
 |---|---|
@@ -47,8 +47,12 @@ Recorded on this branch at **2026-09-22T13:36:12Z**. Agent VM, no Docker. Live `
 |---|---|
 | `JdbcAuditChainTransactionTest` | **4/4** — `append` joins Spring TX; rollback clears record + `next_index`; happy commit intact; `appendNewTransaction` survives |
 | `nexus-audit-core` | **11** run, **0** fail, **1** skip (`JdbcAuditChainTest`, no live PG) |
-| `NexusOneProductBootTest` | **1/1** — product `NexusOneApplication` on empty Zonky PG 15 |
-| `G18BusinessPathIT` | **2/2** (happy path + rollback includes `audit_record` / chain head) |
+| `EventCoreConfigurationTest` | **5/5** (DS → `JdbcOutboxStore`; no DS → no Outbox; two `Clock` beans still register Outbox; **default starts dispatcher**) |
+| `OutboxEventContractTest` | **13/13** (poller delivers; lag alarm; start-of-delivery P95 **238 ms** / 20 samples) |
+| `NexusOneOutboxDispatcherTest` | **1/1** — product `NexusOneApplication`, dispatcher **on**, PENDING → DISPATCHED, `notify.inbox` DELIVERED, list readable; `dispatched_at - created_at` **25 ms** |
+| `NexusOneProductBootTest` | **1/1** — product `NexusOneApplication` on empty Zonky PG 15 (dispatcher **off** in that wiring check) |
+| `G18BusinessPathIT` | **2/2** (dispatcher still off; happy path + rollback includes `audit_record` / chain head) |
+| `NotificationApiTest` | **1/1** (`outbox=record` still works without DataSource) |
 
 | Behavior | Evidence |
 |---|---|
@@ -65,11 +69,12 @@ Command:
 
 ```bash
 mvn -pl nexus-audit-core -am test
-mvn -pl nexus-p3-studio -am test -Dtest=G18BusinessPathIT -Dsurefire.failIfNoSpecifiedTests=false
-mvn -pl nexus-bootstrap -am test -Dtest=NexusOneProductBootTest,NexusOnePostgresTest -Dsurefire.failIfNoSpecifiedTests=false
+mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap -am test \
+    -Dtest=EventCoreConfigurationTest,OutboxEventContractTest,NotificationApiTest,G18BusinessPathIT,NexusOneOutboxDispatcherTest,NexusOneProductBootTest,NexusOnePostgresTest \
+    -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS` at **2026-09-22T13:36:12Z**. `NexusOnePostgresTest` and `JdbcAuditChainTest` skipped (no local PG listener).
+`BUILD SUCCESS` for the suites listed above (audit same-TX **2026-09-22T13:36:12Z**, event-core **2026-09-22T13:37:34Z**, product dispatcher **2026-09-22T13:39:16Z**, G18 **2026-09-22T13:38:46Z**). `NexusOnePostgresTest` and `JdbcAuditChainTest` skipped (no local PG listener).
 
 ## API (IAM session + M0-02 isolation)
 

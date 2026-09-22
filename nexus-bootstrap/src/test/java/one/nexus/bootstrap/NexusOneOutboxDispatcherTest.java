@@ -149,6 +149,9 @@ class NexusOneOutboxDispatcherTest {
                 outboxId);
         assertTrue(startMs != null && startMs <= DeliveryLagProbe.TARGET_P95_MS,
                 "start-of-delivery " + startMs + "ms exceeds 5000ms (Zonky PG 15, product poll-interval 500ms)");
+        org.slf4j.LoggerFactory.getLogger(NexusOneOutboxDispatcherTest.class)
+                .info("notify.inbox delivered startOfDeliveryMs={} targetP95Ms={} outboxId={}",
+                        startMs, DeliveryLagProbe.TARGET_P95_MS, outboxId);
         assertFalse(dispatcher.lastCycleLagAlarm());
 
         IsolationSupport.bindTenant(isolationKernel, TENANT, ACTOR, "mem-" + TENANT, TRACE);
