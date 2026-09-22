@@ -58,5 +58,9 @@ File Service 在 `nexus.files.storage=s3` 时通过 `MinioObjectStorage.fromSecr
 ## 测试
 
 ```bash
-mvn -pl nexus-common,nexus-crypto-core,nexus-file-core,nexus-bootstrap -am test
+mvn -pl nexus-common,nexus-crypto-core,nexus-file-core test
+mvn -pl nexus-bootstrap -am -DskipTests install
+mvn -pl nexus-bootstrap test
 ```
+
+`-am test` on bootstrap also runs `nexus-p1-tenant` `TenantModuleIT`, which requires `NEXUS_DB_PASSWORD` and a live PostgreSQL 15. That IT is M0-03, not this package. Evidence: [s0-secret-port-EVIDENCE.md](./s0-secret-port-EVIDENCE.md).
