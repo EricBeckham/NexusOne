@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import one.nexus.p3.path.BusinessTypeCatalog;
 import one.nexus.p3.path.BusinessTypeProvisioner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/p3/business-types")
-@ConditionalOnBean(BusinessTypeProvisioner.class)
 public class BusinessTypeController {
     private final BusinessTypeProvisioner provisioner;
 

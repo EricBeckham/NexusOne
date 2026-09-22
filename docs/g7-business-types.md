@@ -57,6 +57,15 @@ Browser / JAR (same G18 loop: stub login, issued `X-Nexus-Context-Id`, never `X-
 
 ## Withdraw evidence (scripted)
 
+Recorded **2026-09-22T15:29:13Z** on this branch (agent VM, OpenJDK **21.0.10**, Maven **3.9.9**, Boot **4.1.1**, Zonky PostgreSQL **15.18**, no Docker):
+
+| Suite | Result |
+|---|---|
+| `BusinessTypeCatalogTest` + `G7BusinessTypesIT` | **4/4** |
+| `G18BusinessPathIT` (regression) | **2/2** |
+| `TenantMemberGrantSeederTest` + `TenantMemberGrantSeedApiTest` | **PASS** |
+| `web npm run assert:p3-live` | **PASS** |
+
 `G7BusinessTypesIT.travelWithdrawIsIdempotentAndLeavesAuditEvidence`:
 
 - `submit-start` on catalog `travel` → physical row `IN_APPROVAL`, todo PENDING, initiated RUNNING

@@ -17,7 +17,6 @@ import one.nexus.p3.path.BusinessTypeCatalog.TypeSpec;
 import one.nexus.p3.studio.form.FormBinding;
 import one.nexus.p3.studio.form.FormRecord;
 import one.nexus.p3.studio.form.FormService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
  * (application + ledger + form). Does not add a second approval engine.
  */
 @Service
-@ConditionalOnBean({ApplicationService.class, LedgerDefinitionService.class, FormService.class})
 public class BusinessTypeProvisioner {
     private final ApplicationService applications;
     private final LedgerDefinitionService ledgers;
