@@ -62,21 +62,22 @@ This agent recorded the **HTTP** path. A second human click of 撤回 is optiona
 
 ## Evidence
 
-Recorded on this branch after `./scripts/g7/run-withdraw-leave.sh`. Fill-in below is the IT run; live JAR is optional when `:8080` is down.
+Recorded **2026-09-22T15:40:45Z** on this branch with `./scripts/g7/run-withdraw-leave.sh`. Artifact: [it-run.json](./g7-withdraw-evidence/it-run.json).
 
 | Item | Value |
 |---|---|
-| JDK | OpenJDK **21.0.10** |
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
 | Maven | **3.8.7** |
 | Spring Boot | **4.1.1** |
-| PostgreSQL | Zonky **15.18** (IT). Live JAR skipped unless `NEXUS_BASE_URL` is healthy |
+| PostgreSQL | Zonky **15.18** (`Database: PostgreSQL 15.18`; Flyway V100→…→**V550**) |
 | Business class | **leave** (G18 请假). Travel deferred to #69 |
 | `AuditPort` | **untouched** |
+| Docker | no |
 
 | Suite | Result |
 |---|---|
-| `G7LeaveWithdrawIT` | pending this branch’s first run |
-| live `withdraw-leave-http.py` | SKIP unless a product JAR is already up |
+| `G7LeaveWithdrawIT` | **1/1** `BUILD SUCCESS` — submit-start → non-initiator 403 → initiator `WITHDRAWN` → repeat withdraw stays `WITHDRAWN` (one `p3.approval.withdrawn`) → query 年假 / `g7-withdraw` → initiated `WITHDRAWN` → `audit_record` ≥ 3 + `verifyChain()` intact |
+| live `withdraw-leave-http.py` | **SKIP** — no product JAR on `:8080`. Script is ready for a live loop; it also hits `GET /api/v1/audit/traces/{id}` (bootstrap controller, not on the G18 path host) |
 
 ## Honest gaps
 

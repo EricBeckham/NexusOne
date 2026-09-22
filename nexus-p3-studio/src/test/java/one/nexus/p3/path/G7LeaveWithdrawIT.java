@@ -181,12 +181,9 @@ class G7LeaveWithdrawIT {
                         .header("X-Trace-Id", TRACE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
-        mvc.perform(get("/api/v1/audit/traces/" + TRACE)
-                        .header("Authorization", "Bearer " + admin.token)
-                        .header("X-Nexus-Context-Id", admin.contextId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.trace_id").value(TRACE))
-                .andExpect(jsonPath("$.events[?(@.event_type=='p3.approval.withdrawn')]").isNotEmpty());
+        // GET /api/v1/audit/traces/{id} is a bootstrap controller. The G18 path
+        // host asserts the same rows through AuditPort + platform.audit_record.
+        // Live JAR script (scripts/g7/withdraw-leave-http.py) hits the HTTP route.
     }
 
     private JsonNode preparePublishedLeaveForm() throws Exception {
