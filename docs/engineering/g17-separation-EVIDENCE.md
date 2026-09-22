@@ -57,7 +57,7 @@ What those tests prove:
 
 ## Honest leftovers
 
-- Full G17 (国密 TLS 双证书 / 密码机 / classified / password-policy product close) is **not** this PR.
+- Full G17 (密码机 / classified / password-policy product close) is **not** this PR. Local 国密 TLS 双证书 leftover is [g17-gm-tls-dual-cert.md](../g17-gm-tls-dual-cert.md).
 - Admin-session MFA is a **separate** slice already on main ([g17-admin-mfa.md](../g17-admin-mfa.md)); not redone here.
 - P1 tenant APIs still use demo `ALL_DEMO` headers; they are not rewired onto P2 duty roles.
 - No product UI to assign the three duties.

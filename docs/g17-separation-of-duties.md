@@ -43,7 +43,7 @@ Denied surfaces emit **both** `p2.permission.denied` and `isolation.guard.reject
 
 ## Honest leftovers (not claimed)
 
-- Full G17: 国密 TLS 双证书, qualified GM/T provider, 密码机, password/session product close
+- Full G17: qualified GM/T provider, 密码机, password/session product close, classified delivery. Local 国密 TLS 双证书 leftover is [g17-gm-tls-dual-cert.md](./g17-gm-tls-dual-cert.md) (not a close)
 - Admin-session MFA (already on main as [g17-admin-mfa.md](./g17-admin-mfa.md); not redone here)
 - P1 `IsolationGuard` still uses demo `ALL_DEMO` headers; this slice does not rewire P1 tenant APIs onto P2 duty roles
 - Product UI to assign the three duties

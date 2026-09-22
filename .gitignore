@@ -22,7 +22,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Isolated local integration environment
+# Isolated local integration environment (includes G17 local GM TLS PKCS12/keys)
 .local/
 
 # Vue / Node (M0-12)
