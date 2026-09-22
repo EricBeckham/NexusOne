@@ -55,6 +55,7 @@ mvn -pl nexus-permission-core -am test
 
 | Still open | Why |
 |---|---|
+| Live Redis process-down / live invalidate | Dead client on port `1` is not a live Redis crash. Honesty leftover is [g9-redis-down-invalidate-honesty.md](./g9-redis-down-invalidate-honesty.md). |
 | Redis Sentinel / Cluster / replica promotion | Explicitly not this slice (same as M0-05). |
 | Multi-node live partition | In-process dual-reader / lost-invalidate version-poll is [g9-multinode-partition.md](./g9-multinode-partition.md). Live multi-JVM / Sentinel / Cluster / replica promotion honesty leftover is [g9-sentinel-cluster-honesty.md](./g9-sentinel-cluster-honesty.md). |
 | Production poll interval / bounded-stale window | Product poller is on `main` (#89). This package only proves Redis-down / lost-channel `decide` == durable `PermissionEngine`. Bounded P2-down timeout-then-reject is [g9-p2-timeout-reject.md](./g9-p2-timeout-reject.md). Fail-closed DENY after lost invalidate is [g9-failover-remainder.md](./g9-failover-remainder.md). In-process dual-reader / lost-invalidate version-poll is [g9-multinode-partition.md](./g9-multinode-partition.md). |
