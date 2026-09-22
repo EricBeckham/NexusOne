@@ -128,35 +128,56 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
     @Override
     public ProvisionedUser ensureUser(String email, String username, String displayName) {
         String adminToken = clientCredentialsToken();
-        List<?> found = http.get()
-                .uri(issuer.replace("/realms/", "/admin/realms/") + "/users?email=" + enc(email) + "&exact=true")
-                .header("Authorization", "Bearer " + adminToken)
-                .retrieve()
-                .body(List.class);
-        if (found != null && !found.isEmpty() && found.getFirst() instanceof Map<?, ?> user) {
-            return new ProvisionedUser(String.valueOf(user.get("id")), email, username);
+        String adminUsers = issuer.replace("/realms/", "/admin/realms/") + "/users";
+        ProvisionedUser existing = findUser(adminUsers, adminToken, username, email);
+        if (existing != null) {
+            return existing;
         }
-        http.post()
-                .uri(issuer.replace("/realms/", "/admin/realms/") + "/users")
+        var created = http.post()
+                .uri(adminUsers)
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
                         "username", username,
                         "email", email,
                         "enabled", true,
-                        "emailVerified", false,
+                        "emailVerified", true,
                         "firstName", displayName == null ? username : displayName))
                 .retrieve()
                 .toBodilessEntity();
-        List<?> created = http.get()
-                .uri(issuer.replace("/realms/", "/admin/realms/") + "/users?email=" + enc(email) + "&exact=true")
-                .header("Authorization", "Bearer " + adminToken)
-                .retrieve()
-                .body(List.class);
-        if (created == null || created.isEmpty() || !(created.getFirst() instanceof Map<?, ?> user)) {
+        String id = lastPathSegment(created.getHeaders().getLocation());
+        if (id != null) {
+            return new ProvisionedUser(id, email, username);
+        }
+        ProvisionedUser afterCreate = findUser(adminUsers, adminToken, username, email);
+        if (afterCreate == null) {
             throw new IllegalStateException("Keycloak user create did not return the user");
         }
-        return new ProvisionedUser(String.valueOf(user.get("id")), email, username);
+        return afterCreate;
+    }
+
+    @SuppressWarnings("unchecked")
+    private ProvisionedUser findUser(String adminUsers, String adminToken, String username, String email) {
+        for (String query : List.of("username=" + enc(username) + "&exact=true", "email=" + enc(email) + "&exact=true")) {
+            List<?> found = http.get()
+                    .uri(adminUsers + "?" + query)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .retrieve()
+                    .body(List.class);
+            if (found != null && !found.isEmpty() && found.getFirst() instanceof Map<?, ?> user && user.get("id") != null) {
+                return new ProvisionedUser(String.valueOf(user.get("id")), email, username);
+            }
+        }
+        return null;
+    }
+
+    private static String lastPathSegment(java.net.URI location) {
+        if (location == null || location.getPath() == null || location.getPath().isBlank()) {
+            return null;
+        }
+        String path = location.getPath();
+        int slash = path.lastIndexOf('/');
+        return slash < 0 ? path : path.substring(slash + 1);
     }
 
     @Override
