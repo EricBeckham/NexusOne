@@ -9,7 +9,7 @@ Recorded on this agent VM after rebase onto `origin/main` `84ac6f7` (Merge #171)
 | Component | Exact version | Notes |
 |---|---|---|
 | JDK | OpenJDK **21** | product baseline |
-| Maven | **3.8.x / 3.9.x** | filled after the test run |
+| Maven | **3.8.7** | leftover-off unit tests on this VM |
 | Spring Boot parent | **4.1.1** | product BOM |
 | Runtime | `./scripts/s0-secret-getenv-snapshot-honesty.sh` | No Docker / Compose |
 
@@ -39,7 +39,8 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | pending | honest SKIP accepted; fake OS getenv PASS / fake S0 close rejected |
+| Honesty fixtures | **PASS** | honest SKIP accepted; fake OS getenv PASS / fake S0 close rejected |
+| Leftover-off `S0SecretGetenvSnapshotHonestyTest` | **8/8 PASS** | DualStackTlsProbe compile leftover moved aside only; not committed |
 | Mutable env-map rotate | **PASS** (gate) | thin probe; not a #143 redo |
 | OS `System.getenv()` rotate | **SKIP** | Java 21 process-start snapshot; not a supported API |
 | OpenBao / KMS introduced | **false** | ARCH-007 |
