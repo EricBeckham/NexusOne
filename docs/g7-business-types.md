@@ -109,6 +109,8 @@ Recorded **2026-09-22T15:40:16Z** (agent VM, OpenJDK **21.0.10**, Maven **3.8.7*
 | `web npm run assert:p3-live` | **PASS** |
 | product JAR `g7-withdraw-walkthrough.py` | **SKIP** (no healthy `NEXUS_BASE_URL`) |
 
+Reactor: **Tests run: 3, Failures: 0, Errors: 0, Skipped: 0**. `BUILD SUCCESS`.
+
 `G7WithdrawWalkthroughIT.travelWithdrawAndRejectStayOnTenant`:
 
 - Two IAM tenants (`g7wa` / `g7wb`); travel-shaped ledger via catalog provision when present, else M0-06/07

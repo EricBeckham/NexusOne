@@ -318,3 +318,21 @@ Recorded on this agent **2026-09-22T15:31:06Z** (G3/G18) and **2026-09-22T15:31:
 
 `approvalAndLedgerRowRollBackTogether`: `g18-rollback-key` left **0** rows in `platform.exec_idempotency`.
 
+# G7 withdraw / reject walkthrough (evidence, not a new class)
+
+See [docs/g7-business-types.md](../docs/g7-business-types.md). This is dual-tenant HTTP evidence for **withdraw** (travel-shaped) and **reject** on the existing G18 path. It does not add a catalog. `AuditPort` is unchanged. Coordinates with PR #69.
+
+Agent VM **2026-09-22T15:40:16Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432`.
+
+```bash
+./scripts/g7-withdraw-walkthrough.sh
+```
+
+`BUILD SUCCESS`. **Tests run: 3, Failures: 0, Errors: 0, Skipped: 0**.
+
+| Suite | Result |
+|---|---|
+| `G7WithdrawWalkthroughIT` | **1/1** — two tenants; travel-shaped `l_*` via M0-06/07; A withdraw `WITHDRAWN` + `destination=上海` + idempotent replay; B withdraw `P3.FLOW.0002`; B cannot read A's row; A reject `REJECTED` + `destination=北京`; audit `p3.approval.withdrawn` / `p3.approval.rejected`; `verifyChain()` intact |
+| `G18BusinessPathIT` | **2/2** regression |
+| `web npm run assert:p3-live` | **PASS** (`data-testid=todo-withdraw`) |
+
