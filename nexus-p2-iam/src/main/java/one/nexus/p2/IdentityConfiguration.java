@@ -1,5 +1,6 @@
 package one.nexus.p2;
 
+import one.nexus.audit.AuditPort;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.idp.IdentityProviderPort;
 import one.nexus.p2.idp.KeycloakIdentityProvider;
@@ -9,6 +10,7 @@ import one.nexus.p2.persist.JdbcIdentityRepository;
 import one.nexus.p2.smtp.KeycloakSmtpHook;
 import one.nexus.p2.smtp.SmtpHook;
 import org.flywaydb.core.Flyway;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -73,9 +75,11 @@ public class IdentityConfiguration {
             IdentityProviderPort idp,
             SmtpHook smtp,
             Clock clock,
-            IamProperties properties
+            IamProperties properties,
+            ObjectProvider<AuditPort> audits
     ) {
-        return new IdentityModule(repository, idp, smtp, clock, Duration.parse(properties.contextTtl()));
+        return new IdentityModule(
+                repository, idp, smtp, clock, Duration.parse(properties.contextTtl()), audits.getIfAvailable());
     }
 
     @ConfigurationProperties(prefix = "nexus.iam")

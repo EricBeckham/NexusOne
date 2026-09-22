@@ -1,5 +1,6 @@
 package one.nexus.p2;
 
+import one.nexus.audit.AuditPort;
 import one.nexus.p2.account.AccountReconciler;
 import one.nexus.p2.account.PersonIdentityReconciler;
 import one.nexus.p2.admin.TenantAdminInitializer;
@@ -33,6 +34,17 @@ public final class IdentityModule {
             Clock clock,
             Duration contextTtl
     ) {
+        this(repository, idp, smtp, clock, contextTtl, null);
+    }
+
+    public IdentityModule(
+            IdentityRepository repository,
+            IdentityProviderPort idp,
+            SmtpHook smtp,
+            Clock clock,
+            Duration contextTtl,
+            AuditPort audits
+    ) {
         this.repository = repository;
         this.idp = idp;
         this.smtp = smtp;
@@ -40,7 +52,7 @@ public final class IdentityModule {
         this.personReconciler = new PersonIdentityReconciler(repository, idp, this.reconciler, clock);
         this.organization = new OrganizationService(repository, clock);
         this.memberships = new MembershipService(repository, clock);
-        this.sessions = new SessionService(repository, reconciler, idp, clock, contextTtl);
+        this.sessions = new SessionService(repository, reconciler, idp, clock, contextTtl, audits);
         this.adminInitializer = new TenantAdminInitializerImpl(repository, idp, reconciler, organization, clock);
     }
 

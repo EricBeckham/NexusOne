@@ -49,6 +49,28 @@ public final class AuditCaptures {
                 details);
     }
 
+    public static AuditEvent logout(
+            UUID tenantId,
+            UUID actorSubjectId,
+            String resourceId,
+            String reason,
+            String traceId,
+            Map<String, ?> details) {
+        return capture(
+                AuditEvent.OUTCOME_ACCEPTED,
+                AuditCategory.LOGIN,
+                LOGIN_LOGOUT,
+                tenantId,
+                actorSubjectId,
+                tenantId,
+                false,
+                reason,
+                traceId,
+                "session",
+                resourceId,
+                details);
+    }
+
     public static AuditEvent permission(
             boolean granted,
             UUID tenantId,

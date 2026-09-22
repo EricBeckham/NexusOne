@@ -10,8 +10,8 @@ import one.nexus.crypto.CryptoPort;
 
 /**
  * Per-event hash chain (batch size 1). A later batch-seal can hash a range of
- * {@code eventHash} values; full-path verification across business modules is
- * deferred until those modules emit through {@link AuditPort}.
+ * {@code eventHash} values. G4/G18 emitters write through {@link AuditPort};
+ * this class only links already-captured events.
  */
 public final class AuditHashChain {
     public static final byte[] GENESIS = new byte[32];

@@ -3,7 +3,10 @@ package one.nexus.permission.admin;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import one.nexus.audit.AuditCaptures;
+import one.nexus.audit.AuditPort;
 import one.nexus.common.id.UuidV7;
+import one.nexus.common.trace.TraceIds;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.engine.DataScopeKind;
@@ -17,10 +20,17 @@ import one.nexus.permission.support.PermissionException;
 public final class PolicyAdminService {
     private final PolicyRepository repository;
     private final PolicyInvalidationPort invalidation;
+    private final AuditPort audits;
 
     public PolicyAdminService(PolicyRepository repository, PolicyInvalidationPort invalidation) {
+        this(repository, invalidation, null);
+    }
+
+    public PolicyAdminService(
+            PolicyRepository repository, PolicyInvalidationPort invalidation, AuditPort audits) {
         this.repository = repository;
         this.invalidation = invalidation;
+        this.audits = audits;
     }
 
     public PolicyRepository.RoleRecord createRole(String code, String name, boolean systemRole) {
@@ -47,6 +57,17 @@ public final class PolicyAdminService {
         PolicyRepository.AssignmentRecord saved = repository.saveAssignment(new PolicyRepository.AssignmentRecord(
                 UuidV7.generate(), context.tenantId(), principalType, principalId, role.id(), role.code()));
         bump(context.tenantId());
+        appendPermission(
+                true,
+                context,
+                "role_assignment",
+                role.code(),
+                "assigned",
+                Map.of(
+                        "principal_type", principalType,
+                        "principal_id", principalId,
+                        "role_id", role.id().toString(),
+                        "role_code", role.code()));
         return saved;
     }
 
@@ -62,9 +83,21 @@ public final class PolicyAdminService {
     ) {
         TenantContext context = TenantContextHolder.require();
         Rule rule = Rule.scoped(principalType, principalId, resource, action, scopeKind, specifiedDepartments, fields);
+        String normalized = effect == null ? "GRANT" : effect.toUpperCase();
         PolicyRepository.GrantRecord saved = repository.saveGrant(new PolicyRepository.GrantRecord(
-                UuidV7.generate(), context.tenantId(), effect == null ? "GRANT" : effect.toUpperCase(), rule));
+                UuidV7.generate(), context.tenantId(), normalized, rule));
         bump(context.tenantId());
+        appendPermission(
+                !"DENY".equalsIgnoreCase(normalized),
+                context,
+                rule.resource(),
+                rule.action(),
+                normalized,
+                Map.of(
+                        "principal_type", rule.principalType(),
+                        "principal_id", rule.principalId(),
+                        "effect", normalized,
+                        "grant_id", saved.id().toString()));
         return saved;
     }
 
@@ -79,5 +112,26 @@ public final class PolicyAdminService {
     private void bump(UUID tenantId) {
         repository.bumpVersion(tenantId);
         invalidation.notifyTenant(tenantId.toString());
+    }
+
+    private void appendPermission(
+            boolean granted,
+            TenantContext context,
+            String resourceType,
+            String resourceId,
+            String reason,
+            Map<String, ?> details) {
+        if (audits == null) {
+            return;
+        }
+        audits.append(AuditCaptures.permission(
+                granted,
+                context.tenantId(),
+                context.personId(),
+                resourceType,
+                resourceId,
+                reason,
+                TraceIds.currentOrUnknown(),
+                details));
     }
 }
