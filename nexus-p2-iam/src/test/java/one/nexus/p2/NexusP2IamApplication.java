@@ -15,8 +15,3 @@ public class NexusP2IamApplication {
         SpringApplication.run(NexusP2IamApplication.class, args);
     }
 }
-
-    public static void main(String[] args) {
-        SpringApplication.run(NexusP2IamApplication.class, args);
-    }
-}
