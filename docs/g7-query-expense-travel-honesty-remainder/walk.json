@@ -1,0 +1,22 @@
+{
+  "leftover": "g7-query-expense-travel-honesty-remainder",
+  "siblings": [
+    "g7-query-expense-travel",
+    "g7-query-expense-travel-honesty",
+    "g7-withdraw-browser",
+    "g7-withdraw-browser-honesty",
+    "g7-withdraw-browser-evidence-honesty",
+    "g7-withdraw-expense-travel",
+    "g4-hot-purge-staging-leftover-honesty",
+    "g10-leftover-honesty-remainder",
+    "g3-outbox-consume-idempotent-honesty",
+    "g9-live-multi-jvm-replica-remainder-honesty"
+  ],
+  "query_surface": "PASS",
+  "live_jar_idp_query": "SKIP",
+  "live_browser_query_click": "SKIP",
+  "g7Close": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "timestampUtc": "2026-09-22T21:52:25Z",
+  "evidence": "scripts/g7-query-expense-travel-honesty-remainder.sh"
+}
