@@ -93,7 +93,7 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, `/api/v1/files`, and
 | G18 | Sequential approval / todo | **PASS** | submit-start then path 同意. Withdraw was not clicked on this walk; G7 travel withdraw + reject dual-tenant HTTP evidence is [g7-business-types.md](./g7-business-types.md) |
 | G7 | Three business types + withdraw | **SCRIPTED** | Catalog leave / expense / travel (#69); expense reject; travel withdraw IT + dual-tenant HTTP walkthrough. Not a full S0+S1 close |
 | G18 | In-app notification | **PASS** | `approval.task.assigned` and `approval.task.approved` both `DELIVERED` |
-| G18 | Audit by trace | **PASS** | Submit trace `1a1f7b8b-4de0-4ef0-978c-3d39a65744ff`; approve trace `cb9e0a9f-0943-4384-aa06-31f05e292103`. Chain indexes 4–7 linked. G4 login/permission/admin/guard-reject: [g4-audit-coverage.md](./engineering/g4-audit-coverage.md). Export + 90-day archive Job + 365-day same-PG purge: [g4-export-audit-archive.md](./g4-export-audit-archive.md) |
+| G18 | Audit by trace | **PASS** | Submit trace `1a1f7b8b-4de0-4ef0-978c-3d39a65744ff`; approve trace `cb9e0a9f-0943-4384-aa06-31f05e292103`. Chain indexes 4–7 linked. G4 login/permission/admin/guard-reject: [g4-audit-coverage.md](./engineering/g4-audit-coverage.md). Export + 90-day archive Job + 365-day same-PG purge: [g4-export-audit-archive.md](./g4-export-audit-archive.md). Same-trace MockMvc walk: [g4-same-trace-walk.md](./g4-same-trace-walk.md) |
 | G18 | End-to-end real business walkthrough | **PASS** | `38f1a73` browser record in [g18-business-path.md](./g18-business-path.md). Same-TX rollback and dispatcher timing are the earlier records cited there |
 
 Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (regressed).

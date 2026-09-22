@@ -88,5 +88,5 @@ This page is not a product-wide G1 “zero leak” close and is not GaussDB.
 |---|---|
 | GaussDB | PostgreSQL-only slice |
 | UI / H5 / join-AST / FieldPolicy export | Unchanged from [g1-isolation-surfaces.md](./g1-isolation-surfaces.md) |
-| G4 same-request chain | Login / permission / admin / export / guard-reject on one browser request |
+| G4 same-request chain | MockMvc same-trace walk: [g4-same-trace-walk.md](./g4-same-trace-walk.md). Browser Authorization Code + PKCE is still open |
 | Target Linux/ARM Profile Redis 3.2 + MinIO/AIStor | These drills are optional and local; they are not the G14 component-matrix close |
