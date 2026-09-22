@@ -89,6 +89,7 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g17-admin-mfa-recovery-email",
   "g2-ops-pg-dump",
   "s0-secret-rotate-without-restart",
+  "g1-fieldpolicy-mask-second-auth",
 ]);
 requireIncludes("doc", files.doc, [
   "POST /api/v1/p3/path/instances/{id}/withdraw",
