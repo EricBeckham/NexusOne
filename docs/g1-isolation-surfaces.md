@@ -54,9 +54,9 @@ This is **not** a product-wide “zero leak” marketing close.
 | Still open | Why |
 |---|---|
 | UI / H5 every page | Vue `assert:isolation` and the dual-tenant HTTP script already cover client headers / IAM / notify. This package does not re-walk the browser. |
-| Query AST joins / subquery / batch | Still single-table equality + IS NULL (M0-02 `GAPS.md`). |
-| FieldPolicy on export | `IsolatedExport` is the guarded surface + Task type `ledger.export.csv`. No report UI, no FieldPolicy projection of a physical ledger dump. |
+| Query AST joins / subquery / batch | INNER JOIN isolation is evidenced in [g1-query-join-field-policy.md](./g1-query-join-field-policy.md). Subquery / batch / sort / page AST remain open. |
+| FieldPolicy on export | Visibility + second-auth reject-before-execute is evidenced in [g1-query-join-field-policy.md](./g1-query-join-field-policy.md). No report UI; API reads still drop/mask via `FieldPolicyProjector`. |
 | `P3RequestContext` | Some P3 HTTP still has a request snapshot beside `AccessContextHolder`. Export / file / cache / Job / Task do not add a third holder and do not use that snapshot as tenant truth. |
-| G4 same-request chain | Login / permission / admin / export / guard-reject on one real browser request remains G4. This package only wires **guard-reject** onto `AuditPort.appendNewTransaction`. |
+| G4 same-request chain | Login / permission-change / admin / guard-reject wiring is on `main` ([g4-audit-coverage.md](./engineering/g4-audit-coverage.md)). Remaining G4 is 90-day hot + 365-day archive and export audit. This package only wires **guard-reject** onto `AuditPort.appendNewTransaction`. |
 | GaussDB / live Redis 3.2 / live MinIO | Same as M0-10: memory / Fake Redis / counting storage prove reject-before-backend. |
 | Platform-wide “every API” | IAM / P1 / notify / Query AST already had G1 rows on M0-12. Those stay as previously recorded; this package only closes the deferred export / file / cache / Job / Task guards. |

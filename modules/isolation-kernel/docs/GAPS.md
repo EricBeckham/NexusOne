@@ -2,8 +2,8 @@
 
 Honest leftover work. These are not claimed as done.
 
-- Join, subquery, batch write, sort/paging AST (still single-table equality + IS NULL).
-- DataScope / FieldPolicy compilation (M0-05). Only a seam is provided; a hostile injector that drops `tenant_id` is rejected.
+- Subquery, batch write, sort/paging AST, and OUTER/CROSS JOIN. INNER JOIN of registered tables is compiled; each tenant table gets its own `tenant_id` predicate.
+- DataScope / FieldPolicy compilation into the AST (M0-05). The DataScope seam still cannot strip `tenant_id` (including join predicates). Export uses a visibility/second-auth gate (`ExportFieldPolicyGuard`); mask merge stays in `FieldPolicyProjector`.
 - Generic NativeSqlPort beyond count templates.
 - Static scanner is regex-based: aliases, reflection, generated code, and JNI are not covered. Must keep infrastructure-root allowlisting tight.
 - No servlet/Spring filter here — M0-01 must call `RequestIsolationPolicy` from its filter/interceptor.

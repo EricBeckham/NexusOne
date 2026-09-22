@@ -16,7 +16,9 @@ import one.nexus.isolation.api.AuthenticatedMembership;
 import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.PlatformContext;
+import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.query.NativeSqlPort;
@@ -119,6 +121,69 @@ class PostgresIsolationIT {
                 assertEquals(2, count(connection, nativePort.compileCount("infra.count-ledger", platform)));
                 deny(IsolationErrorCode.NATIVE_TEMPLATE_NOT_WHITELISTED, () -> nativePort.compileCount("business.raw-sql", alpha));
                 assertTrue(sink.rejectCount() >= 5);
+            } finally {
+                raw.rollback();
+            }
+        }
+    }
+
+    @Test
+    void innerJoinSameTenantAndRejectCrossTenantBeforeJdbc() throws Exception {
+        try (Connection raw = postgres.getPostgresDatabase().getConnection()) {
+            raw.setAutoCommit(false);
+            try {
+                try (Statement fixture = raw.createStatement()) {
+                    fixture.execute("CREATE TABLE ledger_entry (id text PRIMARY KEY, tenant_id text NOT NULL, title text NOT NULL)");
+                    fixture.execute("""
+                            CREATE TABLE ledger_line (
+                                id text PRIMARY KEY,
+                                tenant_id text NOT NULL,
+                                entry_id text NOT NULL,
+                                amount text NOT NULL
+                            )
+                            """);
+                }
+                CollectingAuditSink sink = new CollectingAuditSink();
+                TableRegistry registry = new TableRegistry();
+                registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+                registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+                IsolationKernel kernel = IsolationKernel.create(registry, Set.of("ops.summary"), sink);
+                TenantContext alpha = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-a");
+                TenantContext beta = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-b"), "beta", "mem-b", Set.of("beta")), "trace-b");
+
+                AtomicInteger executions = new AtomicInteger();
+                Connection connection = counting(raw, executions);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map("id", "a1", "title", "alpha row")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_line", map("id", "al1", "entry_id", "a1", "amount", "10")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map("id", "b1", "title", "beta row")), beta);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_line", map("id", "bl1", "entry_id", "b1", "amount", "99")), beta);
+
+                QueryAst sameTenant = QueryAst.select(
+                        "ledger_entry",
+                        List.of("ledger_entry.id", "line.amount"),
+                        Map.of(),
+                        List.of(QueryJoin.inner("ledger_line", "line", List.of(
+                                new JoinOn("ledger_entry", "id", "line", "entry_id")))));
+                List<Map<String, Object>> rows = kernel.jdbc().executeQuery(connection, sameTenant, alpha);
+                assertEquals(1, rows.size());
+                assertEquals("a1", String.valueOf(rows.getFirst().get("id")));
+                assertEquals("10", String.valueOf(rows.getFirst().get("amount")));
+
+                int before = executions.get();
+                Connection unusable = unusable();
+                QueryAst stolenJoin = QueryAst.select(
+                        "ledger_entry",
+                        List.of("id"),
+                        Map.of(),
+                        List.of(QueryJoin.inner("ledger_line", "line", List.of(
+                                new JoinOn("ledger_entry", "id", "line", "entry_id")),
+                                map("tenant_id", "beta"))));
+                deny(IsolationErrorCode.CROSS_TENANT_JOIN, () ->
+                        kernel.jdbc().executeQuery(unusable, stolenJoin, alpha));
+                assertEquals(before, executions.get(), "cross-tenant join must not reach JDBC");
+                assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_JOIN));
             } finally {
                 raw.rollback();
             }

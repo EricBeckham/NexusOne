@@ -4,21 +4,22 @@ Recorded 2026-09-22 on this agent VM. Java 21.0.10, Maven 3.9.16, in-process Pos
 
 ## `mvn test`
 
-G1 remaining-surfaces re-run **2026-09-22T15:28:16Z**:
+G1 join + export FieldPolicy re-run **2026-09-22T15:41:22Z**:
 
 ```
-Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
 | Class | Tests |
 |---|---|
 | `SqlBypassScannerTest` | 2 |
-| `QueryCompilerTest` | 4 |
-| `PostgresIsolationIT` | 1 (dual-tenant CRUD on PG 15; denies use an unusable Connection so rejects cannot reach JDBC) |
+| `QueryCompilerTest` | 7 (includes INNER JOIN tenant inject + `P1.M02.020` reject + DataScope cannot strip join tenant) |
+| `PostgresIsolationIT` | 2 (dual-tenant CRUD; same-tenant join; stolen join never reaches JDBC) |
 | `PropagationContractTest` | 5 (cache / file / async rejects now assert `IsolationAuditEvent`) |
 | `RequestIsolationPolicyTest` | 5 |
-| `IsolatedExportTest` | 2 (same-tenant sinks run; cross-tenant export/file/cache/task rejected with `P1.M02.019` records) |
+| `IsolatedExportTest` | 4 (export/file/cache/task + FieldPolicy `P1.M02.021` reject-before-compile/file) |
+| `TableRegistryReplaceTest` | 3 |
 
 S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md).
 
