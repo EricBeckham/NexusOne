@@ -4,7 +4,7 @@ Work package: a **mini-program-shaped harness** that acts as a simulated web-vie
 Same HostBridgePort channels as the mobile-browser iframe host (`login` / `route` / `file` / `close`).  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledger / form / todo pages are unchanged. G18 stays closed and is not redone.
 
-**This does not close product G15.** It does **not** accept WeChat or DingTalk production 小程序. The production-host **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). APP WebView native stays open. Mobile-browser PKCE leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md).
+**This does not close product G15.** It does **not** accept WeChat or DingTalk production 小程序. The production-host **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). APP WebView native stays open. Mobile-browser PKCE leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Follow-on H5 PKCE / miniprogram remainder leftover (does **not** redo this leftover): [g15-h5-pkce-miniprogram-remainder-honesty.md](./g15-h5-pkce-miniprogram-remainder-honesty.md).
 
 ## What this slice adds
 

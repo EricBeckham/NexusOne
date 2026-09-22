@@ -1,0 +1,142 @@
+name: g15-h5-pkce-miniprogram-remainder-honesty
+
+# Honesty gate for H5 PKCE / miniprogram web-view remainder beyond #198 / #220 / #120.
+# Does not start live Keycloak, WeChat, DingTalk, or native packages.
+# Does not redo #117/#120/#126/#198/#220. Not product G15 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh"
+      - "scripts/g15-h5-pkce-miniprogram-remainder-honesty/**"
+      - ".github/workflows/g15-h5-pkce-miniprogram-remainder-honesty.yml"
+      - "docs/g15-h5-pkce-miniprogram-remainder-honesty.md"
+      - "docs/engineering/g15-h5-pkce-miniprogram-remainder-honesty-EVIDENCE.md"
+      - "web/src/mobile/host/h5PkceMiniprogramRemainderHonesty.js"
+      - "web/src/mobile/host/h5PkceMiniprogramRemainderHonesty.test.js"
+      - "web/scripts/assert-h5-pkce-miniprogram-remainder-honesty.mjs"
+  pull_request:
+    paths:
+      - "scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh"
+      - "scripts/g15-h5-pkce-miniprogram-remainder-honesty/**"
+      - ".github/workflows/g15-h5-pkce-miniprogram-remainder-honesty.yml"
+      - "docs/g15-h5-pkce-miniprogram-remainder-honesty.md"
+      - "docs/engineering/g15-h5-pkce-miniprogram-remainder-honesty-EVIDENCE.md"
+      - "web/src/mobile/host/h5PkceMiniprogramRemainderHonesty.js"
+      - "web/src/mobile/host/h5PkceMiniprogramRemainderHonesty.test.js"
+      - "web/scripts/assert-h5-pkce-miniprogram-remainder-honesty.mjs"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh --verify-report scripts/g15-h5-pkce-miniprogram-remainder-honesty/fixtures/honest-skip.env
+      - name: Fake product G15 close is rejected
+        run: |
+          set +e
+          ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh --verify-report \
+            scripts/g15-h5-pkce-miniprogram-remainder-honesty/fixtures/fake-g15-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g15_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G15 close rejected"
+      - name: Fake live H5 PKCE PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh --verify-report \
+            scripts/g15-h5-pkce-miniprogram-remainder-honesty/fixtures/fake-live-pkce-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_h5_keycloak_pkce=PASS without a walk to fail"
+            exit 1
+          fi
+          echo "PASS: fake live PKCE PASS rejected"
+      - name: Fake WeChat PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh --verify-report \
+            scripts/g15-h5-pkce-miniprogram-remainder-honesty/fixtures/fake-wechat-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake wechat PASS without walk to fail"
+            exit 1
+          fi
+          echo "PASS: fake WeChat PASS rejected"
+      - name: Fake IPA PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh --verify-report \
+            scripts/g15-h5-pkce-miniprogram-remainder-honesty/fixtures/fake-ipa-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake IPA PASS without walk to fail"
+            exit 1
+          fi
+          echo "PASS: fake IPA PASS rejected"
+      - name: Fake redo flags are rejected
+        run: |
+          set +e
+          ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh --verify-report \
+            scripts/g15-h5-pkce-miniprogram-remainder-honesty/fixtures/fake-redone.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake redo flags to fail"
+            exit 1
+          fi
+          echo "PASS: fake redo rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Collect honest harness PASS / live SKIP
+        run: |
+          chmod +x ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh
+          ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty"
+          ./scripts/g15-h5-pkce-miniprogram-remainder-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^leftover_117_harness=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^leftover_126_harness=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^leftover_120_sibling=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^leftover_198_harness=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^leftover_220_harness=PASS$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^live_h5_keycloak_pkce=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^wechat_miniprogram_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^dingtalk_miniprogram_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^ios_ipa_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^android_apk_production=SKIP$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^g15_close=NOT_CLAIMED$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E 'g15-h5-pkce-browser' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E 'g15-miniprogram-webview' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E 'g15-wx-dt-native-bridge-remainder' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E 'g4-hot-purge-staging-leftover-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E 'g7-withdraw-browser-evidence-honesty' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^redone_117=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^redone_120=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^redone_126=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^redone_198=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^redone_220=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g15-h5-pkce-miniprogram-remainder-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g15-h5-pkce-miniprogram-remainder-honesty
+          path: ${{ runner.temp }}/g15-h5-pkce-miniprogram-remainder-honesty
