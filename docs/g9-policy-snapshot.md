@@ -37,7 +37,8 @@ Agent VM **2026-09-22T15:42:29Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Spring 
 
 ```
 mvn -pl nexus-permission-core -am test
-# BUILD SUCCESS — Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:46:14Z after rebase onto main@26d1f94
+# Tests run: 42, Failures: 0, Errors: 0, Skipped: 5
 ```
 
 | Suite | Count |

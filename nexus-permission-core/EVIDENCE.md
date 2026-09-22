@@ -86,8 +86,8 @@ Recorded **2026-09-22T15:42:29Z** on this agent VM. OpenJDK **21.0.10**, Maven *
 
 ```
 mvn -pl nexus-permission-core -am test
-# BUILD SUCCESS  2026-09-22T15:42:29Z
-# Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:42:29Z (pre-rebase) — Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:46:14Z (after rebase onto main@26d1f94) — Tests run: 42, Failures: 0, Errors: 0, Skipped: 5
 ```
 
 Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataScopeTest` 1, `JdbcDualTenantPermissionTest` 1 (no live PG listener). JDBC poll proof is `JdbcPolicySnapshotPollIT` on Zonky **15.18** (Flyway V200 + V300, schema `iam`).
