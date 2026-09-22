@@ -1,6 +1,6 @@
 # Sanitized agent-VM TARGET-ARM-01 / supply-chain honesty leftover output
 # Host: Ubuntu x86_64 (not ARM). Docker not used.
-# Rebased onto origin/main 8a563e9 / #154.
+# Rebased onto origin/main bff7796 / #155.
 # profile_acceptance=NOT_CLAIMED
 # TARGET-ARM-01 stays not-tested. supply-chain-evidence.csv stays not-collected.
 # This leftover does not re-run #105 collect or #127 lifecycle.
