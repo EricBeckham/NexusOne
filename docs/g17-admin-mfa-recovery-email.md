@@ -1,6 +1,6 @@
 # G17 leftover — admin MFA recovery codes / email MFA path
 
-S0+S1 remainder after admin MFA (#96), native Keycloak TOTP (#118), and in-app TOTP UX (#133). **G18 stays closed.** This slice **extends** those leftovers. It does **not** rewrite `AdminMfaPolicy`, the #118 HTTP driver TOTP walk, or the #133 6-digit enrollment page. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. It does **not** write an otp secret back into Keycloak from Vue. It does **not** claim 等保 / 密评 / 完整 G17.
+S0+S1 remainder after admin MFA (#96), native Keycloak TOTP (#118), and in-app TOTP UX (#133). **G18 stays closed.** Sibling honesty leftover beyond this #154 contract: [g17-mfa-recovery-email-honesty.md](./g17-mfa-recovery-email-honesty.md) (live SMTP / Keycloak recovery-authn-codes PASS only when observed). This slice **extends** those leftovers. It does **not** rewrite `AdminMfaPolicy`, the #118 HTTP driver TOTP walk, or the #133 6-digit enrollment page. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. It does **not** write an otp secret back into Keycloak from Vue. It does **not** claim 等保 / 密评 / 完整 G17.
 
 #133 still proves in-app TOTP copy / error paths. #118 still proves the live Keycloak `CONFIGURE_TOTP` HTTP walk. The leftover here is **recovery codes** (local one-time codes) plus an **email MFA request contract** that **honestly SKIP**s when this VM cannot deliver mail or Keycloak recovery-authn-codes.
 
@@ -58,7 +58,7 @@ Fill from `./scripts/g17/run-mfa-recovery-email.sh`. Artifacts: [g17-admin-mfa-r
 | Still open | Why |
 |---|---|
 | Writing otp / recovery-authn-codes into Keycloak from Vue | Explicitly out of scope. #118 remains the credential walk. |
-| Email OTP actually delivered to an inbox | Product SMTP is invite / reset only and defaults off. No MTA / Keycloak SMTP on this leftover. |
+| Email OTP actually delivered to an inbox | Honesty leftover is [g17-mfa-recovery-email-honesty.md](./g17-mfa-recovery-email-honesty.md). Product SMTP is invite / reset only and defaults off. |
 | Keycloak `CONFIGURE_RECOVERY_AUTHN_CODES` required action | Driver can classify the form. This VM does not enroll it. |
 | SMS MFA / WebAuthn / passkeys | Not implemented. |
 | Forced OTP at the Keycloak flow layer | Same as #118: product gate is P2. |

@@ -90,6 +90,7 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g15-native-bridge-stub",
   "g4-p1-staging-audit-events",
   "g17-admin-mfa-recovery-email",
+  "g17-mfa-recovery-email-honesty",
   "s0-secret-rotate-without-restart",
   "g2-ops-pg-dump",
   "g7-withdraw-browser",
