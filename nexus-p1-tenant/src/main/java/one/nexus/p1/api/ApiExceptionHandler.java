@@ -1,8 +1,6 @@
 package one.nexus.p1.api;
 
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +14,6 @@ import one.nexus.p1.domain.ErrorCode;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ErrorBody> domain(DomainException ex, HttpServletRequest request) {
@@ -39,13 +35,6 @@ public class ApiExceptionHandler {
                 .orElse("validation failed");
         return ResponseEntity.badRequest()
                 .body(body(ErrorCode.TENANT_INVALID_CODE.code(), message, request, Map.of()));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorBody> other(Exception ex, HttpServletRequest request) {
-        log.error("unhandled error", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(body("P1.INTERNAL.0001", "internal error", request, Map.of()));
     }
 
     private static ErrorBody body(String code, String message, HttpServletRequest request, Map<String, Object> details) {

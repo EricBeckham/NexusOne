@@ -1,55 +1,12 @@
-server:
-  port: ${NEXUS_HTTP_PORT:${NEXUS_P1_PORT:18081}}
-
 spring:
-  application:
-    name: nexus-p1-tenant
   jackson:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
-  datasource:
-    url: ${NEXUS_DB_URL:${NEXUS_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/nexus_p1}}
-    username: ${NEXUS_DB_USER:${NEXUS_DATASOURCE_USERNAME:nexus_p1}}
-    password: ${NEXUS_DB_PASSWORD:${NEXUS_DATASOURCE_PASSWORD:}}
-    driver-class-name: org.postgresql.Driver
-  flyway:
-    enabled: true
-    # Align with M0-01: platform schema + flyway_schema_history. V100–V199 is the P1 window.
-    schemas: platform
-    default-schema: platform
-    table: flyway_schema_history
-    locations: classpath:db/migration
-    validate-on-migrate: true
-    create-schemas: true
-  sql:
-    init:
-      mode: never
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      probes:
-        enabled: true
-  info:
-    env:
-      enabled: true
-
-info:
-  app:
-    name: NexusOne P1 Tenant
-    work-package: M0-03
-    spring-boot: "4.1.1"
-    java: "21"
-    flyway-pin: "13.7.0"
 
 nexus:
   p1:
     demo-context:
-      # Local JAR demonstration only. Production entry (M0-01/M0-02) must strip client tenant/identity headers (ARCH-024).
+      # Local JAR demonstration only. Production entry must strip client tenant/identity headers (ARCH-024).
       enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
     default-pack:
       code: nexus.default.m0

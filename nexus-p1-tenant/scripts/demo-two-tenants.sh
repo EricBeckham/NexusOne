@@ -3,7 +3,7 @@
 # Requires NEXUS_DB_PASSWORD (or legacy NEXUS_DATASOURCE_PASSWORD) in the environment.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 PASSWORD="${NEXUS_DB_PASSWORD:-${NEXUS_DATASOURCE_PASSWORD:-}}"
@@ -39,7 +39,11 @@ ACTOR="${NEXUS_P1_DEMO_ACTOR_ID:-01900000-0000-7000-8000-0000000000ac}"
 TRACE="demo-$(date -u +%Y%m%d%H%M%S)"
 
 mvn -q -DskipTests package
-JAR="$(ls -1 target/nexus-p1-tenant-*.jar | grep -v original | head -n 1)"
+JAR="nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar"
+if [[ ! -f "$JAR" ]]; then
+  echo "missing $JAR" >&2
+  exit 1
+fi
 
 java -jar "$JAR" > /tmp/nexus-p1-tenant.log 2>&1 &
 PID=$!

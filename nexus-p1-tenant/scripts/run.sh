@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 PASSWORD="${NEXUS_DB_PASSWORD:-${NEXUS_DATASOURCE_PASSWORD:-}}"
 if [[ -z "${PASSWORD}" ]]; then
@@ -10,4 +10,5 @@ fi
 export NEXUS_DB_PASSWORD="${NEXUS_DB_PASSWORD:-$PASSWORD}"
 export NEXUS_DATASOURCE_PASSWORD="${NEXUS_DATASOURCE_PASSWORD:-$PASSWORD}"
 export NEXUS_P1_DEMO_CONTEXT_ENABLED="${NEXUS_P1_DEMO_CONTEXT_ENABLED:-true}"
-exec mvn -q spring-boot:run
+export NEXUS_HTTP_PORT="${NEXUS_HTTP_PORT:-${NEXUS_P1_PORT:-18081}}"
+exec mvn -q -pl nexus-bootstrap -am spring-boot:run

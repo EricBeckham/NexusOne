@@ -4,37 +4,17 @@ P1 is the source of truth for **Tenant**, **Runtime Entitlement Projection**, an
 
 ## M0-01 engineering base
 
-This directory is a **runnable Spring Boot module** so M0-03 can be demonstrated before the M0-01 reactor is merged to `main`.
+This directory is the **P1 library** under the M0-01 reactor (`one.nexus:nexusone`, Spring Boot **4.1.1**). `nexus-bootstrap` scans `one.nexus` and depends on this module. Flyway **V100–V199** live in this module’s `db/migration` and share `platform.flyway_schema_history` with M0-01’s V001–V099.
 
-Re-parent (this follow-up):
+Env: `NEXUS_DB_URL` / `NEXUS_DB_USER` / `NEXUS_DB_PASSWORD`. Error numbers are four digits (`P1.TENANT.0001`).
 
-- Aggregator `pom.xml` uses the same coordinates as PR #46: `one.nexus:nexusone:0.1.0-SNAPSHOT`, parent **Spring Boot 4.1.1**, `flyway.version=13.7.0`.
-- This branch’s aggregator **only lists `nexus-p1-tenant`**. Merging with M0-01 will conflict on the root POM — keep M0-01’s full `<modules>` list and this module’s sources.
-- Env: `NEXUS_DB_URL` / `NEXUS_DB_USER` / `NEXUS_DB_PASSWORD` (legacy `NEXUS_DATASOURCE_*` still accepted).
-- Flyway: schema `platform`, table `flyway_schema_history`, versions **V100–V199**.
-- Error codes: four-digit numbers (`P1.TENANT.0001`).
+Local types (`one.nexus.p1.domain.Actor`, `ErrorCode`, `AuditEvent`, request-scoped `PlatformContext` / `TenantContext`) remain because they are not drop-in compatible with `nexus-common` records yet (extra fields: duties, quota audit details, inactive platform flag). Swap them in a follow-up; do not fork a second BOM.
 
-When M0-01 lands, preferred absorption:
+Remaining absorption:
 
-```text
-nexusone/
-  nexus-bootstrap          <- start class, shared Flyway/datasource, security filter chain
-  nexus-p1-tenant          <- this module, converted to a jar (non-boot) library
-  nexus-data-core          <- M0-02
-  nexus-p2-iam             <- M0-04
-  nexus-audit-core         <- M0-11
-```
-
-Remaining absorption steps (do not require changes inside P1 domain):
-
-1. Move `P1TenantApplication` into bootstrap or delete it; keep `@SpringBootApplication` scanning `one.nexus`.
-2. Add this module’s `classpath:db/migration` to bootstrap Flyway locations (or move V100–V101 into `nexus-bootstrap`). History table is already `platform.flyway_schema_history`.
+1. Replace demo header filter with M0-02 `modules/isolation-kernel` issuance.
+2. Implement `TenantAdminInitializer` in M0-04.
 3. Datasource secrets stay env-only (`NEXUS_DB_*`).
-4. Disable `nexus.p1.demo-context.enabled`. Wire M0-02 filters instead.
-5. Replace duplicated `one.nexus.p1.domain` copies of `Actor` / `AuditEvent` / `ErrorCode` / `TenantContext` / `PlatformContext` with `nexus-common` types.
-6. Health: this module exposes `/actuator/health` on `NEXUS_HTTP_PORT` / `NEXUS_P1_PORT` (default 18081). Bootstrap may relocate it.
-
-Java package stays `one.nexus.p1`. Physical tables stay in schema `platform`.
 
 ## M0-02 isolation kernel
 

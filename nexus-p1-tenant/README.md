@@ -4,7 +4,7 @@ Java 21 module for **P1 星域** tenant lifecycle, reserved platform tenant, bas
 
 This is product code, not a PoC copy of `poc/`. Isolation kernel (M0-02) and Keycloak (M0-04) are **not** implemented here; ports and stubs are documented in [CONTRACTS.md](CONTRACTS.md).
 
-Parent reactor: `one.nexus:nexusone:0.1.0-SNAPSHOT` with **Spring Boot 4.1.1** (same BOM as M0-01 / PR #46). This branch ships a thin aggregator `pom.xml` that only lists `nexus-p1-tenant` until M0-01 merges.
+Parent reactor: `one.nexus:nexusone:0.1.0-SNAPSHOT` with **Spring Boot 4.1.1** (M0-01 / PR #46). This module is a library scanned by `nexus-bootstrap`.
 
 ## What is in scope
 
@@ -38,9 +38,10 @@ export NEXUS_DB_URL=jdbc:postgresql://127.0.0.1:5432/nexus_p1
 export NEXUS_DB_USER=nexus_p1
 export NEXUS_DB_PASSWORD=...   # from your secret store
 export NEXUS_P1_DEMO_CONTEXT_ENABLED=true   # demo only; strip in production entry
+export NEXUS_HTTP_PORT=18081
 
 mvn -q -DskipTests package
-java -jar nexus-p1-tenant/target/nexus-p1-tenant-0.1.0-SNAPSHOT.jar
+java -jar nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
 ```
 
 Provisional quota env (not product max):

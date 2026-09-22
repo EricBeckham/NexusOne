@@ -23,7 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 import one.nexus.p1.config.P1Properties;
 import one.nexus.p1.infra.isolation.DemoPlatformContextFilter;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = P1TenantTestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class TenantModuleIT {
 
