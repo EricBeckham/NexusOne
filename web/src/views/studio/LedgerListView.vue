@@ -9,7 +9,7 @@
         {{ showCreate ? "收起创建" : "创建台账" }}
       </button>
     </div>
-    <NxSourceBanner body="Live M0-06。空列表表示当前租户还没有台账，不是 MOCK。本页可创建应用与台账；G18 业务走通仍待 Eric 浏览器复走。" />
+    <NxSourceBanner body="Live M0-06。空列表表示当前租户还没有台账，不是 MOCK。本页可创建应用与台账。" />
     <div class="nx-card" style="margin-bottom:16px;">
       <div class="nx-muted">自建台账 Quota（P1 /api/v1/p1/tenants/{id}/quotas，非 ledger payload）</div>
       <strong>{{ quotaLabel }}</strong>

@@ -75,8 +75,12 @@ if (files.pkg.includes("assert:p3-mock")) {
 if (files.webReadme.includes("src/api/mocks") || files.webReadme.includes("VITE_NEXUS_P3_USE_MOCK=true")) {
   failures.push("web README must not document MOCK as the default");
 }
-if (!files.webReadme.includes("G18") || files.webReadme.includes("G18 已关闭") || files.webReadme.includes("closes G18")) {
-  failures.push("web README must mention G18 without claiming it closed");
+const claimsG18Closed = /G18[^.\n]{0,80}(closed|已关闭)/i.test(files.webReadme) || files.webReadme.includes("closes G18");
+if (!files.webReadme.includes("G18")) {
+  failures.push("web README must mention G18");
+}
+if (claimsG18Closed && !files.webReadme.includes("g18-business-path.md")) {
+  failures.push("a G18 closed claim must cite docs/g18-business-path.md");
 }
 
 if (failures.length) {

@@ -22,7 +22,7 @@ Optional<FieldRef>  findField(tenantId, ledgerCode, fieldCode)
 
 `LedgerRef` / `FieldRef` **不含**物理表名或列名。当 M0-06 `LedgerRepository` / `FieldRepository` 存在时，默认 bean 是 `JdbcLedgerMetadataPort`（只暴露逻辑码；`usable` = ledger `READY`）。无 JDBC 仓储时回退 `InMemoryLedgerMetadataCatalog`（`nexus.studio.seed-demo-metadata=true` 预置 `leave_request`）。
 
-发布后的业务行仍由 M0-06 SchemaService / `GuardedLedgerStore` 写入 `business_data`。填报默认写 `business_meta.form_submission`；当 JDBC `LedgerRecordSink` 存在时（G18），同一次 submit 还会按运行快照的 `ledger_code`/`field_code` 插入物理台账行。没有第二条 DDL 路径。产品 G18 未关闭（见 `docs/g18-business-path.md`）。
+发布后的业务行仍由 M0-06 SchemaService / `GuardedLedgerStore` 写入 `business_data`。填报默认写 `business_meta.form_submission`；当 JDBC `LedgerRecordSink` 存在时（G18），同一次 submit 还会按运行快照的 `ledger_code`/`field_code` 插入物理台账行。没有第二条 DDL 路径。产品 G18 已关闭（见 `docs/g18-business-path.md`）。
 
 ## 状态机
 
@@ -37,7 +37,7 @@ DRAFT --validate--> VALIDATED --publish--> RUNNING
 - 发布中途失败（`PublishHook` / 运行时异常）：**事务回滚**。RUNNING 指针与已发布 snapshot 不变；`form_publish_log.outcome=ROLLED_BACK`。
 - 编辑 VALIDATED 草稿会回到 DRAFT，必须重新校验。
 
-G5（Draft/Running、校验、失败回滚）由模块测试覆盖；不宣称 G18 关闭。
+G5（Draft/Running、校验、失败回滚）由模块测试覆盖。G18 关闭记录在 `docs/g18-business-path.md`，浏览器走通了校验与发布，失败回滚仍以这里的模块测试为准。
 
 ## API
 

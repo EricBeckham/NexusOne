@@ -2,18 +2,24 @@
 
 Work package for **tenant/org/permission shells** plus **dual-tenant adversarial scripts** against APIs that are already on `main` (M0-03 P1, M0-04 P2, M0-05 permission, M0-06/07/08 P3, M0-10 notify).
 
-This package **does not close G18**. Ledger, form, and todo **UI** in `web/` call live HTTP (`/api/v1/p3/ledgers`, `/api/v1/p3/forms`, `/api/v1/p3/todos`, `/api/v1/p3/path/submit-start`). Notify and audit-by-trace have sidebar pages. MOCK adapters for 台账 / 表单 / 待办 are removed.
+Ledger, form, and todo **UI** in `web/` call live HTTP (`/api/v1/p3/ledgers`, `/api/v1/p3/forms`, `/api/v1/p3/todos`, `/api/v1/p3/path/submit-start`). Notify and audit-by-trace have sidebar pages. MOCK adapters for 台账 / 表单 / 待办 are removed. **Product G18 is closed** by the `38f1a73` browser record in [g18-business-path.md](./g18-business-path.md).
 
-## Browser state (NOT CLOSED)
+## Browser state
 
-Eric browser-tested UI `http://127.0.0.1:5173` + API `:18085` on `ace55ff` (stub login「浏览器管理员」, tenant `ui2205`). He could only reach **tenant / org / permission snapshot**. That walk is **not closed**.
+### `38f1a73` — G18 closed (2026-09-22)
+
+UI `http://127.0.0.1:5173`, API `:18086`, PostgreSQL 15.18 database `nexus_g18_loop`. Stub login `ui2231@example.com` / 浏览器管理员. Tenant 浏览器租户 `ui2231` (`01a0c98a-1f3c-7f72-b724-6ac34746e981`). Person ACTIVE, org Root / `ROOT`. Snapshot `grant_count=7`; `ledger`/`read` allowed. Ledger `leave2231` READY. Form `leave2231_form` Validate PASS, `running_version=1`. submit-start then 同意. Record 年假 / 3 / 浏览器走通 / `APPROVED`. Notifications `DELIVERED`. Audit by both traces. Detail and ids: [g18-business-path.md](./g18-business-path.md).
+
+### `ace55ff` — prior walk, incomplete
+
+Eric browser-tested UI `http://127.0.0.1:5173` + API `:18085` on `ace55ff` (stub login「浏览器管理员」, tenant `ui2205`). He could only reach **tenant / org / permission snapshot**. Kept as history.
 
 Two independent blockers on that commit:
 
 1. **Grants:** permission snapshot **`grant_count=0`**, `ledger/read` **`allowed=false` / `no_grant`**. HTTP E2E / `G18BusinessPathIT` already seeded `tenant_member` via `/api/v1/p3/*`; the browser permission page did not. **#66** (`7fffd39` on `main`) seeds role `tenant_member` onto the current **person id** from `PermissionAuthFilter` / `FlowAuthFilter`. `TenantMemberGrantSeedApiTest` (**2026-09-22T14:17:57Z**) is that permission-shell path, not a browser G18 close.
 2. **Shell:** ledger list empty / quota 0/10 / **no create-ledger UI**; form list empty / **no create / validate / publish**; fill copy was `form_submission`-only; todos had **no path approve**; **no sidebar** for notifications or audit hash-chain.
 
-This PR adds the shell entry points against APIs already on `main`. It still **does not claim product G18 closed** until Eric re-runs the browser E2E (login → grants present → create ledger → publish form → submit-start → approve → notify → audit by trace). Do not treat a later non-zero snapshot as a G18 close.
+The shell entry points landed before the close. The close is the `38f1a73` walk above (login → grants present → create ledger → publish form → submit-start → approve → notify → audit by trace), together with `G18RollbackProbe` and the dispatcher timing already in [g18-business-path.md](./g18-business-path.md). A non-zero snapshot by itself was not the close; the full walk was.
 
 ## How to run
 
@@ -72,27 +78,27 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G1 | In-app notifications do not leak across tenants | **PASS** | enqueue in A, list in B empty |
 | G1 | Query AST / export / file / cache / Job / Task full path | **DEFERRED** | M0-02 kernel + later modules |
 | G1 | Guard-reject logs “zero leak” product claim | **DEFERRED** | isolation kernel evidence, not this UI |
-| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | On `ace55ff` health UP but `grant_count=0` / `ledger/read` `no_grant`. #66 on `main` seeds person-id `tenant_member` on the permission filter. G2 product-wide not closed |
+| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 product-wide (UI/API/query/flow/report/export/H5, one engine) stays open |
 | G5 | Draft/Validate/Publish | **LIVE API** | M0-07 HTTP + Vue fill/publish; G5 rollback is server-side, not a G18 walkthrough |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **LIVE API** | `GET /api/v1/permission/snapshot` with issued context |
 | G15 | H5 | **DEFERRED** | S1 |
 | G18 | Tenant create | **PASS** | P1 API + tenant admin UI |
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
-| G18 | Permission views | **LIVE SHELL / BLOCKED ON ace55ff** | Snapshot + check only. Browser on `ace55ff`: `grant_count=0`, `ledger/read` `no_grant`. #66 seeds person id. No full matrix UI |
-| G18 | Ledger | **LIVE API + CREATE UI** | Vue list/create/detail → `/api/v1/p3/applications` + `/api/v1/p3/ledgers`. No field PUT. Browser G18 did not reach this on `ace55ff` |
-| G18 | Form / publish | **LIVE API + CREATE UI** | Create DRAFT, Validate, Publish. Fill defaults to **submit-start**. G5 not claimed closed here. Browser G18 did not reach this on `ace55ff` |
-| G18 | Business data / query | **LIVE LIST** | record APIs exist; physical row is written by submit-start, not by form_submission-only |
-| G18 | Sequential approval / todo | **LIVE API** | inbox/done/initiated + **path** approve/reject/withdraw. Browser G18 did not reach this on `ace55ff` |
-| G18 | In-app notification | **LIVE UI** | sidebar + `/p3/notifications` → `/api/v1/notifications`. Browser G18 did not reach this on `ace55ff` |
-| G18 | Full audit hash chain | **LIVE READ UI** | `/p3/audit` → `GET /api/v1/audit/traces/{id}` (tenant-filtered, read-only). Not a product G4/G18 close |
-| G18 | End-to-end real business walkthrough | **NOT CLOSED** | Backend path is wired (`docs/g18-business-path.md`). Browser on `ace55ff` reached only tenant / org / permission snapshot (`grant_count=0` / `no_grant`) and had no create/publish/submit-start UI. Vue now exposes those buttons; #66 seeds the subject. Product G18 is **not** closed until Eric re-walks. |
+| G18 | Permission views | **PASS** | `38f1a73`: snapshot `grant_count=7`, `ledger`/`read` allowed. Full matrix UI stays on G2 |
+| G18 | Ledger | **PASS** | `leave2231` READY, quota 1/10, table `l_ui2231_leave2231`. No field PUT |
+| G18 | Form / publish | **PASS** | `leave2231_form` Validate PASS, `running_version=1`. G5 failure rollback stays on the module test |
+| G18 | Business data / query | **PASS** | Record 年假 / 3 / 浏览器走通 / `APPROVED` after 同意 |
+| G18 | Sequential approval / todo | **PASS** | submit-start then path 同意. Withdraw was not clicked on this walk |
+| G18 | In-app notification | **PASS** | `approval.task.assigned` and `approval.task.approved` both `DELIVERED` |
+| G18 | Audit by trace | **PASS** | Submit trace `1a1f7b8b-4de0-4ef0-978c-3d39a65744ff`; approve trace `cb9e0a9f-0943-4384-aa06-31f05e292103`. Chain indexes 4–7 linked. G4 login/permission/admin/guard-reject stays open |
+| G18 | End-to-end real business walkthrough | **PASS** | `38f1a73` browser record in [g18-business-path.md](./g18-business-path.md). Same-TX rollback and dispatcher timing are the earlier records cited there |
 
 Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (regressed).
 
 ## Out of scope (explicit)
 
-- Claiming G18 or G1 product-wide closed
+- Claiming G1 product-wide closed (export / file / cache / Job / Task remain deferred)
 - Reimplementing backend modules or inventing MOCK fixtures again
 - Docker / Compose
 - Browser Authorization Code + PKCE as accepted login
@@ -116,4 +122,4 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 
 See the PR for `npm run build`, `npm run assert:isolation`, `npm run assert:p3-live`, and dual-tenant script output when PostgreSQL 15.x is available.
 
-Browser on `ace55ff`: tenant / org / permission snapshot only; `grant_count=0` / `no_grant`. G18 remains **NOT CLOSED**. Do not claim closed.
+`ace55ff` browser: tenant / org / permission snapshot only; `grant_count=0` / `no_grant`. Superseded by the `38f1a73` walk. Product G18 is **closed** for that one slice.
