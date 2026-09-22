@@ -233,10 +233,11 @@ if grep -Fq '[g1-queryast-boundsql-guard](./g1-queryast-boundsql-guard.md)' "$RE
   && grep -Fq '[g1-fieldpolicy-mask-second-auth](./g1-fieldpolicy-mask-second-auth.md)' "$README" \
   && grep -Fq '[g1-fieldpolicy-mask-second-auth-honesty](./g1-fieldpolicy-mask-second-auth-honesty.md)' "$README" \
   && grep -Fq '[g4-hot-purge-90d-honesty](./g4-hot-purge-90d-honesty.md)' "$README" \
-  && grep -Fq '[g17-separation-honesty](./g17-separation-honesty.md)' "$README"; then
+  && grep -Fq '[g17-separation-honesty](./g17-separation-honesty.md)' "$README" \
+  && grep -Fq '[s0s1-live-redis-minio-isolation-honesty](./s0s1-live-redis-minio-isolation-honesty.md)' "$README"; then
   LEFTOVER_ROWS=true
 fi
-[ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep sibling leftover rows (g1-queryast-boundsql-guard, g1-datascope-or-in-ast, g1-fieldpolicy-mask-second-auth, g1-fieldpolicy-mask-second-auth-honesty, g4-hot-purge-90d-honesty, g17-separation-honesty)"
+[ "$LEFTOVER_ROWS" = "true" ] || fail "docs/README.md must keep sibling leftover rows (g1-queryast-boundsql-guard, g1-datascope-or-in-ast, g1-fieldpolicy-mask-second-auth, g1-fieldpolicy-mask-second-auth-honesty, g4-hot-purge-90d-honesty, g17-separation-honesty, s0s1-live-redis-minio-isolation-honesty)"
 
 TEST_SUMMARY=""
 if [ "$SKIP_TESTS" = "0" ]; then
