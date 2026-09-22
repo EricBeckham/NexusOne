@@ -17,11 +17,12 @@ STUB_PID=""
 WEB_PID=""
 
 cleanup() {
-  if [[ -n "${WEB_PID}" ]] && kill -0 "${WEB_PID}" >/dev/null 2>&1; then
+  if [[ -n "${WEB_PID}" ]]; then
     kill "${WEB_PID}" >/dev/null 2>&1 || true
+    pkill -P "${WEB_PID}" >/dev/null 2>&1 || true
     wait "${WEB_PID}" >/dev/null 2>&1 || true
   fi
-  if [[ -n "${STUB_PID}" ]] && kill -0 "${STUB_PID}" >/dev/null 2>&1; then
+  if [[ -n "${STUB_PID}" ]]; then
     kill "${STUB_PID}" >/dev/null 2>&1 || true
     wait "${STUB_PID}" >/dev/null 2>&1 || true
   fi

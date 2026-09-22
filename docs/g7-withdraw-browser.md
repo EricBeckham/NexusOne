@@ -70,24 +70,35 @@ Expense / travel use the same button when those initiated rows are pending. Cata
 
 ## Evidence
 
-Recorded on this branch with `./scripts/g7/run-withdraw-browser.sh`. Artifact: [walk.json](./g7-withdraw-browser/walk.json). Screenshots: [01-stub-login](./g7-withdraw-browser/01-stub-login.png), [02-initiated](./g7-withdraw-browser/02-initiated.png), [03-withdrawn](./g7-withdraw-browser/03-withdrawn.png).
+Recorded **2026-09-22T17:37:15Z** on this branch with `./scripts/g7/run-withdraw-browser.sh`. Artifact: [walk.json](./g7-withdraw-browser/walk.json).
+
+Screenshots:
+
+- [01-stub-login](./g7-withdraw-browser/01-stub-login.png) — `/login`, stub email `g7-ui@example.com`
+- [02-initiated](./g7-withdraw-browser/02-initiated.png) — 我发起: 请假 / 报销 / 出差 `RUNNING`
+- [02b-todo-withdraw](./g7-withdraw-browser/02b-todo-withdraw.png) — leave row selected, **撤回** visible
+- [03-withdrawn](./g7-withdraw-browser/03-withdrawn.png) — all three `WITHDRAWN`; notice `已 withdraw。approval_status=WITHDRAWN`
 
 | Item | Value |
 |---|---|
-| JDK | OpenJDK **21** |
-| Spring Boot | **4.1.1** |
-| Node | **22** |
-| Browser | system Chrome + `playwright-core` (no Docker, no bundled Chromium download) |
-| Login | stub (`data-testid=stub-login`) |
+| JDK | OpenJDK **21.0.10** (`21.0.10+7-Ubuntu-124.04`) |
+| Spring Boot | **4.1.1** (product baseline; this leftover does not boot the JAR) |
+| Node | **22.14.0** |
+| Browser | Google Chrome **148.0.7778.96** + `playwright-core` **1.55+** (system binary, no Docker, no bundled Chromium download) |
+| Login | stub (`data-testid=stub-login`) → issued `X-Nexus-Context-Id=01a0c98a-1f3c-7f72-b724-6ac34746e981` |
 | Control | `data-testid=todo-withdraw` |
 | `AuditPort` | **untouched** |
 | Docker | no |
 
 | Suite | Result |
 |---|---|
-| Vitest `todo-withdraw.browser.test.js` | Vue click of `todo-withdraw` → `withdrawTodo(..., instance_id)` + `WITHDRAWN` |
-| Playwright walk | stub login → 我发起 → 撤回 (leave required; expense/travel optional same control) |
+| Vitest `todo-withdraw.browser.test.js` | **1/1** — Vue click of `todo-withdraw` → `withdrawTodo(..., instance_id)` + `WITHDRAWN` |
+| Playwright walk | **PASS** — stub login → 我发起 → 撤回 on **leave + expense + travel** stub rows. Each POST used Bearer + issued context and no `X-Tenant-Id` |
+| `web npm test` | **23/23** (existing H5 tests unchanged) |
+| `npm run assert:p3-live` / `assert:isolation` | **PASS** |
 | live product JAR | **not claimed** — HTTP on main already recorded |
+
+Expense / travel UI clicks here are the **same Vue button** against stub initiated rows. They are **not** catalog provision + live-JAR evidence and do **not** close G7 as a product gate.
 
 ## Honest gaps
 

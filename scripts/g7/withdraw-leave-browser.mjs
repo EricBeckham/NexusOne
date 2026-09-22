@@ -5,8 +5,9 @@
  * Leave is required. Expense/travel are optional extra clicks on the same control.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = parseArgs(process.argv.slice(2));
@@ -69,14 +70,15 @@ function skip(reason, extra = {}) {
   process.exit(0);
 }
 
-async function loadPlaywright() {
+function loadPlaywright() {
+  const require = createRequire(import.meta.url);
   const candidates = [
-    join(dirname(fileURLToPath(import.meta.url)), "node_modules/playwright-core/index.js"),
-    join(root, "web/node_modules/playwright-core/index.js"),
+    join(dirname(fileURLToPath(import.meta.url)), "node_modules/playwright-core"),
+    join(root, "web/node_modules/playwright-core"),
   ];
   for (const file of candidates) {
     try {
-      return await import(pathToFileURL(file).href);
+      return require(file);
     } catch {
       // try next
     }
@@ -102,8 +104,8 @@ async function stubState() {
 }
 
 async function walk() {
-  const playwright = await loadPlaywright();
-  if (!playwright) {
+  const playwright = loadPlaywright();
+  if (!playwright?.chromium) {
     skip("playwright-core is not installed (run scripts/g7/run-withdraw-browser.sh)");
   }
   const chrome = findChrome();
@@ -141,12 +143,17 @@ async function walk() {
     await page.locator('[data-testid="todo-table"]').waitFor();
     await page.screenshot({ path: join(shotDir, "02-initiated.png"), fullPage: true });
 
+    let capturedControl = false;
     for (const type of types) {
       const label = type === "leave" ? "请假审批" : type === "expense" ? "报销审批" : "出差审批";
       const row = page.locator("[data-testid=todo-table] tbody tr").filter({ hasText: label }).first();
       await row.click();
       const button = page.locator('[data-testid="todo-withdraw"]');
       await button.waitFor({ state: "visible" });
+      if (!capturedControl) {
+        await page.screenshot({ path: join(shotDir, "02b-todo-withdraw.png"), fullPage: true });
+        capturedControl = true;
+      }
       await button.click();
       await page.locator(".nx-muted", { hasText: "已 withdraw" }).waitFor();
       const notice = await page.locator(".nx-muted", { hasText: "已 withdraw" }).innerText();
@@ -198,8 +205,10 @@ async function walk() {
       screenshots: [
         "docs/g7-withdraw-browser/01-stub-login.png",
         "docs/g7-withdraw-browser/02-initiated.png",
+        "docs/g7-withdraw-browser/02b-todo-withdraw.png",
         "docs/g7-withdraw-browser/03-withdrawn.png",
       ],
+      chrome_path: chrome,
       audit_port: "untouched",
       g18: "stays closed",
       g7_product_close: false,

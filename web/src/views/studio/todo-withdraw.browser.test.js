@@ -8,11 +8,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 
-const listTodos = vi.fn();
-const getTodo = vi.fn();
-const withdrawTodo = vi.fn();
-const approveTodo = vi.fn();
-const rejectTodo = vi.fn();
+const { listTodos, getTodo, withdrawTodo, approveTodo, rejectTodo } = vi.hoisted(() => ({
+  listTodos: vi.fn(),
+  getTodo: vi.fn(),
+  withdrawTodo: vi.fn(),
+  approveTodo: vi.fn(),
+  rejectTodo: vi.fn(),
+}));
 
 vi.mock("../../api/p3", () => ({
   p3: {
