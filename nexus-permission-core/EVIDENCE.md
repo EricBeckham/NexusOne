@@ -82,15 +82,23 @@ Redis `INFO server`: `redis_version:3.2.13`, `redis_mode:standalone`. No Sentine
 
 PolicySnapshot version polling + Redis invalidate-only wiring. **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. Orthogonal to G2 PR #73.
 
-| Class | What it proved |
-|---|---|
-| `SnapshotManagerTest` | Existing poll-on-get + `pollCached` reloads LRU without a caller `get`; background poll swallows load failure |
-| `G9PolicySnapshotPropagationTest` | Two instances, shared repo: lost channel still converges on next `get`; shared invalidate marks the reader; poller tick reloads; role is `g9_self_reader` not `tenant_member` |
-| `G9PolicySnapshotApiTest` | MockMvc: grant bumps snapshot `version`; next `/check` allows `ledger/read` |
-| `JdbcPolicySnapshotPollIT` | Zonky PostgreSQL **15.x**: `iam.perm_policy_version` is the clock; reader without the channel reloads on poll tick |
-| `RedisInvalidationTest` | Invalidate-only (snapshot key stays empty); listener wiring; live SUBSCRIBE skipped when Redis is down |
+Recorded **2026-09-22T15:42:29Z** on this agent VM. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky in-process PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432` / Redis 3.2 listener.
 
-Run results are recorded after the first `mvn` pass on this branch.
+```
+mvn -pl nexus-permission-core -am test
+# BUILD SUCCESS  2026-09-22T15:42:29Z
+# Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
+```
+
+Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataScopeTest` 1, `JdbcDualTenantPermissionTest` 1 (no live PG listener). JDBC poll proof is `JdbcPolicySnapshotPollIT` on Zonky **15.18** (Flyway V200 + V300, schema `iam`).
+
+| Class | Count | What it proved |
+|---|---|---|
+| `SnapshotManagerTest` | 5/5 | Poll-on-get; `pollCached` reloads LRU without a caller `get`; background poll swallows load failure |
+| `G9PolicySnapshotPropagationTest` | 4/4 | Two instances, shared repo: lost channel still converges on next `get`; shared invalidate marks the reader; poller tick reloads; role is `g9_self_reader` not `tenant_member` |
+| `G9PolicySnapshotApiTest` | 1/1 | Boot 4.1.1 MockMvc: grant bumps snapshot `version`; next `/check` allows `ledger/read` |
+| `JdbcPolicySnapshotPollIT` | 1/1 | Zonky PostgreSQL **15.18**: `iam.perm_policy_version` is the clock; reader without the channel reloads on poll tick |
+| `RedisInvalidationTest` | 1/1 (+3 skip) | Dead Redis publish is observed and is not truth; live PING/SUBSCRIBE skipped |
 
 ## Honest leftover
 

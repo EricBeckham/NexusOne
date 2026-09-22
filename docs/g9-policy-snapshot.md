@@ -31,4 +31,19 @@ Channel loss is covered by (1): a reader that never received PUBLISH still sees 
 
 ## Evidence
 
-See `nexus-permission-core/EVIDENCE.md` (this PR). Targeted suites: `G9PolicySnapshotPropagationTest`, `G9PolicySnapshotApiTest`, `JdbcPolicySnapshotPollIT`, `SnapshotManagerTest`, `RedisInvalidationTest`.
+Agent VM **2026-09-22T15:42:29Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky PostgreSQL **15.18**. No Docker. No live Redis / `127.0.0.1:5432`.
+
+```
+mvn -pl nexus-permission-core -am test
+# BUILD SUCCESS — Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
+```
+
+| Suite | Count |
+|---|---|
+| `G9PolicySnapshotPropagationTest` | 4/4 |
+| `G9PolicySnapshotApiTest` | 1/1 |
+| `JdbcPolicySnapshotPollIT` | 1/1 (PG 15.18, Flyway V200+V300) |
+| `SnapshotManagerTest` | 5/5 |
+| `RedisInvalidationTest` | 1/1 (+3 skip, no Redis listener) |
+
+Details: `nexus-permission-core/EVIDENCE.md`.
