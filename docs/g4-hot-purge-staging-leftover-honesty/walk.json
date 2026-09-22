@@ -1,0 +1,23 @@
+{
+  "leftover": "g4-hot-purge-staging-leftover-honesty",
+  "siblings": [
+    "g4-hot-purge-90d",
+    "g4-hot-purge-90d-honesty",
+    "g4-p1-staging-audit-events",
+    "g4-p1-staging-audit-events-honesty",
+    "g4-pkce-spa-verifier-remainder-honesty",
+    "g2-report-physical-dump-honesty",
+    "g10-leftover-honesty-remainder",
+    "g3-outbox-consume-idempotent-honesty",
+    "g9-live-multi-jvm-replica-remainder-honesty"
+  ],
+  "window_policy": "PASS",
+  "staging_like_path": "PASS",
+  "live_purge_window": "SKIP",
+  "live_staging_5432": "SKIP",
+  "live_jar_context_walk": "SKIP",
+  "g4Close": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "timestampUtc": "2026-09-22T21:42:33Z",
+  "evidence": "scripts/g4-hot-purge-staging-leftover-honesty.sh"
+}
