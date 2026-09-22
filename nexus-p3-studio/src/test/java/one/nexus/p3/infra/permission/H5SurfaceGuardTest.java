@@ -8,6 +8,11 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.UUID;
+import one.nexus.audit.AuditCaptures;
+import one.nexus.audit.InMemoryHashChainedAuditPort;
+import one.nexus.common.trace.TraceIds;
+import one.nexus.crypto.CryptoSuite;
+import one.nexus.crypto.JcaCryptoPort;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.PermissionModule;
@@ -24,6 +29,7 @@ class H5SurfaceGuardTest {
     @AfterEach
     void clear() {
         TenantContextHolder.clear();
+        TraceIds.clearMdc();
     }
 
     @Test
@@ -84,6 +90,21 @@ class H5SurfaceGuardTest {
         assertEquals("P2.PERM.0001", boundary.errorCode().code());
     }
 
+    @Test
+    void noGrantEmitsPermissionDeniedAndGuardReject() {
+        bindIssued();
+        TraceIds.putMdc("0199a1c0-0000-7000-8000-00000000c235");
+        InMemoryHashChainedAuditPort audits =
+                new InMemoryHashChainedAuditPort(JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL));
+        H5SurfaceGuard guard = guard(decision("ledger", "read", new Decision(false, "no_grant")), null, audits);
+        assertThrows(PermissionException.class, guard::requireListRead);
+        assertTrue(audits.findByTraceId("0199a1c0-0000-7000-8000-00000000c235").stream()
+                .anyMatch(event -> AuditCaptures.PERMISSION_DENIED.equals(event.event().eventType())));
+        assertTrue(audits.findByTraceId("0199a1c0-0000-7000-8000-00000000c235").stream()
+                .anyMatch(event -> AuditCaptures.GUARD_REJECT.equals(event.event().eventType())));
+        assertTrue(audits.verifyChain().intact());
+    }
+
     private static void bindIssued() {
         UUID id = UUID.fromString("11111111-1111-4111-8111-111111111111");
         TenantContextHolder.set(new TenantContext(
@@ -91,8 +112,14 @@ class H5SurfaceGuardTest {
     }
 
     private static H5SurfaceGuard guard(PermissionService service, TenantMemberGrantSeeder seeder) {
+        return guard(service, seeder, null);
+    }
+
+    private static H5SurfaceGuard guard(
+            PermissionService service, TenantMemberGrantSeeder seeder, InMemoryHashChainedAuditPort audits) {
         PermissionModule module = mock(PermissionModule.class);
         when(module.service()).thenReturn(service);
+        when(module.audits()).thenReturn(audits);
         return new H5SurfaceGuard(module, provider(seeder));
     }
 

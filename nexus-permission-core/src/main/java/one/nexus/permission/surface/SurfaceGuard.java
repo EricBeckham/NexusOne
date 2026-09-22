@@ -11,6 +11,7 @@ import one.nexus.common.time.Utc;
 import one.nexus.common.trace.TraceIds;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.permission.PermissionModule;
 import one.nexus.permission.PermissionService;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.support.PermissionException;
@@ -28,6 +29,18 @@ public final class SurfaceGuard {
 
     public static Decision require(PermissionService service, String resource, String action) {
         return requireAllowed(service.decide(resource, action));
+    }
+
+    /**
+     * Product wrappers reuse the {@link PermissionModule} {@link AuditPort}. Deny
+     * uses {@link AuditPort#appendNewTransaction}; same-TX {@code append} is not
+     * redesigned. {@code audits} may be null (tests / isolation-only).
+     */
+    public static Decision require(PermissionModule permission, String resource, String action) {
+        if (permission == null) {
+            throw PermissionException.denied("no_grant");
+        }
+        return require(permission.service(), permission.audits(), resource, action);
     }
 
     /**

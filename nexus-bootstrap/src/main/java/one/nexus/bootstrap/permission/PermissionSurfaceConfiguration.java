@@ -19,12 +19,12 @@ public class PermissionSurfaceConfiguration {
         return new TaskSubmitGuard() {
             @Override
             public void assertTask(String taskType) {
-                AuthorizedSubmit.task(permission.service(), taskType);
+                AuthorizedSubmit.task(permission.service(), permission.audits(), taskType);
             }
 
             @Override
             public void assertJob(String payloadType) {
-                AuthorizedSubmit.job(permission.service(), payloadType);
+                AuthorizedSubmit.job(permission.service(), permission.audits(), payloadType);
             }
         };
     }

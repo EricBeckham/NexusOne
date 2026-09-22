@@ -23,6 +23,7 @@ public final class PermissionModule {
     private final RoleMatrixService matrix;
     private final PlatformDutyService duties;
     private final PolicyInvalidationPort invalidation;
+    private final AuditPort audits;
 
     public PermissionModule(
             PolicyRepository repository,
@@ -44,6 +45,7 @@ public final class PermissionModule {
         this.subjects = subjects;
         this.snapshots = snapshots;
         this.invalidation = invalidation;
+        this.audits = audits;
         this.admin = new PolicyAdminService(repository, invalidation, audits);
         this.service = new PermissionService(repository, subjects, snapshots);
         this.matrix = new RoleMatrixService(repository, admin, service);
@@ -115,5 +117,14 @@ public final class PermissionModule {
 
     public PolicyInvalidationPort invalidation() {
         return invalidation;
+    }
+
+    /**
+     * Same {@link AuditPort} already wired for permission grant/assign. Surface
+     * deny reuses it; same-TX {@code append} / {@code appendNewTransaction}
+     * rules are unchanged.
+     */
+    public AuditPort audits() {
+        return audits;
     }
 }

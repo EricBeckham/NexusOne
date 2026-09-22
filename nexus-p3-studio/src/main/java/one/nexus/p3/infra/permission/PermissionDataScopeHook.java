@@ -42,7 +42,7 @@ public class PermissionDataScopeHook implements DataScopeHook {
             return tenantOnly(tenantId);
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
-        Decision decision = SurfaceGuard.require(permission.service(), resource, action);
+        Decision decision = SurfaceGuard.require(permission, resource, action);
         return new ScopedRead(PermissionQueryBinder.bind(tenantId, decision), decision);
     }
 

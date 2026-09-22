@@ -96,7 +96,7 @@ public class ReportController {
         String payload = request == null || request.payload() == null || request.payload().isBlank()
                 ? "{\"surface\":\"report\"}"
                 : request.payload();
-        var envelope = AuthorizedExport.submit(module.service(), tenantId, payload);
+        var envelope = AuthorizedExport.submit(module.service(), module.audits(), tenantId, payload);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("task_type", envelope.payloadType());
         body.put("engine", SurfaceGuard.ENGINE);
