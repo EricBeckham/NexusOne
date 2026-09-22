@@ -97,7 +97,7 @@
             <option>ALL</option>
           </select>
         </div>
-        <button class="primary" type="submit">写入授权</button>
+        <button class="primary" type="submit" data-testid="permission-grant">写入授权</button>
       </form>
       <table class="nx-table" data-testid="g2-scope-table">
         <thead><tr><th>principal</th><th>resource</th><th>action</th><th>effect</th><th>scope</th></tr></thead>

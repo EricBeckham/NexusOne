@@ -1,0 +1,67 @@
+{
+  "recorded_at": "2026-09-22T18:04:09.877Z",
+  "result": "PASS",
+  "command": "./scripts/g4/run-pkce-browser-click.sh",
+  "docker": false,
+  "chrome": "/usr/bin/google-chrome-stable",
+  "playwright": "playwright-core + system Chrome",
+  "base_url": "http://127.0.0.1:4174",
+  "stub_url": "http://127.0.0.1:18089",
+  "control": "data-testid=pkce-login",
+  "idp_control": "data-testid=idp-login",
+  "permission_control": "data-testid=permission-grant",
+  "trace_id": "0199a1c0-0000-7000-8000-00000000c219",
+  "event_types": [
+    "p2.auth.login.accepted",
+    "p2.permission.granted"
+  ],
+  "verify_chain": {
+    "intact": true,
+    "checked": 2,
+    "failure": null
+  },
+  "pkce_validated": 1,
+  "stub": {
+    "context_id": "01a0c98a-1f3c-7f72-b724-6ac34746e914",
+    "tenant_id": "01a0c98a-1f3c-7f72-b724-6ac34746e911",
+    "trace_id": "0199a1c0-0000-7000-8000-00000000c219",
+    "authorizes": 1,
+    "logins": 1,
+    "grants": 1,
+    "pkce_validated": 1,
+    "rejected_tenant_headers": 0,
+    "event_types": [
+      "p2.auth.login.accepted",
+      "p2.permission.granted"
+    ],
+    "verify_chain": {
+      "intact": true,
+      "checked": 2,
+      "failure": null
+    },
+    "audit_port": "InMemoryHashChainedAuditPort-compatible CanonicalAudit SHA-256 (same event types as AuditCaptures)"
+  },
+  "screenshots": [
+    "docs/g4-pkce-browser-click/01-pkce-login.png",
+    "docs/g4-pkce-browser-click/02-idp-login.png",
+    "docs/g4-pkce-browser-click/03-permission.png",
+    "docs/g4-pkce-browser-click/04-granted.png",
+    "docs/g4-pkce-browser-click/05-audit-chain.png"
+  ],
+  "chrome_path": "/usr/bin/google-chrome-stable",
+  "audit_port": "same AuditCaptures types + CanonicalAudit SHA-256 (InMemoryHashChainedAuditPort rules); product append/appendNewTransaction untouched",
+  "g18": "stays closed",
+  "g4_product_close": false,
+  "not_claimed": [
+    "product G4 close",
+    "human laptop + live Keycloak CA trust",
+    "SPA-generated verifier",
+    "H5 /m/* PKCE",
+    "AuditPort same-TX redesign",
+    "G18 reopen"
+  ],
+  "http_already_proven": [
+    "docs/g4-pkce-login-audit.md",
+    "docs/g4-pkce-https-browser.md"
+  ]
+}

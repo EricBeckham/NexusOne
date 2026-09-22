@@ -55,6 +55,7 @@ npm run assert:h5-pkce
 npm run assert:g2-report-surface
 npm test
 npm run test:g7-withdraw
+npm run test:g4-pkce
 npm run build
 ```
 
@@ -83,6 +84,8 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |
 | `/p3/reports` | `GET/POST /api/v1/p3/reports/*` after `ledger/read` + `ledger.export.csv/submit` | G2 leftover. Not a physical dump; desktop ledger/form/todo pages unchanged |
+| `/login` | stub token **or** `authorize-url?pkce=s256` | Stub card unchanged. Desktop PKCE leftover: `data-testid=pkce-login` → [docs/g4-pkce-browser-click.md](../docs/g4-pkce-browser-click.md) |
+| `/callback` | `POST /api/v1/auth/login` with `code` + `code_verifier` | Desktop leftover only. Not `/m/callback`. Not product Keycloak acceptance |
 | `/m/login` | stub token + **PKCE** (`mobile-pkce-login`) + safe `return` | F011 stub hop stays; H5 PKCE leftover: [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) |
 | `/m/callback` | `code` / `state` + sessionStorage `code_verifier` → `POST /api/v1/auth/login` | Strips query after hop; no token / verifier in URL |
 | `/m/p3/home` | session in `sessionStorage` | F013 refresh / back |
@@ -99,4 +102,4 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/m/p3/query` | `ledger/read` then `GET .../records?field=`; export button is `ledger.export.csv/submit` | Field-equals query; never `tenant_id`. Export is AuthorizedExport, not dump |
 | `/m/p3/notifications` | `/api/v1/notifications` | Jump to safe `/m/*` only |
 
-H5 `/m/*` Authorization Code + PKCE is the leftover in [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) (Playwright/stub). Product default authorize URL remains M0-04’s confidential client without PKCE. G15 F014 is accepted on the mobile-browser postMessage contract, the simulated 小程序 web-view parent, and the APP WebView **web** harness. APP WebView native binary and WeChat / DingTalk production are not accepted. Product G15 stays open.
+Do not treat this shell as a product Keycloak Authorization Code + PKCE acceptance. Desktop leftover click evidence is [docs/g4-pkce-browser-click.md](../docs/g4-pkce-browser-click.md) (stub IdP, not a G4 close). H5 `/m/*` leftover is [g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md) (Playwright/stub). Product default authorize URL remains M0-04’s confidential client without PKCE. G15 F014 is accepted on the mobile-browser postMessage contract, the simulated 小程序 web-view parent, and the APP WebView **web** harness. APP WebView native binary and WeChat / DingTalk production are not accepted. Product G15 stays open.

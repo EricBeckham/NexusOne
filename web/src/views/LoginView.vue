@@ -28,6 +28,17 @@
       </form>
     </div>
     <div class="nx-card" style="margin-top:16px;">
+      <h3>Authorization Code + PKCE（桌面 leftover）</h3>
+      <p class="nx-muted">
+        拉取 <code>/api/v1/auth/authorize-url?pkce=s256</code>，浏览器跳到 IdP 登录页，回跳
+        <code>/callback</code> 时 POST <code>code</code> + <code>code_verifier</code>。
+        不是 H5 <code>/m/login</code>，也不是产品 G4 关闭。默认授权 URL 仍是 confidential client。
+      </p>
+      <button class="primary" type="button" data-testid="pkce-login" @click="onPkceLogin">
+        开始 PKCE 登录
+      </button>
+    </div>
+    <div class="nx-card" style="margin-top:16px;">
       <h3>平台操作头（P1 租户 API）</h3>
       <p class="nx-muted">仅当 <code>NEXUS_P1_DEMO_CONTEXT_ENABLED=true</code>。生产入口必须剥掉客户端身份头。</p>
       <div class="nx-field">
@@ -54,8 +65,9 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { stubAccessToken } from "../api/client";
-import { loginWithAccessToken, persist, session } from "../api/session";
+import { p2, stubAccessToken } from "../api/client";
+import { DESKTOP_PKCE_TRACE, startDesktopPkceLogin } from "../api/pkce-desktop";
+import { loginWithAccessToken, persist, rememberTrace, session } from "../api/session";
 
 const router = useRouter();
 const email = ref("admin-a@example.com");
@@ -77,6 +89,21 @@ async function onStubLogin() {
 
 async function onTokenLogin() {
   await submit(token.value.trim());
+}
+
+async function onPkceLogin() {
+  error.value = "";
+  try {
+    rememberTrace(DESKTOP_PKCE_TRACE);
+    await startDesktopPkceLogin({
+      authorizeUrl: p2.authorizeUrl,
+      assignLocation: (url) => window.location.assign(url),
+      origin: window.location.origin,
+      traceId: DESKTOP_PKCE_TRACE,
+    });
+  } catch (err) {
+    error.value = `${err.code || "PKCE"} ${err.message}`;
+  }
 }
 
 async function submit(access) {

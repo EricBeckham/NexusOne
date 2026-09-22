@@ -72,6 +72,15 @@ function applyView(view) {
   persist();
 }
 
+export function applySessionView(view) {
+  const token = view?.access_token || view?.accessToken;
+  if (token) {
+    session.accessToken = token;
+  }
+  applyView(view);
+  return view;
+}
+
 export async function loginWithAccessToken(accessToken) {
   session.accessToken = accessToken;
   persist();

@@ -121,21 +121,22 @@ export const p1 = {
 
 export const p2 = {
   health: () => api("/api/v1/health", { auth: false }),
-  authorizeUrl: (params = {}) => {
+  authorizeUrl: (opts = {}) => {
     const query = new URLSearchParams();
-    if (params.pkce) {
-      query.set("pkce", params.pkce);
+    if (opts.pkce) {
+      query.set("pkce", opts.pkce);
     }
-    if (params.acr) {
-      query.set("acr", params.acr);
+    if (opts.acr) {
+      query.set("acr", opts.acr);
     }
-    if (params.code_challenge) {
-      query.set("code_challenge", params.code_challenge);
+    if (opts.code_challenge) {
+      query.set("code_challenge", opts.code_challenge);
     }
     const suffix = query.toString() ? `?${query}` : "";
-    return api(`/api/v1/auth/authorize-url${suffix}`, { auth: false });
+    return api(`/api/v1/auth/authorize-url${suffix}`, { auth: false, traceId: opts.traceId });
   },
-  login: (body) => api("/api/v1/auth/login", { method: "POST", body, auth: false }),
+  login: (body, opts = {}) =>
+    api("/api/v1/auth/login", { method: "POST", body, auth: false, traceId: opts.traceId }),
   session: () => api("/api/v1/auth/session"),
   switchTenant: (tenantId) =>
     api("/api/v1/auth/tenant-switch", { method: "POST", body: { tenant_id: tenantId } }),
@@ -168,7 +169,8 @@ export const perm = {
   installExample: () => api("/api/v1/permission/matrix/example", { method: "POST", body: {} }),
   createRole: (body) => api("/api/v1/permission/roles", { method: "POST", body }),
   assign: (body) => api("/api/v1/permission/assignments", { method: "POST", body }),
-  grant: (body) => api("/api/v1/permission/grants", { method: "POST", body }),
+  grant: (body) =>
+    api("/api/v1/permission/grants", { method: "POST", body, traceId: loadSettings().lastTraceId }),
 };
 
 /** M0-10 in-app notify. List is empty without a server-issued TenantContext (403). */
