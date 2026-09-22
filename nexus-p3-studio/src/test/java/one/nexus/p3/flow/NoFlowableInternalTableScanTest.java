@@ -37,7 +37,12 @@ class NoFlowableInternalTableScanTest {
         try (Stream<Path> files = Files.list(dir)) {
             files.map(Path::getFileName).map(Path::toString).filter(name -> name.startsWith("V")).forEach(name -> {
                 int version = Integer.parseInt(name.substring(1, name.indexOf('_')));
-                assertTrue(version >= 550 && version <= 599, name + " must be V550-V599");
+                boolean ledgerWindow = version >= 400 && version <= 499;
+                boolean formWindow = version >= 530 && version <= 549;
+                boolean flowWindow = version >= 550 && version <= 599;
+                assertTrue(
+                        ledgerWindow || formWindow || flowWindow,
+                        name + " must be V400-V499 (M0-06), V530-V549 (M0-07), or V550-V599 (M0-08)");
             });
         }
         String sql = Files.readString(dir.resolve("V550__process_metadata.sql"), StandardCharsets.UTF_8)

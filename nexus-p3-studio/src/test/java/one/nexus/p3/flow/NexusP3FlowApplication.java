@@ -6,7 +6,7 @@ import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
 import org.springframework.context.annotation.Import;
 
 /** Test-only entrypoint. Product boot is {@code one.nexus.bootstrap.NexusOneApplication}. */
-@SpringBootApplication(scanBasePackages = {"one.nexus.p3", "one.nexus.p2", "one.nexus.permission"})
+@SpringBootApplication(scanBasePackages = {"one.nexus.p3.flow", "one.nexus.p2", "one.nexus.permission"})
 @Import(FlywayAutoConfiguration.class)
 public class NexusP3FlowApplication {
     public static void main(String[] args) {
