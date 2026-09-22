@@ -3,6 +3,7 @@
     <div class="m-card">
       <h3>查询</h3>
       <p class="m-muted">GET /api/v1/p3/ledgers/{id}/records 字段等值。不发明第二套 Query AST。</p>
+      <MPermDecision :decision="decision" :cell="H5_SURFACES.listRead" />
     </div>
     <form class="m-card" @submit.prevent="onRun">
       <div class="m-field">
@@ -43,6 +44,9 @@ import { useRoute, useRouter } from "vue-router";
 import { p3 } from "../../../../api/p3";
 import { formatCell, recordTitle } from "../../../runtime/display";
 import { buildRecordQuery, isLedgerFieldCode } from "../../../runtime/recordQuery";
+import MPermDecision from "../../../permission/MPermDecision.vue";
+import { H5_SURFACES } from "../../../permission/surfaceCatalog";
+import { useH5Surface } from "../../../permission/useH5Surface";
 
 const route = useRoute();
 const router = useRouter();
@@ -52,9 +56,9 @@ const ledgerId = ref(String(route.query.ledger || ""));
 const filters = reactive({});
 const rows = ref([]);
 const total = ref(0);
-const error = ref("");
 const busy = ref(false);
 const ran = ref(false);
+const { decision, error, requireCell, capture } = useH5Surface();
 
 const queryFields = computed(() =>
   (fields.value || []).filter((field) => isLedgerFieldCode(field.code)).slice(0, 6),
@@ -78,6 +82,7 @@ async function loadFields(id) {
 
 onMounted(async () => {
   try {
+    await requireCell(H5_SURFACES.listRead);
     const body = await p3.listLedgers();
     ledgers.value = body.items || [];
     if (!ledgerId.value && ledgers.value.length) {
@@ -90,7 +95,7 @@ onMounted(async () => {
       await onRun();
     }
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
+    capture(err);
   }
 });
 
@@ -98,15 +103,15 @@ watch(ledgerId, async (id) => {
   try {
     await loadFields(id);
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
+    capture(err);
   }
 });
 
 async function onRun() {
-  error.value = "";
   busy.value = true;
   ran.value = true;
   try {
+    await requireCell(H5_SURFACES.listRead);
     const query = buildRecordQuery(filters);
     const next = { ledger: ledgerId.value, ...query };
     await router.replace({ path: "/m/p3/query", query: next });
@@ -114,7 +119,7 @@ async function onRun() {
     rows.value = body.items || [];
     total.value = body.total ?? rows.value.length;
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
+    capture(err);
     rows.value = [];
     total.value = 0;
   } finally {

@@ -99,6 +99,13 @@ class TenantMemberGrantSeedApiTest {
                         .header("Authorization", "Bearer " + token)
                         .header("X-Nexus-Context-Id", contextId)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resource\":\"process.task\",\"action\":\"read\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(true));
+        mvc.perform(post("/api/v1/permission/check")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"resource\":\"process.task\",\"action\":\"approve\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.allowed").value(true));

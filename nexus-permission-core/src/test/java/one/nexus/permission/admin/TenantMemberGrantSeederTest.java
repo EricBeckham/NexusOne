@@ -61,6 +61,7 @@ class TenantMemberGrantSeederTest {
         assertTrue(module.service().decide("ledger", "write").allowed());
         assertTrue(module.service().decide("form", "read").allowed());
         assertTrue(module.service().decide("form", "write").allowed());
+        assertTrue(module.service().decide("process.task", "read").allowed());
         assertTrue(module.service().decide("process.task", "approve").allowed());
         assertTrue(module.service().decide("process.task", "reject").allowed());
         assertTrue(module.service().decide("process.instance", "start").allowed());

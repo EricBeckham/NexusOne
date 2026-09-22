@@ -39,6 +39,7 @@ Issued TenantContext is `X-Nexus-Context-Id` after membership checks. The UI nev
 | Product G15 | **Open** until other hosts are walked. |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. |
 | Live JAR + issued context walk | Optional. This slice asserts wiring + stub-session routes. Empty lists / 403 without PostgreSQL are honest, not fixtures. |
+| H5 permission | List/detail/form/todo now call `PermissionService.decide` via `/permission/check`. See [g2-h5-permission.md](./g2-h5-permission.md). Not a product-wide G2 close. |
 
 ## How to run
 

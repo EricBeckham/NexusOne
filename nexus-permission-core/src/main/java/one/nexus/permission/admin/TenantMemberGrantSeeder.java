@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Demo-path bootstrap: role {@code tenant_member} with ledger/form read+write ALL,
- * process.task approve/reject, and process.instance start/withdraw, assigned to
+ * process.task read/approve/reject, and process.instance start/withdraw, assigned to
  * the current person id
  * (M0-05 {@code IamSubjectDirectory} uses personId as userId; position
  * {@code TENANT_ADMIN} codes do not match).
@@ -48,6 +48,7 @@ public class TenantMemberGrantSeeder {
             new String[] {"ledger", "write"},
             new String[] {"form", "read"},
             new String[] {"form", "write"},
+            new String[] {"process.task", "read"},
             new String[] {"process.task", "approve"},
             new String[] {"process.task", "reject"},
             new String[] {"process.instance", "start"},

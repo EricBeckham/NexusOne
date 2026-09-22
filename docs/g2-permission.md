@@ -41,7 +41,7 @@ Turn the seed off with `NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS=false`. Permi
 
 This remainder does **not** close product-wide G2.
 
-- Report UI / physical ledger dump / H5 permission surfaces are **not** on this engine.
+- Report UI / physical ledger dump are **not** on this engine. H5 `/m/*` list/detail/form/todo is the sibling leftover [g2-h5-permission.md](./g2-h5-permission.md) (not a product-wide G2 close).
 - Isolation-only jobs with no P2 `TenantContext` still skip `AuthorizedSubmit` / list-detail tenant-only fallback (including studio-only form hosts that never bind P2). Form fill HTTP without P2 still stays tenant-only (`FormApiTest`).
 - General cache (`CacheKeyGuard` / Redis) is still isolation-only; only IsolatedExport `cacheStatus` rides the export Task grant.
 - Direct `IsolatedExport` / `JdbcTaskQueue` callers that skip `AuthorizedExport` / `TaskSubmitGuard` are not a platform-wide “every API” close.
