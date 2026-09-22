@@ -18,7 +18,7 @@ Leave (G18 class `leave` / 请假):
 6. `GET /api/v1/audit/traces/{traceId}` includes `p3.path.submitted`, `p3.approval.started`, `p3.approval.withdrawn`
 7. Hash chain `verifyChain()` intact (IT). `AuditPort` implementation is unchanged.
 
-Travel / expense catalog and dual-tenant walkthrough stay on main (`docs/g7-business-types.md`, #69 / #80). This package only adds the leave-path IT / live script.
+Travel / expense catalog and dual-tenant walkthrough stay on main (`docs/g7-business-types.md`, #69 / #80). This package only adds the leave-path IT / live script. Expense + travel withdraw HTTP with non-initiator 403 is a sibling leftover: [g7-withdraw-expense-travel.md](./g7-withdraw-expense-travel.md).
 
 ## How to run
 

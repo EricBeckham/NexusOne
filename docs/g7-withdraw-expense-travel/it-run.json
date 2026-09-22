@@ -1,0 +1,35 @@
+{
+  "recorded_at": null,
+  "command": "./scripts/g7/run-withdraw-expense-travel.sh",
+  "jdk": "OpenJDK 21",
+  "maven": null,
+  "spring_boot": "4.1.1",
+  "postgresql": "Zonky 15.18",
+  "docker": false,
+  "business": ["expense", "travel"],
+  "audit_port": "untouched",
+  "suite": "G7ExpenseTravelWithdrawIT",
+  "result": "pending",
+  "build": "pending",
+  "assertions": [
+    "catalog provision expense + travel (already on main #69)",
+    "POST /api/v1/p3/path/submit-start → IN_APPROVAL / RUNNING",
+    "GET /api/v1/todos/initiated → RUNNING",
+    "GET /api/v1/todos/pending → PENDING",
+    "non-initiator POST .../instances/{id}/withdraw → 403",
+    "initiator withdraw → approval_status=WITHDRAWN process=WITHDRAWN",
+    "query expense title=交通费 category=交通 payee=张三 remark=g7-expense-withdraw",
+    "query travel title=客户拜访 destination=上海 purpose=g7-travel-withdraw",
+    "second withdraw stays WITHDRAWN; p3.approval.withdrawn count=1",
+    "GET /api/v1/todos/initiated → WITHDRAWN",
+    "AuditPort.findByTraceId includes p3.path.submitted, p3.approval.started, p3.approval.withdrawn",
+    "platform.audit_record count >= 3; verifyChain intact",
+    "GET /api/v1/notifications accepts issued context"
+  ],
+  "live_jar": "SKIP unless NEXUS_BASE_URL is healthy",
+  "not_claimed": [
+    "G7 three-type product close",
+    "G18 browser reopen",
+    "AuditPort rewrite"
+  ]
+}
