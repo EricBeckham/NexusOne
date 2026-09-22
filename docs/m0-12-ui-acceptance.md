@@ -80,6 +80,7 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G1 | Guard-reject logs “zero leak” product claim | **PARTIAL** | Those surfaces emit `ISOLATION_REJECT` + `AuditPort` `GUARD_REJECT`. UI/H5/subquery/batch AST/report UI remain open. |
 | G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 list/detail/flow now share `SurfaceGuard` + role matrix (`docs/g2-permission.md`). Report / export / H5 stay open |
 | G5 | Draft/Validate/Publish (forms) | **IT / script** | Success path is live HTTP + Vue. Failed paths: [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). Not a full G5 product close |
+| G7 | Leave withdraw (scripted HTTP) | **RECORDED** | [g7-withdraw-evidence.md](./g7-withdraw-evidence.md). Catalog leave/expense/travel is on main (#69). This row is the leave-path IT only; not a three-type close |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **PARTIAL** | `GET /api/v1/permission/snapshot` with issued context. Version poll + invalidate-only: [g9-policy-snapshot.md](./g9-policy-snapshot.md). Redis-down failover: [g9-policysnapshot-invalidate.md](./g9-policysnapshot-invalidate.md). Not Sentinel/Cluster. |
 | G15 | H5 | **DEFERRED** | S1 |
