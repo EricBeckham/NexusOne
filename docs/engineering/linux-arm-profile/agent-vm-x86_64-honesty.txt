@@ -6,7 +6,7 @@
 # This leftover does not re-run #105 collect or #127 lifecycle.
 
 schema_version=1
-timestamp_utc=2026-09-22T19:04:48Z
+timestamp_utc=2026-09-22T19:05:27Z
 host_uname_m=x86_64
 host_arch_family=x86_64
 java_feature=21
