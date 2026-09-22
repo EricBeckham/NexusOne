@@ -29,7 +29,9 @@ import java.util.regex.Pattern;
  */
 public final class AuthorizationCodeDriver {
     private static final Pattern FORM_ACTION = Pattern.compile(
-            "(?i)<form[^>]*id=\"kc-form-login\"[^>]*action=\"([^\"]+)\"|(?i)<form[^>]*action=\"([^\"]+)\"[^>]*method=\"post\"");
+            "(?i)<form[^>]*(?:id=\"kc-form-login\"|id=\"kc-otp-login-form\"|id=\"kc-totp-settings-form\")[^>]*action=\"([^\"]+)\""
+                    + "|(?i)<form[^>]*action=\"([^\"]+)\"[^>]*method=\"post\""
+                    + "|(?i)<form[^>]*method=\"post\"[^>]*action=\"([^\"]+)\"");
     private static final Pattern HIDDEN = Pattern.compile(
             "(?i)<input[^>]*type=\"hidden\"[^>]*name=\"([^\"]+)\"[^>]*value=\"([^\"]*)\"");
 
@@ -45,46 +47,286 @@ public final class AuthorizationCodeDriver {
 
     public record CodeAndState(String code, String state, String redirectUri) {}
 
+    public enum FormKind {
+        PASSWORD,
+        OTP,
+        TOTP_SETUP,
+        REDIRECT,
+        UNKNOWN
+    }
+
+    /**
+     * One Keycloak HTML form (or the product callback redirect) in the
+     * authorization-code walk. Used by admin TOTP enrollment / OTP challenge.
+     */
+    public static final class ChallengePage {
+        private final HttpResponse<String> response;
+        private final String expectedRedirectPrefix;
+        private final FormKind kind;
+        private final String html;
+        private final String action;
+        private final String totpSecret;
+        private final CodeAndState redirect;
+
+        ChallengePage(
+                HttpResponse<String> response,
+                String expectedRedirectPrefix,
+                FormKind kind,
+                String html,
+                String action,
+                String totpSecret,
+                CodeAndState redirect) {
+            this.response = response;
+            this.expectedRedirectPrefix = expectedRedirectPrefix;
+            this.kind = kind;
+            this.html = html == null ? "" : html;
+            this.action = action;
+            this.totpSecret = totpSecret;
+            this.redirect = redirect;
+        }
+
+        public FormKind kind() {
+            return kind;
+        }
+
+        public String html() {
+            return html;
+        }
+
+        public String action() {
+            return action;
+        }
+
+        public String totpSecret() {
+            return totpSecret;
+        }
+
+        public CodeAndState redirect() {
+            return redirect;
+        }
+
+        public boolean isRedirect() {
+            return kind == FormKind.REDIRECT && redirect != null;
+        }
+
+        int statusCode() {
+            return response.statusCode();
+        }
+
+        String location() {
+            return header(response, "location");
+        }
+
+        URI uri() {
+            return response.uri();
+        }
+
+        String redirectPrefix() {
+            return expectedRedirectPrefix;
+        }
+    }
+
+    public record TotpEnrollment(String secret, CodeAndState callback) {}
+
     public CodeAndState completeLogin(String authorizationUrl, String username, String password, String expectedRedirectPrefix)
             throws Exception {
-        HttpResponse<String> first = send(GET(authorizationUrl));
-        HttpResponse<String> loginPage = followUntilHtml(first, expectedRedirectPrefix);
-        String location = header(loginPage, "location");
-        if (location != null && absolute(loginPage, location).startsWith(expectedRedirectPrefix)) {
-            return parseRedirect(absolute(loginPage, location));
+        ChallengePage page = open(authorizationUrl, expectedRedirectPrefix);
+        if (page.isRedirect()) {
+            return page.redirect();
         }
-        String html = loginPage.body() == null ? "" : loginPage.body();
-        if (html.isBlank() && loginPage.statusCode() >= 300 && loginPage.statusCode() < 400) {
-            throw new IllegalStateException("login redirected unexpectedly to " + location);
+        ChallengePage after = submitPassword(page, username, password);
+        if (after.isRedirect()) {
+            return after.redirect();
         }
-        if (html.contains("kc-passwd-update-form") || html.toLowerCase(Locale.ROOT).contains("update password")) {
-            throw new IllegalStateException("Keycloak demanded a password update; smoke user must be non-temporary");
+        throw new IllegalStateException("expected redirect to " + expectedRedirectPrefix
+                + " got kind=" + after.kind()
+                + " status=" + after.statusCode()
+                + " location=" + after.location()
+                + " body=" + snippet(after.html()));
+    }
+
+    /**
+     * Password then OTP. Fails if Keycloak never presents the OTP form
+     * (user has no OTP credential / Conditional OTP skipped).
+     */
+    public CodeAndState completeLoginWithOtp(
+            String authorizationUrl,
+            String username,
+            String password,
+            String otp,
+            String expectedRedirectPrefix) throws Exception {
+        ChallengePage page = open(authorizationUrl, expectedRedirectPrefix);
+        if (page.kind() == FormKind.PASSWORD) {
+            page = submitPassword(page, username, password);
         }
-        String action = formAction(html);
-        if (action == null) {
-            throw new IllegalStateException("Keycloak login form not found. status="
-                    + loginPage.statusCode() + " body=" + html.substring(0, Math.min(html.length(), 800)));
+        if (page.kind() != FormKind.OTP) {
+            throw new IllegalStateException("expected OTP form after password, got " + page.kind()
+                    + " body=" + snippet(page.html()));
+        }
+        ChallengePage after = submitOtp(page, otp);
+        if (!after.isRedirect()) {
+            throw new IllegalStateException("expected redirect after OTP, got " + after.kind()
+                    + " body=" + snippet(after.html()));
+        }
+        return after.redirect();
+    }
+
+    /**
+     * Password then CONFIGURE_TOTP setup form. Parses the Keycloak secret,
+     * generates a TOTP, and submits enrollment. The resulting code may still
+     * be password-only for AMR (required actions run after authenticators).
+     */
+    public TotpEnrollment enrollTotp(
+            String authorizationUrl,
+            String username,
+            String password,
+            String expectedRedirectPrefix) throws Exception {
+        ChallengePage page = open(authorizationUrl, expectedRedirectPrefix);
+        if (page.kind() == FormKind.PASSWORD) {
+            page = submitPassword(page, username, password);
+        }
+        if (page.kind() != FormKind.TOTP_SETUP) {
+            throw new IllegalStateException("expected TOTP setup form, got " + page.kind()
+                    + " body=" + snippet(page.html()));
+        }
+        String secret = page.totpSecret();
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("TOTP setup form had no totpSecret: " + snippet(page.html()));
+        }
+        ChallengePage after = submitTotpSetup(page, Totp.generate(secret), "admin-totp");
+        if (!after.isRedirect()) {
+            throw new IllegalStateException("expected redirect after TOTP enrollment, got " + after.kind()
+                    + " body=" + snippet(after.html()));
+        }
+        return new TotpEnrollment(secret, after.redirect());
+    }
+
+    public ChallengePage open(String authorizationUrl, String expectedRedirectPrefix) throws Exception {
+        return classify(followUntilHtml(send(GET(authorizationUrl)), expectedRedirectPrefix), expectedRedirectPrefix);
+    }
+
+    public ChallengePage submitPassword(ChallengePage page, String username, String password) throws Exception {
+        if (page.kind() != FormKind.PASSWORD) {
+            throw new IllegalStateException("not a password form: " + page.kind());
         }
         String form = "username=" + enc(username)
                 + "&password=" + enc(password)
                 + "&credentialId="
                 + "&login=" + enc("Sign In")
-                + hiddenFields(html);
+                + hiddenFields(page.html());
+        return postForm(page, form);
+    }
+
+    public ChallengePage submitOtp(ChallengePage page, String otp) throws Exception {
+        if (page.kind() != FormKind.OTP) {
+            throw new IllegalStateException("not an OTP form: " + page.kind());
+        }
+        String form = "otp=" + enc(otp)
+                + "&login=" + enc("Sign In")
+                + hiddenFields(page.html());
+        return postForm(page, form);
+    }
+
+    public ChallengePage submitTotpSetup(ChallengePage page, String totpCode, String label) throws Exception {
+        if (page.kind() != FormKind.TOTP_SETUP) {
+            throw new IllegalStateException("not a TOTP setup form: " + page.kind());
+        }
+        String secret = page.totpSecret() == null ? "" : page.totpSecret();
+        String form = "totp=" + enc(totpCode)
+                + "&totpSecret=" + enc(secret)
+                + "&userLabel=" + enc(label == null || label.isBlank() ? "admin-totp" : label)
+                + hiddenFields(page.html());
+        return postForm(page, form);
+    }
+
+    private ChallengePage postForm(ChallengePage page, String form) throws Exception {
+        String action = page.action();
+        if (action == null || action.isBlank()) {
+            throw new IllegalStateException("form action missing for " + page.kind());
+        }
         HttpResponse<String> submitted = send(HttpRequest.newBuilder(URI.create(action))
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .header("Origin", originOf(action))
-                .header("Referer", loginPage.uri().toString())
+                .header("Referer", page.uri().toString())
                 .POST(HttpRequest.BodyPublishers.ofString(form))
                 .build());
-        HttpResponse<String> after = followUntilHtml(submitted, expectedRedirectPrefix);
-        String callback = header(after, "location");
-        if (callback == null || !absolute(after, callback).startsWith(expectedRedirectPrefix)) {
-            throw new IllegalStateException("expected redirect to " + expectedRedirectPrefix
-                    + " got status=" + after.statusCode() + " location=" + callback
-                    + " body=" + snippet(after.body()));
+        return classify(followUntilHtml(submitted, page.redirectPrefix()), page.redirectPrefix());
+    }
+
+    private ChallengePage classify(HttpResponse<String> response, String expectedRedirectPrefix) {
+        String location = header(response, "location");
+        if (location != null && absolute(response, location).startsWith(expectedRedirectPrefix)) {
+            return new ChallengePage(
+                    response, expectedRedirectPrefix, FormKind.REDIRECT, "", null, null,
+                    parseRedirect(absolute(response, location)));
         }
-        return parseRedirect(absolute(after, callback));
+        String html = response.body() == null ? "" : response.body();
+        if (html.contains("kc-passwd-update-form") || html.toLowerCase(Locale.ROOT).contains("update password")) {
+            throw new IllegalStateException("Keycloak demanded a password update; smoke user must be non-temporary");
+        }
+        FormKind kind = detectKind(html);
+        String action = formAction(html);
+        if (kind == FormKind.PASSWORD && action == null) {
+            throw new IllegalStateException("Keycloak login form not found. status="
+                    + response.statusCode() + " body=" + html.substring(0, Math.min(html.length(), 800)));
+        }
+        return new ChallengePage(
+                response, expectedRedirectPrefix, kind, html, action, extractTotpSecret(html), null);
+    }
+
+    static FormKind detectKind(String html) {
+        if (html == null || html.isBlank()) {
+            return FormKind.UNKNOWN;
+        }
+        String lower = html.toLowerCase(Locale.ROOT);
+        if (html.contains("kc-totp-settings-form")
+                || html.contains("name=\"totpSecret\"")
+                || html.contains("id=\"totpSecret\"")
+                || html.contains("kc-totp-secret-key")
+                || lower.contains("logintotptitle")
+                || lower.contains("mobile authenticator")) {
+            return FormKind.TOTP_SETUP;
+        }
+        if (html.contains("kc-otp-login-form")
+                || html.contains("id=\"otp\"")
+                || (html.contains("name=\"otp\"") && !html.contains("totpSecret"))) {
+            return FormKind.OTP;
+        }
+        if (html.contains("kc-form-login") || html.contains("name=\"password\"")) {
+            return FormKind.PASSWORD;
+        }
+        return FormKind.UNKNOWN;
+    }
+
+    static String extractTotpSecret(String html) {
+        if (html == null) {
+            return null;
+        }
+        String hidden = namedValue(html, "totpSecret");
+        if (hidden != null && !hidden.isBlank()) {
+            return hidden.replace(" ", "");
+        }
+        Matcher encoded = Pattern.compile(
+                "(?is)id=\"kc-totp-secret-key\"[^>]*>([^<]+)<").matcher(html);
+        if (encoded.find()) {
+            return encoded.group(1).replace(" ", "").trim();
+        }
+        return null;
+    }
+
+    static String namedValue(String html, String name) {
+        Pattern[] patterns = new Pattern[] {
+                Pattern.compile("(?is)<input[^>]*name=\"" + Pattern.quote(name) + "\"[^>]*value=\"([^\"]*)\""),
+                Pattern.compile("(?is)<input[^>]*value=\"([^\"]*)\"[^>]*name=\"" + Pattern.quote(name) + "\"")
+        };
+        for (Pattern pattern : patterns) {
+            Matcher matcher = pattern.matcher(html);
+            if (matcher.find()) {
+                return unescape(matcher.group(1));
+            }
+        }
+        return null;
     }
 
     private HttpResponse<String> followUntilHtml(HttpResponse<String> response, String expectedRedirectPrefix)
@@ -137,7 +379,9 @@ public final class AuthorizationCodeDriver {
         if (!matcher.find()) {
             return null;
         }
-        String action = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+        String action = matcher.group(1) != null
+                ? matcher.group(1)
+                : matcher.group(2) != null ? matcher.group(2) : matcher.group(3);
         return unescape(action);
     }
 
