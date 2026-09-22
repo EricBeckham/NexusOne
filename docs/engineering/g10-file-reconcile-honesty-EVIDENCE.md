@@ -1,6 +1,6 @@
 # G10 file reconcile honesty leftover — evidence
 
-Recorded on this branch after rebase onto `origin/main` (`5496a6c`, includes #163 H5 every-page leftover, #164 RecoveryPort honesty leftover, and #161 live multi-JVM leftover). **Not** a product G10 close. **Not** identity drift (#141). **Not** G6 object restore. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded on this branch after rebase onto `origin/main` (`808e31e`, after #157 Linux/ARM Profile honesty leftover). **Not** a product G10 close. **Not** identity drift (#141). **Not** G6 object restore. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
 See [docs/g10-file-reconcile-honesty.md](../g10-file-reconcile-honesty.md). Keep both leftover rows: [g10-identity-drift-dry-run.md](../g10-identity-drift-dry-run.md) and this leftover.
 
