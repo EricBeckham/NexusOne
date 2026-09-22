@@ -2,13 +2,15 @@
   <div>
     <div class="nx-page-header">
       <h1>工作台</h1>
-      <p>M0-12 已接租户（M0-03）、组织/身份（M0-04）、权限快照（M0-05）与 P3 台账/表单/待办 live API。G18 全链尚未关闭。</p>
+        <p>M0-12 已接租户、组织、权限快照，以及台账创建 / 表单 publish / submit-start / 待办 / 通知 / 审计入口。G18 全链尚未关闭。</p>
     </div>
-    <NxTodo body="台账 / 表单 / 待办走 /api/v1/p3/* 与 /api/v1/process/*，权限走 /api/v1/permission。需要服务端签发的 X-Nexus-Context-Id。不要把列表 200 当成 G18 业务走通。" />
+    <NxTodo body="台账创建、表单 publish、submit-start、待办同意、通知与按 trace 审计已接到 live API。需要服务端签发的 X-Nexus-Context-Id。不要把列表 200 当成 G18 业务走通。Eric 上次浏览器只走到租户/组织/权限快照，该状态未关闭。" />
     <div class="nx-row" style="margin-bottom:16px;">
       <router-link class="primary" to="/p3/ledgers">台账</router-link>
       <router-link class="ghost" to="/p3/forms">表单</router-link>
       <router-link class="ghost" to="/p3/todos">待办</router-link>
+      <router-link class="ghost" to="/p3/notifications">通知</router-link>
+      <router-link class="ghost" to="/p3/audit">审计</router-link>
       <router-link class="ghost" to="/p2/permissions/roles">权限</router-link>
     </div>
     <div class="nx-grid kpi">

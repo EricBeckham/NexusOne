@@ -3,7 +3,7 @@
 Work package: wire **one** vertical path so publish → physical ledger row → sequential approval → Outbox in-app notify → audit hash chain run in the same Spring / PostgreSQL transaction model.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.1.0**, Flyway **13.7.0**. No Docker. Platform versions unchanged.
 
-**This does not close product G18.** Vue ledger/form/todo now call live HTTP (`/api/v1/p3/*`; MOCK adapters removed). Permission UI, H5, and a browser end-to-end walkthrough are still open. **Do not claim product G18 closed.**
+**This does not close product G18.** Vue now exposes create ledger, form publish, **submit-start**, path todo actions, notifications, and audit-by-trace against live HTTP (`/api/v1/p3/*`; MOCK adapters removed). Eric’s browser walk on `ace55ff` only reached tenant/org/permission snapshot (`grant_count=0` / `no_grant`, and no create/publish/submit-start UI) and is **NOT CLOSED**. Permission matrix UI, H5, and a browser end-to-end walkthrough are still open until Eric re-runs them. **Do not claim product G18 closed.**
 
 ## Browser walkthrough on `ace55ff` (not a G18 close)
 
@@ -17,13 +17,13 @@ Eric’s browser path on `main` @ `ace55ff` (stub login「浏览器管理员」,
 | Permission health | `UP` |
 | `GET /api/v1/permission/snapshot` | **`grant_count=0`** |
 | `POST /api/v1/permission/check` `ledger`/`read` | **`allowed=false`, reason `no_grant`** |
-| Ledger records / form publish / sequential approval / todo / notify / audit | **Not reached** — blocked by `no_grant` |
+| Ledger records / form publish / sequential approval / todo / notify / audit | **Not reached** — blocked by `no_grant` **and** missing shell buttons |
 
 HTTP E2E / `G18BusinessPathIT` already seeded `tenant_member` because they hit `/api/v1/p3/*` (`IssuedTenantIsolationFilter`). The permission shell used by the browser (`/api/v1/permission/snapshot|check`) went through `PermissionAuthFilter`, which bound TenantContext but **did not seed**. Product G18 is **NOT CLOSED** via browser.
 
-This branch extends the same seed (`nexus.permission.seed-tenant-member-grants=true`) so `PermissionAuthFilter` and `FlowAuthFilter` assign role `tenant_member` to the current **person id** (not position code `TENANT_ADMIN`) after stub/browser login + issued context. `TenantMemberGrantSeedApiTest` is the IT for that browser-shaped path. It does **not** close product G18.
+#66 on `main` (`7fffd39`) extends the same seed (`nexus.permission.seed-tenant-member-grants=true`) so `PermissionAuthFilter` and `FlowAuthFilter` assign role `tenant_member` to the current **person id** (not position code `TENANT_ADMIN`) after stub/browser login + issued context. `TenantMemberGrantSeedApiTest` is the IT for that browser-shaped path. It does **not** close product G18.
 
-IT on this branch at **2026-09-22T14:17:57Z** (agent VM, OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**):
+IT recorded **2026-09-22T14:17:57Z** (agent VM, OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**):
 
 ```bash
 mvn -pl nexus-permission-core -am test \
@@ -32,6 +32,20 @@ mvn -pl nexus-permission-core -am test \
 ```
 
 `BUILD SUCCESS` — 4 tests. Seed API: stub login + issued context → snapshot `grant_count > 0`; `ledger/read|write`, `form/read`, `process.task` approve/reject allowed (not `no_grant`); assignment is `user` + person id. `PermissionApiTest` still observes `no_grant` with the seed property unset. P3 `IssuedTenantIsolationFilterTest` **5/5** and `PermissionDataScopeHookTest` **4/4**. Product G18 is **not** closed.
+
+## Browser shell (this PR — still not a G18 close)
+
+Previous UI on `ace55ff` listed live P3 resources but had no create/publish/submit-start/notify/audit entry points, so a logged-in tenant user could not drive the backend path even after grants exist. This PR wires the thinnest Vue against APIs already on `main` (#66 / #62 / #60 / #64 / #65):
+
+| Shell gap on `ace55ff` | What this PR adds |
+|---|---|
+| Ledger list empty, quota 0/10, no create UI | `/p3/ledgers` create application + ledger (`POST /api/v1/p3/applications`, `POST .../ledgers`) |
+| Form list empty, no create / validate / publish | `/p3/forms` create DRAFT; studio Validate / Publish |
+| Fill copy: form_submission only | Fill calls `POST /api/v1/p3/path/submit-start` (physical `l_*` row + Flowable) |
+| Todos empty, no approve | Inbox + `POST /api/v1/p3/path/tasks/{id}/approve\|reject` |
+| No sidebar for notify / audit | `/p3/notifications`, `/p3/audit` (`GET /api/v1/notifications`, `GET /api/v1/audit/traces/{traceId}`) |
+
+Do **not** treat this as product G18 closed. Eric must re-run the browser E2E on this branch.
 
 ## Runtime gates (ledger 403 / notify 403 / empty `audit_record`)
 
@@ -115,6 +129,8 @@ mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap
 | POST | `/api/v1/p3/path/tasks/{todoId}/approve` |
 | POST | `/api/v1/p3/path/tasks/{todoId}/reject` |
 | POST | `/api/v1/p3/path/instances/{instanceId}/withdraw` |
+| GET | `/api/v1/notifications` |
+| GET | `/api/v1/audit/traces/{traceId}` |
 
 `POST /api/v1/p3/ledgers/{id}/records` (IAM) writes a physical row through the same `GuardedLedgerStore`. `IssuedTenantIsolationFilter` binds the server-issued context for ledger/form/notify; `FlowAuthFilter` stays exclusive for todos / `/api/v1/p3/path`.
 
@@ -147,8 +163,8 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 
 | Item | Status |
 |---|---|
-| Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); MOCK toggle retired |
-| Live UI clicking this path | **NOT CLOSED.** On `ace55ff` the browser stopped at permission snapshot (`grant_count=0` / `no_grant`). This PR seeds the browser subject; it is still not a tenant→…→audit walkthrough |
+| Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); create / publish / submit-start / path approve in this PR; MOCK toggle retired |
+| Live UI clicking this path | **NOT CLOSED.** On `ace55ff` the browser stopped at permission snapshot (`grant_count=0` / `no_grant`) **and** had no create/publish/submit-start UI. #66 seeds the browser subject; this PR adds the buttons. Eric must re-walk. Still not a tenant→…→audit walkthrough |
 | Product-wide G18 / G7 three-business | Open — **do not claim closed** |
 | Outbox dispatcher P95 / 30s alarm | Product dispatcher is **on** (`dispatcher-enabled=true`). Delivery + lag alarm: `docs/m0-09-outbox-api.md`, `OutboxEventContractTest`, `NexusOneOutboxDispatcherTest`. G18 IT still leaves dispatcher off to assert PENDING. **Not** a product G18 close |
 | Concurrent G18 submits holding the chain lock for the whole business TX | Accepted trade-off vs private commit (keeps gapless hash indexes + rollback atomicity) |

@@ -2,9 +2,9 @@
   <div>
     <div class="nx-page-header">
       <h1>待办</h1>
-      <p>我的待办 / 已办 / 我发起。办理走 <code>/api/v1/process/tasks/{id}/approve|reject</code> 与 instance withdraw。</p>
+      <p>我的待办 / 已办 / 我发起。办理走 <code>/api/v1/p3/path/tasks/{id}/approve|reject</code>（更新物理行审批状态）。</p>
     </div>
-    <NxSourceBanner body="Live M0-08。GET /api/v1/p3/todos（inbox）、/api/v1/todos/done、/api/v1/todos/initiated。顺序审批意见字段 API 未提供，评论只留在本页。" />
+    <NxSourceBanner body="Live M0-08 + G18 path。GET /api/v1/p3/todos。同意/驳回走 path API，不是只调 /api/v1/process。意见字段 API 未提供。" />
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
     <div class="nx-tabs">
       <button
@@ -20,6 +20,7 @@
       <input v-model="query" placeholder="单号 / 任务名" />
     </div>
     <p v-if="error" class="nx-error">{{ error }}</p>
+    <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-grid" style="grid-template-columns: 1fr 360px;">
       <table class="nx-table" data-testid="todo-table">
         <thead>
@@ -32,7 +33,7 @@
         </thead>
         <tbody>
           <tr v-if="!filtered.length">
-            <td colspan="4" class="nx-empty">此箱为空</td>
+            <td colspan="4" class="nx-empty">此箱为空。先在已发布表单上 submit-start。</td>
           </tr>
           <tr
             v-for="row in filtered"
@@ -53,12 +54,17 @@
           <p><strong>{{ selected.title }}</strong></p>
           <p class="nx-muted">{{ selected.process }} · {{ selected.biz_no }}</p>
           <p class="nx-muted">instance {{ selected.instance_id }}</p>
+          <p v-if="selected.approval_status" class="nx-muted">approval_status {{ selected.approval_status }}</p>
           <div class="nx-field"><label>意见（仅本页，API 无 comment 字段）</label><textarea v-model="comment" rows="3" /></div>
           <div class="nx-row">
             <button v-if="box === 'inbox'" class="primary" type="button" data-testid="todo-approve" @click="act('approve')">同意</button>
-            <button v-if="box === 'inbox'" class="danger" type="button" @click="act('reject')">驳回</button>
+            <button v-if="box === 'inbox'" class="danger" type="button" data-testid="todo-reject" @click="act('reject')">驳回</button>
             <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" @click="act('withdraw')">撤回</button>
           </div>
+          <p v-if="session.lastTraceId" class="nx-muted" style="margin-top:8px;">
+            最近 trace
+            <router-link :to="`/p3/audit?trace=${encodeURIComponent(session.lastTraceId)}`">{{ session.lastTraceId }}</router-link>
+          </p>
         </template>
         <p v-else class="nx-muted">选择一条待办。转办 / 会签不在 M0。</p>
       </div>
@@ -87,6 +93,7 @@ const selected = ref(null);
 const comment = ref("");
 const query = ref("");
 const error = ref("");
+const notice = ref("");
 
 const filtered = computed(() => {
   const q = query.value.trim();
@@ -149,6 +156,7 @@ async function act(kind) {
     if (kind === "withdraw") {
       selected.value = await p3.withdrawTodo(selected.value.id, comment.value, selected.value.instance_id);
     }
+    notice.value = `已 ${kind}。approval_status=${selected.value?.approval_status || "—"}`;
     await reload();
     error.value = "";
   } catch (err) {

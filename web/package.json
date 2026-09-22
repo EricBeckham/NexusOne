@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "NexusOne M0-12 Vue 3 shell: tenant/org plus live P3 ledger/form/todo (M0-06/07/08).",
+  "description": "NexusOne M0-12 Vue 3 shell: tenant/org plus live P3 ledger/form/todo/notify/audit (submit-start path).",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

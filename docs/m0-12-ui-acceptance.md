@@ -2,23 +2,18 @@
 
 Work package for **tenant/org/permission shells** plus **dual-tenant adversarial scripts** against APIs that are already on `main` (M0-03 P1, M0-04 P2, M0-05 permission, M0-06/07/08 P3, M0-10 notify).
 
-This package **does not close G18**. Ledger, form, and todo **UI** in `web/` call live HTTP (`/api/v1/p3/ledgers`, `/api/v1/p3/forms`, `/api/v1/p3/todos` + `/api/v1/process/*`). Permission shells call `/api/v1/permission`. MOCK adapters for 台账 / 表单 / 待办 are removed.
+This package **does not close G18**. Ledger, form, and todo **UI** in `web/` call live HTTP (`/api/v1/p3/ledgers`, `/api/v1/p3/forms`, `/api/v1/p3/todos`, `/api/v1/p3/path/submit-start`). Notify and audit-by-trace have sidebar pages. MOCK adapters for 台账 / 表单 / 待办 are removed.
 
-## Eric browser walkthrough (`ace55ff`) — G18 NOT CLOSED
+## Browser state (NOT CLOSED)
 
-Recorded against `main` @ `ace55ff`. Stub login「浏览器管理员」, tenant `ui2205`, tenant admin initialized, person ACTIVE, org Root/`ROOT` + position `TENANT_ADMIN`.
+Eric browser-tested UI `http://127.0.0.1:5173` + API `:18085` on `ace55ff` (stub login「浏览器管理员」, tenant `ui2205`). He could only reach **tenant / org / permission snapshot**. That walk is **not closed**.
 
-| Reached | Blocked |
-|---|---|
-| Tenant create / tenant admin | Ledger records / form publish |
-| Org (person, Root, `TENANT_ADMIN`) | Sequential approval / todo |
-| Permission health **UP** | Notify / audit hash chain |
-| Permission snapshot **`grant_count=0`** | Any further G18 step |
-| `ledger/read` check **`allowed=false`, `no_grant`** | |
+Two independent blockers on that commit:
 
-The HTTP dual-tenant / P3 live scripts and `G18BusinessPathIT` are a different path: they hit `/api/v1/p3/*`, which already seeded `tenant_member`. The browser permission page did not. Product G18 is **NOT CLOSED** via browser. Do not treat a later non-zero snapshot as a G18 close.
+1. **Grants:** permission snapshot **`grant_count=0`**, `ledger/read` **`allowed=false` / `no_grant`**. HTTP E2E / `G18BusinessPathIT` already seeded `tenant_member` via `/api/v1/p3/*`; the browser permission page did not. **#66** (`7fffd39` on `main`) seeds role `tenant_member` onto the current **person id** from `PermissionAuthFilter` / `FlowAuthFilter`. `TenantMemberGrantSeedApiTest` (**2026-09-22T14:17:57Z**) is that permission-shell path, not a browser G18 close.
+2. **Shell:** ledger list empty / quota 0/10 / **no create-ledger UI**; form list empty / **no create / validate / publish**; fill copy was `form_submission`-only; todos had **no path approve**; **no sidebar** for notifications or audit hash-chain.
 
-IT on this branch (`TenantMemberGrantSeedApiTest`, **2026-09-22T14:17:57Z**): stub login + issued context → snapshot `grant_count > 0` and `ledger/read` is not `no_grant`. That is the permission-shell path, not a browser G18 close.
+This PR adds the shell entry points against APIs already on `main`. It still **does not claim product G18 closed** until Eric re-runs the browser E2E (login → grants present → create ledger → publish form → submit-start → approve → notify → audit by trace). Do not treat a later non-zero snapshot as a G18 close.
 
 ## How to run
 
@@ -59,7 +54,7 @@ See [web/README.md](../web/README.md).
 
 ## Isolation filter owner
 
-TenantContext for `/api/v1/notifications` and `/api/v1/p3/*` (except todos) is bound by P3 `one.nexus.p3.infra.isolation.IssuedTenantIsolationFilter` (PR #62 on `main`). This package does **not** register a second bootstrap filter. Todos / process keep `FlowAuthFilter`. Vue never assigns `X-Tenant-Id`.
+TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (except todos) is bound by P3 `one.nexus.p3.infra.isolation.IssuedTenantIsolationFilter` (PR #62 on `main`). This package does **not** register a second bootstrap filter. Todos / process keep `FlowAuthFilter`. Vue never assigns `X-Tenant-Id`.
 
 ## Checklist: assertable now vs deferred
 
@@ -77,21 +72,21 @@ TenantContext for `/api/v1/notifications` and `/api/v1/p3/*` (except todos) is b
 | G1 | In-app notifications do not leak across tenants | **PASS** | enqueue in A, list in B empty |
 | G1 | Query AST / export / file / cache / Job / Task full path | **DEFERRED** | M0-02 kernel + later modules |
 | G1 | Guard-reject logs “zero leak” product claim | **DEFERRED** | isolation kernel evidence, not this UI |
-| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | On `ace55ff` health UP but `grant_count=0` / `ledger/read` `no_grant`. This PR seeds person-id `tenant_member` on the permission filter. G2 product-wide not closed |
+| G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | On `ace55ff` health UP but `grant_count=0` / `ledger/read` `no_grant`. #66 on `main` seeds person-id `tenant_member` on the permission filter. G2 product-wide not closed |
 | G5 | Draft/Validate/Publish | **LIVE API** | M0-07 HTTP + Vue fill/publish; G5 rollback is server-side, not a G18 walkthrough |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
 | G9 | PolicySnapshot | **LIVE API** | `GET /api/v1/permission/snapshot` with issued context |
 | G15 | H5 | **DEFERRED** | S1 |
 | G18 | Tenant create | **PASS** | P1 API + tenant admin UI |
 | G18 | Org (person/dept/position/employment) | **PASS** | P2 API + org UI |
-| G18 | Permission views | **LIVE SHELL / BLOCKED ON ace55ff** | Snapshot + check only. Browser on `ace55ff`: `grant_count=0`, `ledger/read` `no_grant`. No full matrix UI |
-| G18 | Ledger | **LIVE API** | Vue list/detail → `/api/v1/p3/ledgers` + records. No field PUT. Browser G18 did not reach this on `ace55ff` |
-| G18 | Form / publish | **LIVE API** | Fill → submissions; Validate/Publish live. G5 not claimed closed here. Browser G18 did not reach this on `ace55ff` |
-| G18 | Business data / query | **LIVE LIST** | record APIs exist; no end-to-end expense-claim walkthrough |
-| G18 | Sequential approval / todo | **LIVE API** | inbox/done/initiated + process approve/reject/withdraw. Browser G18 did not reach this on `ace55ff` |
-| G18 | In-app notification | **LIVE API** | 403 without TenantContext; list succeeds with issued context. Browser G18 did not reach this on `ace55ff` |
-| G18 | Full audit hash chain | **SKIP** | P1 staging read only; M0-11 |
-| G18 | End-to-end real business walkthrough | **NOT CLOSED** | Backend path is wired (`docs/g18-business-path.md`). Browser on `ace55ff` reached only tenant / org / permission snapshot and stopped on `grant_count=0` / `no_grant`. Product G18 is **not** closed. |
+| G18 | Permission views | **LIVE SHELL / BLOCKED ON ace55ff** | Snapshot + check only. Browser on `ace55ff`: `grant_count=0`, `ledger/read` `no_grant`. #66 seeds person id. No full matrix UI |
+| G18 | Ledger | **LIVE API + CREATE UI** | Vue list/create/detail → `/api/v1/p3/applications` + `/api/v1/p3/ledgers`. No field PUT. Browser G18 did not reach this on `ace55ff` |
+| G18 | Form / publish | **LIVE API + CREATE UI** | Create DRAFT, Validate, Publish. Fill defaults to **submit-start**. G5 not claimed closed here. Browser G18 did not reach this on `ace55ff` |
+| G18 | Business data / query | **LIVE LIST** | record APIs exist; physical row is written by submit-start, not by form_submission-only |
+| G18 | Sequential approval / todo | **LIVE API** | inbox/done/initiated + **path** approve/reject/withdraw. Browser G18 did not reach this on `ace55ff` |
+| G18 | In-app notification | **LIVE UI** | sidebar + `/p3/notifications` → `/api/v1/notifications`. Browser G18 did not reach this on `ace55ff` |
+| G18 | Full audit hash chain | **LIVE READ UI** | `/p3/audit` → `GET /api/v1/audit/traces/{id}` (tenant-filtered, read-only). Not a product G4/G18 close |
+| G18 | End-to-end real business walkthrough | **NOT CLOSED** | Backend path is wired (`docs/g18-business-path.md`). Browser on `ace55ff` reached only tenant / org / permission snapshot (`grant_count=0` / `no_grant`) and had no create/publish/submit-start UI. Vue now exposes those buttons; #66 seeds the subject. Product G18 is **not** closed until Eric re-walks. |
 
 Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (regressed).
 
@@ -107,12 +102,15 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 
 | Need | Live API | UI handling |
 |---|---|---|
+| Ledger create | POST `/api/v1/p3/applications` + POST `.../ledgers` | Create form on `/p3/ledgers` (new app if needed) |
 | Ledger field update | POST fields only | Disable property save; document `P3.LEDGER.NO_FIELD_UPDATE` |
 | Expense-shaped record columns | Records are a generic map | Render whatever keys the ledger returns |
-| Form fill → Flowable todo | Submissions write `form_submission` only | Honest notice; no fake todo |
+| Form create / validate / publish | POST forms + validate + publish | List create + studio publish tab |
+| Form fill → physical row + Flowable | `POST /api/v1/p3/path/submit-start` | Default fill action; submissions API remains available but is not the G18 button |
 | Todo comment | approve/reject have no comment body | Local textarea only |
 | GET `/api/v1/permission/roles` | Does not exist | Snapshot + check only |
 | Quota on ledger list | P1 `/api/v1/p1/tenants/{id}/quotas` | Optional platform-header read |
+| Audit by trace | `GET /api/v1/audit/traces/{traceId}` | Sidebar page; tenant-filtered; no chain mutation |
 
 ## Evidence (this agent VM)
 

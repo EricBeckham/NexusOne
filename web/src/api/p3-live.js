@@ -1,8 +1,9 @@
 /**
- * Live P3 HTTP client. Paths match M0-06/07/08 on main.
+ * Live P3 HTTP client. Paths match M0-06/07/08/G18 on main.
  * Tenant scope is X-Nexus-Context-Id only (ARCH-024). Never X-Tenant-Id.
  */
-import { api } from "./client";
+import { api, newTraceId } from "./client";
+import { rememberTrace } from "./session";
 
 const SYSTEM_FIELDS = [
   { code: "id", name: "id", type: "uuid", system: true, required: true },
@@ -150,6 +151,60 @@ export function mapTodo(row, box) {
   });
 }
 
+export function mapApplication(row) {
+  if (!row) {
+    return row;
+  }
+  return wrap({
+    id: pick(row, "id"),
+    app_code: pick(row, "app_code", "appCode"),
+    display_name: pick(row, "display_name", "displayName", "name"),
+    kind: pick(row, "kind"),
+    status: pick(row, "status"),
+    tenant_id: pick(row, "tenant_id", "tenantId"),
+    tenant_code: pick(row, "tenant_code", "tenantCode"),
+  });
+}
+
+export async function listApplications() {
+  return wrap({ items: asList(await api("/api/v1/p3/applications")).map(mapApplication) });
+}
+
+export async function createApplication(body) {
+  return mapApplication(
+    await api("/api/v1/p3/applications", {
+      method: "POST",
+      body: {
+        app_code: body.app_code || body.appCode,
+        display_name: body.display_name || body.displayName || body.name,
+        kind: body.kind || "CUSTOM",
+      },
+    }),
+  );
+}
+
+export async function createLedger(body) {
+  const applicationId = body.application_id || body.applicationId;
+  const fields = (body.fields || []).map((field) => ({
+    field_code: field.field_code || field.code,
+    display_name: field.display_name || field.name,
+    field_type: UI_TO_API_FIELD[field.type] || String(field.field_type || field.fieldType || field.type || "TEXT").toUpperCase(),
+    required: Boolean(field.required),
+    indexed: Boolean(field.indexed),
+  }));
+  return mapLedger(
+    await api(`/api/v1/p3/applications/${applicationId}/ledgers`, {
+      method: "POST",
+      body: {
+        ledger_code: body.ledger_code || body.code,
+        display_name: body.display_name || body.name,
+        scope: body.scope || "TENANT",
+        fields,
+      },
+    }),
+  );
+}
+
 export async function listLedgers() {
   return wrap({ items: asList(await api("/api/v1/p3/ledgers")).map(mapLedger) });
 }
@@ -218,6 +273,36 @@ export async function getForm(id) {
   return wrap({ ...form, running_fields: runningFields });
 }
 
+export async function createForm(body) {
+  return mapForm(
+    await api("/api/v1/p3/forms", {
+      method: "POST",
+      body: {
+        app_code: body.app_code || body.appCode,
+        form_code: body.form_code || body.formCode || body.code,
+        name: body.name,
+        description: body.description || "",
+        bindings: body.bindings || [],
+      },
+    }),
+  );
+}
+
+export async function updateForm(id, body) {
+  return mapForm(
+    await api(`/api/v1/p3/forms/${id}`, {
+      method: "PUT",
+      body: {
+        app_code: body.app_code || body.appCode,
+        form_code: body.form_code || body.formCode || body.code,
+        name: body.name,
+        description: body.description,
+        bindings: body.bindings,
+      },
+    }),
+  );
+}
+
 export async function fillForm(id, body) {
   const values = body && body.values ? body.values : body;
   const submission = await api(`/api/v1/p3/forms/${id}/submissions`, {
@@ -227,7 +312,28 @@ export async function fillForm(id, body) {
   return wrap({
     record: submission,
     todo: null,
-    note: "写入 form_submission（M0-07）。台账 business_data 与 Flowable 实例不在这条填报链上。",
+    note: "POST /submissions 写入 form_submission（可带 ledger_record_id）。G18 顺序审批请走 submitStart。",
+  });
+}
+
+export async function submitStart(formId, body) {
+  const traceId = body.trace_id || body.traceId || newTraceId();
+  rememberTrace(traceId);
+  const started = await api("/api/v1/p3/path/submit-start", {
+    method: "POST",
+    traceId,
+    body: {
+      form_id: formId,
+      values: body.values || {},
+      process_key: body.process_key || body.processKey || "nexusSequentialApproval",
+      assignee_type: body.assignee_type || body.assigneeType || "PERSON",
+      assignee_ref: body.assignee_ref || body.assigneeRef,
+    },
+  });
+  return wrap({
+    ...started,
+    trace_id: traceId,
+    note: "POST /api/v1/p3/path/submit-start：物理台账行 + Flowable 顺序审批。",
   });
 }
 
@@ -291,12 +397,37 @@ export async function getTodo(id) {
   return mapTodo(await api(`/api/v1/todos/${id}`), "inbox");
 }
 
+function mapDecision(row, box) {
+  const todo = pick(row, "todo") || row;
+  const mapped = mapTodo(todo, box);
+  return wrap({
+    ...mapped,
+    id: pick(todo, "id") || pick(row, "record_id", "recordId"),
+    instance_id: pick(pick(row, "process") || {}, "id") || mapped.instance_id,
+    approval_status: pick(row, "approval_status", "approvalStatus"),
+    ledger_id: pick(row, "ledger_id", "ledgerId"),
+    record_id: pick(row, "record_id", "recordId"),
+    physical_table: pick(row, "physical_table", "physicalTable"),
+    process_status: pick(pick(row, "process") || {}, "status"),
+  });
+}
+
 export async function approveTodo(id) {
-  return mapTodo(await api(`/api/v1/process/tasks/${id}/approve`, { method: "POST", body: {} }), "done");
+  const traceId = newTraceId();
+  rememberTrace(traceId);
+  return mapDecision(
+    await api(`/api/v1/p3/path/tasks/${id}/approve`, { method: "POST", body: {}, traceId }),
+    "done",
+  );
 }
 
 export async function rejectTodo(id) {
-  return mapTodo(await api(`/api/v1/process/tasks/${id}/reject`, { method: "POST", body: {} }), "done");
+  const traceId = newTraceId();
+  rememberTrace(traceId);
+  return mapDecision(
+    await api(`/api/v1/p3/path/tasks/${id}/reject`, { method: "POST", body: {}, traceId }),
+    "done",
+  );
 }
 
 export async function withdrawTodo(_id, _comment, instanceId) {
@@ -306,8 +437,10 @@ export async function withdrawTodo(_id, _comment, instanceId) {
     error.code = "P3.FLOW.NO_INSTANCE";
     throw error;
   }
-  return mapTodo(
-    await api(`/api/v1/process/instances/${instanceId}/withdraw`, { method: "POST", body: {} }),
+  const traceId = newTraceId();
+  rememberTrace(traceId);
+  return mapDecision(
+    await api(`/api/v1/p3/path/instances/${instanceId}/withdraw`, { method: "POST", body: {}, traceId }),
     "initiated",
   );
 }

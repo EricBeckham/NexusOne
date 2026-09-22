@@ -16,6 +16,8 @@ const routes = [
   { path: "/p3/forms/:id", name: "form-studio", component: () => import("./views/studio/FormStudioView.vue"), meta: { title: "表单填报/发布", product: "p3" } },
   { path: "/p3/todos", name: "todos", component: () => import("./views/studio/TodoInboxView.vue"), meta: { title: "待办", product: "p3" } },
   { path: "/p3/todos/:id", name: "todo-detail", component: () => import("./views/studio/TodoInboxView.vue"), meta: { title: "待办办理", product: "p3" } },
+  { path: "/p3/notifications", name: "notifications", component: () => import("./views/studio/NotifyInboxView.vue"), meta: { title: "站内通知", product: "p3" } },
+  { path: "/p3/audit", name: "audit", component: () => import("./views/studio/AuditTraceView.vue"), meta: { title: "审计哈希链", product: "p3" } },
 ];
 
 const router = createRouter({

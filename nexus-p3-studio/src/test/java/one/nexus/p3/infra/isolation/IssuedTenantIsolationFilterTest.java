@@ -50,6 +50,7 @@ class IssuedTenantIsolationFilterTest {
     @Test
     void handlesNotifyAndP3ButNotTodos() {
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/notifications"));
+        assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/audit/traces/abc"));
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/ledgers"));
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/forms"));
         assertFalse(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/todos"));

@@ -14,6 +14,7 @@ export const session = reactive({
   demoActorId: "01900000-0000-7000-8000-0000000000ac",
   demoReason: "m0-12-ui",
   bootstrapToken: "",
+  lastTraceId: "",
   error: "",
 });
 
@@ -32,6 +33,7 @@ function hydrate() {
     demoActorId: stored.demoActorId || session.demoActorId,
     demoReason: stored.demoReason || session.demoReason,
     bootstrapToken: stored.bootstrapToken || "",
+    lastTraceId: stored.lastTraceId || "",
   });
 }
 
@@ -52,6 +54,7 @@ export function persist() {
     demoActorId: session.demoActorId,
     demoReason: session.demoReason,
     bootstrapToken: session.bootstrapToken,
+    lastTraceId: session.lastTraceId,
   });
 }
 
@@ -96,6 +99,14 @@ export async function ensureContext() {
   return loginWithAccessToken(session.accessToken);
 }
 
+export function rememberTrace(traceId) {
+  if (traceId) {
+    session.lastTraceId = traceId;
+    persist();
+  }
+  return traceId;
+}
+
 export function clearIdentity() {
   session.accessToken = "";
   session.contextId = "";
@@ -105,5 +116,6 @@ export function clearIdentity() {
   session.email = "";
   session.displayName = "";
   session.memberships = [];
+  session.lastTraceId = "";
   persist();
 }

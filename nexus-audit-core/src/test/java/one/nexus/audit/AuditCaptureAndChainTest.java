@@ -69,6 +69,17 @@ class AuditCaptureAndChainTest {
         assertEquals(trace, log.get("traceId"));
         assertFalse(log.containsKey("password"));
         assertEquals("LOGIN", log.get("audit_category"));
+        UUID other = UUID.fromString("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
+        Map<String, Object> json = AuditTrace.jsonForTenant(trace, tenant, correlated);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> mine = (List<Map<String, Object>>) json.get("events");
+        assertEquals(5, mine.size());
+        assertEquals("p2.auth.login.accepted", mine.getFirst().get("event_type"));
+        assertTrue(String.valueOf(mine.getFirst().get("event_hash")).matches("[0-9a-f]+"));
+        Map<String, Object> empty = AuditTrace.jsonForTenant(trace, other, correlated);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> leaked = (List<Map<String, Object>>) empty.get("events");
+        assertEquals(0, leaked.size());
     }
 
     @Test
