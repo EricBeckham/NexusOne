@@ -6,6 +6,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -39,6 +40,12 @@ public class P3ApiExceptionHandler {
                 .orElse("validation failed");
         return ResponseEntity.badRequest()
                 .body(body(P3ErrorCodes.QUERY_INVALID.code(), message, request, Map.of()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorBody> unreadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        return ResponseEntity.badRequest()
+                .body(body(P3ErrorCodes.QUERY_INVALID.code(), "malformed request body", request, Map.of()));
     }
 
     private static ErrorBody body(String code, String message, HttpServletRequest request, Map<String, Object> details) {

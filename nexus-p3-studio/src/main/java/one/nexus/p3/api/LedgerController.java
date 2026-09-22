@@ -68,7 +68,7 @@ public class LedgerController {
                 request.fieldCode(),
                 request.displayName(),
                 FieldType.fromApi(request.fieldType() == null ? "TEXT" : request.fieldType()),
-                request.required(),
-                request.indexed());
+                request.requiredOrDefault(),
+                request.indexedOrDefault());
     }
 }

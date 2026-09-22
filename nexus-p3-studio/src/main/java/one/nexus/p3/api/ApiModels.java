@@ -29,9 +29,17 @@ public final class ApiModels {
             @NotBlank String fieldCode,
             @NotBlank String displayName,
             String fieldType,
-            boolean required,
-            boolean indexed
-    ) {}
+            Boolean required,
+            Boolean indexed
+    ) {
+        public boolean requiredOrDefault() {
+            return Boolean.TRUE.equals(required);
+        }
+
+        public boolean indexedOrDefault() {
+            return Boolean.TRUE.equals(indexed);
+        }
+    }
 
     public record ApplicationView(
             UUID id,

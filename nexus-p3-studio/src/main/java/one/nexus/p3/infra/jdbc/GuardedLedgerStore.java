@@ -239,7 +239,7 @@ public class GuardedLedgerStore {
             return sql;
         }
         StringBuilder extra = new StringBuilder();
-        List<Object> params = new ArrayList<>(sql.parameters());
+        List<Object> extraParams = new ArrayList<>();
         Map<String, LedgerField> byCode = new LinkedHashMap<>();
         fields.forEach(field -> byCode.put(field.fieldCode(), field));
         equalsFilters.forEach((name, value) -> {
@@ -248,13 +248,22 @@ public class GuardedLedgerStore {
                 throw P3Exception.queryInvalid("unknown query field: " + name);
             }
             extra.append(" AND ").append(name).append(" = ?");
-            params.add(coerce(byCode.get(name).fieldType(), value));
+            extraParams.add(coerce(byCode.get(name).fieldType(), value));
         });
         String text = sql.sql();
         int order = text.toLowerCase(Locale.ROOT).indexOf(" order by ");
         String next = order >= 0
                 ? text.substring(0, order) + extra + text.substring(order)
                 : text + extra;
+        List<Object> params = new ArrayList<>(sql.parameters());
+        // list() appends LIMIT/OFFSET after the shared WHERE params. Extra equals
+        // placeholders sit before ORDER BY, so they must be inserted before those two.
+        boolean hasLimitOffset = order >= 0 && text.toLowerCase(Locale.ROOT).contains(" limit ?");
+        if (hasLimitOffset && params.size() >= 2) {
+            params.addAll(params.size() - 2, extraParams);
+        } else {
+            params.addAll(extraParams);
+        }
         if (!next.toLowerCase(Locale.ROOT).contains("tenant_id")) {
             throw P3Exception.missingTenant();
         }
