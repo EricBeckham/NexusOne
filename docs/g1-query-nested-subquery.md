@@ -21,16 +21,17 @@ Stolen / null nested tenant and tenant→platform nested table reuse `P1.M02.022
 
 ## Evidence
 
-Recorded on this agent VM after the compiler change. Java **21**, Maven, Spring Boot **4.1.1**. Isolation-kernel `PostgresIsolationIT` uses in-process PostgreSQL **15** (Zonky). No Docker.
+Recorded on this agent VM. Java **21.0.10**, Maven **3.9.16**, Spring Boot **4.1.1**. Isolation-kernel `PostgresIsolationIT` uses in-process PostgreSQL **15.18** (Zonky). No Docker.
 
 ```
 mvn -f modules/isolation-kernel/pom.xml test
-# pending this agent run
+# Tests run: 42, Failures: 0, Errors: 0, Skipped: 0  BUILD SUCCESS  2026-09-22T17:08:42Z
 
 mvn -pl nexus-bootstrap -am test \
     -Dtest=G1QueryNestedSubqueryTest,G1QueryAstRemainderTest,G1QueryJoinFieldPolicyTest \
     -Dsurefire.failIfNoSpecifiedTests=false
-# pending this agent run
+# BUILD SUCCESS  2026-09-22T17:09:15Z
+# G1QueryNestedSubqueryTest 1/1, G1QueryAstRemainderTest 1/1, G1QueryJoinFieldPolicyTest 1/1
 ```
 
 | Suite | What it proved |
