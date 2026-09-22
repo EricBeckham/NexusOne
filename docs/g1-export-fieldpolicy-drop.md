@@ -2,7 +2,7 @@
 
 S0+S1 PostgreSQL slice. Not an M0 redo. G18 stays closed. SELF/DEPT equality + FieldPolicy visibility encoding already landed in [#115](https://github.com/EricBeckham/NexusOne/pull/115). This leftover makes **export compile / writeProjected drop hidden columns** instead of only rejecting them, using the same visibility encoding as `QueryAstPolicyCompiler`.
 
-It does **not** invent a second tenant context. It does **not** change `AuditPort.append` same-TX joining. It does **not** claim a product-wide G1 close. Product list/detail Query AST opt-in is already on `main` ([#130](https://github.com/EricBeckham/NexusOne/pull/130)); this leftover does not redo it.
+It does **not** invent a second tenant context. It does **not** change `AuditPort.append` same-TX joining. It does **not** claim a product-wide G1 close. Product list/detail Query AST opt-in is already on `main` ([#130](https://github.com/EricBeckham/NexusOne/pull/130)); this leftover does not redo it. Residual BoundSql / COUNT / export FieldPolicy drop PASS/SKIP beyond #191/#146 is [g1-queryast-export-honesty.md](./g1-queryast-export-honesty.md).
 
 ## What this leftover covers
 

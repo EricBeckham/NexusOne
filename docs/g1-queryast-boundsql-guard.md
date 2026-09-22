@@ -2,7 +2,7 @@
 
 S0+S1 PostgreSQL slice. Not an M0 redo. G18 stays closed. `#115` encoded SELF/DEPT equality. `#130` opted product list/detail into that encoder. `#142` encoded single-column `department_id IN (?, …)` onto the AST. This leftover **does not redo that AST work**. It closes the remaining **raw BoundSql bypass** on `GuardedLedgerStore` for mixed-column OR leftovers and `COUNT(*)`.
 
-It does **not** invent a second tenant context. It does **not** change `AuditPort.append` same-TX joining. It does **not** claim a product-wide G1 close. Orthogonal to `#142` (DataScope IN into Query AST), `#144` (G2 tenant_only / catalog), `#141` (G10 identity drift-fix dry-run), `#139` (G3 outbox consume-idempotent), `#137` (physical dump SurfaceGuard), and `#134` (export FieldPolicy drop). PASS/SKIP honesty beyond this leftover is [g1-queryast-boundsql-honesty.md](./g1-queryast-boundsql-honesty.md). Keep both leftover rows in [README.md](./README.md).
+It does **not** invent a second tenant context. It does **not** change `AuditPort.append` same-TX joining. It does **not** claim a product-wide G1 close. Orthogonal to `#142` (DataScope IN into Query AST), `#144` (G2 tenant_only / catalog), `#141` (G10 identity drift-fix dry-run), `#139` (G3 outbox consume-idempotent), `#137` (physical dump SurfaceGuard), and `#134` (export FieldPolicy drop). PASS/SKIP honesty beyond this leftover is [g1-queryast-boundsql-honesty.md](./g1-queryast-boundsql-honesty.md). Residual BoundSql / COUNT / export FieldPolicy drop PASS/SKIP beyond #191/#146 is [g1-queryast-export-honesty.md](./g1-queryast-export-honesty.md). Keep leftover rows in [README.md](./README.md).
 
 ## What this leftover covers
 
