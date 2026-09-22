@@ -58,7 +58,7 @@ Same loop as the G18 close: stub login, issued `X-Nexus-Context-Id`, never `X-Te
 
 The withdraw control is the ghost **撤回** button on `/p3/todos?box=initiated` (only when the selected instance is still pending). Main (#69) already has `data-testid=todo-withdraw`; this package does not edit that Vue file.
 
-This agent recorded the **HTTP** path. A second human click of 撤回 is optional confirmation, not required to keep G18 closed.
+This agent recorded the **HTTP** path. The leftover **UI click** of `todo-withdraw` (Vitest + Playwright against stub login, no Docker) is [g7-withdraw-browser.md](./g7-withdraw-browser.md). That leftover does **not** claim a G7 three-type close and does not reopen G18.
 
 ## Evidence
 
@@ -84,7 +84,7 @@ Recorded **2026-09-22T15:40:45Z** on this branch with `./scripts/g7/run-withdraw
 | Item | Status |
 |---|---|
 | Leave withdraw HTTP (submit-start → withdraw → query → audit) | **this package** |
-| Leave withdraw browser click | Documented above; G18 walk did not click it |
+| Leave withdraw browser click | leftover [g7-withdraw-browser.md](./g7-withdraw-browser.md); G18 walk did not click it |
 | Expense / travel catalog | **on main** (#69). Not rewritten here |
 | `tenant_member` seed `process.instance/withdraw` | **on main** (#69). `guard()` still only hard-fails `explicit_deny` / `tenant_boundary` |
 | G7 three-type close | **not claimed** |

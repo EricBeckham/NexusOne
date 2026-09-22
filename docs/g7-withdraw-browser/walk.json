@@ -1,0 +1,121 @@
+{
+  "recorded_at": "2026-09-22T17:37:15.002Z",
+  "result": "PASS",
+  "command": "./scripts/g7/run-withdraw-browser.sh",
+  "jdk": "OpenJDK 21.0.10+7-Ubuntu-124.04",
+  "node": "22.14.0",
+  "spring_boot": "4.1.1",
+  "chrome_version": "148.0.7778.96",
+  "docker": false,
+  "chrome": "/usr/bin/google-chrome-stable",
+  "playwright": "playwright-core + system Chrome",
+  "base_url": "http://127.0.0.1:4173",
+  "stub_url": "http://127.0.0.1:18087",
+  "control": "data-testid=todo-withdraw",
+  "stub_login": "data-testid=stub-login",
+  "types_walked": [
+    "leave",
+    "expense",
+    "travel"
+  ],
+  "leave_ui_withdraw": true,
+  "expense_ui_withdraw": true,
+  "travel_ui_withdraw": true,
+  "clicks": [
+    {
+      "type": "leave",
+      "control": "data-testid=todo-withdraw",
+      "notice": "已 withdraw。approval_status=WITHDRAWN",
+      "withdrawn": true
+    },
+    {
+      "type": "expense",
+      "control": "data-testid=todo-withdraw",
+      "notice": "已 withdraw。approval_status=WITHDRAWN",
+      "withdrawn": true
+    },
+    {
+      "type": "travel",
+      "control": "data-testid=todo-withdraw",
+      "notice": "已 withdraw。approval_status=WITHDRAWN",
+      "withdrawn": true
+    }
+  ],
+  "stub": {
+    "context_id": "01a0c98a-1f3c-7f72-b724-6ac34746e981",
+    "logins": 1,
+    "withdraws": [
+      {
+        "at": "2026-09-22T17:37:14.660Z",
+        "type": "leave",
+        "instance_id": "01a0c98c-03ce-70dc-8db1-31ac651f7371",
+        "authorization": true,
+        "context_id": "01a0c98a-1f3c-7f72-b724-6ac34746e981",
+        "trace_id": "74274acf-f76c-44f4-a71b-30caca73cf78",
+        "x_tenant_id": false,
+        "idempotent_replay": false
+      },
+      {
+        "at": "2026-09-22T17:37:14.775Z",
+        "type": "expense",
+        "instance_id": "01a0c98c-03ce-70dc-8db1-31ac651f7372",
+        "authorization": true,
+        "context_id": "01a0c98a-1f3c-7f72-b724-6ac34746e981",
+        "trace_id": "e5ca78d2-9d08-40df-8e3c-997f3548d320",
+        "x_tenant_id": false,
+        "idempotent_replay": false
+      },
+      {
+        "at": "2026-09-22T17:37:14.909Z",
+        "type": "travel",
+        "instance_id": "01a0c98c-03ce-70dc-8db1-31ac651f7373",
+        "authorization": true,
+        "context_id": "01a0c98a-1f3c-7f72-b724-6ac34746e981",
+        "trace_id": "05cc867f-3bba-4c35-9eac-b7c9ca66f854",
+        "x_tenant_id": false,
+        "idempotent_replay": false
+      }
+    ],
+    "rejected_tenant_headers": 0,
+    "items": [
+      {
+        "type": "leave",
+        "instance_id": "01a0c98c-03ce-70dc-8db1-31ac651f7371",
+        "status": "WITHDRAWN",
+        "withdrawn": true
+      },
+      {
+        "type": "expense",
+        "instance_id": "01a0c98c-03ce-70dc-8db1-31ac651f7372",
+        "status": "WITHDRAWN",
+        "withdrawn": true
+      },
+      {
+        "type": "travel",
+        "instance_id": "01a0c98c-03ce-70dc-8db1-31ac651f7373",
+        "status": "WITHDRAWN",
+        "withdrawn": true
+      }
+    ]
+  },
+  "screenshots": [
+    "docs/g7-withdraw-browser/01-stub-login.png",
+    "docs/g7-withdraw-browser/02-initiated.png",
+    "docs/g7-withdraw-browser/02b-todo-withdraw.png",
+    "docs/g7-withdraw-browser/03-withdrawn.png"
+  ],
+  "chrome_path": "/usr/bin/google-chrome-stable",
+  "audit_port": "untouched",
+  "g18": "stays closed",
+  "g7_product_close": false,
+  "not_claimed": [
+    "G7 three-type product close",
+    "G18 browser reopen",
+    "live product JAR withdraw click",
+    "AuditPort rewrite"
+  ],
+  "http_already_proven": [
+    "docs/g7-withdraw-evidence.md",
+    "docs/g7-withdraw-expense-travel.md"
+  ]
+}

@@ -53,7 +53,7 @@ python3 scripts/g7/withdraw-expense-travel-http.py \
 
 ## Browser steps (optional confirmation)
 
-Same loop as the G18 close: stub login, issued `X-Nexus-Context-Id`, never `X-Tenant-Id`. UI `http://127.0.0.1:5173`, JAR as in [web/README.md](../web/README.md). G18 browser claim stays closed — HTTP/IT evidence is enough.
+Same loop as the G18 close: stub login, issued `X-Nexus-Context-Id`, never `X-Tenant-Id`. UI `http://127.0.0.1:5173`, JAR as in [web/README.md](../web/README.md). G18 browser claim stays closed — HTTP/IT evidence is enough. The leftover Vue click of `data-testid=todo-withdraw` (stub login, not a G7 product close) is [g7-withdraw-browser.md](./g7-withdraw-browser.md).
 
 1. Login (stub) and stay on the issued tenant context.
 2. 台账 → 开通 **费用报销** or **出差申请** (catalog provision already on main).

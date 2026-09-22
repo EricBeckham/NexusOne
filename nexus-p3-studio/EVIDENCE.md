@@ -373,3 +373,5 @@ Agent VM **2026-09-22T15:40:16Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **
 | `G18BusinessPathIT` | **2/2** regression |
 | `web npm run assert:p3-live` | **PASS** (`data-testid=todo-withdraw`) |
 
+G7 leftover Vue click of that control (stub login, not a three-type close, G18 stays closed): [docs/g7-withdraw-browser.md](../docs/g7-withdraw-browser.md).
+
