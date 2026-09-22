@@ -8,6 +8,7 @@
       <h3>会话与租户</h3>
       <p class="m-muted">账号 {{ session.email || "未登录" }}</p>
       <p class="m-muted" data-testid="mobile-context">context {{ session.contextId || "（无）" }}</p>
+      <p class="m-muted" data-testid="mobile-login-method">登录方式 {{ session.loginMethod || "（无）" }}</p>
       <p class="m-muted">tenant 仅在会话中，不在 URL。</p>
     </div>
     <div class="m-card">

@@ -100,20 +100,26 @@
         "http://127.0.0.1:8088/api/v1/auth/callback",
         "http://127.0.0.1:8080/api/v1/auth/callback",
         "http://127.0.0.1:5173/callback",
+        "http://127.0.0.1:5173/m/callback",
+        "http://127.0.0.1:4173/m/callback",
         "https://127.0.0.1:18443/api/v1/auth/callback",
         "https://127.0.0.1:8443/api/v1/auth/callback",
         "https://127.0.0.1:18088/api/v1/auth/callback",
-        "https://127.0.0.1:5173/callback"
+        "https://127.0.0.1:5173/callback",
+        "https://127.0.0.1:5173/m/callback",
+        "https://127.0.0.1:4173/m/callback"
       ],
       "webOrigins": [
         "http://127.0.0.1:18088",
         "http://127.0.0.1:8088",
         "http://127.0.0.1:8080",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:4173",
         "https://127.0.0.1:18443",
         "https://127.0.0.1:8443",
         "https://127.0.0.1:18088",
-        "https://127.0.0.1:5173"
+        "https://127.0.0.1:5173",
+        "https://127.0.0.1:4173"
       ],
       "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
       "optionalClientScopes": ["offline_access", "phone"],

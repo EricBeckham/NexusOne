@@ -12,6 +12,7 @@
 | [g15-f010-h5-runtime](./g15-f010-h5-runtime.md) | G15 F010 H5 运行入口：表单 / 列表 / 待办 / 查询 / 通知跳转（移动浏览器）。桌面页未改；其他宿主 / PKCE 仍开放 |
 | [g15-miniprogram-webview](./g15-miniprogram-webview.md) | G15 leftover：模拟小程序 web-view 父页 + 同源/通道白名单。不是微信 / 钉钉生产验收 |
 | [g15-app-webview-host](./g15-app-webview-host.md) | G15 leftover：APP WebView **网页**宿主模拟（同一 F014 envelope）。不是原生 APP 包；产品 G15 仍开放 |
+| [g15-h5-pkce-browser](./g15-h5-pkce-browser.md) | G15 leftover：移动浏览器 `/m/*` Authorization Code + PKCE（Playwright/stub；HTTPS loopback 见 #120）。不宣称产品 G15 关闭；不重做 APP / 小程序 harness |
 | [g7-business-types](./g7-business-types.md) | G7 请假/报销/出差 catalog（#69）+ 双租户撤回/驳回走通证据；[报销/出差撤回 403](./g7-withdraw-expense-travel.md) 已在 main（#103）；[浏览器撤回 leftover](./g7-withdraw-browser.md) 走 Vue `todo-withdraw`（#113），仍不宣称 G7 产品关闭、不重开 G18 |
 | [g17-separation-of-duties](./g17-separation-of-duties.md) | G17 三权分立 slice（ARCH-CMP-002）；不是完整 G17 关闭；[证据](./engineering/g17-separation-EVIDENCE.md) |
 | [g17-gm-tls-dual-cert](./g17-gm-tls-dual-cert.md) | G17 leftover：本地国密 TLS 双证书（SM2 签名+加密证书 + RFC 8998 TLS_SM4_GCM_SM3）；不是等保/密码机/Nginx 国密关闭；[证据](./engineering/g17-gm-tls-EVIDENCE.md) |

@@ -15,6 +15,7 @@ export const session = reactive({
   demoReason: "m0-12-ui",
   bootstrapToken: "",
   lastTraceId: "",
+  loginMethod: "",
   error: "",
 });
 
@@ -34,6 +35,7 @@ function hydrate() {
     demoReason: stored.demoReason || session.demoReason,
     bootstrapToken: stored.bootstrapToken || "",
     lastTraceId: stored.lastTraceId || "",
+    loginMethod: stored.loginMethod || "",
   });
 }
 
@@ -55,6 +57,7 @@ export function persist() {
     demoReason: session.demoReason,
     bootstrapToken: session.bootstrapToken,
     lastTraceId: session.lastTraceId,
+    loginMethod: session.loginMethod || "",
   });
 }
 
@@ -117,5 +120,6 @@ export function clearIdentity() {
   session.displayName = "";
   session.memberships = [];
   session.lastTraceId = "";
+  session.loginMethod = "";
   persist();
 }

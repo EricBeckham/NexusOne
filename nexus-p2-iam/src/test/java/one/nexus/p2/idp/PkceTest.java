@@ -22,4 +22,15 @@ class PkceTest {
     void rejectsShortVerifier() {
         assertThrows(IllegalArgumentException.class, () -> Pkce.s256("too-short"));
     }
+
+    @Test
+    void clientHeldChallengeDoesNotMintVerifier() {
+        String challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+        Pkce.Challenge held = Pkce.clientHeld(challenge);
+        assertEquals(challenge, held.challenge());
+        assertEquals("", held.verifier());
+        assertEquals(Pkce.METHOD_S256, held.method());
+        assertTrue(Pkce.clientHeld(held));
+        assertThrows(IllegalArgumentException.class, () -> Pkce.clientHeld("short"));
+    }
 }

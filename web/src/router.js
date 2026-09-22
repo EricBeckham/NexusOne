@@ -141,7 +141,7 @@ router.beforeEach((to) => {
   if (to.meta.harness || !to.meta.mobile || to.meta.public) {
     return true;
   }
-  if (session.accessToken) {
+  if (session.accessToken || session.accountId || session.contextId) {
     return true;
   }
   const returnTo = isSafeMobileReturn(to.fullPath) ? to.fullPath : safeMobileReturn(to.path);

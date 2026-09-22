@@ -39,6 +39,21 @@ public final class Pkce {
         return new Challenge(verifier, challengeS256(verifier), METHOD_S256);
     }
 
+    /**
+     * Public-client / H5 shape: the browser holds the verifier. The authorize-url
+     * response must not mint or return a {@code code_verifier}.
+     */
+    public static Challenge clientHeld(String challenge) {
+        if (challenge == null || !challenge.matches("[A-Za-z0-9_-]{43,128}")) {
+            throw new IllegalArgumentException("PKCE code_challenge must be base64url 43-128 characters");
+        }
+        return new Challenge("", challenge, METHOD_S256);
+    }
+
+    public static boolean clientHeld(Challenge challenge) {
+        return challenge != null && (challenge.verifier() == null || challenge.verifier().isBlank());
+    }
+
     static String challengeS256(String verifier) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
