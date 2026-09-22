@@ -4,6 +4,8 @@ S0+S1 PostgreSQL slice. Not an M0 redo. **Product G18 stays closed.** This packa
 
 Same-PG archive copy (#86 / #90) and object-store cold copy (#104) already exist. The leftover here is a **safe DELETE of a hot prefix** that is already copied.
 
+Sibling honesty leftover (do **not** redo this #123 contract): [g4-hot-purge-90d-honesty.md](./g4-hot-purge-90d-honesty.md). Keep both leftover rows in [docs/README.md](./README.md): this file and `g4-hot-purge-90d-honesty`. Live `:5432` / JAR / Quartz remaining window is an honest SKIP on that leftover, not a product G4 close.
+
 ## What this slice covers
 
 1. **Eligibility.** A hot row may be deleted only when `occurred_at` is older than `AuditRetentionPolicy.HOT_RETENTION` (90 days) **and** a durable copy still exists:
