@@ -39,7 +39,7 @@ Honesty fixtures (must reject fakes):
 
 ## Results (agent VM)
 
-Filled after collect on this VM (rebased onto `f8e5f15`; collect SHA recorded after the next collect). Live output is gitignored under `.local/g3-outbox-consume-crash-honesty/`. Sanitized copy: [`g3-outbox-consume-crash-honesty/agent-vm.env`](./g3-outbox-consume-crash-honesty/agent-vm.env).
+Filled after collect on this VM (`d53169a` rebased onto `f8e5f15`). Live output is gitignored under `.local/g3-outbox-consume-crash-honesty/`. Sanitized copy: [`g3-outbox-consume-crash-honesty/agent-vm.env`](./g3-outbox-consume-crash-honesty/agent-vm.env).
 
 | Check | Result | Notes |
 |---|---|---|
