@@ -60,7 +60,9 @@
               data-testid="totp-code"
             />
           </div>
-          <button class="primary" type="submit" data-testid="totp-confirm">确认绑定</button>
+          <button class="primary" type="button" data-testid="totp-confirm" @click="onConfirm">
+            确认绑定
+          </button>
         </form>
       </div>
 

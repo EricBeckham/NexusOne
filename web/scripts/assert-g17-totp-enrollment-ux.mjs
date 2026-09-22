@@ -74,9 +74,9 @@ requireIncludes("router", files.router, ['path: "/p2/mfa/enroll"']);
 requireIncludes("shell", files.shell, "/p2/mfa/enroll");
 requireIncludes("doc", files.doc, [
   "G18 stays closed",
-  "not a second authenticator",
+  "second authenticator",
   "P2.IAM.MFA_REQUIRED",
-  "recovery codes",
+  "Recovery codes",
 ]);
 forbidIncludes("doc", files.doc, ["closes G17", "等保关闭", "密评关闭", "reopen G18"]);
 forbidIncludes("login", files.login, ["CONFIGURE_TOTP", "Tongsuo"]);

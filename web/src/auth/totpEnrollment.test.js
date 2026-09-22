@@ -29,8 +29,8 @@ describe("TOTP enrollment copy and error paths", () => {
   it("rejects blank, malformed, wrong, stale, and already-enrolled codes", () => {
     const pending = startEnrollment({ secret: SECRET, now: NOW }).session;
     expect(confirmEnrollment(null, "287082").code).toBe(ENROLL_CODES.TOTP_NO_PENDING);
-    expect(confirmEnrollment(pending, "").code).toBe(ENROLL_CODES.TOTP_CODE_BLANK);
-    expect(confirmEnrollment(pending, "12ab").code).toBe(ENROLL_CODES.TOTP_CODE_FORMAT);
+    expect(confirmEnrollment(pending, "", { now: NOW }).code).toBe(ENROLL_CODES.TOTP_CODE_BLANK);
+    expect(confirmEnrollment(pending, "12ab", { now: NOW }).code).toBe(ENROLL_CODES.TOTP_CODE_FORMAT);
     expect(confirmEnrollment(pending, "000000", { now: NOW }).code).toBe(
       ENROLL_CODES.TOTP_VERIFY_FAILED,
     );

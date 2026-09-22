@@ -2,7 +2,7 @@
  * In-app TOTP enrollment leftover: copy + error paths only.
  * Does not write a Keycloak otp credential and is not a second MFA stack.
  */
-import { generate, groupSecret, normalizeCode, otpauthUri, randomBase32Secret, verify } from "./totp";
+import { generate, groupSecret, normalizeCode, otpauthUri, randomBase32Secret, verify } from "./totp.js";
 
 export const MFA_REQUIRED_CODE = "P2.IAM.MFA_REQUIRED";
 export const ENROLL_TTL_MS = 10 * 60 * 1000;
@@ -72,15 +72,15 @@ export function confirmEnrollment(session, code, { now = Date.now(), window = 1 
   if (!session.secret || String(session.secret).trim() === "") {
     return fail(ENROLL_CODES.TOTP_SECRET_BLANK);
   }
-  if (now - (session.createdAt || 0) > ENROLL_TTL_MS) {
-    return fail(ENROLL_CODES.TOTP_STALE);
-  }
   const normalized = normalizeCode(code);
   if (!normalized) {
     return fail(ENROLL_CODES.TOTP_CODE_BLANK);
   }
   if (!/^\d{6}$/.test(normalized)) {
     return fail(ENROLL_CODES.TOTP_CODE_FORMAT);
+  }
+  if (now - (session.createdAt || 0) > ENROLL_TTL_MS) {
+    return fail(ENROLL_CODES.TOTP_STALE);
   }
   if (!verify(session.secret, normalized, now, window)) {
     return fail(ENROLL_CODES.TOTP_VERIFY_FAILED);
