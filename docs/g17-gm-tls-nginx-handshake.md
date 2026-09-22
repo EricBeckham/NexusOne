@@ -4,7 +4,7 @@ S0+S1 remainder after the local GM dual-cert leftover ([g17-gm-tls-dual-cert.md]
 
 This is **one G17 leftover**: an honesty inventory for a **real** Tongsuo-built nginx + Tongsuo `s_client` GMTLS/NTLS handshake. Missing Tongsuo/Nginx is an honest **SKIP**. It is **not** a full G17 close, **not** 等保 / 密评, and **not** a 密码机 / HSM product.
 
-Keep both leftover rows in [docs/README.md](./README.md): `g17-gm-tls-nginx-dual-stack` (#129) and this file. Also keep `g17-admin-mfa-recovery-email` (#154), `g2-ops-pg-dump` (#155), and `s0-secret-rotate-without-restart` (#143).
+Keep both leftover rows in [docs/README.md](./README.md): `g17-gm-tls-nginx-dual-stack` (#129) and this file. Also keep `g17-admin-mfa-recovery-email` (#154), `g2-ops-pg-dump` (#155), `s0-secret-rotate-without-restart` (#143), and `g7-withdraw-browser` (#159).
 
 ## What this leftover covers
 

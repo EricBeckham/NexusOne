@@ -1,8 +1,8 @@
 # G17 real Tongsuo/Nginx GMTLS handshake honesty leftover — evidence
 
-Recorded on this branch after rebase onto `origin/main` (`eab843f`, includes #143 SecretPort rotate-without-restart leftover, #155 ops `pg_dump` honesty leftover, #154 recovery-code / email MFA leftover, and #147 SPA verifier leftover). **Not** a full G17 close. **Not** 等保 / 密评 / 密码机 / HSM. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. #110 dual-cert and #129 dual-stack leftovers were **not** redone.
+Recorded on this branch after rebase onto `origin/main` (`3c6dea2`, includes #159 G7 browser withdraw leftover, #143 SecretPort rotate-without-restart leftover, #155 ops `pg_dump` honesty leftover, #154 recovery-code / email MFA leftover, and #147 SPA verifier leftover). **Not** a full G17 close. **Not** 等保 / 密评 / 密码机 / HSM. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. #110 dual-cert and #129 dual-stack leftovers were **not** redone.
 
-See [docs/g17-gm-tls-nginx-handshake.md](../g17-gm-tls-nginx-handshake.md). Keep both leftover rows: [g17-gm-tls-nginx-dual-stack.md](../g17-gm-tls-nginx-dual-stack.md) and this leftover. Keep [g17-admin-mfa-recovery-email.md](../g17-admin-mfa-recovery-email.md) (#154) and [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md) (#143).
+See [docs/g17-gm-tls-nginx-handshake.md](../g17-gm-tls-nginx-handshake.md). Keep both leftover rows: [g17-gm-tls-nginx-dual-stack.md](../g17-gm-tls-nginx-dual-stack.md) and this leftover. Keep [g17-admin-mfa-recovery-email.md](../g17-admin-mfa-recovery-email.md) (#154), [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md) (#143), and [g7-withdraw-browser.md](../g7-withdraw-browser.md) (#159).
 
 ## Versions
 
