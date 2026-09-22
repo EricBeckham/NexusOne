@@ -1,8 +1,8 @@
 # G15 leftover — WeChat / DingTalk production mini-program acceptance gap honesty
 
-S0+S1 remainder after #117 simulated 小程序 web-view, #132 WeChat/DingTalk production-host **stub**, and #151 APP WebView native-bridge **stub**. Rebased onto `origin/main` `808e31e` (Merge #157 Linux/ARM Profile honesty). **This does not close product G15.** It is a **contract stub** that inventories the production 小程序 gap. It is **not** production验收.
+S0+S1 remainder after #117 simulated 小程序 web-view, #132 WeChat/DingTalk production-host **stub**, and #151 APP WebView native-bridge **stub**. Rebased onto `origin/main` `af36096` (Merge #169 G10 file-reconcile honesty). **This does not close product G15.** It is a **contract stub** that inventories the production 小程序 gap. It is **not** production验收.
 
-Keep leftover rows in [docs/README.md](./README.md): [linux-arm-profile-honesty](./linux-arm-profile-honesty.md) (#157) and [g2-h5-every-page](./g2-h5-every-page.md) (#163). Do not drop sibling G15 rows [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md) / [g15-native-bridge-stub.md](./g15-native-bridge-stub.md).
+Keep leftover rows in [docs/README.md](./README.md): [g10-file-reconcile-honesty](./g10-file-reconcile-honesty.md) (#169) and [linux-arm-profile-honesty](./linux-arm-profile-honesty.md) (#157). Do not drop sibling G15 rows [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md) / [g15-native-bridge-stub.md](./g15-native-bridge-stub.md).
 
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledger / form / todo pages are unchanged. G18 stays closed. P0 / M0 are not redone. F014 envelope on main is reused, not rewritten.
 
@@ -31,6 +31,7 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledg
 | #163 [g2-h5-every-page.md](./g2-h5-every-page.md) | H5 every-page SurfaceGuard honesty | Orthogonal. Row kept. |
 | #164 [g6-recovery-port-honesty.md](./g6-recovery-port-honesty.md) | RecoveryPort still dry-run honesty | Orthogonal. Row kept. |
 | #157 [linux-arm-profile-honesty.md](./linux-arm-profile-honesty.md) | TARGET-ARM-01 / supply-chain csv honesty | Orthogonal. Row kept. |
+| #169 [g10-file-reconcile-honesty.md](./g10-file-reconcile-honesty.md) | file metadata ↔ object reconcile honesty | Orthogonal. Row kept. |
 
 Envelope (unchanged from [g15-h5-mobile.md](./g15-h5-mobile.md)):
 
