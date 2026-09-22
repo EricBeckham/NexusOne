@@ -47,6 +47,7 @@ Denied surfaces emit **both** `p2.permission.denied` and `isolation.guard.reject
 - Admin-session MFA (already on main as [g17-admin-mfa.md](./g17-admin-mfa.md); not redone here)
 - P1 `IsolationGuard` still uses demo `ALL_DEMO` headers; this slice does not rewire P1 tenant APIs onto P2 duty roles
 - Product UI to assign the three duties
+- Sibling honesty leftover beyond this #99 slice: [g17-separation-honesty.md](./g17-separation-honesty.md) (live admin/auditor/operator JAR+IdP HTTP is PASS only when observed; P1 `ALL_DEMO` / product duty UI stay OPEN). Does **not** claim product SoD close.
 - Audit config persistence (endpoints refuse mutation; no retention-policy store)
 - G4 GET traces remains open to any issued tenant context that does **not** hold a platform duty
 
