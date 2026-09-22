@@ -84,6 +84,12 @@ const routes = [
     meta: { harness: true, public: true, title: "微信钉钉生产验收缺口诚实" },
   },
   {
+    path: "/m/native-bridge-honesty-harness",
+    name: "m-native-bridge-honesty-harness",
+    component: () => import("./mobile/products/p3-studio/pages/NativeBridgeHonestyPage.vue"),
+    meta: { harness: true, public: true, title: "APP 原生桥诚实 leftover" },
+  },
+  {
     path: "/m/p3/home",
     name: "m-home",
     component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),

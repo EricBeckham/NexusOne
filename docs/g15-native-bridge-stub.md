@@ -45,12 +45,12 @@ Business pages still do not branch on WeChat / DingTalk (H5 规范 §80.2). Host
 
 | Item | Status |
 |---|---|
-| APP WebView **store-ready native package** | **Open.** No IPA/APK, no store listing, no WKWebView / Android WebView product host. This file is a **stub**. |
+| APP WebView **store-ready native package** | **Open.** No IPA/APK, no store listing, no WKWebView / Android WebView product host. This file is a **stub**. Honesty leftover is [g15-native-bridge-honesty.md](./g15-native-bridge-honesty.md) (PASS/SKIP; not IPA/APK accept). |
 | #114 web `NexusAppWebView` harness | Already on main. Not re-claimed as native. |
 | #117 simulated 小程序 web-view | Already on main. Not production. |
 | WeChat / DingTalk production | **Not accepted.** Contract stub is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md). Not walked inside this stub. |
-| Product G15 | **Open** until a store-ready native host (and production 小程序) walk the same envelope. |
+| Product G15 | **Open** until a store-ready native host (and production 小程序) walk the same envelope. Honesty leftover does **not** close it. |
 | G18 / P0 / M0 | Closed or out of scope. Not redone. Desktop P3 is not rewritten. |
 
 ## How to run
