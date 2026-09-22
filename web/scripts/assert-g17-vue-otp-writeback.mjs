@@ -93,6 +93,7 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "s0-secret-rotate-without-restart",
   "g2-ops-pg-dump",
   "g7-withdraw-browser",
+  "g1-fieldpolicy-mask-second-auth",
 ]);
 requireIncludes("claim list", files.claim, [
   "g17-vue-otp-writeback.md",
