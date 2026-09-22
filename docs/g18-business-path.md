@@ -74,7 +74,7 @@ mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap
     -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS` for the suites listed above (audit same-TX **2026-09-22T13:36:12Z**, event-core **2026-09-22T13:37:34Z**, product dispatcher **2026-09-22T13:39:16Z**, G18 **2026-09-22T13:38:46Z**). `NexusOnePostgresTest` and `JdbcAuditChainTest` skipped (no local PG listener).
+`BUILD SUCCESS` for the suites listed above (audit same-TX **2026-09-22T13:36:12Z**, event-core **2026-09-22T13:37:34Z**, product dispatcher **2026-09-22T13:39:16Z**, G18 **2026-09-22T13:38:46Z**). Re-run after rebase onto #64 `f1dc329` at **2026-09-22T14:00:18Z**: EventCore **5/5**, OutboxEvent **13/13** (P95 **221 ms**), product dispatcher **1/1** (39 ms), G18 **2/2**. `NexusOnePostgresTest` and `JdbcAuditChainTest` skipped (no local PG listener).
 
 ## API (IAM session + M0-02 isolation)
 

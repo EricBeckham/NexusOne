@@ -23,7 +23,7 @@ mvn -pl nexus-p3-studio -am test -Dtest=G18BusinessPathIT -Dsurefire.failIfNoSpe
 
 ## Results
 
-`BUILD SUCCESS` (event-core suite **2026-09-22T13:37:34Z**; product dispatcher + P95 log **2026-09-22T13:39:16Z**).
+`BUILD SUCCESS` (event-core suite **2026-09-22T13:37:34Z**; product dispatcher + P95 log **2026-09-22T13:39:16Z**; **re-run after rebase onto #64 `f1dc329` 2026-09-22T14:00:18Z** — EventCore **5/5**, OutboxEvent **13/13** P95 **221 ms**, product dispatcher **1/1** start-of-delivery **39 ms**, G18 **2/2**).
 
 | Module | Tests | Result |
 |---|---|---|
