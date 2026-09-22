@@ -4,7 +4,7 @@ S0+S1 remainder after the #135 dry-run contract ([g6-recovery-port-dry-run.md](.
 
 #135 locked the product bean as `DryRunRecoveryPort` (`pg_dump --version` probe only). #164 documented that that dry-run is **not** product HA / minute-level RPO / delivery-grade HA. The leftover here is the **honesty gate**: dry-run contract stays always-green **PASS**. Minute-level RPO, product HA, and executing restore are **PASS** only when those walks were actually observed. Missing WAL / standby / restore is honest **SKIP**. It never fabricates `PASS`.
 
-Keep both leftover rows in [docs/README.md](./README.md): `g6-recovery-port-dry-run` (#135) and `g6-recovery-port-honesty` (#164). Keep ALL sibling leftover rows (including `s0s1-live-redis-minio-isolation-honesty` / `g17-separation-honesty` / `g4-hot-purge-90d-honesty` / `g1-fieldpolicy-mask-second-auth-honesty` / `g10-identity-drift-honesty` / `g15-native-bridge-honesty` / `g4-pkce-spa-verifier-honesty` / `s0-secret-getenv-snapshot-honesty`). This file is the honesty leftover beside them.
+Keep both leftover rows in [docs/README.md](./README.md): `g6-recovery-port-dry-run` (#135) and `g6-recovery-port-honesty` (#164). Keep ALL sibling leftover rows (including `s0s1-live-redis-minio-isolation-honesty` / `g17-separation-honesty` / `g4-hot-purge-90d-honesty` / `g1-fieldpolicy-mask-second-auth-honesty` / `g10-identity-drift-honesty` / `g15-native-bridge-honesty` / `g4-pkce-spa-verifier-honesty` / `s0-secret-getenv-snapshot-honesty`). This file is the honesty leftover beside them. Follow-on remainder honesty leftover (does **not** redo this leftover): [g6-recovery-port-dry-run-remainder-honesty.md](./g6-recovery-port-dry-run-remainder-honesty.md).
 
 ## What this leftover covers
 
