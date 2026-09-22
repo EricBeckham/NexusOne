@@ -1,5 +1,6 @@
 package one.nexus.permission.scope;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -26,7 +27,11 @@ public final class IsolationDataScopeInjector implements DataScopeInjector {
     }
 
     public IsolationDataScopeInjector(Map<String, Object> extraAnds) {
-        this.extraAnds = extraAnds == null ? Map.of() : Map.copyOf(extraAnds);
+        Map<String, Object> copy = new LinkedHashMap<>();
+        if (extraAnds != null) {
+            extraAnds.forEach(copy::put);
+        }
+        this.extraAnds = Collections.unmodifiableMap(copy);
     }
 
     public IsolationDataScopeInjector(Decision decision) {

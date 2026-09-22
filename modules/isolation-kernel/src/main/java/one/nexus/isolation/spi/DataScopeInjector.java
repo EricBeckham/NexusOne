@@ -1,5 +1,6 @@
 package one.nexus.isolation.spi;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import one.nexus.isolation.api.AccessContext;
@@ -26,13 +27,17 @@ public interface DataScopeInjector {
      * Never authors {@code tenant_id}. Unknown columns are ignored.
      */
     static DataScopeInjector andEquals(Map<String, Object> extras) {
-        Map<String, Object> atoms = extras == null ? Map.of() : Map.copyOf(extras);
+        Map<String, Object> atoms = new LinkedHashMap<>();
+        if (extras != null) {
+            extras.forEach(atoms::put);
+        }
+        Map<String, Object> frozen = Collections.unmodifiableMap(atoms);
         return (query, table, context) -> {
-            if (query.kind() == QueryKind.INSERT || atoms.isEmpty()) {
+            if (query.kind() == QueryKind.INSERT || frozen.isEmpty()) {
                 return query;
             }
             Map<String, Object> next = new LinkedHashMap<>(query.filters());
-            atoms.forEach((column, value) -> {
+            frozen.forEach((column, value) -> {
                 if ("tenant_id".equals(column)) {
                     return;
                 }
