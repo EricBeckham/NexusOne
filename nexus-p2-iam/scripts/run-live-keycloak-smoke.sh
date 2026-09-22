@@ -160,6 +160,27 @@ curl -fsS "${KC_BASE}/realms/nexus/.well-known/openid-configuration" | python3 -
   --rolename manage-users --rolename view-users --rolename query-users --rolename view-clients \
   >/dev/null 2>&1 || log "service-account roles already present or add-roles skipped"
 
+# Keycloak 25+ puts `sub` on access tokens via the `basic` client scope. Do not
+# import a non-existent `openid` scope name (that drops `basic`).
+CLIENT_UUID="$("${KC_HOME}/bin/kcadm.sh" get clients -r nexus -q "clientId=${CLIENT_ID}" --fields id \
+  | python3 -c "import json,sys; data=json.load(sys.stdin); print(data[0]['id'] if data else '')")"
+SCOPE_JSON="$("${KC_HOME}/bin/kcadm.sh" get client-scopes -r nexus --fields id,name)"
+for SCOPE_NAME in basic profile email roles web-origins acr; do
+  export SCOPE_NAME
+  SCOPE_UUID="$(printf '%s' "${SCOPE_JSON}" | python3 -c "import json,sys,os
+name=os.environ['SCOPE_NAME']
+for scope in json.load(sys.stdin):
+    if scope.get('name')==name:
+        print(scope['id']); break
+")"
+  if [[ -n "${CLIENT_UUID}" && -n "${SCOPE_UUID}" ]]; then
+    "${KC_HOME}/bin/kcadm.sh" update "clients/${CLIENT_UUID}/default-client-scopes/${SCOPE_UUID}" -r nexus -n \
+      >/dev/null 2>&1 || true
+  fi
+done
+log "attached default client scopes basic/profile/email/roles/web-origins/acr to ${CLIENT_ID} (${CLIENT_UUID})"
+unset SCOPE_NAME
+
 USER_ID="$("${KC_HOME}/bin/kcadm.sh" get users -r nexus -q "username=${SMOKE_USER}" --fields id,username 2>/dev/null | python3 -c \
   "import json,sys; data=json.load(sys.stdin); print(data[0]['id'] if data else '')" || true)"
 if [[ -z "${USER_ID}" ]]; then

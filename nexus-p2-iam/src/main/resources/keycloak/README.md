@@ -6,4 +6,4 @@ The committed JSON uses a placeholder client secret. The smoke script substitute
 
 `sslRequired` is `none` so loopback HTTP (`http://127.0.0.1:8180`) is allowed. Keycloak 26 still sets `AUTH_SESSION_ID` / `KC_RESTART` as `Secure; SameSite=None`; the live smoke HTTP driver sends those cookies on loopback despite the Secure flag. Do not copy that cookie handling into a browser product path.
 
-Redirect URIs are loopback-only for agent/local JAR smoke (`18088` live test, `8088` standalone, `8080` bootstrap).
+Redirect URIs are loopback-only for agent/local JAR smoke (`18088` live test, `8088` standalone, `8080` bootstrap). Default client scopes include Keycloak 26 `basic` (access-token `sub`); do not replace them with a non-existent `openid` scope name.
