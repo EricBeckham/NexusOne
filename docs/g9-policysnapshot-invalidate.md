@@ -57,7 +57,7 @@ mvn -pl nexus-permission-core -am test
 |---|---|
 | Redis Sentinel / Cluster / replica promotion | Explicitly not this slice (same as M0-05). |
 | Multi-node live partition | This VM is single-process. Lost-channel is simulated by writing the durable store without `PUBLISH`. |
-| Production poll interval / bounded-stale window | Product poller is on `main` (#89). This package only proves Redis-down / lost-channel `decide` == durable `PermissionEngine`. |
+| Production poll interval / bounded-stale window | Product poller is on `main` (#89). This package only proves Redis-down / lost-channel `decide` == durable `PermissionEngine`. Bounded P2-down timeout-then-reject is [g9-p2-timeout-reject.md](./g9-p2-timeout-reject.md). |
 | G2 product-wide matrix / UI / H5 / report / export | G2 list/detail/flow + role matrix is on `main` (#73). This package does not edit `PermissionEngine`, `SurfaceGuard`, or the role-matrix APIs. |
 | Live JAR + browser snapshot walk | G18 already recorded `GET /api/v1/permission/snapshot`. This package is invalidate + Redis-down evidence, not a second G18 walk. |
 | GaussDB | Same as M0-05: in-memory durable store for the failover path. |

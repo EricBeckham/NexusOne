@@ -1,5 +1,6 @@
 package one.nexus.permission.engine;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -7,29 +8,47 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * P0-02 SnapshotManager port. Database version is authoritative. Notification
  * (Redis PUBLISH or in-process) only asks for an early reload. Version read or
- * snapshot load failure fails closed on the request path. Channel loss cannot
- * leave a stale snapshot because every {@link #get} re-reads the DB version.
- * {@link #pollCached()} is the between-request poller used by
- * {@link PolicySnapshotPoller}; it must not take the process down.
+ * snapshot load failure fails closed on the request path. A bounded
+ * {@link #loadTimeout()} also fail-closes when version/load cannot complete
+ * (ARCH-013 / G9 leftover). Channel loss cannot leave a stale snapshot because
+ * every {@link #get} re-reads the DB version. {@link #pollCached()} is the
+ * between-request poller used by {@link PolicySnapshotPoller}; it must not take
+ * the process down. This is not Redis Sentinel / Cluster failover.
  */
 public final class SnapshotManager {
     private static final Logger log = LoggerFactory.getLogger(SnapshotManager.class);
 
+    public static final Duration DEFAULT_LOAD_TIMEOUT = Duration.ofSeconds(2);
+
+    private static final ExecutorService LOAD_EXECUTOR = Executors.newCachedThreadPool(thread -> {
+        Thread worker = new Thread(thread, "nexus-policy-snapshot-load");
+        worker.setDaemon(true);
+        return worker;
+    });
+
     private final Function<String, Long> versionReader;
     private final Function<String, PolicySnapshot> snapshotLoader;
     private final int maxCachedTenants;
+    private final Duration loadTimeout;
     private final Map<String, PolicySnapshot> cache;
     private final Set<String> invalidated = ConcurrentHashMap.newKeySet();
 
     public SnapshotManager(Function<String, Long> versionReader, Function<String, PolicySnapshot> snapshotLoader) {
-        this(versionReader, snapshotLoader, 256);
+        this(versionReader, snapshotLoader, 256, DEFAULT_LOAD_TIMEOUT);
     }
 
     public SnapshotManager(
@@ -37,15 +56,37 @@ public final class SnapshotManager {
             Function<String, PolicySnapshot> snapshotLoader,
             int maxCachedTenants
     ) {
+        this(versionReader, snapshotLoader, maxCachedTenants, DEFAULT_LOAD_TIMEOUT);
+    }
+
+    public SnapshotManager(
+            Function<String, Long> versionReader,
+            Function<String, PolicySnapshot> snapshotLoader,
+            Duration loadTimeout
+    ) {
+        this(versionReader, snapshotLoader, 256, loadTimeout);
+    }
+
+    public SnapshotManager(
+            Function<String, Long> versionReader,
+            Function<String, PolicySnapshot> snapshotLoader,
+            int maxCachedTenants,
+            Duration loadTimeout
+    ) {
         this.versionReader = Objects.requireNonNull(versionReader, "versionReader");
         this.snapshotLoader = Objects.requireNonNull(snapshotLoader, "snapshotLoader");
         this.maxCachedTenants = Math.max(1, maxCachedTenants);
+        this.loadTimeout = normalizeTimeout(loadTimeout);
         this.cache = new LinkedHashMap<>(16, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, PolicySnapshot> eldest) {
                 return size() > SnapshotManager.this.maxCachedTenants;
             }
         };
+    }
+
+    public Duration loadTimeout() {
+        return loadTimeout;
     }
 
     public void notifyInvalidated(String tenantId) {
@@ -58,9 +99,12 @@ public final class SnapshotManager {
 
     public PolicySnapshot get(String tenantId, boolean highRiskWrite) {
         Objects.requireNonNull(tenantId, "tenantId");
+        long deadlineNanos = System.nanoTime() + loadTimeout.toNanos();
         long version;
         try {
-            version = versionReader.apply(tenantId);
+            version = callBeforeDeadline(deadlineNanos, "policy version", () -> versionReader.apply(tenantId));
+        } catch (SnapshotUnavailableException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             throw new SnapshotUnavailableException("policy version unavailable", ex);
         }
@@ -71,7 +115,9 @@ public final class SnapshotManager {
         if (cached == null || cached.version() < version || invalidated.contains(tenantId)) {
             PolicySnapshot loaded;
             try {
-                loaded = snapshotLoader.apply(tenantId);
+                loaded = callBeforeDeadline(deadlineNanos, "policy snapshot", () -> snapshotLoader.apply(tenantId));
+            } catch (SnapshotUnavailableException ex) {
+                throw ex;
             } catch (RuntimeException ex) {
                 throw new SnapshotUnavailableException("policy snapshot unavailable", ex);
             }
@@ -145,5 +191,40 @@ public final class SnapshotManager {
             }
         }
         return polled;
+    }
+
+    private <T> T callBeforeDeadline(long deadlineNanos, String label, Supplier<T> work) {
+        long remainingNanos = deadlineNanos - System.nanoTime();
+        if (remainingNanos <= 0) {
+            throw new SnapshotUnavailableException(timeoutMessage(label));
+        }
+        Future<T> future = LOAD_EXECUTOR.submit(work::get);
+        try {
+            return future.get(remainingNanos, TimeUnit.NANOSECONDS);
+        } catch (TimeoutException ex) {
+            future.cancel(true);
+            throw new SnapshotUnavailableException(timeoutMessage(label), ex);
+        } catch (ExecutionException ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            if (cause instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw new SnapshotUnavailableException(label + " failed", cause);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            future.cancel(true);
+            throw new SnapshotUnavailableException(label + " interrupted", ex);
+        }
+    }
+
+    private String timeoutMessage(String label) {
+        return label + " timed out after " + loadTimeout.toMillis() + "ms";
+    }
+
+    private static Duration normalizeTimeout(Duration loadTimeout) {
+        if (loadTimeout == null || loadTimeout.isZero() || loadTimeout.isNegative()) {
+            return DEFAULT_LOAD_TIMEOUT;
+        }
+        return loadTimeout;
     }
 }

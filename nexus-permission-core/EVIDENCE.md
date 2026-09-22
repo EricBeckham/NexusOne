@@ -150,7 +150,7 @@ Not a full product G2 close. Isolation reject-before-sink and AuditPort are unch
 - Product-wide G2 (report / H5). Form studio + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache is not. form fill / submissions remain open.
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
-- G9 bounded timeout when P2 is down (ordinary query still fail-closes; no retry-deadline)
+- G9 bounded timeout when P2 is down: [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md) (this leftover). Redis Sentinel/Cluster still not claimed.
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`

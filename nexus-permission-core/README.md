@@ -66,7 +66,8 @@ and reused for `COUNT(*)`, `SELECT … LIMIT/OFFSET`, and detail-by-id. That hap
 - High-risk writes fail closed if the loaded version is not current.
 - Key shape (P0-05): `nexus:v1:{tenant-id}:cache:permission:snapshot` (reserved; unused as a payload).
 - Channel: `nexus:v1:permission:invalidate`.
-- **Not claimed:** Redis Sentinel/Cluster failover, replica promotion, P2-down bounded timeout, or multi-node partition tests. That leftover is full G9 failover, not this remainder.
+- Request-path version/load is bounded by `nexus.permission.snapshot-load-timeout` (default 2s). Hang past the clock fail-closes `P2.PERM.0005`. See [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md).
+- **Not claimed:** Redis Sentinel/Cluster failover, replica promotion, or multi-node partition tests. That leftover is full G9 failover, not this remainder.
 - Demo `tenant_member` ALL-scope seed is **not** treated as permission-complete. Propagation tests write a real `g9_self_reader` SELF grant.
 
 ## Run
@@ -106,7 +107,7 @@ export NEXUS_REDIS_PORT=6379
 - Product-wide G2 (report / H5). Form studio + export Task type + Job/Task submit + export cacheStatus are on SurfaceGuard; general cache and report UI are not.
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
-- Redis failover / Cluster / Sentinel
+- Redis failover / Cluster / Sentinel (P2-down timeout-then-reject is on `SnapshotManager`, not Sentinel)
 - Query AST OUTER/CROSS JOIN and nested subquery (IN/EXISTS, batch INSERT, sort, and page isolation is M0-02; this module still binds OR DataScope via `PermissionQueryBinder`)
 - SQL Guard implementation (owned by M0-02)
 - Live Keycloak (owned by M0-04)
