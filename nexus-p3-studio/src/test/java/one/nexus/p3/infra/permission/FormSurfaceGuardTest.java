@@ -47,10 +47,13 @@ class FormSurfaceGuardTest {
     void explicitDenyIs403() {
         bindIssued();
         FormSurfaceGuard guard = guard(decision("form", "write", new Decision(false, "explicit_deny")), null);
-        PermissionException ex = assertThrows(PermissionException.class, guard::requireWrite);
-        assertEquals("P2.PERM.0002", ex.errorCode().code());
-        assertEquals("explicit_deny", ex.getMessage());
-        assertEquals(403, ex.httpStatus());
+        PermissionException write = assertThrows(PermissionException.class, guard::requireWrite);
+        PermissionException fill = assertThrows(PermissionException.class, guard::requireFill);
+        assertEquals("P2.PERM.0002", write.errorCode().code());
+        assertEquals("explicit_deny", write.getMessage());
+        assertEquals(403, write.httpStatus());
+        assertEquals(write.errorCode().code(), fill.errorCode().code());
+        assertEquals(write.getMessage(), fill.getMessage());
     }
 
     @Test
@@ -58,6 +61,16 @@ class FormSurfaceGuardTest {
         bindIssued();
         FormSurfaceGuard guard = guard(decision("form", "read", new Decision(false, "tenant_boundary")), null);
         PermissionException ex = assertThrows(PermissionException.class, guard::requireRead);
+        assertEquals("P2.PERM.0001", ex.errorCode().code());
+        assertEquals("tenant_boundary", ex.getMessage());
+        assertEquals(403, ex.httpStatus());
+    }
+
+    @Test
+    void fillTenantBoundaryIs403BeforeWrite() {
+        bindIssued();
+        FormSurfaceGuard guard = guard(decision("form", "write", new Decision(false, "tenant_boundary")), null);
+        PermissionException ex = assertThrows(PermissionException.class, guard::requireFill);
         assertEquals("P2.PERM.0001", ex.errorCode().code());
         assertEquals("tenant_boundary", ex.getMessage());
         assertEquals(403, ex.httpStatus());
@@ -72,9 +85,10 @@ class FormSurfaceGuardTest {
         PermissionModule module = mock(PermissionModule.class);
         when(module.service()).thenReturn(service);
         FormSurfaceGuard guard = new FormSurfaceGuard(module, provider(seeder));
-        Decision decision = guard.requireWrite();
+        Decision decision = guard.requireFill();
         assertEquals("allowed", decision.reason());
         assertTrue(decision.allowed());
+        assertEquals(decision.reason(), guard.requireWrite().reason());
     }
 
     private static void bindIssued() {
