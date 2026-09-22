@@ -3,7 +3,7 @@
 # Does not echo passwords or client secrets. Writes /tmp/keycloak-smoke.env (0600).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../.." && pwd)"
 KC_VER="${KEYCLOAK_VERSION:-26.5.2}"
 KC_HOME="${KEYCLOAK_HOME:-/home/ubuntu/keycloak-${KC_VER}}"
 KC_HTTP_PORT="${KEYCLOAK_HTTP_PORT:-8180}"
@@ -175,6 +175,7 @@ curl -fsS "${KC_BASE}/realms/nexus/.well-known/openid-configuration" | python3 -
   --uusername "service-account-${CLIENT_ID}" \
   --cclientid realm-management \
   --rolename manage-users --rolename view-users --rolename query-users --rolename view-clients \
+  --rolename manage-realm --rolename view-realm \
   >/dev/null 2>&1 || log "service-account roles already present or add-roles skipped"
 
 CLIENT_UUID="$("${KC_HOME}/bin/kcadm.sh" get clients -r nexus -q "clientId=${CLIENT_ID}" --fields id \

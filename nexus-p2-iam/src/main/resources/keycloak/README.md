@@ -10,4 +10,4 @@ Redirect URIs are loopback-only for agent/local JAR smoke (`18088` live test, `8
 
 Realm import also includes public client `nexus-web` (`pkce.code.challenge.method=S256`, no direct-grant) for the G4 PKCE leftover. Product login still uses confidential `nexus-platform` unless an operator points `NEXUS_KEYCLOAK_CLIENT_ID` at `nexus-web`.
 
-Realm import now includes TOTP policy defaults and realm roles `TENANT_ADMIN` / `PLATFORM_ADMIN`. Product MFA enforcement for those admin positions is the P2 session gate (`docs/g17-admin-mfa.md`), not a live Conditional OTP walk. Binding a Keycloak Conditional OTP authenticator to those roles remains operator configuration.
+Realm import now includes TOTP policy defaults, realm roles `TENANT_ADMIN` / `PLATFORM_ADMIN`, and `oidc-amr-mapper` so an OTP completion can appear as `amr=otp`. Product MFA enforcement for those admin positions is the P2 session gate (`docs/g17-admin-mfa.md`). The native admin TOTP enrollment / OTP challenge leftover is `docs/g17-admin-totp-enrollment.md`. Binding a Keycloak Conditional OTP authenticator to those roles as a flow-level force remains operator configuration.

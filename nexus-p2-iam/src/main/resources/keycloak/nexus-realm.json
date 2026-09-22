@@ -62,6 +62,18 @@
             "introspection.token.claim": "true",
             "userinfo.token.claim": "true"
           }
+        },
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
         }
       ]
     },
@@ -93,7 +105,21 @@
       "optionalClientScopes": ["offline_access", "phone"],
       "attributes": {
         "pkce.code.challenge.method": "S256"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
     }
   ]
 }

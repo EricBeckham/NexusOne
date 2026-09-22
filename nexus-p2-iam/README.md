@@ -47,7 +47,7 @@ Covered by tests:
 - Flyway `V200__iam_identity.sql` in schema `iam`: tenant tables have `tenant_id UUID NOT NULL`; `iam.iam_global_account` is platform-scoped.
 - Invite / password-reset hooks record Keycloak execute-actions when SMTP is enabled.
 - HTTP login-form helper sends Keycloak 26 `Secure` loopback cookies (`AuthorizationCodeDriverTest`).
-- Admin MFA gate: tenant/platform admin without MFA cannot issue a privileged session (`P2.IAM.MFA_REQUIRED`); non-admin password-only still can. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md).
+- Admin MFA gate: tenant/platform admin without MFA cannot issue a privileged session (`P2.IAM.MFA_REQUIRED`); non-admin password-only still can. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md). Live Keycloak TOTP enrollment / OTP challenge leftover: [docs/g17-admin-totp-enrollment.md](../docs/g17-admin-totp-enrollment.md).
 
 `JdbcDualTenantIsolationTest` ran against **PostgreSQL 15.19** (`Ubuntu 15.19-1.pgdg24.04+2`):
 
@@ -65,7 +65,7 @@ These are **not** accepted:
 
 - SAML
 - LDAP / Active Directory federation
-- SMS MFA, hardware MFA / WebAuthn, TOTP enrollment UX, email MFA product acceptance (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); not a full G17 close)
+- SMS MFA, hardware MFA / WebAuthn, TOTP enrollment UX, email MFA product acceptance (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); native Keycloak admin TOTP leftover is [docs/g17-admin-totp-enrollment.md](../docs/g17-admin-totp-enrollment.md); not a full G17 close)
 - Human-browser Authorization Code + PKCE as an accepted Web/H5 UI (loopback HTTP drops Keycloak 26 `Secure` cookies). Opt-in `GET /api/v1/auth/authorize-url?pkce=s256` + `code_verifier` on `POST /api/v1/auth/login` is the HTTP-driver path; see [docs/g4-pkce-login-audit.md](../docs/g4-pkce-login-audit.md). Product default authorize URL stays confidential-client without PKCE. `p0-smoke` direct-grant must not be copied into production.
 - Keycloak Organizations as Nexus org master data or acceptance evidence (Employment is not synced to Organizations)
 - File metadata ↔ object store reconcile (other G10 half; [g10-file-reconcile.md](../docs/g10-file-reconcile.md))
