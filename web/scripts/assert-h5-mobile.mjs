@@ -70,7 +70,13 @@ requireIncludes("App.vue", files.app, ["NxMobileShell", "route.meta.mobile", "Ap
 requireIncludes("files API", files.filesApi, ["/api/v1/files", "signed-url", "ARCH-024"]);
 requireIncludes("login page", files.login, ["safeMobileReturn", "mobile-stub-login", "authorize-url"]);
 requireIncludes("callback", files.callback, ["consumePendingRedirect", "/m/callback"]);
-requireIncludes("files page", files.filesPage, ["validateUploadFile", "files.upload", "AbortController"]);
+requireIncludes("files page", files.filesPage, [
+  "validateUploadFile",
+  "files.upload",
+  "AbortController",
+  "file-demo-oversize",
+  "file-demo-mime",
+]);
 requireIncludes("file detail", files.fileDetail, ["signDownload"]);
 requireIncludes("shell", files.shell, ["mobile-back", "history.length"]);
 

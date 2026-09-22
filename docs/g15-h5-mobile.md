@@ -47,3 +47,20 @@ Live upload needs the JAR + issued `X-Nexus-Context-Id` (tenant membership). Mis
 ## Checks
 
 `npm run assert:h5` — safe return URL, MIME/size, host-channel denylist, `/m` routes present, desktop P3 views do not import the mobile shell.
+
+## Browser walk (this agent VM, 2026-09-22)
+
+Vite `http://127.0.0.1:5173`, Chromium **375×812**. No JAR / PostgreSQL on this VM (login API 500; stub token still completes the hop).
+
+| Step | Result |
+|---|---|
+| `/m/p3/files` while logged out | Redirect `/m/login?return=/m/p3/files` |
+| Stub 登录并回跳 | Lands `/m/p3/files` mobile shell (no desktop sidebar) |
+| 最近 tab + `demo-file-id` | `/m/p3/files?tab=recent` then `/m/p3/files/demo-file-id` (API error expected) |
+| Home → 打开文件页 | `/m/p3/files?tab=upload` |
+| Refresh | Stays on files, session kept |
+| 结束会话并回跳登录 | `/m/login?return=/m/p3/files?tab=recent` then stub login returns there |
+| `return=https://evil.example/m/p3/home` | Discarded; shown target `/m/p3/home` |
+| `/p3/ledgers` | Desktop M0-12 sidebar + 创建台账 unchanged |
+
+Host messages / PKCE / live File Service upload against issued context were **not** walked. Client size/MIME checks are in `assert:h5` plus on-page 演示 buttons.

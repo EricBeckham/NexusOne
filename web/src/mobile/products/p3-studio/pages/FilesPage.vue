@@ -36,6 +36,14 @@
       <button class="m-btn ghost" type="button" :disabled="!busy" data-testid="file-cancel" @click="onCancel">
         取消
       </button>
+      <div style="height:8px" />
+      <button class="m-btn ghost" type="button" data-testid="file-demo-oversize" @click="demoOversize">
+        演示超限 21MB
+      </button>
+      <div style="height:8px" />
+      <button class="m-btn ghost" type="button" data-testid="file-demo-mime" @click="demoMime">
+        演示非法类型
+      </button>
     </div>
     <div v-else class="m-card">
       <h3>最近文件</h3>
@@ -70,6 +78,7 @@ import { files, readAsBase64 } from "../../../../api/files";
 import { session } from "../../../../api/session";
 import {
   FILE_ACCEPT,
+  FILE_MAX_SIZE_BYTES,
   formatSize,
   inferMime,
   loadRecentFiles,
@@ -173,6 +182,26 @@ async function onUpload() {
 
 function onCancel() {
   abortRef.value?.abort();
+}
+
+function demoOversize() {
+  const check = validateUploadFile({
+    name: "huge.txt",
+    size: FILE_MAX_SIZE_BYTES + 1,
+    type: "text/plain",
+  });
+  error.value = check.message;
+  ok.value = "";
+}
+
+function demoMime() {
+  const check = validateUploadFile({
+    name: "payload.exe",
+    size: 12,
+    type: "application/x-msdownload",
+  });
+  error.value = check.message;
+  ok.value = "";
 }
 
 function openLookup() {

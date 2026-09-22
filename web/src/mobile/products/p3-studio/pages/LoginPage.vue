@@ -46,7 +46,7 @@ import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { stubAccessToken } from "../../../../api/client";
 import { p2 } from "../../../../api/client";
-import { loginWithAccessToken, session } from "../../../../api/session";
+import { loginWithAccessToken, persist, session } from "../../../../api/session";
 import { isSafeMobileReturn, savePendingRedirect, safeMobileReturn } from "../../../auth/safeReturn";
 
 const route = useRoute();
@@ -70,7 +70,16 @@ async function onStubLogin() {
       username: email.value,
       name: name.value,
     });
-    await loginWithAccessToken(access);
+    session.accessToken = access;
+    session.email = email.value;
+    session.displayName = name.value;
+    persist();
+    try {
+      await loginWithAccessToken(access);
+    } catch (err) {
+      // Token + display name already persisted. Issued context needs the JAR.
+      error.value = `${err.code || "LOGIN"} ${err.message} · 浏览器已持有 stub token`;
+    }
     await router.replace(returnTo.value);
   } catch (err) {
     error.value = `${err.code || "LOGIN"} ${err.message}`;
