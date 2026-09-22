@@ -121,7 +121,7 @@ class G1QueryAstProductOptInTest {
                 self,
                 kernel.registry().require("l_alpha_ticket"),
                 kernel.compiler(),
-                AccessContextHolder.current()).bound());
+                AccessContextHolder.current()));
         assertTrue(count.sql().startsWith("SELECT count(*) FROM ("));
         assertTrue(count.sql().contains("\"tenant_id\" = ?"));
 

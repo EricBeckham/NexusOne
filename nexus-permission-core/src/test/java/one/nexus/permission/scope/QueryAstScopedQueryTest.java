@@ -129,19 +129,47 @@ class QueryAstScopedQueryTest {
         assertTrue(bound.startsWith(leftover.compiled().sql().substring(0, leftover.compiled().sql().indexOf(" ORDER"))));
         assertEquals(List.of("alpha", "u1", "d1", 10, 0), leftover.bound().parameters());
 
-        BoundSql count = QueryAstScopedQuery.count(QueryAstScopedQuery.compile(
+        QueryAstScopedQuery.CompiledRead leftoverCount = QueryAstScopedQuery.compile(
                 QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null)),
                 mixed,
                 table,
                 kernel.compiler(),
-                AccessContextHolder.current()).bound());
-        assertTrue(count.sql().contains("tenant_id"));
+                AccessContextHolder.current());
+        BoundSql count = QueryAstScopedQuery.count(leftoverCount);
+        assertTrue(count.sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
         assertTrue(count.sql().contains("owner_id"));
+        assertEquals(leftover.compiled().plan(), leftover.executed().plan());
+        assertTrue(leftover.executed().sql().startsWith(leftover.compiled().sql().substring(
+                0, leftover.compiled().sql().indexOf(" ORDER"))));
 
         assertThrows(PermissionException.class, () -> QueryAstScopedQuery.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
                 new Decision(true, "bad", Predicate.atom("tenant_id", "=", "beta"), Map.of(), 1L),
                 table));
+    }
+
+    @Test
+    void rawBoundSqlCannotBypassCompilerTenantOnCount() {
+        IsolationKernel kernel = kernel();
+        AccessContextHolder.set(kernel.tenants().issue(
+                new AuthenticatedMembership(Actor.person("u1"), "alpha", "mem-a", Set.of("alpha")),
+                "trace-bypass"));
+        assertThrows(PermissionException.class, () -> QueryAstScopedQuery.count(
+                new BoundSql("SELECT id FROM ledger_entry WHERE tenant_id = ?", List.of("alpha"))));
+        assertThrows(PermissionException.class, () -> QueryAstScopedQuery.count(
+                new BoundSql("SELECT id FROM ledger_entry", List.of())));
+        QueryAstScopedQuery.CompiledRead encoded = QueryAstScopedQuery.compile(
+                QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null)),
+                new Decision(true, "specified", Predicate.atom("department_id", "IN", List.of("d1", "d2")), Map.of(), 1L),
+                table,
+                kernel.compiler(),
+                AccessContextHolder.current());
+        assertTrue(encoded.scopeFullyEncoded());
+        var count = QueryAstScopedQuery.countExecuted(encoded);
+        assertTrue(count.sql().startsWith("SELECT count(*) FROM ("));
+        assertTrue(count.sql().contains("\"department_id\" IN (?, ?)"));
+        assertTrue(count.sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
+        assertEquals(encoded.compiled().plan(), count.plan());
     }
 
     @Test

@@ -15,7 +15,7 @@ It does **not** invent a second tenant context. It does **not** change `AuditPor
 | Report query HTTP | Reuses `LedgerRecordService.list` → `GuardedLedgerStore` | Same opt-in as ledger list | Physical dump / report UI wizard stay open (`#124` is G2 SurfaceGuard only) |
 | Hook `ScopedQuery` strings | `PermissionDataScopeHook.bind` | Unchanged string binder for callers that still read `.query()` | `PermissionService.scopedQuery` still skips the AST |
 
-Fully encoded SELF/DEPT list/detail execute through `kernel.jdbc().executeQuery(RenderedSql)`. Leftover OR/IN and the count wrap still use `BoundSql` + `PreparedStatement` on the allowlisted `GuardedLedgerStore` adapter.
+Fully encoded SELF/DEPT/`IN` list/detail execute through `kernel.jdbc().executeQuery(RenderedSql)`. Leftover mixed-column OR and the count wrap now also execute as leftover-bound `RenderedSql` through `GuardedJdbc` ([g1-queryast-boundsql-guard.md](./g1-queryast-boundsql-guard.md)). Raw `BoundSql` cannot bypass Query AST / DataScope.
 
 ## Evidence
 
@@ -53,4 +53,4 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 | `P3RequestContext` | Unchanged. Encoding uses `AccessContextHolder` only. |
 | G4 same-request chain | Unchanged. No `AuditPort` rewrite. |
 | GaussDB / live Redis / live MinIO | Unchanged. |
-| Platform-wide “every API” | `#119` still gates new raw JDBC. Allowlisted leftover `BoundSql` on `GuardedLedgerStore` remains for mixed-column OR and count. |
+| Platform-wide “every API” | `#119` still gates new raw JDBC. Leftover mixed-column OR / count on `GuardedLedgerStore` is guarded ([g1-queryast-boundsql-guard.md](./g1-queryast-boundsql-guard.md)); they are not Query AST nodes. |
