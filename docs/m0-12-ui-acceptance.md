@@ -76,8 +76,8 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, and `/api/v1/p3/*` (
 | G1 | Two P1 tenants independent; quota on A does not bump B | **PASS** | P1 consume/list |
 | G1 | Platform tenant cannot be disabled | **PASS** | `P1.TENANT.0004` |
 | G1 | In-app notifications do not leak across tenants | **PASS** | enqueue in A, list in B empty |
-| G1 | Query AST / export / file / cache / Job / Task full path | **DEFERRED** | M0-02 kernel + later modules |
-| G1 | Guard-reject logs “zero leak” product claim | **DEFERRED** | isolation kernel evidence, not this UI |
+| G1 | Query AST / export / file / cache / Job / Task full path | **PARTIAL** | Query AST already on M0-02. Export / file / cache / Job / Task reject-before-execute + guard records: [g1-isolation-surfaces.md](./g1-isolation-surfaces.md). Not a product-wide zero-leak close. |
+| G1 | Guard-reject logs “zero leak” product claim | **PARTIAL** | Those four surfaces emit `ISOLATION_REJECT` + `AuditPort` `GUARD_REJECT`. UI/H5/join-AST/FieldPolicy export remain open. |
 | G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 product-wide (UI/API/query/flow/report/export/H5, one engine) stays open |
 | G5 | Draft/Validate/Publish (forms) | **IT / script** | Success path is live HTTP + Vue. Failed paths: [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). Not a full G5 product close |
 | G8 | Health / trace id | **PASS** | actuator + `/api/v1/meta/runtime` |
@@ -98,7 +98,7 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 
 ## Out of scope (explicit)
 
-- Claiming G1 product-wide closed (export / file / cache / Job / Task remain deferred)
+- Claiming G1 product-wide closed (export / file / cache / Job / Task guards are evidenced; UI/H5/join-AST/FieldPolicy export are not)
 - Reimplementing backend modules or inventing MOCK fixtures again
 - Docker / Compose
 - Browser Authorization Code + PKCE as accepted login

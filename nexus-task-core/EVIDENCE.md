@@ -20,7 +20,7 @@ Same reactor run as event-core: `mvn -pl nexus-event-core,nexus-task-core -am te
 
 | Test | Count | What it proved |
 |---|---|---|
-| `TaskQueueContractTest` | 4 | submit requires M0-02 context; worker restores tenant; cross-tenant reject before handler; retry → DEAD + DLQ |
+| `TaskQueueContractTest` | 5 | submit requires M0-02 context; worker restores tenant; cross-tenant reject before handler; export `P1.M02.019` reject-before-handler + guard record; retry → DEAD + DLQ. Re-run **2026-09-22T15:28:41Z** 5/5. |
 | `QuartzJobStoreIT` | 3 | misfire `FireNow` once with restored tenant; clustered JobStore check-in + 4 unique fires; shared isolation kernel |
 
 Quartz log excerpts:

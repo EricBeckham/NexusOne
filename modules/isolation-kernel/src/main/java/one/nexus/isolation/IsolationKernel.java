@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Set;
 import one.nexus.isolation.api.IsolationAuditSink;
 import one.nexus.isolation.audit.IsolationAuditor;
+import one.nexus.isolation.audit.IsolationAuditorHolder;
 import one.nexus.isolation.context.PlatformContextIssuer;
 import one.nexus.isolation.context.RequestIsolationPolicy;
 import one.nexus.isolation.context.TenantContextIssuer;
@@ -60,6 +61,7 @@ public final class IsolationKernel {
     ) {
         Objects.requireNonNull(registry, "registry");
         IsolationAuditor auditor = new IsolationAuditor(audit);
+        IsolationAuditorHolder.install(auditor);
         TenantContextIssuer tenantIssuer = new TenantContextIssuer(auditor);
         PlatformContextIssuer platformIssuer = new PlatformContextIssuer(platformPaths, auditor);
         QueryCompiler compiler = new QueryCompiler(

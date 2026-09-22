@@ -1,7 +1,9 @@
 package one.nexus.event.isolation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 import java.util.Set;
@@ -11,6 +13,7 @@ import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.audit.CollectingAuditSink;
+import one.nexus.isolation.boundary.IsolatedEnvelope;
 import one.nexus.isolation.context.AccessContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -44,5 +47,22 @@ class ExecutionIsolationTest {
                 isolation.requests().bindTenant(membership, "alpha", Optional.of("beta"), "trace-hint"));
         assertEquals(IsolationErrorCode.CLIENT_TENANT_UNTRUSTED, ex.error());
         assertEquals(1, sink.rejectCount());
+    }
+
+    @Test
+    void jobRestoreRejectsForeignEnvelopeBeforeHandler() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        ExecutionIsolation isolation = ExecutionIsolation.createForTests(sink);
+        isolation.issueAndBind(new StoredMembership("alpha", "user-alpha", Actor.PERSON, "mem-alpha"), "trace-job");
+        IsolatedEnvelope foreign = new IsolatedEnvelope("beta", "trace-job", "quartz.ping", "{}");
+        var ran = new java.util.concurrent.atomic.AtomicBoolean(false);
+        IsolationException ex = assertThrows(IsolationException.class, () ->
+                isolation.runRestored(
+                        new StoredMembership("alpha", "user-alpha", Actor.PERSON, "mem-alpha"),
+                        foreign,
+                        item -> ran.set(true)));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_ASYNC, ex.error());
+        assertFalse(ran.get());
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_ASYNC));
     }
 }

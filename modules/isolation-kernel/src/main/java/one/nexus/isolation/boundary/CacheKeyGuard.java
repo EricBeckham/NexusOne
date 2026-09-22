@@ -3,9 +3,9 @@ package one.nexus.isolation.boundary;
 import java.util.function.BiConsumer;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
-import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.TenantContext;
+import one.nexus.isolation.audit.IsolationAuditorHolder;
 import one.nexus.isolation.context.AccessContextHolder;
 
 /**
@@ -17,7 +17,8 @@ public final class CacheKeyGuard {
 
     public static String key(String env, AccessContext context, String module, String key) {
         if (context == null) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, null, "cache key missing context");
         }
         String scope = context instanceof PlatformContext
                 ? "platform"
@@ -27,26 +28,32 @@ public final class CacheKeyGuard {
 
     public static void assertMatches(AccessContext context, String cacheKey) {
         if (context == null) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, null, "cache assert missing context");
         }
         if (cacheKey == null || cacheKey.isBlank()) {
-            throw new IsolationException(IsolationErrorCode.CROSS_TENANT_CACHE, context.traceId());
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CROSS_TENANT_CACHE, context, "blank cache key");
         }
         String[] parts = cacheKey.split(":", 5);
         if (parts.length != 5 || !"nexus".equals(parts[0])) {
-            throw new IsolationException(IsolationErrorCode.CROSS_TENANT_CACHE, context.traceId());
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CROSS_TENANT_CACHE, context, "malformed cache key");
         }
         String scope = parts[2];
         if (context instanceof TenantContext tenant) {
             if (!tenant.tenantId().equals(scope)) {
-                throw new IsolationException(IsolationErrorCode.CROSS_TENANT_CACHE, context.traceId());
+                throw IsolationAuditorHolder.reject(
+                        IsolationErrorCode.CROSS_TENANT_CACHE, context, "foreign cache tenant segment");
             }
         } else if (context instanceof PlatformContext) {
             if (!"platform".equals(scope)) {
-                throw new IsolationException(IsolationErrorCode.CROSS_TENANT_CACHE, context.traceId());
+                throw IsolationAuditorHolder.reject(
+                        IsolationErrorCode.CROSS_TENANT_CACHE, context, "non-platform cache key");
             }
         } else {
-            throw new IsolationException(IsolationErrorCode.MISSING_CONTEXT, context.traceId());
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.MISSING_CONTEXT, context, "cache requires tenant or platform context");
         }
     }
 
@@ -62,7 +69,8 @@ public final class CacheKeyGuard {
             throw new IllegalArgumentException(name + " required");
         }
         if (value.contains(":")) {
-            throw new IsolationException(IsolationErrorCode.CROSS_TENANT_CACHE, "missing-trace", name + " must not contain ':'");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CROSS_TENANT_CACHE, "missing-trace", null, name + " must not contain ':'");
         }
         return value;
     }

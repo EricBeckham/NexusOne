@@ -4,8 +4,8 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
-import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.TenantContext;
+import one.nexus.isolation.audit.IsolationAuditorHolder;
 import one.nexus.isolation.context.AccessContextHolder;
 
 /** Outbox / task envelope. Tenant and trace must travel; mismatch is rejected before dispatch. */
@@ -28,17 +28,20 @@ public record IsolatedEnvelope(String tenantId, String traceId, String payloadTy
     public void dispatch(Consumer<IsolatedEnvelope> dispatcher) {
         AccessContext current = AccessContextHolder.currentOrNull();
         if (current == null) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, traceId);
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, traceId, null, "dispatch missing context");
         }
         if (current instanceof TenantContext tenant && !tenant.tenantId().equals(tenantId)) {
-            throw new IsolationException(IsolationErrorCode.CROSS_TENANT_ASYNC, current.traceId());
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CROSS_TENANT_ASYNC, current, "envelope tenant mismatch");
         }
         dispatcher.accept(this);
     }
 
     private static String require(String value, String name) {
         if (value == null || value.isBlank()) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace", name + " required");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace", null, name + " required");
         }
         return value;
     }

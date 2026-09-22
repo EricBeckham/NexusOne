@@ -12,7 +12,8 @@ Focused Java 21 module for NexusOne tenant isolation. It is not the M0-01 applic
 | M0-05 | Implement `DataScopeInjector` and pass it to `IsolationKernel.create` — it cannot strip `tenant_id` |
 | M0-09 | `IsolatedExecutor`, `IsolatedEnvelope`, `ContextSnapshot` |
 | M0-10 | `CacheKeyGuard`, `FileObjectKeyGuard` |
-| M0-11 | `IsolationAuditSink` / `IsolationAuditEvent` |
+| Export / G1 | `ExportGuard`, `IsolatedExport` (`P1.M02.019`) |
+| M0-11 | `IsolationAuditSink` / `IsolationAuditEvent` (static guards emit via `IsolationAuditorHolder`) |
 
 Tenant predicate injection has no disable flag. The only audited cross-tenant path is a whitelist `PlatformContext`.
 

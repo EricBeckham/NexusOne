@@ -20,7 +20,9 @@ import one.nexus.event.jdbc.JdbcJobLogWriter;
 import one.nexus.event.support.Jdbc;
 import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.IsolationException;
+import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.boundary.IsolatedEnvelope;
+import one.nexus.isolation.boundary.IsolatedExport;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.task.jdbc.JdbcTaskQueue;
 import org.junit.jupiter.api.AfterEach;
@@ -49,7 +51,8 @@ class TaskQueueContractTest {
     }
 
     private Fixture fixture() {
-        ExecutionIsolation isolation = ExecutionIsolation.create();
+        CollectingAuditSink sink = new CollectingAuditSink();
+        ExecutionIsolation isolation = ExecutionIsolation.createForTests(sink);
         ExecutionSettings settings = new ExecutionSettings(Duration.ofMillis(50), Duration.ofSeconds(5), Duration.ofSeconds(30), 8, 2);
         Clock clock = Clock.systemUTC();
         JdbcTaskQueue queue = new JdbcTaskQueue(dataSource, isolation, settings, clock);
@@ -71,10 +74,15 @@ class TaskQueueContractTest {
                 new JdbcDeadLetterStore(dataSource, clock),
                 new JdbcJobLogWriter(dataSource, clock),
                 settings, clock, false);
-        return new Fixture(isolation, queue, worker, seen);
+        return new Fixture(isolation, queue, worker, seen, sink);
     }
 
-    private record Fixture(ExecutionIsolation isolation, JdbcTaskQueue queue, TaskWorker worker, List<String> seen) {}
+    private record Fixture(
+            ExecutionIsolation isolation,
+            JdbcTaskQueue queue,
+            TaskWorker worker,
+            List<String> seen,
+            CollectingAuditSink sink) {}
 
     @Test
     void submitWithoutContextIsRejected() {
@@ -104,6 +112,25 @@ class TaskQueueContractTest {
         IsolationException ex = assertThrows(IsolationException.class, () -> envelope.dispatch(item -> ran.set(true)));
         assertEquals(IsolationErrorCode.CROSS_TENANT_ASYNC, ex.error());
         assertFalse(ran.get());
+        assertTrue(f.sink.rejected(IsolationErrorCode.CROSS_TENANT_ASYNC));
+    }
+
+    @Test
+    void exportCrossTenantRejectedBeforeHandlerWithGuardRecord() {
+        Fixture f = fixture();
+        EmbeddedTaskSupport.bind(f.isolation, "alpha", "trace-export-a");
+        IsolatedEnvelope stolen = IsolatedExport.submit("alpha", "{\"rows\":1}");
+        AccessContextHolder.clear();
+        EmbeddedTaskSupport.bind(f.isolation, "beta", "trace-export-b");
+        var ran = new java.util.concurrent.atomic.AtomicBoolean(false);
+        IsolationException ex = assertThrows(IsolationException.class,
+                () -> IsolatedExport.dispatch(stolen, "alpha", item -> ran.set(true)));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_EXPORT, ex.error());
+        assertFalse(ran.get());
+        assertTrue(f.sink.rejected(IsolationErrorCode.CROSS_TENANT_EXPORT));
+        IsolationException submit = assertThrows(IsolationException.class,
+                () -> IsolatedExport.submit("alpha", "{}"));
+        assertEquals(IsolationErrorCode.CROSS_TENANT_EXPORT, submit.error());
     }
 
     @Test

@@ -3,6 +3,7 @@ package one.nexus.p3.studio;
 import java.time.Clock;
 import java.util.Set;
 import one.nexus.isolation.IsolationKernel;
+import one.nexus.isolation.api.IsolationAuditSink;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.query.TableRegistry;
 import one.nexus.p3.port.ApplicationRepository;
@@ -31,9 +32,9 @@ import tools.jackson.databind.ObjectMapper;
 public class StudioConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    IsolationKernel studioIsolationKernel() {
+    IsolationKernel studioIsolationKernel(ObjectProvider<IsolationAuditSink> sinks) {
         return IsolationKernel.create(
-                new TableRegistry(), Set.of("p3.studio"), new CollectingAuditSink());
+                new TableRegistry(), Set.of("p3.studio"), sinks.getIfAvailable(CollectingAuditSink::new));
     }
 
     @Bean

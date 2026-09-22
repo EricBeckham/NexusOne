@@ -61,7 +61,7 @@ nexus:{env}:{tenant_id}:{module}:{key}
 nexus:{env}:platform:{module}:{key}
 ```
 
-`CacheKeyGuard.put` builds the key from the bound context, then checks it, then invokes the Redis/cache sink. A foreign tenant segment is `P1.M02.014` and must not write.
+`CacheKeyGuard.put` builds the key from the bound context, then checks it, then invokes the Redis/cache sink. A foreign tenant segment is `P1.M02.014` and must not write. The reject is an `IsolationAuditEvent`.
 
 ## 5. Files (M0-10)
 
@@ -70,10 +70,14 @@ tenants/{tenantId}/...
 platform/...
 ```
 
-`FileObjectKeyGuard.putObject` rejects `tenants/{other}/...` with `P1.M02.015` before the S3/MinIO sink.
+`FileObjectKeyGuard.putObject` rejects `tenants/{other}/...` with `P1.M02.015` before the S3/MinIO sink. The reject is an `IsolationAuditEvent`.
 
 Platform context may read tenant prefixes (ops/reconciliation) but tenant context may not read `platform/` or another tenant prefix.
 
-## 6. Audit
+## 6. Export
 
-Every isolation reject and every `PlatformContext` issue is an `IsolationAuditEvent`. M0-11 persists the sink; this module only emits. Sensitive values are not logged — events carry actor, tenant/path, reason, trace, and error code.
+`ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`.
+
+## 7. Audit
+
+Every isolation reject (query, cache, file, export, async) and every `PlatformContext` issue is an `IsolationAuditEvent`. Static guards go through `IsolationAuditorHolder` installed by `IsolationKernel.create` — not a second tenant holder. Product `AuditPortIsolationSink` persists rejects with `AuditPort.appendNewTransaction`. Sensitive values are not logged — events carry actor, tenant/path, reason, trace, and error code.

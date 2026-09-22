@@ -42,13 +42,13 @@ platform/...
 计数：`INCR` + 首次 `EXPIRE` 的 Lua（3.2 没有带 TTL 的 `INCR`）。  
 Redis **不是**业务真相、审计或关键幂等键存储。
 
-跨租户：以租户 A 访问 `nexus:{env}:{B}:...` 时，`CacheKeyGuard` 在 Redis 命令发出前抛 `P1.M02.014`。
+跨租户：以租户 A 访问 `nexus:{env}:{B}:...` 时，`CacheKeyGuard` 在 Redis 命令发出前抛 `P1.M02.014`，并写入 `IsolationAuditEvent` / 产品 `GUARD_REJECT`。
 
 ## File Service
 
 - 元数据表 `files.file_object`（Flyway **V510**）。对象字节只在 `ObjectStoragePort`（内存或 MinIO 9.0.3，同 P0-06）。
 - 上传 / 元数据 / 删除 / 签名下载。签名前再次校验租户、`FileObjectKeyGuard` 前缀、所有者、资源权限。
-- 跨租户签名：`P1.M02.015`，`ObjectStoragePort.presignGet` 次数不变。
+- 跨租户签名：`P1.M02.015`，`ObjectStoragePort.presignGet` 次数不变，守卫拒绝落 `IsolationAuditEvent`。
 - 本机无 S3 时 `nexus.files.storage=memory`。设置 `S3_ENDPOINT` 等变量后可切 `s3`。
 
 API：`POST/GET/DELETE /api/v1/files`，`POST /api/v1/files/{id}/signed-url`。

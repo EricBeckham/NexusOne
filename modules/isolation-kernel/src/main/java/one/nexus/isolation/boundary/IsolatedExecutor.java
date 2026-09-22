@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
-import one.nexus.isolation.api.IsolationException;
+import one.nexus.isolation.audit.IsolationAuditorHolder;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.isolation.context.ContextSnapshot;
 
@@ -32,7 +32,8 @@ public final class IsolatedExecutor implements Executor {
 
     public static void requirePayloadTenant(AccessContext current, String payloadTenantId) {
         if (current == null) {
-            throw new IsolationException(IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, "missing-trace");
+            throw IsolationAuditorHolder.reject(
+                    IsolationErrorCode.CONTEXT_PROPAGATION_MISSING, null, "async payload missing context");
         }
         SideEffectGuard.assertSameTenant(current, payloadTenantId);
     }

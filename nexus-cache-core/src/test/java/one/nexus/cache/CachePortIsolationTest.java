@@ -20,8 +20,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class CachePortIsolationTest {
+    private final CollectingAuditSink sink = new CollectingAuditSink();
     private final IsolationKernel kernel = IsolationKernel.create(
-            new TableRegistry(), Set.of("cache.ops"), new CollectingAuditSink());
+            new TableRegistry(), Set.of("cache.ops"), sink);
 
     @AfterEach
     void clear() {
@@ -53,6 +54,7 @@ class CachePortIsolationTest {
         IsolationException ex = assertThrows(IsolationException.class, () ->
                 CacheKeyGuard.assertMatches(AccessContextHolder.current(), "nexus:dev:beta:p3:row"));
         assertEquals(IsolationErrorCode.CROSS_TENANT_CACHE, ex.error());
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_CACHE));
         assertEquals(afterWrite, redis.commandCount());
         assertFalse(redis.contains("nexus:dev:beta:p3:row"));
     }
@@ -78,6 +80,7 @@ class CachePortIsolationTest {
         IsolationException ex = assertThrows(IsolationException.class, () ->
                 cache.put("p3", "row", "v", Duration.ofSeconds(1)));
         assertEquals(IsolationErrorCode.MISSING_CONTEXT, ex.error());
+        assertTrue(sink.rejected(IsolationErrorCode.MISSING_CONTEXT));
         assertEquals(0, redis.commandCount());
     }
 

@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,7 @@ import one.nexus.common.cache.CachePort;
 import one.nexus.common.cache.CounterPort;
 import one.nexus.common.cache.DistributedLockPort;
 import one.nexus.isolation.IsolationKernel;
+import one.nexus.isolation.api.IsolationAuditSink;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.query.TableRegistry;
 import redis.clients.jedis.JedisPooled;
@@ -24,11 +26,11 @@ public class CacheConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    IsolationKernel isolationKernel() {
+    IsolationKernel isolationKernel(ObjectProvider<IsolationAuditSink> sinks) {
         return IsolationKernel.create(
                 new TableRegistry(),
                 Set.of("files.reconcile", "notify.ops", "cache.ops"),
-                new CollectingAuditSink());
+                sinks.getIfAvailable(CollectingAuditSink::new));
     }
 
     @Bean

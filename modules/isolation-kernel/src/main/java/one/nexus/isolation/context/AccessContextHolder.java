@@ -3,6 +3,7 @@ package one.nexus.isolation.context;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.IsolationException;
+import one.nexus.isolation.audit.IsolationAuditorHolder;
 
 /**
  * Request/thread bound context. M0-01 binds after {@link RequestIsolationPolicy}; async work must capture a snapshot.
@@ -14,7 +15,7 @@ public final class AccessContextHolder {
 
     public static void set(AccessContext context) {
         if (context == null) {
-            throw new IsolationException(IsolationErrorCode.MISSING_CONTEXT, "missing-trace");
+            throw IsolationAuditorHolder.reject(IsolationErrorCode.MISSING_CONTEXT, null, "null context");
         }
         HOLDER.set(context);
     }
@@ -22,7 +23,7 @@ public final class AccessContextHolder {
     public static AccessContext current() {
         AccessContext context = HOLDER.get();
         if (context == null) {
-            throw new IsolationException(IsolationErrorCode.MISSING_CONTEXT, "missing-trace");
+            throw IsolationAuditorHolder.reject(IsolationErrorCode.MISSING_CONTEXT, null, "no bound context");
         }
         return context;
     }

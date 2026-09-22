@@ -1,11 +1,13 @@
 package one.nexus.p3;
 
 import java.util.Set;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import one.nexus.isolation.IsolationKernel;
+import one.nexus.isolation.api.IsolationAuditSink;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.query.TableRegistry;
 import one.nexus.p3.infra.permission.TenantOnlyDataScopeHook;
@@ -18,11 +20,11 @@ import one.nexus.p3.port.QuotaHook;
 public class P3Configuration {
     @Bean
     @ConditionalOnMissingBean
-    IsolationKernel isolationKernel() {
+    IsolationKernel isolationKernel(ObjectProvider<IsolationAuditSink> sinks) {
         return IsolationKernel.create(
                 new TableRegistry(),
                 Set.of("p3.schema"),
-                new CollectingAuditSink());
+                sinks.getIfAvailable(CollectingAuditSink::new));
     }
 
     /**
