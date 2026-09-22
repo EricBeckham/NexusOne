@@ -55,6 +55,11 @@
       <version>2.2.2</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-file-core</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <dependencyManagement>

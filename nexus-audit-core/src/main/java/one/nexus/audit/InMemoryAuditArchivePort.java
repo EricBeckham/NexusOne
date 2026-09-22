@@ -61,6 +61,11 @@ public final class InMemoryAuditArchivePort implements AuditArchivePort {
     }
 
     @Override
+    public List<ChainedAuditEvent> findArchived() {
+        return archived();
+    }
+
+    @Override
     public List<ChainedAuditEvent> findArchivedByTraceId(String traceId) {
         if (traceId == null || traceId.isBlank()) {
             return List.of();

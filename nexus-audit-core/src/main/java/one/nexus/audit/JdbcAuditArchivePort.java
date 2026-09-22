@@ -9,7 +9,9 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -139,14 +141,45 @@ public final class JdbcAuditArchivePort implements AuditArchivePort {
     }
 
     @Override
+    public List<ChainedAuditEvent> findArchived() {
+        return query("SELECT * FROM platform.audit_record_archive ORDER BY chain_index");
+    }
+
+    @Override
     public List<ChainedAuditEvent> findArchivedByTraceId(String traceId) {
         if (traceId == null || traceId.isBlank()) {
             return List.of();
         }
+        return query(
+                "SELECT * FROM platform.audit_record_archive WHERE trace_id = ? ORDER BY chain_index",
+                traceId);
+    }
+
+    /**
+     * Archive rows plus hot rows already past the 90-day cutoff (still present
+     * after 365-day same-PG purge). Never DELETE/UPDATE {@code audit_record}.
+     */
+    public List<ChainedAuditEvent> findEligibleForCold(Instant now) {
+        Objects.requireNonNull(now, "now");
+        Instant cutoff = now.minus(AuditRetentionPolicy.HOT_RETENTION);
+        Map<UUID, ChainedAuditEvent> byId = new LinkedHashMap<>();
+        for (ChainedAuditEvent linked : findArchived()) {
+            byId.put(linked.event().eventId(), linked);
+        }
+        for (ChainedAuditEvent linked : query(
+                "SELECT * FROM platform.audit_record WHERE occurred_at < ? ORDER BY chain_index",
+                cutoff.atOffset(ZoneOffset.UTC))) {
+            byId.putIfAbsent(linked.event().eventId(), linked);
+        }
+        return List.copyOf(byId.values());
+    }
+
+    private List<ChainedAuditEvent> query(String sql, Object... args) {
         Connection connection = DataSourceUtils.getConnection(dataSource);
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT * FROM platform.audit_record_archive WHERE trace_id = ? ORDER BY chain_index")) {
-            statement.setString(1, traceId);
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < args.length; i++) {
+                statement.setObject(i + 1, args[i]);
+            }
             try (ResultSet rs = statement.executeQuery()) {
                 List<ChainedAuditEvent> out = new ArrayList<>();
                 while (rs.next()) {

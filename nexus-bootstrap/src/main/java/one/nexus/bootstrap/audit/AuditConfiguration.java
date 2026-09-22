@@ -5,15 +5,23 @@ import java.util.TimeZone;
 import javax.sql.DataSource;
 import one.nexus.audit.AuditArchiveJob;
 import one.nexus.audit.AuditArchivePort;
+import one.nexus.audit.AuditColdArchive;
+import one.nexus.audit.AuditColdArchiveJob;
+import one.nexus.audit.AuditColdArchivePort;
+import one.nexus.audit.AuditObjectStore;
 import one.nexus.audit.AuditPort;
 import one.nexus.audit.InMemoryAuditArchivePort;
+import one.nexus.audit.InMemoryAuditObjectStore;
 import one.nexus.audit.InMemoryHashChainedAuditPort;
 import one.nexus.audit.JdbcAuditArchivePort;
 import one.nexus.audit.JdbcHashChainedAuditPort;
+import one.nexus.audit.ObjectStorageAuditStore;
 import one.nexus.audit.recovery.DryRunRecoveryPort;
 import one.nexus.audit.recovery.RecoveryPort;
 import one.nexus.crypto.CryptoPort;
 import one.nexus.event.isolation.ExecutionIsolation;
+import one.nexus.file.FileProperties;
+import one.nexus.file.ObjectStoragePort;
 import one.nexus.p1.infra.audit.JdbcAuditPort;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
@@ -77,6 +85,36 @@ public class AuditConfiguration {
     }
 
     @Bean
+    AuditColdArchivePort auditColdArchivePort(
+            AuditPort auditPort,
+            AuditArchivePort archive,
+            ObjectProvider<ObjectStoragePort> storages,
+            ObjectProvider<FileProperties> files) {
+        AuditObjectStore store = objectStore(storages.getIfAvailable(), files.getIfAvailable());
+        if (archive instanceof JdbcAuditArchivePort jdbc) {
+            return AuditColdArchive.jdbc(jdbc, store);
+        }
+        return new AuditColdArchive(auditPort, archive, store);
+    }
+
+    @Bean
+    AuditColdArchiveJob auditColdArchiveJob(AuditColdArchivePort cold, ObjectProvider<Clock> clocks) {
+        return new AuditColdArchiveJob(cold, clocks.orderedStream().findFirst().orElseGet(Clock::systemUTC));
+    }
+
+    @Bean
+    AuditColdArchiveTaskHandler auditColdArchiveTaskHandler(AuditColdArchiveJob job) {
+        return new AuditColdArchiveTaskHandler(job);
+    }
+
+    @Bean
+    @ConditionalOnBean(ExecutionIsolation.class)
+    AuditColdArchiveRunner auditColdArchiveRunner(
+            ExecutionIsolation isolation, AuditColdArchiveTaskHandler handler, AuditColdArchiveJob job) {
+        return new AuditColdArchiveRunner(isolation, handler, job);
+    }
+
+    @Bean
     RecoveryPort recoveryPort() {
         return new DryRunRecoveryPort();
     }
@@ -110,5 +148,36 @@ public class AuditConfiguration {
                                 .inTimeZone(TimeZone.getTimeZone("UTC"))
                                 .withMisfireHandlingInstructionDoNothing())
                         .build());
+    }
+
+    @Bean
+    @ConditionalOnBean(Scheduler.class)
+    @ConditionalOnProperty(name = "nexus.audit.cold-archive.schedule-enabled", havingValue = "true")
+    org.springframework.beans.factory.InitializingBean auditColdArchiveSchedule(Scheduler scheduler) {
+        return () -> scheduler.scheduleJob(
+                JobBuilder.newJob(PlatformAuditColdArchiveQuartzJob.class)
+                        .withIdentity("audit-archive-cold", "nexus-platform")
+                        .requestRecovery(true)
+                        .storeDurably()
+                        .build(),
+                TriggerBuilder.newTrigger()
+                        .withIdentity("audit-archive-cold", "nexus-platform")
+                        .withSchedule(CronScheduleBuilder.cronSchedule("0 45 2 * * ?")
+                                .inTimeZone(TimeZone.getTimeZone("UTC"))
+                                .withMisfireHandlingInstructionDoNothing())
+                        .build());
+    }
+
+    private static AuditObjectStore objectStore(ObjectStoragePort storage, FileProperties files) {
+        if (storage == null) {
+            return new InMemoryAuditObjectStore();
+        }
+        String bucket = files != null && "s3".equalsIgnoreCase(files.getStorage())
+                ? files.getS3().getBucket()
+                : files == null || files.getBucketAlias() == null || files.getBucketAlias().isBlank()
+                        ? "nexus-files"
+                        : files.getBucketAlias();
+        return new ObjectStorageAuditStore(
+                bucket, storage::put, storage::get, storage::exists, storage::listKeys);
     }
 }
