@@ -1,0 +1,117 @@
+name: linux-arm-profile-leftover-honesty
+
+# Honesty leftover beyond #157.
+# Does not re-run collect-and-verify.sh, lifecycle.sh, or linux-arm-profile-honesty.sh.
+# TARGET-ARM-01 stays not-tested. supply-chain-evidence.csv stays not-collected.
+# Product Linux/ARM Profile is not accepted.
+
+on:
+  push:
+    paths:
+      - "scripts/linux-arm-profile-leftover-honesty.sh"
+      - "scripts/linux-arm-profile-leftover-honesty/**"
+      - "poc/p0-10/deployment-matrix.csv"
+      - "poc/p0-10/supply-chain-evidence.csv"
+      - "docs/linux-arm-profile-leftover-honesty.md"
+      - "docs/engineering/linux-arm-profile-leftover-honesty-EVIDENCE.md"
+      - ".github/workflows/linux-arm-profile-leftover-honesty.yml"
+  pull_request:
+    paths:
+      - "scripts/linux-arm-profile-leftover-honesty.sh"
+      - "scripts/linux-arm-profile-leftover-honesty/**"
+      - "poc/p0-10/deployment-matrix.csv"
+      - "poc/p0-10/supply-chain-evidence.csv"
+      - "docs/linux-arm-profile-leftover-honesty.md"
+      - "docs/engineering/linux-arm-profile-leftover-honesty-EVIDENCE.md"
+      - ".github/workflows/linux-arm-profile-leftover-honesty.yml"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/linux-arm-profile-leftover-honesty.sh --verify-report scripts/linux-arm-profile-leftover-honesty/fixtures/honest-skip.env
+      - name: Fake TARGET-ARM-01 pass is rejected
+        run: |
+          set +e
+          ./scripts/linux-arm-profile-leftover-honesty.sh --verify-report \
+            scripts/linux-arm-profile-leftover-honesty/fixtures/fake-arm-tested.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake TARGET-ARM-01 pass to fail the honesty gate"
+            exit 1
+          fi
+          echo "PASS: fake TARGET-ARM-01 pass rejected"
+      - name: Fake supply-chain collected is rejected
+        run: |
+          set +e
+          ./scripts/linux-arm-profile-leftover-honesty.sh --verify-report \
+            scripts/linux-arm-profile-leftover-honesty/fixtures/fake-supply-collected.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake supply-chain collected to fail the honesty gate"
+            exit 1
+          fi
+          echo "PASS: fake supply-chain collected rejected"
+      - name: Fake Profile close is rejected
+        run: |
+          set +e
+          ./scripts/linux-arm-profile-leftover-honesty.sh --verify-report \
+            scripts/linux-arm-profile-leftover-honesty/fixtures/fake-profile-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake Profile close to fail the honesty gate"
+            exit 1
+          fi
+          echo "PASS: fake Profile close rejected"
+      - name: Fake aarch64 PASS is rejected
+        run: |
+          set +e
+          ./scripts/linux-arm-profile-leftover-honesty.sh --verify-report \
+            scripts/linux-arm-profile-leftover-honesty/fixtures/fake-aarch64-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake aarch64 PASS to fail the honesty gate"
+            exit 1
+          fi
+          echo "PASS: fake aarch64 PASS rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest TARGET-ARM-01 / supply-chain SKIP
+        run: |
+          chmod +x ./scripts/linux-arm-profile-leftover-honesty.sh
+          ./scripts/linux-arm-profile-leftover-honesty.sh \
+            --out "$RUNNER_TEMP/linux-arm-profile-leftover-honesty"
+          ./scripts/linux-arm-profile-leftover-honesty.sh \
+            --verify-report "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^leftover_157_cells_honest=PASS$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^target_arm_01_status=not-tested$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^supply_chain_status=not-collected$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^native_aarch64_install=SKIP$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^x86_note_extrapolated=false$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^aarch64_pass_claimed=false$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^profile_acceptance=NOT_CLAIMED$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E 'linux-arm-profile-honesty' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E 'g17-separation-honesty' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E 'g4-hot-purge-90d-honesty' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^redone_157=false$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/linux-arm-profile-leftover-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-arm-profile-leftover-honesty
+          path: ${{ runner.temp }}/linux-arm-profile-leftover-honesty

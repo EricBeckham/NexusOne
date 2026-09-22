@@ -75,3 +75,13 @@ After #105 / #127. Does **not** re-run the scripts above. `TARGET-ARM-01` stays 
 ```
 
 Evidence: [docs/linux-arm-profile-honesty.md](../../docs/linux-arm-profile-honesty.md).
+
+## TARGET-ARM-01 / supply-chain leftover honesty beyond #157
+
+After #157. Does **not** re-run collect, lifecycle, or the #157 honesty script. `TARGET-ARM-01` stays `not-tested`. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`. Native aarch64 walks are honest SKIP unless observed on aarch64. A this-host x86 leftover note is **not** an aarch64 PASS and is **not** Profile close.
+
+```bash
+./scripts/linux-arm-profile-leftover-honesty.sh
+```
+
+Evidence: [docs/linux-arm-profile-leftover-honesty.md](../../docs/linux-arm-profile-leftover-honesty.md).
