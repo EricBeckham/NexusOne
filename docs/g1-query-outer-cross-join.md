@@ -50,7 +50,7 @@ This is **not** a product-wide “zero leak” close.
 |---|---|
 | Nested subquery | Evidenced in [g1-query-nested-subquery.md](./g1-query-nested-subquery.md). |
 | Product-wide G1 close | UI / H5 every page, report UI / physical ledger dump, and callers that skip `QueryCompiler` stay open. |
-| DataScope / FieldPolicy compilation into AST | Unchanged from [g1-query-join-field-policy.md](./g1-query-join-field-policy.md). |
+| DataScope / FieldPolicy compilation into AST | SELF/DEPT equality + visibility encoding is [g1-datascope-fieldpolicy-ast.md](./g1-datascope-fieldpolicy-ast.md). OR / IN / mask leftovers stay there. |
 | Silent drop on API reads | Unchanged. Export still rejects hidden/second-auth instead of dropping. |
 | `P3RequestContext` | Unchanged. New join kinds use `AccessContextHolder` only. |
 | G4 same-request chain | Unchanged. Guard-reject still uses `appendNewTransaction` only. |

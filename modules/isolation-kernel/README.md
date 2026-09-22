@@ -9,7 +9,7 @@ Focused Java 21 module for NexusOne tenant isolation. It is not the M0-01 applic
 | M0-01 | `RequestIsolationPolicy.bindTenant`, `AccessContextHolder`, `GuardedJdbc`, `SqlBypassScanner` CI |
 | M0-03 | Do not issue context from tenant admin UI; platform tenant still uses `TenantContextIssuer` / `PlatformContextIssuer` |
 | M0-04 | Build `AuthenticatedMembership` from session + P2 membership, then call `bindTenant` |
-| M0-05 | Implement `DataScopeInjector` and pass it to `IsolationKernel.create` — it cannot strip `tenant_id` |
+| M0-05 | Implement `DataScopeInjector` and pass it to `IsolationKernel.create` — it cannot strip `tenant_id`; `andEquals` may AND SELF/DEPT atoms |
 | M0-09 | `IsolatedExecutor`, `IsolatedEnvelope`, `ContextSnapshot` |
 | M0-10 | `CacheKeyGuard`, `FileObjectKeyGuard` |
 | Export / G1 | `ExportGuard`, `IsolatedExport` (`P1.M02.019`); FieldPolicy gate `P1.M02.021` |

@@ -48,7 +48,7 @@ This is **not** a product-wide “zero leak” close.
 |---|---|
 | Subquery / batch write / sort / page AST | Evidenced in [g1-query-ast-remainder.md](./g1-query-ast-remainder.md) (`P1.M02.022`–`025`). Nested subquery-in-subquery is [g1-query-nested-subquery.md](./g1-query-nested-subquery.md). |
 | OUTER JOIN / CROSS JOIN | Evidenced in [g1-query-outer-cross-join.md](./g1-query-outer-cross-join.md). |
-| DataScope / FieldPolicy compilation into AST | M0-05 still merges FieldPolicy and compiles OR DataScope via `PermissionQueryBinder`. Kernel FieldPolicy is the export visibility gate, not a full projector/compiler. |
+| DataScope / FieldPolicy compilation into AST | SELF/DEPT equality + visibility encoding is [g1-datascope-fieldpolicy-ast.md](./g1-datascope-fieldpolicy-ast.md). OR / IN / mask leftovers stay on `PermissionQueryBinder` / `FieldPolicyProjector`. |
 | Report UI / physical ledger dump | No report screen. `ledger.export.csv` is still the Task type; this package proves the compile / file FieldPolicy gate, not a product export wizard. |
 | Silent drop on API reads | `FieldPolicyProjector` still drops hidden fields on UI/API rows. Export **rejects** a hidden/second-auth request instead of dropping it. |
 | UI / H5 every page | Not re-walked. |

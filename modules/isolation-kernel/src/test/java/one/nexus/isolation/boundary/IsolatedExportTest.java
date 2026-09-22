@@ -27,6 +27,7 @@ import one.nexus.isolation.api.IsolationAuditEvent;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.isolation.query.TableRegistry;
+import one.nexus.isolation.spi.DataScopeInjector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -292,6 +293,43 @@ class IsolatedExportTest {
         assertTrue(crossed.sql().contains("CROSS JOIN"));
         assertTrue(crossed.sql().contains("\"line\".\"tenant_id\" = ?"));
     }
+
+    @Test
+    void exportCompileAcceptsEncodedSelfScopeAndVisibleProjection() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id", "secret");
+        IsolationKernel tables = IsolationKernel.create(
+                registry,
+                Set.of("ops.summary"),
+                sink,
+                DataScopeInjector.andEquals(Map.of("owner_id", "user-alpha")),
+                (q, t, c) -> q);
+        TenantContext context = tables.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-alpha"), "alpha", "mem-alpha", Set.of("alpha")), "trace-alpha");
+        AccessContextHolder.set(context);
+        Map<String, ExportFieldRule> policy = Map.of(
+                "id", ExportFieldRule.allow(),
+                "title", ExportFieldRule.allow());
+        IsolationException hidden = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of()),
+                "alpha",
+                policy,
+                false));
+        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hidden.error());
+        var sql = IsolatedExport.compile(
+                tables.compiler(),
+                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of())
+                        .withProjection(List.of("id", "title")),
+                "alpha",
+                policy,
+                false);
+        assertTrue(sql.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(sql.sql().contains("\"owner_id\" = ?"));
+        assertFalse(sql.sql().contains("secret"));
+        assertEquals(List.of("alpha", "user-alpha"), sql.parameters());
+    }
+
     private void bind(String tenantId) {
         TenantContext context = kernel.tenants().issue(new AuthenticatedMembership(
                 Actor.person("user-" + tenantId), tenantId, "mem-" + tenantId, Set.of(tenantId)),
