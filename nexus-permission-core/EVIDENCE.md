@@ -1,6 +1,6 @@
 # M0-05 P2 permission engine evidence
 
-Recorded on the agent VM against latest `main` (includes M0-01～04 + Keycloak smoke). **Redis failover was not claimed or tested.**
+Recorded on the agent VM against latest `main` (includes M0-01～04 + Keycloak smoke). **Full admin UI was not built.** **Redis Sentinel/Cluster failover is still not claimed.** G9 Redis-down / invalidate-only evidence is in [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md).
 
 ## G2 (S0+S1) — role matrix + same engine
 
@@ -50,10 +50,21 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 # p3-studio: PermissionDataScopeHook 4, G2SurfaceAgreement 3
 ```
 
+G9 failover evidence after rebase onto `main@215308f` (this VM, OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1**):
+
+```bash
+./scripts/g9-policysnapshot-invalidate.sh
+# BUILD SUCCESS 2026-09-22T15:55:05Z — Tests run: 21, Failures: 0, Errors: 0, Skipped: 3
+
+mvn -pl nexus-permission-core -am test
+# BUILD SUCCESS 2026-09-22T15:55:20Z — Tests run: 47, Failures: 0, Errors: 0, Skipped: 5
+```
+
 | Class | What it proved |
 |---|---|
 | `PermissionEngineTest` | P0-02 decision table: tenant boundary, explicit deny, user/role/position/department + inherited role union, scope OR share AND context, share without grant, field union + strictest mask, empty context |
 | `SnapshotManagerTest` | Poll detects version change without notify; stale / missing DB version / regression fail closed |
+| `G9PolicySnapshotFailoverTest` | Redis-down grant still decides from durable snapshot via `PermissionEngine`; lost invalidate channel reloads; Redis snapshot key is not truth; durable miss is `P2.PERM.0005`; no second TenantContext |
 | `DataScopeCompilerTest` | SELF / DEPT / DEPT_AND_CHILDREN / SPECIFIED / ALL |
 | `PredicateSqlCompilerTest` | Golden parameterized SQL; unknown column rejected |
 | `ListDetailTotalPaginationTest` | list / detail / total / page share `tenant_id = ? AND (scope)` |
@@ -62,7 +73,7 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 | `GoldenPostgresDataScopeTest` | Rows Alpha + Beta; r4/r9 excluded; cross-tenant UPDATE of r9 rejected |
 | `DualTenantIsolationTest` | Tenant A grants do not appear in B snapshot; evaluate(A, B) is `tenant_boundary` |
 | `JdbcDualTenantPermissionTest` | Flyway V200+V300 on **PostgreSQL 15.19**; `perm_grant` for B stays empty |
-| `RedisInvalidationTest` | Redis 3.2.13 PING / SET EX / GET / DEL / PUBLISH; publish failure is not truth; DB version failure still fail-closed |
+| `RedisInvalidationTest` | Redis 3.2.13 PING / SET EX / GET / DEL / PUBLISH when present; publish failure is not truth; Redis-down still loads durable version; DB version failure still fail-closed |
 | `PermissionApiTest` | Boot 4.1.1 MockMvc; `X-Tenant-Id` → `P2.PERM.0013`; check after grant allows `ledger.read` |
 | `G2SameEngineTest` | Role-matrix cells (SELF + hidden salary, DEPT + masked salary, approver). List/detail share WHERE; flow `no_grant` denied by `SurfaceGuard` |
 | `G2RoleMatrixApiTest` | `GET /matrix` notes tenant_member is not complete; example install is differentiated; check uses `engine=PermissionEngine` |
@@ -78,16 +89,16 @@ Flyway history on `nexus_p2_perm_test` (schema `iam`):
 
 Redis `INFO server`: `redis_version:3.2.13`, `redis_mode:standalone`. No Sentinel/replica was started.
 
-## G9 remainder (this PR)
+## G9 remainder
 
-PolicySnapshot version polling + Redis invalidate-only wiring. **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. G2 matrix is on `main` (#73). Redis-down / decide==durable evidence stays on open [#83](https://github.com/EricBeckham/NexusOne/pull/83) (`docs/g9-policysnapshot-invalidate.md`).
+Product poller + invalidate listener is on `main` (#89). **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. G2 matrix is on `main` (#73). Redis-down / decide==durable evidence stays on open [#83](https://github.com/EricBeckham/NexusOne/pull/83) (`docs/g9-policysnapshot-invalidate.md`).
 
-Recorded **2026-09-22T15:42:29Z** on this agent VM. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky in-process PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432` / Redis 3.2 listener.
+Recorded **2026-09-22T15:55:20Z** on this agent VM after rebase onto `main@215308f`. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky in-process PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432` / Redis 3.2 listener.
 
 ```
 mvn -pl nexus-permission-core -am test
-# BUILD SUCCESS  2026-09-22T15:42:29Z (pre-rebase) — Tests run: 38, Failures: 0, Errors: 0, Skipped: 5
-# BUILD SUCCESS  2026-09-22T15:46:14Z (after rebase onto main@26d1f94) — Tests run: 42, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:46:14Z (on main@26d1f94, #89) — Tests run: 42, Failures: 0, Errors: 0, Skipped: 5
+# BUILD SUCCESS  2026-09-22T15:55:20Z (this PR + #89 on 215308f) — Tests run: 47, Failures: 0, Errors: 0, Skipped: 5
 ```
 
 Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataScopeTest` 1, `JdbcDualTenantPermissionTest` 1 (no live PG listener). JDBC poll proof is `JdbcPolicySnapshotPollIT` on Zonky **15.18** (Flyway V200 + V300, schema `iam`).
@@ -104,7 +115,7 @@ Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataS
 
 - Product-wide G2 (report / export / H5 / form-definition list)
 - Simulation / time-IP ABAC admin
-- Redis Sentinel/Cluster failover (explicitly not this round)
+- Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down (ordinary query still fail-closes; no retry-deadline)
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL

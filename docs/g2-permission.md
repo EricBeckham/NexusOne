@@ -35,7 +35,7 @@ Turn the seed off with `NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS=false`. Permi
 - Form definition list/studio does not call `form.read` / `form.write`.
 - Isolation-only jobs with no P2 `TenantContext` still use tenant-only list/detail.
 - Isolation Query AST still cannot encode OR trees; OR DataScope stays on `PermissionQueryBinder`.
-- G9 stale-snapshot / Redis failover is unchanged from M0-05.
+- G9 stale-snapshot / Redis-down evidence is the parallel package [g9-policysnapshot-invalidate.md](./g9-policysnapshot-invalidate.md). Sentinel/Cluster is still not claimed.
 - Full simulation / governance admin (time-bound, IP, ABAC DSL) is out of scope.
 
 ## Evidence
