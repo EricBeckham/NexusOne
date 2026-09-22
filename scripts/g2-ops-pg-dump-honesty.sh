@@ -174,6 +174,24 @@ if grep -Fq '[g2-ops-pg-dump](./g2-ops-pg-dump.md)' "$README" \
   && grep -Fq '[g10-identity-drift-honesty](./g10-identity-drift-honesty.md)' "$README" \
   && grep -Fq '[g1-fieldpolicy-mask-second-auth-honesty](./g1-fieldpolicy-mask-second-auth-honesty.md)' "$README" \
   && grep -Fq '[g15-native-bridge-honesty](./g15-native-bridge-honesty.md)' "$README" \
+  && grep -Fq '[g15-wx-dt-native-bridge-honesty](./g15-wx-dt-native-bridge-honesty.md)' "$README" \
+  && grep -Fq '[g1-queryast-boundsql-honesty](./g1-queryast-boundsql-honesty.md)' "$README" \
+  && grep -Fq '[g2-h5-every-page-form-write-honesty](./g2-h5-every-page-form-write-honesty.md)' "$README" \
+  && grep -Fq '[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)' "$README" \
+  && grep -Fq '[g10-leftover-honesty](./g10-leftover-honesty.md)' "$README" \
+  && grep -Fq '[g5-mid-publish-failure-honesty](./g5-mid-publish-failure-honesty.md)' "$README" \
+  && grep -Fq '[g3-outbox-consume-crash-honesty](./g3-outbox-consume-crash-honesty.md)' "$README" \
+  && grep -Fq '[g9-redis-down-invalidate-honesty](./g9-redis-down-invalidate-honesty.md)' "$README" \
+  && grep -Fq '[g9-redis-down-invalidate-remainder](./g9-redis-down-invalidate-remainder.md)' "$README" \
+  && grep -Fq '[g17-mfa-recovery-vue-otp-honesty](./g17-mfa-recovery-vue-otp-honesty.md)' "$README" \
+  && grep -Fq '[g4-hot-purge-90d-honesty](./g4-hot-purge-90d-honesty.md)' "$README" \
+  && grep -Fq '[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)' "$README" \
+  && grep -Fq '[linux-arm-profile-leftover-honesty](./linux-arm-profile-leftover-honesty.md)' "$README" \
+  && grep -Fq '[g7-query-expense-travel-honesty](./g7-query-expense-travel-honesty.md)' "$README" \
+  && grep -Fq '[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)' "$README" \
+  && grep -Fq '[g17-separation-honesty](./g17-separation-honesty.md)' "$README" \
+  && grep -Fq '[s0s1-live-redis-minio-isolation-honesty](./s0s1-live-redis-minio-isolation-honesty.md)' "$README" \
+  && grep -Fq '[g6-recovery-port-dry-run-honesty](./g6-recovery-port-dry-run-honesty.md)' "$README" \
   && grep -Fq '[g2-physical-dump-surface](./g2-physical-dump-surface.md)' "$README" \
   && grep -Fq '[g2-todo-http-surface](./g2-todo-http-surface.md)' "$README" \
   && grep -Fq '[g2-tenant-only-catalog](./g2-tenant-only-catalog.md)' "$README"; then

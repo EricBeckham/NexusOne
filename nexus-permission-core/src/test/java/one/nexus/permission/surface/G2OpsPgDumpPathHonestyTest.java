@@ -115,8 +115,26 @@ class G2OpsPgDumpPathHonestyTest {
         assertTrue(text.contains("[g2-ops-pg-dump](./g2-ops-pg-dump.md)"));
         assertTrue(text.contains("[g2-ops-pg-dump-honesty](./g2-ops-pg-dump-honesty.md)"));
         assertTrue(text.contains("[g15-native-bridge-honesty](./g15-native-bridge-honesty.md)"));
+        assertTrue(text.contains("[g15-wx-dt-native-bridge-honesty](./g15-wx-dt-native-bridge-honesty.md)"));
+        assertTrue(text.contains("[g1-queryast-boundsql-honesty](./g1-queryast-boundsql-honesty.md)"));
+        assertTrue(text.contains("[g2-h5-every-page-form-write-honesty](./g2-h5-every-page-form-write-honesty.md)"));
+        assertTrue(text.contains("[g4-export-wizard-deny-honesty](./g4-export-wizard-deny-honesty.md)"));
+        assertTrue(text.contains("[g10-leftover-honesty](./g10-leftover-honesty.md)"));
+        assertTrue(text.contains("[g5-mid-publish-failure-honesty](./g5-mid-publish-failure-honesty.md)"));
+        assertTrue(text.contains("[g3-outbox-consume-crash-honesty](./g3-outbox-consume-crash-honesty.md)"));
+        assertTrue(text.contains("[g9-redis-down-invalidate-honesty](./g9-redis-down-invalidate-honesty.md)"));
+        assertTrue(text.contains("[g9-redis-down-invalidate-remainder](./g9-redis-down-invalidate-remainder.md)"));
+        assertTrue(text.contains("[g17-mfa-recovery-vue-otp-honesty](./g17-mfa-recovery-vue-otp-honesty.md)"));
         assertTrue(text.contains("[g10-identity-drift-honesty](./g10-identity-drift-honesty.md)"));
         assertTrue(text.contains("[g1-fieldpolicy-mask-second-auth-honesty](./g1-fieldpolicy-mask-second-auth-honesty.md)"));
+        assertTrue(text.contains("[g4-hot-purge-90d-honesty](./g4-hot-purge-90d-honesty.md)"));
+        assertTrue(text.contains("[g4-p1-staging-audit-events-honesty](./g4-p1-staging-audit-events-honesty.md)"));
+        assertTrue(text.contains("[linux-arm-profile-leftover-honesty](./linux-arm-profile-leftover-honesty.md)"));
+        assertTrue(text.contains("[g7-query-expense-travel-honesty](./g7-query-expense-travel-honesty.md)"));
+        assertTrue(text.contains("[s0-secret-rotate-without-restart-honesty](./s0-secret-rotate-without-restart-honesty.md)"));
+        assertTrue(text.contains("[g17-separation-honesty](./g17-separation-honesty.md)"));
+        assertTrue(text.contains("[s0s1-live-redis-minio-isolation-honesty](./s0s1-live-redis-minio-isolation-honesty.md)"));
+        assertTrue(text.contains("[g6-recovery-port-dry-run-honesty](./g6-recovery-port-dry-run-honesty.md)"));
         assertFalse(text.toLowerCase(Locale.ROOT).contains("product g2 closed"));
         assertFalse(text.contains("产品级 G2 已关闭"));
 
