@@ -1,4 +1,4 @@
 /**
- * Create/enable/disable tenant is M0-03. This module is a compile-time boundary only in M0-01.
+ * P1 星域 tenant lifecycle, platform tenant, runtime entitlement projection, and quota (M0-03).
  */
 package one.nexus.p1.tenant;

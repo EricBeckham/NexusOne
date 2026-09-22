@@ -1,0 +1,22 @@
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
+
+nexus:
+  p1:
+    demo-context:
+      # Local JAR demonstration only. Production entry must strip client tenant/identity headers (ARCH-024).
+      enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
+    default-pack:
+      code: nexus.default.m0
+      version: "0.1.0"
+    quota:
+      # Provisional M0 defaults. Not frozen product maxima — P0-08 left capacity unfrozen.
+      app-limit: ${NEXUS_P1_QUOTA_APP_LIMIT:5}
+      custom-ledger-limit: ${NEXUS_P1_QUOTA_CUSTOM_LEDGER_LIMIT:10}
+      warn-percent: ${NEXUS_P1_QUOTA_WARN_PERCENT:80}
+    platform-tenant:
+      id: "01900000-0000-7000-8000-000000000001"
+      code: platform
+      name: NexusOne Platform

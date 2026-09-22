@@ -44,7 +44,7 @@ class NexusOnePostgresTest {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from platform.flyway_schema_history where success and version is not null",
                 Integer.class);
-        assertEquals(3, applied);
+        assertEquals(5, applied);
         Integer ledgerTables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'business_data'", Integer.class);
         assertEquals(0, ledgerTables);
