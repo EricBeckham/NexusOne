@@ -1,0 +1,64 @@
+package one.nexus.permission.admin;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+import one.nexus.p2.admin.TenantAdminInitializer;
+import one.nexus.p2.idp.StubIdentityProvider;
+import one.nexus.p2.kernel.TenantContext;
+import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.p2.persist.InMemoryIdentityRepository;
+import one.nexus.permission.PermissionModule;
+import one.nexus.permission.engine.Decision;
+import one.nexus.permission.persist.InMemoryPolicyRepository;
+import one.nexus.permission.redis.InMemoryPolicyInvalidation;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+
+class TenantMemberGrantSeederTest {
+    @AfterEach
+    void tearDown() {
+        TenantContextHolder.clear();
+    }
+
+    @Test
+    void seedsRoleGrantsAndAssignsCurrentPerson() {
+        InMemoryIdentityRepository identity = new InMemoryIdentityRepository();
+        InMemoryPolicyRepository policies = new InMemoryPolicyRepository();
+        PermissionModule module = PermissionModule.create(policies, identity, new InMemoryPolicyInvalidation());
+        StubIdentityProvider idp = new StubIdentityProvider();
+        one.nexus.p2.IdentityModule iam = new one.nexus.p2.IdentityModule(
+                identity, idp, new one.nexus.p2.smtp.KeycloakSmtpHook(idp, false),
+                java.time.Clock.systemUTC(), Duration.ofHours(1));
+        UUID tenant = UUID.fromString("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
+        iam.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                tenant, "Seed Admin", "seed-admin@example.com", "seed-admin"));
+        var person = identity.findPersonByAccount(tenant,
+                identity.findAccountByEmail("seed-admin@example.com").orElseThrow().id()).orElseThrow();
+        TenantContextHolder.set(new TenantContext(
+                UUID.fromString("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+                tenant,
+                person.accountId(),
+                person.id(),
+                "seed-admin",
+                Instant.now(),
+                Instant.now().plusSeconds(3600)));
+
+        TenantMemberGrantSeeder seeder = new TenantMemberGrantSeeder(module);
+        seeder.ensure();
+        seeder.ensure();
+
+        assertTrue(policies.findRoleByCode(tenant, TenantMemberGrantSeeder.ROLE_CODE).isPresent());
+        assertEquals(1, policies.listAssignments(tenant).stream()
+                .filter(item -> "user".equals(item.principalType())
+                        && person.id().toString().equals(item.principalId()))
+                .count());
+        Decision decision = module.service().decide("ledger", "read");
+        assertTrue(decision.allowed(), decision.reason());
+        assertTrue(module.service().decide("ledger", "write").allowed());
+        assertTrue(module.service().decide("process.task", "approve").allowed());
+    }
+}

@@ -18,7 +18,7 @@ public class AuditConfiguration {
     AuditPort auditPort(
             CryptoPort cryptoPort,
             ObjectProvider<DataSource> dataSources,
-            @Value("${nexus.audit.persistence:memory}") String persistence) {
+            @Value("${nexus.audit.persistence:jdbc}") String persistence) {
         if ("jdbc".equalsIgnoreCase(persistence)) {
             DataSource dataSource = dataSources.getIfAvailable();
             if (dataSource == null) {

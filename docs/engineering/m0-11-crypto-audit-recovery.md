@@ -63,7 +63,7 @@ export NEXUS_CRYPTO_MASTER_KEY=   # hex，长度至少套件密钥长；勿提�
 
 Flyway `V501__audit_hash_chain.sql`（V500 已由 M0-09 占用）。P1 的 `platform.audit_event` **仍是 staging**，本 PR 不把 P1/P2/隔离内核改接到新端口。
 
-`nexus.audit.persistence=memory`（默认）或 `jdbc`。
+`nexus.audit.persistence=jdbc`（product default so `platform.audit_record` is written）or `memory`. Override with `NEXUS_AUDIT_PERSISTENCE`.
 
 ### 3. Trace 关联（兼容 M0-01）
 

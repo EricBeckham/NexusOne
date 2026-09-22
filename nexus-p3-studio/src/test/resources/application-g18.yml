@@ -5,6 +5,9 @@ nexus:
     platform-bootstrap-token: test-bootstrap
   permission:
     persistence: memory
+    seed-tenant-member-grants: true
+  audit:
+    persistence: jdbc
   p3:
     demo-context: true
   studio:

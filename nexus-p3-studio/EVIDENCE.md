@@ -263,5 +263,5 @@ mvn -pl modules/isolation-kernel,nexus-event-core test \
 
 `BUILD SUCCESS` at **2026-09-22T12:32:28Z**. `QueryCompilerTest` **4/4**. `OutboxEventContractTest` **10/10**.
 
-Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; approval+record+outbox roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the same TX; audit events `p3.path.submitted` / `p3.approval.started` / `p3.approval.approved` by UUID `X-Trace-Id`. Vue ledger/form/todo remain MOCK. Audit hash-chain still commits on its own chain lock (M0-11).
+Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the same TX; `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`). Vue ledger/form/todo remain MOCK. Audit hash-chain still commits on its own chain lock (M0-11). Product G18 is **not** closed.
 

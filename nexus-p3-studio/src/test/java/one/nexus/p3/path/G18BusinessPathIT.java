@@ -75,8 +75,10 @@ class G18BusinessPathIT {
 
         JsonNode prepared = preparePublishedForm();
         UUID formId = UUID.fromString(prepared.path("form_id").asText());
+        UUID ledgerId = UUID.fromString(prepared.path("ledger_id").asText());
         String physicalTable = prepared.path("physical_table").asText();
         assertTrue(physicalTable.startsWith("l_g18a_"), physicalTable);
+        assertIamLedgerWriteAndQuery(admin, ledgerId);
 
         String started = mvc.perform(post("/api/v1/p3/path/submit-start")
                         .header("Authorization", "Bearer " + admin.token)
@@ -145,6 +147,14 @@ class G18BusinessPathIT {
                 TRACE));
         List<ChainedAuditEvent> decided = auditPort.findByTraceId(TRACE);
         assertTrue(decided.stream().anyMatch(event -> "p3.approval.approved".equals(event.event().eventType())));
+        Integer auditRows = jdbc.queryForObject(
+                "select count(*) from platform.audit_record where trace_id = ?",
+                Integer.class,
+                TRACE);
+        assertTrue(auditRows != null && auditRows >= 3,
+                "expected platform.audit_record rows for the path, got " + auditRows + " events=" + decided);
+        assertNotifyAcceptsIssuedContext(reviewer.session);
+        assertNotifyAcceptsIssuedContext(admin);
 
         mvc.perform(post("/api/v1/p3/path/tasks/" + todoId + "/approve")
                         .header("Authorization", "Bearer " + reviewer.session.token)
@@ -207,6 +217,45 @@ class G18BusinessPathIT {
                 "select count(*) from platform.exec_outbox where trace_id = ?",
                 Integer.class,
                 businessTrace));
+    }
+
+    private void assertIamLedgerWriteAndQuery(Session session, UUID ledgerId) throws Exception {
+        String created = mvc.perform(post("/api/v1/p3/ledgers/" + ledgerId + "/records")
+                        .header("Authorization", "Bearer " + session.token)
+                        .header("X-Nexus-Context-Id", session.contextId)
+                        .header("X-Trace-Id", TRACE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"direct-write","days":1,"applicant":"alice","reason":"iam"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("direct-write"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String recordId = mapper.readTree(created).path("id").asText();
+        mvc.perform(get("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
+                        .header("Authorization", "Bearer " + session.token)
+                        .header("X-Nexus-Context-Id", session.contextId)
+                        .header("X-Trace-Id", TRACE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("direct-write"));
+        mvc.perform(get("/api/v1/p3/ledgers/" + ledgerId + "/records")
+                        .header("Authorization", "Bearer " + session.token)
+                        .header("X-Nexus-Context-Id", session.contextId)
+                        .header("X-Trace-Id", TRACE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items[0].id").exists());
+    }
+
+    private void assertNotifyAcceptsIssuedContext(Session session) throws Exception {
+        mvc.perform(get("/api/v1/notifications")
+                        .header("Authorization", "Bearer " + session.token)
+                        .header("X-Nexus-Context-Id", session.contextId)
+                        .header("X-Trace-Id", TRACE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 
     private JsonNode preparePublishedForm() throws Exception {
