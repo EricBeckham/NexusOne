@@ -22,6 +22,13 @@ fi
   --server "${KC_BASE}" --realm master \
   --user "${ADMIN_USER}" --password "${KC_BOOTSTRAP_ADMIN_PASSWORD}" >/dev/null
 
+"${KC_HOME}/bin/kcadm.sh" add-roles -r nexus \
+  --uusername "service-account-${CLIENT_ID}" \
+  --cclientid realm-management \
+  --rolename manage-realm --rolename view-realm \
+  --rolename manage-users --rolename view-users --rolename query-users --rolename view-clients \
+  >/dev/null 2>&1 || true
+
 CLIENT_UUID="$("${KC_HOME}/bin/kcadm.sh" get clients -r nexus -q "clientId=${CLIENT_ID}" --fields id \
   | python3 -c "import json,sys; data=json.load(sys.stdin); print(data[0]['id'] if data else '')")"
 if [[ -z "${CLIENT_UUID}" ]]; then
@@ -75,6 +82,7 @@ for execution in executions:
             "default.reference.maxAge": "3600",
         },
     }
+    payload = json.dumps(body)
     if config_id:
         current = kcadm_json("get", f"authentication/config/{config_id}", "-r", "nexus") or {}
         body["id"] = config_id
@@ -82,19 +90,16 @@ for execution in executions:
         merged = dict(current.get("config") or {})
         merged.update(body["config"])
         body["config"] = merged
+        payload = json.dumps(body)
         subprocess.check_call([
             kcadm, "update", f"authentication/config/{config_id}", "-r", "nexus",
-            "-s", f"alias={body['alias']}",
-            "-s", f"config.default.reference.value={reference}",
-            "-s", "config.default.reference.maxAge=3600",
+            "-b", payload,
         ], stdout=subprocess.DEVNULL)
         print(f"updated {provider} reference={reference} maxAge=3600")
     else:
         subprocess.check_call([
             kcadm, "create", f"authentication/executions/{exec_id}/config", "-r", "nexus",
-            "-s", f"alias={provider}-amr",
-            "-s", f"config.default.reference.value={reference}",
-            "-s", "config.default.reference.maxAge=3600",
+            "-b", payload,
         ], stdout=subprocess.DEVNULL)
         print(f"created {provider} reference={reference} maxAge=3600")
 PY

@@ -25,8 +25,32 @@ public final class Totp {
         return generate(base32Secret, clock.instant());
     }
 
-    public static String generate(String base32Secret, Instant when) {
-        return generate(decodeBase32(base32Secret), when.getEpochSecond() / PERIOD_SECONDS, DIGITS, "HmacSHA1");
+    public static String generate(String secret, Instant when) {
+        return generate(keyBytes(secret), when.getEpochSecond() / PERIOD_SECONDS, DIGITS, "HmacSHA1");
+    }
+
+    /**
+     * Keycloak 26 {@code totpSecret} on CONFIGURE_TOTP is an alphanumeric
+     * raw secret (not Base32). Authenticator-app secrets are Base32.
+     */
+    static byte[] keyBytes(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalArgumentException("TOTP secret is blank");
+        }
+        String compact = secret.trim().replace(" ", "").replace("-", "");
+        if (looksLikeBase32(compact)) {
+            return decodeBase32(compact);
+        }
+        return compact.getBytes(StandardCharsets.US_ASCII);
+    }
+
+    static boolean looksLikeBase32(String compact) {
+        String upper = compact.toUpperCase();
+        if (!upper.matches("[A-Z2-7]+=*")) {
+            return false;
+        }
+        String withoutPad = upper.replace("=", "");
+        return withoutPad.length() >= 8 && withoutPad.length() % 8 == 0;
     }
 
     static String generate(byte[] key, long counter, int digits, String algorithm) {

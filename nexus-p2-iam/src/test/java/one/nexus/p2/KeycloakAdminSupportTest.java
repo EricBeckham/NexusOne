@@ -20,5 +20,7 @@ class KeycloakAdminSupportTest {
         String user = "{\"id\":\"u1\",\"username\":\"tenant-admin\",\"requiredActions\":[]}";
         String updated = KeycloakAdminSupport.replaceRequiredActions(user, List.of("CONFIGURE_TOTP"));
         assertTrue(updated.contains("\"requiredActions\":[\"CONFIGURE_TOTP\"]"), updated);
+        assertTrue(KeycloakAdminSupport.replaceJsonString(user, "lastName", "Admin")
+                .contains("\"lastName\":\"Admin\""));
     }
 }

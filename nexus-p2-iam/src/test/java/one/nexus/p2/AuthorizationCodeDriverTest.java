@@ -74,6 +74,11 @@ class AuthorizationCodeDriverTest {
                                 + "<input name=\"totp\"/></form>"));
         assertEquals("MFRGGZDF", AuthorizationCodeDriver.extractTotpSecret(
                 "<input type=\"hidden\" id=\"totpSecret\" name=\"totpSecret\" value=\"MFRG GZDF\"/>"));
+        assertEquals(
+                AuthorizationCodeDriver.FormKind.UPDATE_PROFILE,
+                AuthorizationCodeDriver.detectKind(
+                        "<form id=\"kc-update-profile-form\" action=\"/required-action\" method=\"post\">"
+                                + "<input name=\"firstName\"/><input name=\"lastName\"/></form>"));
     }
 
     @Test

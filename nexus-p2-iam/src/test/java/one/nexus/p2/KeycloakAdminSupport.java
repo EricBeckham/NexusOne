@@ -61,6 +61,33 @@ final class KeycloakAdminSupport {
         return matcher.find() ? matcher.group(1) : null;
     }
 
+    void setProfile(String userId, String firstName, String lastName, String email) throws Exception {
+        String token = clientCredentialsToken();
+        HttpResponse<String> current = get(token, adminBase() + "/users/" + enc(userId));
+        if (current.statusCode() / 100 != 2) {
+            throw new IllegalStateException("get user failed: " + current.statusCode());
+        }
+        String payload = current.body();
+        payload = replaceJsonString(payload, "firstName", firstName);
+        payload = replaceJsonString(payload, "lastName", lastName);
+        if (email != null && !email.isBlank()) {
+            payload = replaceJsonString(payload, "email", email);
+        }
+        HttpResponse<String> updated = put(token, adminBase() + "/users/" + enc(userId), payload);
+        if (updated.statusCode() / 100 != 2) {
+            throw new IllegalStateException("update profile failed: " + updated.statusCode()
+                    + " " + snippet(updated.body()));
+        }
+    }
+
+    static String replaceJsonString(String json, String name, String value) {
+        String replacement = "\"" + name + "\":" + jsonQuote(value);
+        if (json.contains("\"" + name + "\"")) {
+            return json.replaceFirst("\"" + Pattern.quote(name) + "\"\\s*:\\s*\"[^\"]*\"", replacement);
+        }
+        return json.replaceFirst("\\{", "{" + replacement + ",");
+    }
+
     void setPassword(String userId, String password) throws Exception {
         String token = clientCredentialsToken();
         String body = "{\"type\":\"password\",\"temporary\":false,\"value\":"
@@ -155,12 +182,17 @@ final class KeycloakAdminSupport {
     }
 
     List<String> ensureAuthenticatorReferences() throws Exception {
+        List<String> applied = new ArrayList<>();
         String token = clientCredentialsToken();
         HttpResponse<String> executions = get(token, adminBase() + "/authentication/flows/browser/executions");
-        if (executions.statusCode() / 100 != 2) {
-            throw new IllegalStateException("browser executions failed: " + executions.statusCode());
+        if (executions.statusCode() == 403) {
+            applied.add("skipped:service-account-lacks-manage-realm");
+            return applied;
         }
-        List<String> applied = new ArrayList<>();
+        if (executions.statusCode() / 100 != 2) {
+            throw new IllegalStateException("browser executions failed: " + executions.statusCode()
+                    + " " + snippet(executions.body()));
+        }
         applyReference(token, executions.body(), "auth-username-password-form", "pwd", applied);
         applyReference(token, executions.body(), "auth-otp-form", "otp", applied);
         return applied;

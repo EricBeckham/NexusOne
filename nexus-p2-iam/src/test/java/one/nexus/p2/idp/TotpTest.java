@@ -20,4 +20,12 @@ class TotpTest {
         String code = Totp.generate("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", Instant.ofEpochSecond(59));
         assertEquals("287082", code);
     }
+
+    @Test
+    void keycloakRawSecretUsesAsciiBytesNotBase32() {
+        String raw = "No2rS9ueOiCId3xDKeAq";
+        assertEquals(false, Totp.looksLikeBase32(raw));
+        String code = Totp.generate(raw, Instant.ofEpochSecond(1_700_000_000L));
+        assertEquals(6, code.length());
+    }
 }

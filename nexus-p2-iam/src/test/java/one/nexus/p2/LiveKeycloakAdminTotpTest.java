@@ -105,6 +105,7 @@ class LiveKeycloakAdminTotpTest {
         String userId = admin.findUserId(username);
         assertNotNull(userId, "Keycloak user " + username);
         admin.setPassword(userId, password);
+        admin.setProfile(userId, "Tenant Admin TOTP", "Admin", email);
         admin.deleteOtpCredentials(userId);
         admin.setRequiredActions(userId, List.of());
         admin.assignRealmRole(userId, "TENANT_ADMIN");
@@ -141,13 +142,17 @@ class LiveKeycloakAdminTotpTest {
         System.out.println("G17_ADMIN_TOTP_ENROLL_TOKEN acr=" + enrolledClaims.acr()
                 + " amr=" + enrolledClaims.amr() + " mfa=" + enrolledClaims.mfaSatisfied());
 
-        AuthorizationCodeDriver.ChallengePage otpPage = browser.submitPassword(
-                browser.open(authorizeUrl(null), REDIRECT), username, password);
-        assertTrue(otpPage.kind() == AuthorizationCodeDriver.FormKind.OTP, otpPage.html());
+        // Fresh cookie jar: the enrollment SSO session would otherwise skip
+        // Conditional OTP via the Cookie authenticator.
+        AuthorizationCodeDriver challenge = new AuthorizationCodeDriver();
+        AuthorizationCodeDriver.ChallengePage otpPage = challenge.submitPassword(
+                challenge.open(authorizeUrl(null), REDIRECT), username, password);
+        assertTrue(otpPage.kind() == AuthorizationCodeDriver.FormKind.OTP,
+                "kind=" + otpPage.kind() + " " + otpPage.html());
         System.out.println("G17_ADMIN_TOTP_CHALLENGE kind=" + otpPage.kind());
 
         String otp = Totp.generate(enrolled.secret());
-        AuthorizationCodeDriver.ChallengePage afterOtp = browser.submitOtp(otpPage, otp);
+        AuthorizationCodeDriver.ChallengePage afterOtp = challenge.submitOtp(otpPage, otp);
         assertTrue(afterOtp.isRedirect(), "OTP must complete authorization code, kind=" + afterOtp.kind());
         IdentityProviderPort.TokenSet otpTokens = idp.exchangeAuthorizationCode(
                 afterOtp.redirect().code(), REDIRECT);

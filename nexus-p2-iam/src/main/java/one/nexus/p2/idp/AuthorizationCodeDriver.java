@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  */
 public final class AuthorizationCodeDriver {
     private static final Pattern FORM_ACTION = Pattern.compile(
-            "(?i)<form[^>]*(?:id=\"kc-form-login\"|id=\"kc-otp-login-form\"|id=\"kc-totp-settings-form\")[^>]*action=\"([^\"]+)\""
+            "(?i)<form[^>]*(?:id=\"kc-form-login\"|id=\"kc-otp-login-form\"|id=\"kc-totp-settings-form\"|id=\"kc-update-profile-form\")[^>]*action=\"([^\"]+)\""
                     + "|(?i)<form[^>]*action=\"([^\"]+)\"[^>]*method=\"post\""
                     + "|(?i)<form[^>]*method=\"post\"[^>]*action=\"([^\"]+)\"");
     private static final Pattern HIDDEN = Pattern.compile(
@@ -51,6 +51,7 @@ public final class AuthorizationCodeDriver {
         PASSWORD,
         OTP,
         TOTP_SETUP,
+        UPDATE_PROFILE,
         REDIRECT,
         UNKNOWN
     }
@@ -135,6 +136,7 @@ public final class AuthorizationCodeDriver {
             return page.redirect();
         }
         ChallengePage after = submitPassword(page, username, password);
+        after = completeRequiredActions(after, username);
         if (after.isRedirect()) {
             return after.redirect();
         }
@@ -159,6 +161,7 @@ public final class AuthorizationCodeDriver {
         if (page.kind() == FormKind.PASSWORD) {
             page = submitPassword(page, username, password);
         }
+        page = completeRequiredActions(page, username);
         if (page.kind() != FormKind.OTP) {
             throw new IllegalStateException("expected OTP form after password, got " + page.kind()
                     + " body=" + snippet(page.html()));
@@ -185,6 +188,7 @@ public final class AuthorizationCodeDriver {
         if (page.kind() == FormKind.PASSWORD) {
             page = submitPassword(page, username, password);
         }
+        page = completeRequiredActions(page, username);
         if (page.kind() != FormKind.TOTP_SETUP) {
             throw new IllegalStateException("expected TOTP setup form, got " + page.kind()
                     + " body=" + snippet(page.html()));
@@ -225,6 +229,27 @@ public final class AuthorizationCodeDriver {
                 + "&login=" + enc("Sign In")
                 + hiddenFields(page.html());
         return postForm(page, form);
+    }
+
+    public ChallengePage submitUpdateProfile(ChallengePage page, String username) throws Exception {
+        if (page.kind() != FormKind.UPDATE_PROFILE) {
+            throw new IllegalStateException("not an update-profile form: " + page.kind());
+        }
+        String email = firstNonBlank(namedValue(page.html(), "email"), username);
+        String first = firstNonBlank(namedValue(page.html(), "firstName"), username);
+        String last = firstNonBlank(namedValue(page.html(), "lastName"), "Admin");
+        String form = "email=" + enc(email)
+                + "&firstName=" + enc(first)
+                + "&lastName=" + enc(last)
+                + hiddenFields(page.html());
+        return postForm(page, form);
+    }
+
+    private ChallengePage completeRequiredActions(ChallengePage page, String username) throws Exception {
+        for (int i = 0; i < 4 && page.kind() == FormKind.UPDATE_PROFILE; i++) {
+            page = submitUpdateProfile(page, username);
+        }
+        return page;
     }
 
     public ChallengePage submitTotpSetup(ChallengePage page, String totpCode, String label) throws Exception {
@@ -275,11 +300,16 @@ public final class AuthorizationCodeDriver {
                 response, expectedRedirectPrefix, kind, html, action, extractTotpSecret(html), null);
     }
 
-    static FormKind detectKind(String html) {
+    public static FormKind detectKind(String html) {
         if (html == null || html.isBlank()) {
             return FormKind.UNKNOWN;
         }
         String lower = html.toLowerCase(Locale.ROOT);
+        if (html.contains("kc-update-profile-form")
+                || html.contains("login-actions/required-action") && html.contains("VERIFY_PROFILE")
+                || (html.contains("name=\"lastName\"") && html.contains("name=\"firstName\""))) {
+            return FormKind.UPDATE_PROFILE;
+        }
         if (html.contains("kc-totp-settings-form")
                 || html.contains("name=\"totpSecret\"")
                 || html.contains("id=\"totpSecret\"")
@@ -299,7 +329,7 @@ public final class AuthorizationCodeDriver {
         return FormKind.UNKNOWN;
     }
 
-    static String extractTotpSecret(String html) {
+    public static String extractTotpSecret(String html) {
         if (html == null) {
             return null;
         }
@@ -435,6 +465,15 @@ public final class AuthorizationCodeDriver {
 
     private static String decode(String value) {
         return URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
     }
 
     private static String snippet(String body) {
