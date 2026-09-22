@@ -19,6 +19,7 @@
   <description>NexusOne modular monolith. M0-01 engineering foundation.</description>
 
   <modules>
+    <module>modules/isolation-kernel</module>
     <module>nexus-common</module>
     <module>nexus-data-core</module>
     <module>nexus-permission-core</module>
@@ -42,10 +43,17 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- P0 freeze: Flyway 13.7.0 on PostgreSQL 15. Spring Boot 4.1.1 GA recorded 2026-08-20. -->
     <flyway.version>13.7.0</flyway.version>
+    <isolation-kernel.version>0.1.0-m0</isolation-kernel.version>
+    <quartz.version>2.5.2</quartz.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>one.nexus</groupId>
+        <artifactId>isolation-kernel</artifactId>
+        <version>${isolation-kernel.version}</version>
+      </dependency>
       <dependency>
         <groupId>one.nexus</groupId>
         <artifactId>nexus-common</artifactId>

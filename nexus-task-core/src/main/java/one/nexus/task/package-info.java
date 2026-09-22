@@ -1,4 +1,5 @@
 /**
- * Quartz JDBC JobStore is M0-09. Do not add scheduler runtime in M0-01.
+ * M0-09 Quartz JDBC JobStore (cluster/misfire) and database Task Queue.
+ * Jobs and tasks restore tenant context through M0-02 isolation-kernel APIs.
  */
 package one.nexus.task;

@@ -44,7 +44,7 @@ class NexusOnePostgresTest {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from platform.flyway_schema_history where success and version is not null",
                 Integer.class);
-        assertEquals(6, applied);
+        assertEquals(7, applied);
         Integer iamTables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'iam' and table_name = 'iam_global_account'",
                 Integer.class);
@@ -57,10 +57,14 @@ class NexusOnePostgresTest {
         assertEquals("flyway_static_only", manager);
         List<String> schemas = jdbc.queryForList(
                 "select schema_name from information_schema.schemata "
-                        + "where schema_name in ('platform','iam','business_meta','business_data') "
+                        + "where schema_name in ('platform','iam','business_meta','business_data','quartz') "
                         + "order by 1",
                 String.class);
-        assertEquals(List.of("business_data", "business_meta", "iam", "platform"), schemas);
+        assertEquals(List.of("business_data", "business_meta", "iam", "platform", "quartz"), schemas);
+        Integer outbox = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'exec_outbox'",
+                Integer.class);
+        assertEquals(1, outbox);
     }
 
     @Test
