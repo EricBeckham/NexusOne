@@ -14,10 +14,11 @@ import one.nexus.permission.support.PermissionException;
 
 /**
  * M0-02 {@code DataScopeInjector} seam. Isolation kernel injects {@code tenant_id}
- * first. This implementation may only AND extra equality atoms and must never
- * remove or replace the tenant predicate. Wire with
- * {@code IsolationKernel.create(..., injector, ...)} when extras are known;
- * per-request SELF/DEPT encoding uses {@link QueryAstPolicyCompiler}.
+ * first. This implementation may only AND extra equality atoms or single-column
+ * multi-value {@code IN} lists and must never remove or replace the tenant
+ * predicate. Wire with {@code IsolationKernel.create(..., injector, ...)} when
+ * extras are known; per-request SELF/DEPT/IN encoding uses
+ * {@link QueryAstPolicyCompiler}. Mixed-column OR (SELF∨DEPT) stays leftover.
  */
 public final class IsolationDataScopeInjector implements DataScopeInjector {
     private final Map<String, Object> extraAnds;

@@ -104,12 +104,7 @@ public final class PostgresRenderer {
         }
         for (Map.Entry<String, Object> entry : join.filters().entrySet()) {
             sql.append(" AND ").append(Identifiers.quote(join.alias())).append('.').append(Identifiers.quote(entry.getKey()));
-            if (entry.getValue() == null) {
-                sql.append(" IS NULL");
-            } else {
-                sql.append(" = ?");
-                args.add(entry.getValue());
-            }
+            FilterAtoms.append(sql, args, entry.getValue());
         }
     }
 
@@ -145,12 +140,7 @@ public final class PostgresRenderer {
                 sql.append(Identifiers.quote(alias)).append('.');
             }
             sql.append(Identifiers.quote(entry.getKey()));
-            if (entry.getValue() == null) {
-                sql.append(" IS NULL");
-            } else {
-                sql.append(" = ?");
-                args.add(entry.getValue());
-            }
+            FilterAtoms.append(sql, args, entry.getValue());
         }
         for (QueryJoin join : cross) {
             for (Map.Entry<String, Object> entry : join.filters().entrySet()) {
@@ -158,12 +148,7 @@ public final class PostgresRenderer {
                     sql.append(" AND ");
                 }
                 sql.append(Identifiers.quote(join.alias())).append('.').append(Identifiers.quote(entry.getKey()));
-                if (entry.getValue() == null) {
-                    sql.append(" IS NULL");
-                } else {
-                    sql.append(" = ?");
-                    args.add(entry.getValue());
-                }
+                FilterAtoms.append(sql, args, entry.getValue());
             }
         }
         for (QuerySubquery subquery : subqueries) {
@@ -221,12 +206,7 @@ public final class PostgresRenderer {
                 sql.append(Identifiers.quote(filterAlias)).append('.');
             }
             sql.append(Identifiers.quote(entry.getKey()));
-            if (entry.getValue() == null) {
-                sql.append(" IS NULL");
-            } else {
-                sql.append(" = ?");
-                args.add(entry.getValue());
-            }
+            FilterAtoms.append(sql, args, entry.getValue());
         }
         for (QuerySubquery nested : subquery.nested()) {
             sql.append(started ? " AND " : " WHERE ");

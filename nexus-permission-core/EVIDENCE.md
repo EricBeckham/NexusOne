@@ -86,7 +86,7 @@ mvn -pl nexus-permission-core -am test
 | `PredicateSqlCompilerTest` | Golden parameterized SQL; unknown column rejected |
 | `ListDetailTotalPaginationTest` | list / detail / total / page share `tenant_id = ? AND (scope)` |
 | `IsolationDataScopeInjectorTest` | Extra AND filters; refuses missing/replaced `tenant_id`; Query AST injector ANDs SELF without stripping tenant |
-| `QueryAstPolicyCompilerTest` | SELF/DEPT equality + hidden drop onto Query AST; OR / multi-value IN leftover |
+| `QueryAstPolicyCompilerTest` | SELF/DEPT equality + single-column IN onto Query AST; mixed-column OR leftover |
 | `FieldPolicyProjectorTest` | Drop hidden; FULL mask without second auth |
 | `GoldenPostgresDataScopeTest` | Rows Alpha + Beta; r4/r9 excluded; cross-tenant UPDATE of r9 rejected |
 | `DualTenantIsolationTest` | Tenant A grants do not appear in B snapshot; evaluate(A, B) is `tenant_boundary` |
@@ -202,7 +202,7 @@ Harness and script are on this branch. Suite counts are recorded after `./script
 | `JdbcG9DualReaderPartitionIT` | PG 15: `iam.perm_policy_version` bumps while both reader LRU stay stale; each node's poll converges independently |
 
 - Time/IP context evaluation (upstream Predicate only)
-- Isolation-kernel QueryAst still cannot encode OR / multi-value IN trees; SELF/DEPT equality + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler`. Product list/detail (`GuardedLedgerStore`) now opts in via `QueryAstScopedQuery` ([docs/g1-queryast-product-optin.md](../docs/g1-queryast-product-optin.md)). `PermissionService.scopedQuery` and hook `.query()` strings still skip. Export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md). Evidence **2026-09-22T18:26:26Z**: `QueryAstScopedQueryTest` **2/2**, `QueryAstPolicyCompilerTest` **3/3**, `G1QueryAstProductOptInTest` **1/1**.
+- Isolation-kernel QueryAst still cannot encode mixed-column OR (SELF∨DEPT); SELF/DEPT equality + single-column `IN` + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler` ([docs/g1-datascope-or-in-ast.md](../docs/g1-datascope-or-in-ast.md)). Product list/detail (`GuardedLedgerStore`) opts in via `QueryAstScopedQuery` ([docs/g1-queryast-product-optin.md](../docs/g1-queryast-product-optin.md)). `PermissionService.scopedQuery` and hook `.query()` strings still skip. Export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md).
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
 - Demo `tenant_member` ALL-scope seed remains for the closed G18 walk and is not permission-complete
 - Redis Sentinel / Cluster / replica promotion / live multi-JVM network partition remain open after the in-process dual-reader harness.

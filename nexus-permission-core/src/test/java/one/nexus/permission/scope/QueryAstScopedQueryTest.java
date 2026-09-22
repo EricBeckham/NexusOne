@@ -144,6 +144,34 @@ class QueryAstScopedQueryTest {
                 table));
     }
 
+    @Test
+    void compilesDeptAndChildrenInThroughQueryCompiler() {
+        IsolationKernel kernel = kernel();
+        AccessContextHolder.set(kernel.tenants().issue(
+                new AuthenticatedMembership(Actor.person("u1"), "alpha", "mem-a", Set.of("alpha")),
+                "trace-in"));
+        Decision specified = new Decision(
+                true,
+                "specified",
+                Predicate.atom("department_id", "IN", List.of("d1", "d2")),
+                Map.of(),
+                1L);
+        QueryAstScopedQuery.CompiledRead compiled = QueryAstScopedQuery.compile(
+                QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null))
+                        .withSorts(List.of(QuerySort.asc("id")))
+                        .withPage(QueryPage.of(10, 0)),
+                specified,
+                table,
+                kernel.compiler(),
+                AccessContextHolder.current());
+        assertTrue(compiled.scopeFullyEncoded());
+        assertEquals(List.of("d1", "d2"), compiled.encoding().query().filters().get("department_id"));
+        assertTrue(compiled.compiled().sql().contains("\"department_id\" IN (?, ?)"));
+        assertTrue(compiled.compiled().sql().contains("\"tenant_id\" = ?"));
+        assertEquals(compiled.compiled().sql(), compiled.bound().sql());
+        assertEquals(List.of("d1", "d2", "alpha", 10, 0), compiled.bound().parameters());
+    }
+
     private static Map<String, Object> filters(Object... pairs) {
         Map<String, Object> result = new LinkedHashMap<>();
         for (int i = 0; i < pairs.length; i += 2) {

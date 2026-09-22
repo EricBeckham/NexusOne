@@ -39,7 +39,7 @@ These modules may use JDBC for **platform / catalog / identity** tables. They ar
 Tenant-table SQL allowlist (compiler + SchemaService + product adapter only):
 
 - `GuardedJdbc`, `NativeSqlPort`, `QueryCompiler`, `PostgresRenderer`, `TenantInjector`
-- `GuardedLedgerStore` (writes + encoded SELF/DEPT list/detail via `kernel.jdbc()`; leftover OR/IN and `COUNT(*)` wrap still use M0-05 `BoundSql`)
+- `GuardedLedgerStore` (writes + encoded SELF/DEPT/`IN` list/detail via `kernel.jdbc()`; leftover mixed-column OR and `COUNT(*)` wrap still use M0-05 `BoundSql`)
 - `JdbcSchemaService`, `PostgresDialectRenderer` (DDL from `SchemaAst`, not caller SQL)
 
 Source of truth: `QueryCompilerBypassAllowlist`.
@@ -84,7 +84,7 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 
 | Still open | Why |
 |---|---|
-| `GuardedLedgerStore` leftover reads | Encoded SELF/DEPT list/detail now compile through `QueryCompiler` ([g1-queryast-product-optin.md](./g1-queryast-product-optin.md)). OR/IN leftovers and `COUNT(*)` still execute `BoundSql` on `PreparedStatement`. |
+| `GuardedLedgerStore` leftover reads | Encoded SELF/DEPT/`IN` list/detail now compile through `QueryCompiler` ([g1-queryast-product-optin.md](./g1-queryast-product-optin.md), [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md)). Mixed-column OR leftovers and `COUNT(*)` still execute `BoundSql` on `PreparedStatement`. |
 | Allowlisted platform JDBC | Audit / outbox / IAM / file / notify / catalog stay on raw JDBC for non-tenant-physical tables. |
 | Regex / ArchUnit limits | Aliases, reflection, generated code, and JNI are not covered. Keep the allowlist tight. |
 | Report UI / physical ledger dump | Unchanged. The gate blocks new raw dump callers; it does not add a report screen. |

@@ -550,6 +550,71 @@ class PostgresIsolationIT {
         }
     }
 
+    @Test
+    void multiValueInFilterReturnsMatchingDeptsAndRejectsEmptyOrStolenTenantBeforeJdbc() throws Exception {
+        try (Connection raw = postgres.getPostgresDatabase().getConnection()) {
+            raw.setAutoCommit(false);
+            try {
+                try (Statement fixture = raw.createStatement()) {
+                    fixture.execute("""
+                            CREATE TABLE ledger_entry (
+                                id text PRIMARY KEY,
+                                tenant_id text NOT NULL,
+                                title text NOT NULL,
+                                department_id text NOT NULL
+                            )
+                            """);
+                }
+                CollectingAuditSink sink = new CollectingAuditSink();
+                TableRegistry registry = new TableRegistry();
+                registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "department_id");
+                IsolationKernel kernel = IsolationKernel.create(
+                        registry,
+                        Set.of("ops.summary"),
+                        sink,
+                        one.nexus.isolation.spi.DataScopeInjector.andEquals(map("department_id", List.of("d1", "d2"))),
+                        (q, t, c) -> q);
+                TenantContext alpha = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-in");
+                TenantContext beta = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-b"), "beta", "mem-b", Set.of("beta")), "trace-b");
+
+                AtomicInteger executions = new AtomicInteger();
+                Connection connection = counting(raw, executions);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a1", "title", "one", "department_id", "d1")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a2", "title", "two", "department_id", "d2")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a3", "title", "other", "department_id", "d3")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "b1", "title", "beta", "department_id", "d1")), beta);
+
+                assertEquals(List.of("one", "two"), titles(
+                        kernel,
+                        connection,
+                        alpha,
+                        QueryAst.select("ledger_entry", List.of("title"), Map.of())));
+
+                int before = executions.get();
+                Connection unusable = unusable();
+                deny(IsolationErrorCode.INVALID_IDENTIFIER, () ->
+                        kernel.jdbc().executeQuery(
+                                unusable,
+                                QueryAst.select("ledger_entry", List.of("title"), map("department_id", List.of())),
+                                alpha));
+                deny(IsolationErrorCode.CROSS_TENANT_READ, () ->
+                        kernel.jdbc().executeQuery(
+                                unusable,
+                                QueryAst.select("ledger_entry", List.of("title"), map("tenant_id", List.of("alpha", "beta"))),
+                                alpha));
+                assertEquals(before, executions.get(), "denied IN / tenant plans must not reach JDBC");
+            } finally {
+                raw.rollback();
+            }
+        }
+    }
+
     private static List<String> titles(IsolationKernel kernel, Connection connection, TenantContext tenant) throws Exception {
         return titles(kernel, connection, tenant, QueryAst.select("ledger_entry", List.of("title"), Map.of()));
     }

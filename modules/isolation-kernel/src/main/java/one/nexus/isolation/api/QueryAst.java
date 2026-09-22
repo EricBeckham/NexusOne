@@ -1,6 +1,7 @@
 package one.nexus.isolation.api;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,8 +15,9 @@ import java.util.Objects;
  * may add IN / EXISTS subqueries, including nested subquery-in-subquery; SELECT
  * may add ORDER BY + LIMIT/OFFSET; INSERT may be a multi-row batch. Each tenant
  * table still gets its own {@code tenant_id} predicate. Safe SELF/DEPT DataScope
- * equality atoms may already sit in {@link #filters()}; FieldPolicy-visible
- * columns may already sit in {@link #projection()}. OR / IN trees and masks stay
+ * equality atoms and single-column multi-value {@code IN} lists may already sit
+ * in {@link #filters()}; FieldPolicy-visible columns may already sit in
+ * {@link #projection()}. Mixed-column OR trees (SELF∨DEPT) and masks stay
  * outside this AST.
  */
 public final class QueryAst {
@@ -46,7 +48,7 @@ public final class QueryAst {
         this.table = Objects.requireNonNull(table, "table");
         this.projection = List.copyOf(projection);
         this.values = copyAllowingNulls(values);
-        this.filters = copyAllowingNulls(filters);
+        this.filters = copyFilters(filters);
         this.joins = List.copyOf(joins);
         this.subqueries = List.copyOf(subqueries);
         this.sorts = List.copyOf(sorts);
@@ -56,6 +58,19 @@ public final class QueryAst {
 
     private static Map<String, Object> copyAllowingNulls(Map<String, Object> source) {
         return Collections.unmodifiableMap(new LinkedHashMap<>(source));
+    }
+
+    private static Map<String, Object> copyFilters(Map<String, Object> source) {
+        Map<String, Object> copy = new LinkedHashMap<>();
+        source.forEach((key, value) -> copy.put(key, copyFilterValue(value)));
+        return Collections.unmodifiableMap(copy);
+    }
+
+    private static Object copyFilterValue(Object value) {
+        if (!(value instanceof Collection<?> collection)) {
+            return value;
+        }
+        return List.copyOf(new ArrayList<>(collection));
     }
 
     private static List<Map<String, Object>> copyRows(List<Map<String, Object>> rows) {

@@ -29,9 +29,10 @@ import one.nexus.isolation.spi.SoftDeleteInjector;
  * (including nested subquery-in-subquery), multi-row INSERT, ORDER BY, and
  * LIMIT/OFFSET of registered tables are compiled here. Each tenant-scoped table,
  * including every nested subquery level, gets its own {@code tenant_id} predicate.
- * SELF/DEPT equality atoms and FieldPolicy-visible projections may already be
- * encoded on the AST; {@link DataScopeInjector} may only AND extra predicates
- * and cannot strip {@code tenant_id}.
+ * SELF/DEPT equality atoms, single-column multi-value {@code IN} lists, and
+ * FieldPolicy-visible projections may already be encoded on the AST;
+ * {@link DataScopeInjector} may only AND extra predicates and cannot strip
+ * {@code tenant_id}. Mixed-column OR (SELF∨DEPT) stays outside this compiler.
  */
 public final class QueryCompiler {
     private final TableRegistry registry;
@@ -224,8 +225,12 @@ public final class QueryCompiler {
         for (String column : query.values().keySet()) {
             requireColumn(table, column, context);
         }
-        for (String column : query.filters().keySet()) {
-            requireColumn(table, column, context);
+        IsolationErrorCode tenantIn = query.kind() == QueryKind.SELECT
+                ? IsolationErrorCode.CROSS_TENANT_READ
+                : IsolationErrorCode.CROSS_TENANT_WRITE;
+        for (Map.Entry<String, Object> entry : query.filters().entrySet()) {
+            requireColumn(table, entry.getKey(), context);
+            validateFilterValue(entry.getKey(), entry.getValue(), context, tenantIn);
         }
         for (QueryJoin join : query.joins()) {
             validateJoin(query, table, aliases, join, context);
@@ -292,8 +297,9 @@ public final class QueryCompiler {
                 throw auditor.reject(IsolationErrorCode.CROSS_TENANT_JOIN, context, "join must reference its tables");
             }
         }
-        for (String column : join.filters().keySet()) {
-            requireColumn(joined, column, context);
+        for (Map.Entry<String, Object> entry : join.filters().entrySet()) {
+            requireColumn(joined, entry.getKey(), context);
+            validateFilterValue(entry.getKey(), entry.getValue(), context, IsolationErrorCode.CROSS_TENANT_JOIN);
         }
         if (join.filters().containsKey("tenant_id") && join.filters().get("tenant_id") == null) {
             throw auditor.reject(IsolationErrorCode.CROSS_TENANT_JOIN, context, "null join tenant filter");
@@ -338,8 +344,9 @@ public final class QueryCompiler {
             requireJoinSide(innerScope, on.leftAlias(), on.leftColumn(), context);
             requireJoinSide(innerScope, on.rightAlias(), on.rightColumn(), context);
         }
-        for (String column : subquery.filters().keySet()) {
-            requireColumn(inner, column, context);
+        for (Map.Entry<String, Object> entry : subquery.filters().entrySet()) {
+            requireColumn(inner, entry.getKey(), context);
+            validateFilterValue(entry.getKey(), entry.getValue(), context, IsolationErrorCode.CROSS_TENANT_SUBQUERY);
         }
         if (subquery.filters().containsKey("tenant_id") && subquery.filters().get("tenant_id") == null) {
             throw auditor.reject(IsolationErrorCode.CROSS_TENANT_SUBQUERY, context, "null subquery tenant filter");
@@ -483,6 +490,28 @@ public final class QueryCompiler {
         Identifiers.require(column);
         if (!table.columns().contains(column)) {
             throw auditor.reject(IsolationErrorCode.UNREGISTERED_COLUMN, context, column);
+        }
+    }
+
+    private void validateFilterValue(
+            String column,
+            Object value,
+            AccessContext context,
+            IsolationErrorCode tenantInCode
+    ) {
+        if ("tenant_id".equals(column) && FilterAtoms.isIn(value)) {
+            throw auditor.reject(tenantInCode, context, "tenant_id IN is not allowed");
+        }
+        if (!FilterAtoms.isIn(value)) {
+            return;
+        }
+        try {
+            List<Object> items = FilterAtoms.inValues(value);
+            if (items.isEmpty()) {
+                throw auditor.reject(IsolationErrorCode.INVALID_IDENTIFIER, context, "empty IN filter");
+            }
+        } catch (IllegalArgumentException ex) {
+            throw auditor.reject(IsolationErrorCode.INVALID_IDENTIFIER, context, ex.getMessage());
         }
     }
 }

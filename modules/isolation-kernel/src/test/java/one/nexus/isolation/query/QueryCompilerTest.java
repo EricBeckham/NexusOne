@@ -149,6 +149,39 @@ class QueryCompilerTest {
     }
 
     @Test
+    void multiValueInRendersBesideTenantPredicateAndRejectsEmptyOrTenantIn() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "department_id");
+        IsolationKernel kernel = IsolationKernel.create(
+                registry,
+                Set.of("ops.summary"),
+                new CollectingAuditSink(),
+                DataScopeInjector.andEquals(map("department_id", List.of("d1", "d2"))),
+                (q, t, c) -> q);
+        TenantContext alpha = alpha(kernel);
+        RenderedSql scoped = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()), alpha);
+        assertEquals(
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"department_id\" IN (?, ?)",
+                scoped.sql());
+        assertEquals(List.of("alpha", "d1", "d2"), scoped.parameters());
+
+        RenderedSql encoded = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), map("id", List.of("r1", "r2"))),
+                alpha);
+        assertTrue(encoded.sql().contains("\"id\" IN (?, ?)"));
+        assertTrue(encoded.sql().contains("\"tenant_id\" = ?"));
+        assertEquals(List.of("r1", "r2", "alpha"), encoded.parameters());
+
+        assertCode(IsolationErrorCode.INVALID_IDENTIFIER, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), map("department_id", List.of())),
+                alpha));
+        assertCode(IsolationErrorCode.CROSS_TENANT_READ, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), map("tenant_id", List.of("alpha", "beta"))),
+                alpha));
+    }
+
+    @Test
     void dataScopeAndEqualsCannotAuthorTenantId() {
         TableRegistry registry = new TableRegistry();
         registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id");

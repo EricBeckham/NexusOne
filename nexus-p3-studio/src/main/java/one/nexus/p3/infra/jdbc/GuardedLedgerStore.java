@@ -38,9 +38,10 @@ import one.nexus.permission.scope.QueryAstScopedQuery;
 
 /**
  * Ledger row access. Writes go through Query AST + GuardedJdbc. List / detail
- * opt into {@link QueryAstScopedQuery} so SAFE SELF/DEPT + FieldPolicy
- * visibility compile through {@code QueryCompiler}. OR / IN leftovers still
- * bind beside the AST; mask / second-auth stay on {@code FieldPolicyProjector}.
+ * opt into {@link QueryAstScopedQuery} so SAFE SELF/DEPT + single-column
+ * multi-value {@code IN} + FieldPolicy visibility compile through
+ * {@code QueryCompiler}. Mixed-column OR (SELF∨DEPT) leftovers still bind
+ * beside the AST; mask / second-auth stay on {@code FieldPolicyProjector}.
  */
 @Component
 public class GuardedLedgerStore {
