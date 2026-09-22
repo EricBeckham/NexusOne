@@ -7,6 +7,23 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
   "registrationAllowed": false,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "roles": {
+    "realm": [
+      {
+        "name": "TENANT_ADMIN",
+        "description": "Tenant administrator. Product session gate requires MFA (P2-M09-G04-F005)."
+      },
+      {
+        "name": "PLATFORM_ADMIN",
+        "description": "Platform administrator. Product session gate requires MFA (P1-M05-G01-F006)."
+      }
+    ]
+  },
   "clients": [
     {
       "clientId": "nexus-platform",

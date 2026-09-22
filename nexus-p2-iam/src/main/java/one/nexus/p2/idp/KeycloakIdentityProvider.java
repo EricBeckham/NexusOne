@@ -45,12 +45,20 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
 
     @Override
     public AuthorizeUrl authorizationUrl(String state, String redirectUri) {
+        return authorizationUrl(state, redirectUri, null);
+    }
+
+    @Override
+    public AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues) {
         String url = issuer + "/protocol/openid-connect/auth"
                 + "?client_id=" + enc(clientId)
                 + "&response_type=code"
                 + "&scope=openid%20profile%20email"
                 + "&redirect_uri=" + enc(redirectUri)
                 + "&state=" + enc(state);
+        if (acrValues != null && !acrValues.isBlank()) {
+            url += "&acr_values=" + enc(acrValues);
+        }
         return new AuthorizeUrl(url, state);
     }
 
@@ -85,7 +93,9 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
                     claims.getStringClaim("email"),
                     firstNonBlank(claims.getStringClaim("preferred_username"), claims.getStringClaim("email"), claims.getSubject()),
                     firstNonBlank(claims.getStringClaim("name"), claims.getStringClaim("preferred_username"), claims.getSubject()),
-                    claims.getStringClaim("phone_number"));
+                    claims.getStringClaim("phone_number"),
+                    firstNonBlank(claims.getStringClaim("acr"), stringClaim(claims, "acr_values")),
+                    joinAmr(claims));
         } catch (RuntimeException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -104,7 +114,9 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
                 stringOrNull(body.get("email")),
                 firstNonBlank(stringOrNull(body.get("preferred_username")), stringOrNull(body.get("email"))),
                 firstNonBlank(stringOrNull(body.get("name")), stringOrNull(body.get("preferred_username"))),
-                stringOrNull(body.get("phone_number"))));
+                stringOrNull(body.get("phone_number")),
+                stringOrNull(body.get("acr")),
+                joinAmrValue(body.get("amr"))));
     }
 
     @Override
@@ -302,6 +314,38 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
             return number.longValue();
         }
         return 0L;
+    }
+
+    private static String stringClaim(JWTClaimsSet claims, String name) {
+        try {
+            return claims.getStringClaim(name);
+        } catch (java.text.ParseException ex) {
+            return null;
+        }
+    }
+
+    private static String joinAmr(JWTClaimsSet claims) {
+        try {
+            List<String> values = claims.getStringListClaim("amr");
+            if (values != null && !values.isEmpty()) {
+                return String.join(" ", values);
+            }
+        } catch (java.text.ParseException ignored) {
+            // fall through to string claim
+        }
+        try {
+            return claims.getStringClaim("amr");
+        } catch (java.text.ParseException ex) {
+            return null;
+        }
+    }
+
+    private static String joinAmrValue(Object value) {
+        if (value instanceof List<?> list) {
+            return list.stream().filter(java.util.Objects::nonNull).map(String::valueOf)
+                    .reduce((a, b) -> a + " " + b).orElse(null);
+        }
+        return stringOrNull(value);
     }
 
     private static String firstNonBlank(String... values) {

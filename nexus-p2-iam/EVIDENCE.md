@@ -148,6 +148,30 @@ Result: **Tests run: 1, Failures: 0, Errors: 0, Skipped: 0**. `nexus.iam.idp=key
 | SAML / LDAP / SMS MFA / browser PKCE | not run (excluded) |
 | File metadata ↔ object | not this PR |
 
+## G17 admin MFA slice (this PR)
+
+Product policy `nexus.iam.mfa.admin-required=true` (default). Session gate on the existing M0-04 login path. Same Keycloak 26.5.2 client; no second IdP. **Not** a full G17 close. **G18 stays closed.**
+
+```bash
+mvn -pl nexus-p2-iam -am test \
+  -Dtest=AdminMfaSessionTest,AdminMfaApiTest,MfaClaimsTest,SessionLoginAuditTest,IdentityApiTest,DualTenantIsolationTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+Recorded after the IT run on this branch. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md).
+
+| Check | Result |
+|---|---|
+| Policy disabled + admin password-only token issues context (failing-before) | `AdminMfaSessionTest.beforeGateAdminWithoutMfaCouldIssuePrivilegedContext` |
+| Policy forced + same token → `P2.IAM.MFA_REQUIRED`, no context (passing-after) | `AdminMfaSessionTest.afterGateAdminWithoutMfaCannotIssuePrivilegedSession` |
+| Admin MFA token issues context | yes |
+| Non-admin password-only still issues context | yes |
+| HTTP `POST /api/v1/auth/login` admin without MFA → 403 | `AdminMfaApiTest` |
+| `GET /api/v1/auth/authorize-url?acr=mfa` includes `acr_values=mfa` | yes |
+| SAML / SMS MFA / hardware / browser PKCE | not claimed |
+| Live Keycloak admin OTP walk | not run |
+| G18 reopen | **no** |
+
 ## Honest gaps (not verified here)
 
 - **`nexus-bootstrap` packaged JAR** was not the process under test; the live app was `SpringBootTest` `DEFINED_PORT` `:18088`.

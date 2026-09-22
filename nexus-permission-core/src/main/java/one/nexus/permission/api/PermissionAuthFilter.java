@@ -66,7 +66,7 @@ public class PermissionAuthFilter extends OncePerRequestFilter {
             SessionService.AuthenticatedIdentity session = identity.sessions().authenticate(header.substring(7));
             String contextId = request.getHeader(HEADER_CONTEXT);
             if (contextId != null && !contextId.isBlank()) {
-                identity.sessions().loadContext(UUID.fromString(contextId), session.claims().subject());
+                identity.sessions().loadContext(UUID.fromString(contextId), session);
                 TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
             }
             chain.doFilter(request, response);

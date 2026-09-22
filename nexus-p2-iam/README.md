@@ -17,6 +17,7 @@ PoC under `poc/p0-03/` is reference only. Locked IdP version for this round: **K
 | SMTP hooks for invite / password reset only | Keycloak `execute-actions-email`; disabled unless `nexus.iam.smtp.enabled=true` |
 | Dual-tenant membership isolation at the data model | tenant-scoped tables + tests |
 | G10 person ↔ Keycloak match + repair | `account/PersonIdentityReconciler`, `GET\|POST /api/v1/identity/reconcile` |
+| Admin MFA policy (platform + tenant admin, default forced) | `session/AdminMfaPolicy`, login / switch / load-context gate; `GET /api/v1/auth/authorize-url?acr=mfa` |
 
 `tenant_id` on the wire is **rejected**. Send `X-Tenant-Id` and the API returns `P2.IAM.CLIENT_TENANT_REJECTED`. Context is issued only after P2 membership is checked.
 
@@ -63,7 +64,7 @@ These are **not** accepted:
 
 - SAML
 - LDAP / Active Directory federation
-- SMS MFA (and TOTP/email MFA product acceptance)
+- SMS MFA, hardware MFA / WebAuthn, TOTP enrollment UX, email MFA product acceptance (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); not a full G17 close)
 - Browser Authorization Code + PKCE as an accepted Web/H5 path (P0 listed PKCE as unverified). Product login uses a **confidential** backend client; `p0-smoke` direct-grant must not be copied into production.
 - Keycloak Organizations as Nexus org master data or acceptance evidence (Employment is not synced to Organizations)
 - File metadata ↔ object store reconcile (G1 isolation agent; not this module)

@@ -7,6 +7,7 @@ import one.nexus.p2.idp.KeycloakIdentityProvider;
 import one.nexus.p2.idp.StubIdentityProvider;
 import one.nexus.p2.persist.InMemoryIdentityRepository;
 import one.nexus.p2.persist.JdbcIdentityRepository;
+import one.nexus.p2.session.AdminMfaPolicy;
 import one.nexus.p2.smtp.KeycloakSmtpHook;
 import one.nexus.p2.smtp.SmtpHook;
 import org.flywaydb.core.Flyway;
@@ -79,7 +80,13 @@ public class IdentityConfiguration {
             ObjectProvider<AuditPort> audits
     ) {
         return new IdentityModule(
-                repository, idp, smtp, clock, Duration.parse(properties.contextTtl()), audits.getIfAvailable());
+                repository,
+                idp,
+                smtp,
+                clock,
+                Duration.parse(properties.contextTtl()),
+                audits.getIfAvailable(),
+                properties.mfaPolicy());
     }
 
     @ConfigurationProperties(prefix = "nexus.iam")
@@ -90,7 +97,8 @@ public class IdentityConfiguration {
             Jdbc jdbc,
             Keycloak keycloak,
             Smtp smtp,
-            String platformBootstrapToken
+            String platformBootstrapToken,
+            Mfa mfa
     ) {
         public IamProperties {
             if (persistence == null) persistence = "memory";
@@ -106,6 +114,14 @@ public class IdentityConfiguration {
             }
             if (smtp == null) smtp = new Smtp(false);
             if (platformBootstrapToken == null) platformBootstrapToken = "";
+            if (mfa == null) mfa = Mfa.defaults();
+        }
+
+        public AdminMfaPolicy mfaPolicy() {
+            return new AdminMfaPolicy(
+                    mfa.adminRequired(),
+                    mfa.platformTenantUuid(),
+                    mfa.positionCodes());
         }
 
         public record Jdbc(String url, String username, String password) {}
@@ -113,5 +129,32 @@ public class IdentityConfiguration {
         public record Keycloak(String issuer, String clientId, String clientSecret, String redirectUri) {}
 
         public record Smtp(boolean enabled) {}
+
+        public record Mfa(Boolean adminRequired, String platformTenantId, String adminPositionCodes) {
+            public static Mfa defaults() {
+                return new Mfa(true, AdminMfaPolicy.DEFAULT_PLATFORM_TENANT.toString(), null);
+            }
+
+            public boolean adminRequired() {
+                return adminRequired == null || adminRequired;
+            }
+
+            public java.util.UUID platformTenantUuid() {
+                if (platformTenantId == null || platformTenantId.isBlank()) {
+                    return AdminMfaPolicy.DEFAULT_PLATFORM_TENANT;
+                }
+                return java.util.UUID.fromString(platformTenantId);
+            }
+
+            public java.util.List<String> positionCodes() {
+                if (adminPositionCodes == null || adminPositionCodes.isBlank()) {
+                    return AdminMfaPolicy.DEFAULT_ADMIN_POSITION_CODES;
+                }
+                return java.util.Arrays.stream(adminPositionCodes.split(","))
+                        .map(String::trim)
+                        .filter(item -> !item.isBlank())
+                        .toList();
+            }
+        }
     }
 }

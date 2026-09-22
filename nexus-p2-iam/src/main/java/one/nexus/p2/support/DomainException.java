@@ -34,6 +34,10 @@ public final class DomainException extends RuntimeException {
         return new DomainException("P2.IAM.FORBIDDEN", 403, message);
     }
 
+    public static DomainException mfaRequired(String message) {
+        return new DomainException("P2.IAM.MFA_REQUIRED", 403, message);
+    }
+
     public static DomainException badRequest(String code, String message) {
         return new DomainException(code, 400, message);
     }

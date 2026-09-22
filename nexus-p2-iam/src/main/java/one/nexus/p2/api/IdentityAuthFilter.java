@@ -70,7 +70,7 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
             request.setAttribute(ATTR_IDENTITY, identity);
             String contextId = request.getHeader(HEADER_CONTEXT);
             if (contextId != null && !contextId.isBlank()) {
-                module.sessions().loadContext(UUID.fromString(contextId), identity.claims().subject());
+                module.sessions().loadContext(UUID.fromString(contextId), identity);
             }
             filterChain.doFilter(request, response);
         } catch (DomainException ex) {

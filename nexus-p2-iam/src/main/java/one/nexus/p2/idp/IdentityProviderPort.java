@@ -5,7 +5,23 @@ import java.util.Optional;
 
 /** Port over Keycloak. Product path is OIDC against Keycloak 26.5.2. */
 public interface IdentityProviderPort {
-    record IdentityClaims(String subject, String email, String username, String displayName, String phone) {}
+    record IdentityClaims(
+            String subject,
+            String email,
+            String username,
+            String displayName,
+            String phone,
+            String acr,
+            String amr
+    ) {
+        public IdentityClaims(String subject, String email, String username, String displayName, String phone) {
+            this(subject, email, username, displayName, phone, null, null);
+        }
+
+        public boolean mfaSatisfied() {
+            return one.nexus.p2.session.MfaClaims.satisfied(acr, amr);
+        }
+    }
 
     record TokenSet(String accessToken, String refreshToken, String idToken, String tokenType, long expiresIn) {}
 
@@ -23,6 +39,11 @@ public interface IdentityProviderPort {
     }
 
     AuthorizeUrl authorizationUrl(String state, String redirectUri);
+
+    /** Optional ACR step-up. Default ignores {@code acrValues}. */
+    default AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues) {
+        return authorizationUrl(state, redirectUri);
+    }
 
     TokenSet exchangeAuthorizationCode(String code, String redirectUri);
 
