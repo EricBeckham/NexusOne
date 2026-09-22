@@ -6,6 +6,7 @@ import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
 import one.nexus.isolation.api.TableDescriptor;
 import one.nexus.isolation.api.TenantContext;
@@ -47,5 +48,33 @@ public final class TenantInjector {
         Map<String, Object> filters = new LinkedHashMap<>(query.filters());
         filters.put("tenant_id", tenantId);
         return query.withFilters(filters);
+    }
+
+    /**
+     * Inject {@code tenant_id} onto a joined tenant table. A foreign tenant
+     * filter is rejected before SQL is rendered or executed.
+     */
+    public static QueryJoin injectJoin(
+            QueryJoin join, TableDescriptor joinTable, AccessContext context, IsolationAuditor auditor) {
+        if (context == null) {
+            throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, null, "missing context");
+        }
+        if (!joinTable.tenantRequired() || context instanceof PlatformContext) {
+            return join;
+        }
+        if (!(context instanceof TenantContext tenant)) {
+            throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, context, "tenant context required");
+        }
+        String tenantId = tenant.tenantId();
+        Object filtered = join.filters().get("tenant_id");
+        if (filtered != null && !tenantId.equals(filtered)) {
+            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_READ, context, "join tenant_id mismatch");
+        }
+        if (join.filters().containsKey("tenant_id") && join.filters().get("tenant_id") == null) {
+            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_READ, context, "null join tenant filter");
+        }
+        Map<String, Object> filters = new LinkedHashMap<>(join.filters());
+        filters.put("tenant_id", tenantId);
+        return join.withFilters(filters);
     }
 }

@@ -1,11 +1,14 @@
 package one.nexus.isolation.query;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
+import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
 import one.nexus.isolation.api.RenderedSql;
 import one.nexus.isolation.api.TableAccessPlan;
@@ -44,15 +47,25 @@ public final class QueryCompiler {
             throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, null, "missing context");
         }
         Identifiers.require(input.table());
-        TableDescriptor table = registry.require(input.table());
-        validateColumns(input, table, context);
+        TableDescriptor table = requireTable(input.table(), context);
+        List<TableDescriptor> joinTables = resolveJoinTables(input, table, context);
+        validateColumns(input, table, joinTables, context);
         QueryAst injected = TenantInjector.inject(input, table, context, auditor);
+        List<QueryJoin> injectedJoins = new ArrayList<>();
+        List<Map<String, Object>> joinTenantFiltersBeforeScope = new ArrayList<>();
+        for (int i = 0; i < injected.joins().size(); i++) {
+            QueryJoin join = TenantInjector.injectJoin(injected.joins().get(i), joinTables.get(i), context, auditor);
+            injectedJoins.add(join);
+            joinTenantFiltersBeforeScope.add(join.filters());
+        }
+        injected = injected.withJoins(injectedJoins);
         Map<String, Object> tenantFiltersBeforeScope = injected.filters();
         Object tenantValueBeforeScope = injected.values().get("tenant_id");
         injected = dataScopeInjector.inject(injected, table, context);
         injected = softDeleteInjector.inject(injected, table, context);
         assertTenantPredicatePreserved(input, injected, tenantFiltersBeforeScope, tenantValueBeforeScope, context);
-        TableAccessPlan plan = guard.check(table, injected, context);
+        assertJoinTenantPredicatesPreserved(injected, joinTables, joinTenantFiltersBeforeScope, context);
+        TableAccessPlan plan = guard.check(table, injected, context, joinTables);
         return PostgresRenderer.render(injected, table, plan);
     }
 
@@ -75,15 +88,31 @@ public final class QueryCompiler {
         }
     }
 
-    private void validateColumns(QueryAst query, TableDescriptor table, AccessContext context) {
+    private void validateColumns(
+            QueryAst query, TableDescriptor table, List<TableDescriptor> joinTables, AccessContext context) {
+        if (!query.joins().isEmpty() && query.kind() != QueryKind.SELECT) {
+            throw new IllegalArgumentException("joins are only allowed on SELECT");
+        }
         for (String column : query.projection()) {
-            requireColumn(table, column, context);
+            requireProjectedColumn(table, joinTables, column, context);
         }
         for (String column : query.values().keySet()) {
             requireColumn(table, column, context);
         }
         for (String column : query.filters().keySet()) {
             requireColumn(table, column, context);
+        }
+        for (int i = 0; i < query.joins().size(); i++) {
+            QueryJoin join = query.joins().get(i);
+            TableDescriptor joinTable = joinTables.get(i);
+            requireColumn(table, join.leftColumn(), context);
+            requireColumn(joinTable, join.rightColumn(), context);
+            for (String column : join.filters().keySet()) {
+                requireColumn(joinTable, column, context);
+            }
+            if (join.filters().containsKey("tenant_id") && join.filters().get("tenant_id") == null) {
+                throw auditor.reject(IsolationErrorCode.CROSS_TENANT_READ, context, "null join tenant filter");
+            }
         }
         if (query.kind() == QueryKind.SELECT && query.projection().isEmpty()) {
             throw new IllegalArgumentException("explicit projection required");
@@ -100,6 +129,65 @@ public final class QueryCompiler {
         if (query.filters().containsKey("tenant_id") && query.filters().get("tenant_id") == null) {
             throw auditor.reject(IsolationErrorCode.CROSS_TENANT_READ, context, "null tenant filter");
         }
+    }
+
+    private void assertJoinTenantPredicatesPreserved(
+            QueryAst after,
+            List<TableDescriptor> joinTables,
+            List<Map<String, Object>> joinTenantFiltersBeforeScope,
+            AccessContext context
+    ) {
+        for (int i = 0; i < after.joins().size(); i++) {
+            if (!joinTables.get(i).tenantRequired()) {
+                continue;
+            }
+            Object before = joinTenantFiltersBeforeScope.get(i).get("tenant_id");
+            Object afterValue = after.joins().get(i).filters().get("tenant_id");
+            if (before != null && !Objects.equals(before, afterValue)) {
+                throw auditor.reject(
+                        IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "DataScope removed join tenant predicate");
+            }
+        }
+    }
+
+    private List<TableDescriptor> resolveJoinTables(QueryAst query, TableDescriptor primary, AccessContext context) {
+        List<TableDescriptor> joinTables = new ArrayList<>();
+        for (QueryJoin join : query.joins()) {
+            Identifiers.require(join.table());
+            if (primary.name().equals(join.table())
+                    || joinTables.stream().anyMatch(table -> table.name().equals(join.table()))) {
+                throw new IllegalArgumentException("join table already in query: " + join.table());
+            }
+            joinTables.add(requireTable(join.table(), context));
+        }
+        return List.copyOf(joinTables);
+    }
+
+    private TableDescriptor requireTable(String name, AccessContext context) {
+        try {
+            return registry.require(name);
+        } catch (IsolationException ex) {
+            throw auditor.reject(ex.error() == null ? IsolationErrorCode.UNREGISTERED_TABLE : ex.error(), context, name);
+        }
+    }
+
+    private void requireProjectedColumn(
+            TableDescriptor primary, List<TableDescriptor> joinTables, String column, AccessContext context) {
+        int dot = column.indexOf('.');
+        if (dot < 0) {
+            requireColumn(primary, column, context);
+            return;
+        }
+        String tableName = column.substring(0, dot);
+        String columnName = column.substring(dot + 1);
+        Identifiers.require(tableName);
+        TableDescriptor target = primary.name().equals(tableName)
+                ? primary
+                : joinTables.stream()
+                        .filter(table -> table.name().equals(tableName))
+                        .findFirst()
+                        .orElseThrow(() -> auditor.reject(IsolationErrorCode.UNREGISTERED_TABLE, context, tableName));
+        requireColumn(target, columnName, context);
     }
 
     private void requireColumn(TableDescriptor table, String column, AccessContext context) {

@@ -6,26 +6,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Restricted single-table Query AST. Callers cannot supply SQL text or unregistered identifiers. */
+/** Restricted Query AST. Callers cannot supply SQL text or unregistered identifiers. */
 public final class QueryAst {
     private final QueryKind kind;
     private final String table;
     private final List<String> projection;
     private final Map<String, Object> values;
     private final Map<String, Object> filters;
+    private final List<QueryJoin> joins;
 
     private QueryAst(
             QueryKind kind,
             String table,
             List<String> projection,
             Map<String, Object> values,
-            Map<String, Object> filters
+            Map<String, Object> filters,
+            List<QueryJoin> joins
     ) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.table = Objects.requireNonNull(table, "table");
         this.projection = List.copyOf(projection);
         this.values = copyAllowingNulls(values);
         this.filters = copyAllowingNulls(filters);
+        this.joins = List.copyOf(joins == null ? List.of() : joins);
     }
 
     private static Map<String, Object> copyAllowingNulls(Map<String, Object> source) {
@@ -33,19 +36,24 @@ public final class QueryAst {
     }
 
     public static QueryAst select(String table, List<String> projection, Map<String, Object> filters) {
-        return new QueryAst(QueryKind.SELECT, table, projection, Map.of(), filters);
+        return select(table, projection, filters, List.of());
+    }
+
+    public static QueryAst select(
+            String table, List<String> projection, Map<String, Object> filters, List<QueryJoin> joins) {
+        return new QueryAst(QueryKind.SELECT, table, projection, Map.of(), filters, joins);
     }
 
     public static QueryAst insert(String table, Map<String, Object> values) {
-        return new QueryAst(QueryKind.INSERT, table, List.of(), values, Map.of());
+        return new QueryAst(QueryKind.INSERT, table, List.of(), values, Map.of(), List.of());
     }
 
     public static QueryAst update(String table, Map<String, Object> values, Map<String, Object> filters) {
-        return new QueryAst(QueryKind.UPDATE, table, List.of(), values, filters);
+        return new QueryAst(QueryKind.UPDATE, table, List.of(), values, filters, List.of());
     }
 
     public static QueryAst delete(String table, Map<String, Object> filters) {
-        return new QueryAst(QueryKind.DELETE, table, List.of(), Map.of(), filters);
+        return new QueryAst(QueryKind.DELETE, table, List.of(), Map.of(), filters, List.of());
     }
 
     public QueryKind kind() {
@@ -68,11 +76,19 @@ public final class QueryAst {
         return filters;
     }
 
+    public List<QueryJoin> joins() {
+        return joins;
+    }
+
     public QueryAst withValues(Map<String, Object> nextValues) {
-        return new QueryAst(kind, table, projection, nextValues, filters);
+        return new QueryAst(kind, table, projection, nextValues, filters, joins);
     }
 
     public QueryAst withFilters(Map<String, Object> nextFilters) {
-        return new QueryAst(kind, table, projection, values, nextFilters);
+        return new QueryAst(kind, table, projection, values, nextFilters, joins);
+    }
+
+    public QueryAst withJoins(List<QueryJoin> nextJoins) {
+        return new QueryAst(kind, table, projection, values, filters, nextJoins);
     }
 }

@@ -11,6 +11,7 @@ import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.RenderedSql;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.audit.CollectingAuditSink;
@@ -33,6 +34,7 @@ class QueryCompilerTest {
     private IsolationKernel kernel(CollectingAuditSink sink) {
         TableRegistry registry = new TableRegistry();
         registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "deleted_at");
+        registry.registerTenant("ledger_comment", "p3", 1, "id", "tenant_id", "entry_id", "body");
         registry.registerPlatform("platform_metric", "p1", 1, "id", "count");
         registry.freeze();
         return IsolationKernel.create(registry, Set.of("ops.summary"), sink);
@@ -121,6 +123,81 @@ class QueryCompilerTest {
         TenantContext alpha = alpha(kernel);
         IsolationException ex = assertThrows(IsolationException.class, () ->
                 kernel.compiler().compile(QueryAst.select("ledger_entry", List.of("id"), Map.of()), alpha));
+        assertEquals(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, ex.error());
+    }
+
+    @Test
+    void joinInjectsTenantOnBothTables() {
+        IsolationKernel kernel = kernel(new CollectingAuditSink());
+        TenantContext alpha = alpha(kernel);
+        RenderedSql sql = kernel.compiler().compile(
+                QueryAst.select(
+                        "ledger_entry",
+                        List.of("id", "ledger_comment.body"),
+                        Map.of(),
+                        List.of(QueryJoin.inner("ledger_comment", "id", "entry_id"))),
+                alpha);
+        assertEquals(
+                "SELECT \"ledger_entry\".\"id\", \"ledger_comment\".\"body\" FROM \"ledger_entry\""
+                        + " INNER JOIN \"ledger_comment\" ON \"ledger_entry\".\"id\" = \"ledger_comment\".\"entry_id\""
+                        + " AND \"ledger_comment\".\"tenant_id\" = ?"
+                        + " WHERE \"ledger_entry\".\"tenant_id\" = ?",
+                sql.sql());
+        assertEquals(List.of("alpha", "alpha"), sql.parameters());
+    }
+
+    @Test
+    void joinCrossTenantFilterRejectedBeforeSqlWithGuardRecord() {
+        CollectingAuditSink sink = new CollectingAuditSink();
+        IsolationKernel kernel = kernel(sink);
+        TenantContext alpha = alpha(kernel);
+        assertCode(IsolationErrorCode.CROSS_TENANT_READ, () -> kernel.compiler().compile(
+                QueryAst.select(
+                        "ledger_entry",
+                        List.of("id", "ledger_comment.body"),
+                        Map.of(),
+                        List.of(QueryJoin.inner("ledger_comment", "id", "entry_id", map("tenant_id", "beta")))),
+                alpha));
+        assertCode(IsolationErrorCode.ILLEGAL_PLATFORM_ACCESS, () -> kernel.compiler().compile(
+                QueryAst.select(
+                        "ledger_entry",
+                        List.of("id", "platform_metric.count"),
+                        Map.of(),
+                        List.of(QueryJoin.inner("platform_metric", "id", "id"))),
+                alpha));
+        assertCode(IsolationErrorCode.UNREGISTERED_TABLE, () -> kernel.compiler().compile(
+                QueryAst.select(
+                        "ledger_entry",
+                        List.of("id"),
+                        Map.of(),
+                        List.of(QueryJoin.inner("unknown_join", "id", "entry_id"))),
+                alpha));
+        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_READ));
+        assertTrue(sink.rejected(IsolationErrorCode.ILLEGAL_PLATFORM_ACCESS));
+        assertTrue(sink.rejected(IsolationErrorCode.UNREGISTERED_TABLE));
+        assertTrue(sink.rejectCount() >= 3);
+    }
+
+    @Test
+    void dataScopeCannotStripJoinTenantPredicate() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+        registry.registerTenant("ledger_comment", "p3", 1, "id", "tenant_id", "entry_id", "body");
+        DataScopeInjector hostile = (query, table, context) -> {
+            QueryJoin join = query.joins().getFirst().withFilters(Map.of("id", "1"));
+            return query.withJoins(List.of(join));
+        };
+        IsolationKernel kernel = IsolationKernel.create(
+                registry, Set.of("ops.summary"), new CollectingAuditSink(), hostile, (q, t, c) -> q);
+        TenantContext alpha = alpha(kernel);
+        IsolationException ex = assertThrows(IsolationException.class, () ->
+                kernel.compiler().compile(
+                        QueryAst.select(
+                                "ledger_entry",
+                                List.of("id"),
+                                Map.of(),
+                                List.of(QueryJoin.inner("ledger_comment", "id", "entry_id"))),
+                        alpha));
         assertEquals(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, ex.error());
     }
 

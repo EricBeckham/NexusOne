@@ -19,7 +19,8 @@ import one.nexus.isolation.spi.SoftDeleteInjector;
 
 /**
  * Facade other M0 modules call. M0-01 wires a DataSource around {@link GuardedJdbc};
- * M0-04 supplies membership to {@link RequestIsolationPolicy}; M0-05 plugs {@link DataScopeInjector}.
+ * M0-04 supplies membership to {@link RequestIsolationPolicy}; M0-05 plugs {@link DataScopeInjector}
+ * and the export FieldPolicy projector.
  */
 public final class IsolationKernel {
     private final TableRegistry registry;

@@ -1,9 +1,11 @@
 package one.nexus.isolation.query;
 
+import java.util.List;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
 import one.nexus.isolation.api.TableAccessPlan;
 import one.nexus.isolation.api.TableDescriptor;
@@ -21,6 +23,11 @@ public final class TableAccessPlanGuard {
     }
 
     public TableAccessPlan check(TableDescriptor table, QueryAst query, AccessContext context) {
+        return check(table, query, context, List.of());
+    }
+
+    public TableAccessPlan check(
+            TableDescriptor table, QueryAst query, AccessContext context, List<TableDescriptor> joinTables) {
         if (context == null) {
             throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, null, "missing context");
         }
@@ -59,6 +66,7 @@ public final class TableAccessPlanGuard {
                 && !query.values().containsKey("tenant_id")) {
             throw auditor.reject(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "platform insert needs tenant_id");
         }
+        checkJoins(query, context, joinTables);
         return new TableAccessPlan(
                 table.name(),
                 table.scope(),
@@ -69,5 +77,25 @@ public final class TableAccessPlanGuard {
                 context instanceof PlatformContext,
                 false
         );
+    }
+
+    private void checkJoins(QueryAst query, AccessContext context, List<TableDescriptor> joinTables) {
+        if (joinTables == null || joinTables.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < query.joins().size(); i++) {
+            TableDescriptor joinTable = joinTables.get(i);
+            QueryJoin join = query.joins().get(i);
+            if (joinTable.scope() == one.nexus.isolation.api.TableScope.PLATFORM
+                    && !(context instanceof PlatformContext)) {
+                throw auditor.reject(IsolationErrorCode.ILLEGAL_PLATFORM_ACCESS, context, joinTable.name());
+            }
+            if (joinTable.tenantRequired() && context instanceof TenantContext tenant) {
+                if (!tenant.tenantId().equals(join.filters().get("tenant_id"))) {
+                    throw auditor.reject(
+                            IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "join tenant predicate absent or mismatched");
+                }
+            }
+        }
     }
 }

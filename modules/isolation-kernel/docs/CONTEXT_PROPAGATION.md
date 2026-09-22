@@ -27,16 +27,16 @@ TenantContext  (ThreadLocal via AccessContextHolder)
 ## 2. Query / DB
 
 ```text
-QueryAst  (no SQL text)
-   → TenantInjector          (cannot be disabled)
-   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id)
+QueryAst  (no SQL text; optional INNER JOIN of registered tables)
+   → TenantInjector          (cannot be disabled; each joined tenant table also gets tenant_id)
+   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id on primary or join)
    → SoftDeleteInjector SPI
    → TableAccessPlan Guard
    → parameterized PostgreSQL renderer
    → GuardedJdbc (PreparedStatement only)
 ```
 
-Rejects happen in compile, before `Connection.prepareStatement`.
+Rejects happen in compile, before `Connection.prepareStatement`. A foreign `tenant_id` on a join filter is `P1.M02.003`.
 
 | Event | Code |
 |---|---|
@@ -76,7 +76,7 @@ Platform context may read tenant prefixes (ops/reconciliation) but tenant contex
 
 ## 6. Export
 
-`ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`.
+`ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not compile Query AST, submit a Task, write a file, or update export cache status. `IsolatedExport.compileQuery` / `query` / `queryAndProject` reuse the M0-02 compiler (including joins). `applyFieldPolicy` / `writeProjected` require a FieldPolicy projector (`P1.M02.020` if missing) and reject a row whose `tenant_id` does not match the export tenant. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`.
 
 ## 7. Audit
 

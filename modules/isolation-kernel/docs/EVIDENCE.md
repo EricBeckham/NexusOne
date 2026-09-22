@@ -4,23 +4,24 @@ Recorded 2026-09-22 on this agent VM. Java 21.0.10, Maven 3.9.16, in-process Pos
 
 ## `mvn test`
 
-G1 remaining-surfaces re-run **2026-09-22T15:28:16Z**:
+G1 remaining-surfaces re-run **2026-09-22T15:28:16Z** (22 tests). Join + FieldPolicy-on-export remainder **2026-09-22T15:39:51Z**:
 
 ```
-Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
 | Class | Tests |
 |---|---|
 | `SqlBypassScannerTest` | 2 |
-| `QueryCompilerTest` | 4 |
-| `PostgresIsolationIT` | 1 (dual-tenant CRUD on PG 15; denies use an unusable Connection so rejects cannot reach JDBC) |
+| `QueryCompilerTest` | 7 (single-table plus INNER JOIN tenant inject / cross-tenant join reject / hostile DataScope on join) |
+| `TableRegistryReplaceTest` | 3 |
+| `PostgresIsolationIT` | 2 (dual-tenant CRUD; join + FieldPolicy export reject-before-JDBC on PG 15) |
 | `PropagationContractTest` | 5 (cache / file / async rejects now assert `IsolationAuditEvent`) |
 | `RequestIsolationPolicyTest` | 5 |
-| `IsolatedExportTest` | 2 (same-tenant sinks run; cross-tenant export/file/cache/task rejected with `P1.M02.019` records) |
+| `IsolatedExportTest` | 4 (file/cache/task `P1.M02.019`; join compile + FieldPolicy projection / reject-before-sink) |
 
-S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md).
+S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + Query AST joins + FieldPolicy on export + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md). Not a product-wide zero-leak close.
 
 ## Static SQL-bypass gate
 

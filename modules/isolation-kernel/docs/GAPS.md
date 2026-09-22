@@ -2,8 +2,8 @@
 
 Honest leftover work. These are not claimed as done.
 
-- Join, subquery, batch write, sort/paging AST (still single-table equality + IS NULL).
-- DataScope / FieldPolicy compilation (M0-05). Only a seam is provided; a hostile injector that drops `tenant_id` is rejected.
+- INNER JOIN equality + per-table `tenant_id` inject is in the Query AST. Subquery, batch write, sort/paging remain open.
+- DataScope compilation still M0-05 (hostile injector that drops `tenant_id` is rejected). FieldPolicy is applied on IsolatedExport after the guarded query / before file write; compiling FieldPolicy into the AST is still M0-05.
 - Generic NativeSqlPort beyond count templates.
 - Static scanner is regex-based: aliases, reflection, generated code, and JNI are not covered. Must keep infrastructure-root allowlisting tight.
 - No servlet/Spring filter here — M0-01 must call `RequestIsolationPolicy` from its filter/interceptor.
