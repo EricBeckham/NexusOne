@@ -29,7 +29,8 @@ mvn -f modules/isolation-kernel/pom.xml test
 mvn -pl nexus-bootstrap -am test \
   -Dtest=G1QueryJoinFieldPolicyTest,G1IsolationSurfacesTest \
   -Dsurefire.failIfNoSpecifiedTests=false
-# (bootstrap AuditPort evidence recorded after the product-module run)
+# BUILD SUCCESS  2026-09-22T15:42:22Z
+# G1QueryJoinFieldPolicyTest 1/1, G1IsolationSurfacesTest 1/1
 ```
 
 | Suite | What it proved |

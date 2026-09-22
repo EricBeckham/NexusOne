@@ -21,7 +21,7 @@ BUILD SUCCESS
 | `IsolatedExportTest` | 4 (export/file/cache/task + FieldPolicy `P1.M02.021` reject-before-compile/file) |
 | `TableRegistryReplaceTest` | 3 |
 
-S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md).
+S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md). INNER JOIN + export FieldPolicy (`P1.M02.020` / `P1.M02.021`) are recorded in [docs/g1-query-join-field-policy.md](../../../docs/g1-query-join-field-policy.md).
 
 ## Static SQL-bypass gate
 
