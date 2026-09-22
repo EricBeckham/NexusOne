@@ -9,4 +9,17 @@
 
 需求基准：[需求规格 V1.1](./星枢企业业务平台_需求规格_V1.1.md)；技术基准：[技术框架 V1.1](./星枢企业业务平台_技术框架_V1.1.md)。
 
-当前执行口径：**仅拆分和交接任务，由团队成员实施。**数据库为本机 PostgreSQL 15，缓存为本机 Redis 3.2；Java 应用直接以本机 JAR/进程运行，**不使用 Docker**。凭据只由领取人通过本机环境变量或受控 Secret 提供，不写入仓库或 Issue。`poc/` 是此前验证资产，不能自动视为正式验收通过。
+当前执行口径：数据库为本机 PostgreSQL 15，缓存为本机 Redis 3.2；Java 应用直接以本机 JAR/进程运行，**不使用 Docker**。凭据只通过本机环境变量或受控 Secret 提供，不写入仓库或 Issue。`poc/` 是此前验证资产，不能自动视为正式验收通过。
+
+## 应用骨架（M0-01）
+
+模块地图、错误码、Flyway 版本窗与本机 JAR 启动见 [docs/m0-01-engineering-foundation.md](./docs/m0-01-engineering-foundation.md)。
+
+```bash
+export NEXUS_DB_URL='jdbc:postgresql://127.0.0.1:5432/nexusone'
+export NEXUS_DB_USER='nexus'
+export NEXUS_DB_PASSWORD  # 只放环境变量
+mvn -q test
+mvn -q -DskipTests package
+java -jar nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
+```
