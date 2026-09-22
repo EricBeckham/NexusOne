@@ -53,6 +53,7 @@ class IssuedTenantIsolationFilterTest {
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/audit/traces/abc"));
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/ledgers"));
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/forms"));
+        assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/exports"));
         assertFalse(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/todos"));
         assertFalse(IssuedTenantIsolationFilter.isHandled("/api/v1/persons"));
     }

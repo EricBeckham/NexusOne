@@ -21,4 +21,14 @@ class AuditFlywayContractTest {
         assertFalse(text.contains("create table l_"));
         assertFalse(text.contains("create table a_"));
     }
+
+    @Test
+    void retentionJobDoesNotMutateAppendOnlyStore() throws IOException {
+        Path file = Path.of("src/main/java/one/nexus/audit/AuditHotRetentionJob.java");
+        assertTrue(Files.isRegularFile(file), file.toAbsolutePath().toString());
+        String text = Files.readString(file).toLowerCase(Locale.ROOT);
+        assertFalse(text.contains("delete "));
+        assertFalse(text.contains("update platform.audit_record"));
+        assertTrue(text.contains("chain()"));
+    }
 }

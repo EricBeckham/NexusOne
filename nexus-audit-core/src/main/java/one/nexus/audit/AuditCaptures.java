@@ -22,6 +22,9 @@ public final class AuditCaptures {
     public static final String ADMIN_OPERATION = "p1.admin.operation";
     public static final String DATA_CHANGED = "p3.data.changed";
     public static final String APPROVAL_ACTION = "p3.approval.action";
+    public static final String EXPORT_SUBMITTED = "p3.export.submitted";
+    public static final String EXPORT_FILE_WRITTEN = "p3.export.file_written";
+    public static final String EXPORT_DISPATCHED = "p3.export.dispatched";
     public static final String GUARD_REJECT = "isolation.guard.reject";
 
     private AuditCaptures() {}
@@ -120,6 +123,38 @@ public final class AuditCaptures {
                 reason,
                 traceId,
                 resourceType,
+                resourceId,
+                details);
+    }
+
+    /**
+     * Export operations reuse {@link AuditCategory#DATA} so the V501 category
+     * CHECK and same-TX {@link AuditPort} rules stay unchanged. Event types
+     * ({@link #EXPORT_SUBMITTED} / {@link #EXPORT_FILE_WRITTEN} /
+     * {@link #EXPORT_DISPATCHED}) distinguish export from ledger writes.
+     * Details must be ids/codes/byte counts only — no field values.
+     */
+    public static AuditEvent export(
+            String eventType,
+            boolean accepted,
+            UUID tenantId,
+            UUID actorSubjectId,
+            String resourceType,
+            String resourceId,
+            String reason,
+            String traceId,
+            Map<String, ?> details) {
+        return capture(
+                accepted ? AuditEvent.OUTCOME_ACCEPTED : AuditEvent.OUTCOME_REJECTED,
+                AuditCategory.DATA,
+                eventType == null || eventType.isBlank() ? EXPORT_SUBMITTED : eventType,
+                tenantId,
+                actorSubjectId,
+                tenantId,
+                false,
+                reason,
+                traceId,
+                resourceType == null || resourceType.isBlank() ? "export" : resourceType,
                 resourceId,
                 details);
     }

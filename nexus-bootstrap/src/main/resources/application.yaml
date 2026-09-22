@@ -81,6 +81,12 @@ nexus:
     master-key: ${NEXUS_CRYPTO_MASTER_KEY:}
   audit:
     persistence: ${NEXUS_AUDIT_PERSISTENCE:jdbc}
+    # 90-day hot scan is a callable Job/Task stub. Isolated Quartz is not
+    # registered at boot (requires tenant membership). 365-day archive deferred.
+    retention:
+      hot-days: 90
+      archive-days: 365
+      archive-implemented: false
   permission:
     persistence: ${NEXUS_PERMISSION_PERSISTENCE:memory}
     seed-tenant-member-grants: ${NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS:true}

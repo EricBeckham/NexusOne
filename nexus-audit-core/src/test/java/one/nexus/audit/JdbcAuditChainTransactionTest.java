@@ -157,6 +157,65 @@ class JdbcAuditChainTransactionTest {
         assertEquals(1, verification.checked());
     }
 
+    @Test
+    void exportAppendJoinsSpringTransactionAndIsQueryableByTrace() {
+        UUID tenant = UuidV7.generate();
+        String rolled = "0199a1c0-0000-7000-8000-00000000e001";
+        String kept = "0199a1c0-0000-7000-8000-00000000e002";
+        assertThrows(IllegalStateException.class, () -> transactions.execute(status -> {
+            port.append(AuditCaptures.export(
+                    AuditCaptures.EXPORT_SUBMITTED,
+                    true,
+                    tenant,
+                    tenant,
+                    "export_task",
+                    "ledger.export.csv",
+                    "boom",
+                    rolled,
+                    Map.of("ledger_code", "leave")));
+            throw new IllegalStateException("force rollback");
+        }));
+        assertEquals(0, countByTrace(rolled));
+        transactions.execute(status -> {
+            port.append(AuditCaptures.export(
+                    AuditCaptures.EXPORT_SUBMITTED,
+                    true,
+                    tenant,
+                    tenant,
+                    "export_task",
+                    "ledger.export.csv",
+                    "ok",
+                    kept,
+                    Map.of("ledger_code", "leave")));
+            port.append(AuditCaptures.export(
+                    AuditCaptures.EXPORT_FILE_WRITTEN,
+                    true,
+                    tenant,
+                    tenant,
+                    "export_file",
+                    "ledger.export.csv",
+                    "ok",
+                    kept,
+                    Map.of("bytes", "6")));
+            return null;
+        });
+        assertEquals(2, countByTrace(kept));
+        assertEquals(AuditCaptures.EXPORT_SUBMITTED, port.findByTraceId(kept).get(0).event().eventType());
+        assertEquals(AuditCaptures.EXPORT_FILE_WRITTEN, port.findByTraceId(kept).get(1).event().eventType());
+        assertTrue(port.verifyChain().intact());
+
+        AuditHotRetentionJob job = new AuditHotRetentionJob(port);
+        AuditRetentionScan scan = job.scan();
+        assertEquals(2, scan.hotCount());
+        assertEquals(0, scan.pastHotCount());
+        assertTrue(scan.archiveDeferred());
+        assertEquals(2, countByTrace(kept));
+        AuditRetentionScan aged = job.scan(java.time.Instant.now().plus(java.time.Duration.ofDays(91)));
+        assertEquals(2, aged.pastHotCount());
+        assertEquals(2, countByTrace(kept));
+        assertTrue(port.verifyChain().intact());
+    }
+
     private static int countByTrace(String traceId) {
         try (Connection connection = dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement(

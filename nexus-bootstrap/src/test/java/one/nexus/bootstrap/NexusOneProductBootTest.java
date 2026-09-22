@@ -1,6 +1,7 @@
 package one.nexus.bootstrap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -8,6 +9,11 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.List;
+import one.nexus.audit.AuditHotRetentionJob;
+import one.nexus.audit.AuditPort;
+import one.nexus.audit.AuditRetentionPolicy;
+import one.nexus.audit.AuditRetentionScan;
+import one.nexus.bootstrap.export.AuditedExport;
 import one.nexus.event.OutboxPort;
 import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.notification.NotificationService;
@@ -39,6 +45,15 @@ class NexusOneProductBootTest {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    AuditPort auditPort;
+
+    @Autowired
+    AuditHotRetentionJob auditHotRetentionJob;
+
+    @Autowired
+    AuditedExport auditedExport;
 
     @BeforeAll
     static void startPostgres() throws Exception {
@@ -88,5 +103,14 @@ class NexusOneProductBootTest {
                 "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'exec_outbox'",
                 Integer.class);
         assertEquals(1, outboxTable);
+        assertNotNull(auditPort);
+        assertNotNull(auditedExport);
+        assertNotNull(auditHotRetentionJob);
+        AuditRetentionScan scan = auditHotRetentionJob.scan();
+        assertTrue(scan.archiveDeferred());
+        assertEquals(AuditRetentionPolicy.HOT_DAYS, 90);
+        assertFalse(AuditRetentionPolicy.ARCHIVE_IMPLEMENTED);
+        Integer auditRows = jdbc.queryForObject("select count(*) from platform.audit_record", Integer.class);
+        assertEquals(auditRows.longValue(), scan.totalCount());
     }
 }

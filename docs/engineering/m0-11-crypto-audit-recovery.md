@@ -97,7 +97,7 @@ Runbook：
 | 全路径哈希校验作为产品门禁 | 内存与 JDBC 测试可验证**已写入**的链，不能代表真实业务闭环 |
 | P1 `GET /tenants/{id}/audit-events` 切换到 M0-11 | P1 staging 表仍在；切换会改 M0-03 行为，留给接线 PR |
 | 把 `IsolationAuditSink` 接到 `AuditPort` | Product `AuditPortIsolationSink` now persists `ISOLATION_REJECT` with `appendNewTransaction`. Same-TX `append` joining is unchanged. G4 still needs login/permission/admin on the same real request. |
-| G4 审计覆盖每个用户 / 热 90 天 + 归档 365 天 | 无业务写入与归档 Job |
+| G4 审计覆盖每个用户 / 热 90 天 + 归档 365 天 | 导出已接线到同一条哈希链（`p3.export.*`，见 [g4-export-retention.md](./g4-export-retention.md)）。90 天热扫描 Job 是可运行 stub，**不删除** append-only 行。365 天归档仍延期。登录/权限/管理同请求全链仍开放 |
 | G6 整库与对象恢复演练、RPO/RTO | 仅 dry-run / 文档；未在独立实例上 restore 并校验 |
 | G17 等保与国密交付 | 无三权分立产品路径、无国密 TLS 双证书、无合格 GM/T Provider、无密码机 |
 | 国密 TLS（GM/T 0024）、Nginx 双证书 | P0-10 已声明未验 |
