@@ -1,0 +1,22 @@
+name: nexus-p0-07
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: nexus_p0_07
+      POSTGRES_USER: poc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:55437:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/opt/poc/init:ro
+      - ./init/00-init.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U poc -d nexus_p0_07"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+volumes:
+  pgdata:

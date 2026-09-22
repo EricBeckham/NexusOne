@@ -1,0 +1,28 @@
+{
+  "realm": "nexus-poc",
+  "enabled": true,
+  "displayName": "Nexus P0-03 PoC",
+  "clients": [
+    {
+      "clientId": "p0-smoke",
+      "name": "P0 direct-grant smoke only",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    },
+    {
+      "clientId": "nexus-web-poc",
+      "name": "Nexus browser PKCE PoC",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://127.0.0.1:8081/callback"],
+      "webOrigins": ["http://127.0.0.1:8081"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ]
+}

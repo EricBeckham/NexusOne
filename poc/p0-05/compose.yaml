@@ -1,0 +1,14 @@
+name: nexus-p0-05
+
+services:
+  redis:
+    image: redis:8.2.10-bookworm
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - ./cache-contract.sh:/opt/poc/cache-contract.sh:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s

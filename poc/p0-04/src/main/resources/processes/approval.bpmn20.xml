@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://nexus.one/poc">
+  <process id="approval" name="Approval" isExecutable="true">
+    <startEvent id="start"/><sequenceFlow id="toReview" sourceRef="start" targetRef="review"/>
+    <userTask id="review" name="Review" flowable:assignee="reviewer"
+              xmlns:flowable="http://flowable.org/bpmn"/>
+    <sequenceFlow id="toEnd" sourceRef="review" targetRef="end"/><endEvent id="end"/>
+  </process>
+</definitions>

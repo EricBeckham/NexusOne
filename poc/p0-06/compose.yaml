@@ -1,0 +1,16 @@
+# Set MINIO_IMAGE to a tested immutable image digest, for example minio/minio@sha256:<digest>.
+# AIStor requires a separately sourced and licensed image; do not substitute it implicitly.
+services:
+  object-storage:
+    image: ${MINIO_IMAGE:?Set MINIO_IMAGE to an approved digest}
+    command: server /data --console-address ':9001'
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?Set S3_SECRET_KEY}
+    volumes:
+      - minio-data:/data
+volumes:
+  minio-data:
