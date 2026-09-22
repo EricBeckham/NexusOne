@@ -24,7 +24,7 @@ Orthogonal to `#153` claim-list tip align, `#159` Vue `todo-withdraw` HTTP reach
 | Product-wide G1 | Explicitly `NOT_CLAIMED`. Honesty gate rejects `g1_close=CLOSED`. |
 | Mask / second-auth on Query AST | Still false. Fake `mask_on_ast=true` reports fail. |
 | `#115` / `#130` / `#134` / `#142` / `#146` | Sibling leftovers on `main`. Not rewritten. |
-| Mixed-column OR (SELF∨DEPT) | Still `PermissionQueryBinder`. |
+| Mixed-column OR (SELF∨DEPT) | Encoded on `QueryAst.disjunctions()` ([g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md)). Unencodable leftovers stay `PermissionQueryBinder`. |
 | `COUNT(*)` as a Query AST node | Still a wrap. |
 | UI / H5 / report UI | Not re-walked. |
 | `#159` G7 browser withdraw / `#155` ops `pg_dump` / `#143` secret rotate | Orthogonal leftover rows kept. |
@@ -64,6 +64,6 @@ See [engineering/g1-fieldpolicy-mask-second-auth-EVIDENCE.md](./engineering/g1-f
 
 - Encoding mask / 二次授权 onto Query AST nodes
 - IsolatedExport applying `FieldPolicyProjector` masks
-- Mixed-column SELF∨DEPT OR as an AST node
+- Unencodable DataScope leftovers / `COUNT(*)` as a Query AST node
 - `COUNT(*)` as a Query AST node
 - Product-wide G1 / UI / H5 / report UI close

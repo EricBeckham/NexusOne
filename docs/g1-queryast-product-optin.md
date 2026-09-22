@@ -10,7 +10,7 @@ It does **not** invent a second tenant context. It does **not** change `AuditPor
 
 | Surface | Guard | What is encoded | Leftover |
 |---|---|---|---|
-| Ledger list / detail | `GuardedLedgerStore` + `QueryAstScopedQuery` | SELF / single-DEPT equality + hidden columns dropped from SELECT | Mixed-column SELF∨DEPT still `PermissionQueryBinder`; mask / second-auth still `FieldPolicyProjector`. Single-column `IN` is [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md) |
+| Ledger list / detail | `GuardedLedgerStore` + `QueryAstScopedQuery` | SELF / single-DEPT equality + hidden columns dropped from SELECT | Mixed-column SELF∨DEPT is [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md); mask / second-auth still `FieldPolicyProjector` |
 | Ledger total | `QueryAstScopedQuery.count` | Same encoded WHERE, wrapped as `SELECT count(*) FROM (…)` | `COUNT(*)` is not a Query AST node |
 | Report query HTTP | Reuses `LedgerRecordService.list` → `GuardedLedgerStore` | Same opt-in as ledger list | Physical dump / report UI wizard stay open (`#124` is G2 SurfaceGuard only) |
 | Hook `ScopedQuery` strings | `PermissionDataScopeHook.bind` | Unchanged string binder for callers that still read `.query()` | `PermissionService.scopedQuery` still skips the AST |
@@ -44,7 +44,7 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 
 | Still open | Why |
 |---|---|
-| OR / multi-value IN / `DEPT_AND_CHILDREN` | Single-column `IN` is [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md). Mixed-column SELF∨DEPT leftover still ANDs via `PermissionQueryBinder`. |
+| OR / multi-value IN / `DEPT_AND_CHILDREN` | Single-column `IN` and mixed-column SELF∨DEPT are [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md). Unencodable leftovers still AND via `PermissionQueryBinder`. |
 | FieldPolicy mask / second-auth | Honesty leftover: [g1-fieldpolicy-mask-second-auth.md](./g1-fieldpolicy-mask-second-auth.md). AST drops hidden columns on the opted-in path. Mask merge and second-auth still run in `FieldPolicyProjector`. Export hidden drop is [g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md). |
 | `COUNT(*)` wrap | Totals wrap compiled SELECT text. Not a Query AST node. |
 | Callers that still skip | `PermissionService.scopedQuery`, `PermissionDataScopeHook` / `TenantOnlyDataScopeHook` `.query()` strings, G2 agreement tests that read `ScopedQuery.whereSql()`, and any adapter that still builds `BoundSql` without `QueryAstScopedQuery`. |

@@ -13,6 +13,7 @@ import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
+import one.nexus.isolation.api.QueryOr;
 import one.nexus.isolation.api.QueryPage;
 import one.nexus.isolation.api.QuerySort;
 import one.nexus.isolation.api.QuerySubquery;
@@ -178,6 +179,53 @@ class QueryCompilerTest {
                 alpha));
         assertCode(IsolationErrorCode.CROSS_TENANT_READ, () -> kernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id"), map("tenant_id", List.of("alpha", "beta"))),
+                alpha));
+    }
+
+    @Test
+    void mixedColumnOrRendersBesideTenantPredicateAndRejectsTenantInBranch() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant(
+                "ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id", "department_id");
+        IsolationKernel kernel = IsolationKernel.create(
+                registry,
+                Set.of("ops.summary"),
+                new CollectingAuditSink(),
+                DataScopeInjector.passthrough(),
+                (q, t, c) -> q);
+        TenantContext alpha = alpha(kernel);
+        RenderedSql scoped = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withDisjunctions(List.of(QueryOr.of(
+                                map("owner_id", "user-a"),
+                                map("department_id", "d1")))),
+                alpha);
+        assertEquals(
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ?"
+                        + " AND (\"owner_id\" = ? OR \"department_id\" = ?)",
+                scoped.sql());
+        assertEquals(List.of("alpha", "user-a", "d1"), scoped.parameters());
+
+        RenderedSql withIn = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withDisjunctions(List.of(QueryOr.of(
+                                map("owner_id", "user-a"),
+                                map("department_id", List.of("d1", "d2"))))),
+                alpha);
+        assertTrue(withIn.sql().contains("(\"owner_id\" = ? OR \"department_id\" IN (?, ?))"));
+        assertEquals(List.of("alpha", "user-a", "d1", "d2"), withIn.parameters());
+
+        assertCode(IsolationErrorCode.CROSS_TENANT_READ, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withDisjunctions(List.of(QueryOr.of(
+                                map("owner_id", "user-a"),
+                                map("tenant_id", "beta")))),
+                alpha));
+        assertCode(IsolationErrorCode.INVALID_IDENTIFIER, () -> kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withDisjunctions(List.of(QueryOr.of(
+                                map("department_id", List.of()),
+                                map("owner_id", "user-a")))),
                 alpha));
     }
 

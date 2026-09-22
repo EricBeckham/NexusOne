@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryKind;
+import one.nexus.isolation.api.QueryOr;
 import one.nexus.isolation.api.TableDescriptor;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.FieldRule;
@@ -18,10 +19,11 @@ import one.nexus.permission.support.PermissionException;
 
 /**
  * Encodes safe SELF/DEPT DataScope equality atoms, single-column multi-value
- * {@code IN} lists ({@code DEPT_AND_CHILDREN} / SPECIFIED), and FieldPolicy
- * visibility into a Query AST. TenantInjector still owns {@code tenant_id}.
- * Mixed-column OR (SELF∨DEPT) stays on {@link PermissionQueryBinder}; masks
- * stay on {@code FieldPolicyProjector}.
+ * {@code IN} lists ({@code DEPT_AND_CHILDREN} / SPECIFIED), mixed-column OR
+ * (SELF∨DEPT) onto {@link QueryAst#disjunctions()}, and FieldPolicy visibility
+ * into a Query AST. TenantInjector still owns {@code tenant_id}. Unencodable
+ * leftovers (empty {@code IN}, unsupported operators, AND-of-OR) stay on
+ * {@link PermissionQueryBinder}; masks stay on {@code FieldPolicyProjector}.
  */
 public final class QueryAstPolicyCompiler {
     public static final Set<String> ENCODABLE_COLUMNS = Set.of("owner_id", "department_id", "id", "status");
@@ -56,7 +58,7 @@ public final class QueryAstPolicyCompiler {
         Set<String> allowed = columns == null ? Set.of() : Set.copyOf(columns);
         Map<String, Object> filters = new LinkedHashMap<>();
         List<Predicate> leftover = new ArrayList<>();
-        collectSafeEquals(scope == null ? Predicate.FALSE : scope, allowed, filters, leftover);
+        collectSafeEquals(scope == null ? Predicate.FALSE : scope, allowed, filters, new ArrayList<>(), leftover);
         return Map.copyOf(filters);
     }
 
@@ -81,6 +83,11 @@ public final class QueryAstPolicyCompiler {
             });
             next = next.withFilters(filters);
         }
+        if (query.kind() != QueryKind.INSERT && !scopePlan.disjunctions().isEmpty()) {
+            List<QueryOr> disjunctions = new ArrayList<>(next.disjunctions());
+            disjunctions.addAll(scopePlan.disjunctions());
+            next = next.withDisjunctions(disjunctions);
+        }
         VisibilityPlan visibility = planVisibility(next, fields);
         if (visibility.encoded()) {
             next = next.withProjection(visibility.projection());
@@ -96,16 +103,18 @@ public final class QueryAstPolicyCompiler {
 
     private static ScopePlan planScope(Predicate scope, Set<String> columns) {
         Map<String, Object> filters = new LinkedHashMap<>();
+        List<QueryOr> disjunctions = new ArrayList<>();
         List<Predicate> leftover = new ArrayList<>();
-        collectSafeEquals(scope, columns, filters, leftover);
+        collectSafeEquals(scope, columns, filters, disjunctions, leftover);
         Predicate rest = leftover.isEmpty() ? Predicate.TRUE : Predicate.allOf(leftover);
-        return new ScopePlan(filters, rest);
+        return new ScopePlan(filters, List.copyOf(disjunctions), rest);
     }
 
     private static void collectSafeEquals(
             Predicate predicate,
             Set<String> columns,
             Map<String, Object> filters,
+            List<QueryOr> disjunctions,
             List<Predicate> leftover
     ) {
         switch (predicate.op()) {
@@ -115,11 +124,12 @@ public final class QueryAstPolicyCompiler {
             case "false" -> leftover.add(predicate);
             case "and" -> {
                 for (Object arg : predicate.args()) {
-                    collectSafeEquals((Predicate) arg, columns, filters, leftover);
+                    collectSafeEquals((Predicate) arg, columns, filters, disjunctions, leftover);
                 }
             }
             case "or" -> {
-                if (!encodeSameColumnIn(predicate, columns, filters, leftover)) {
+                if (!encodeSameColumnIn(predicate, columns, filters, leftover)
+                        && !encodeMixedColumnOr(predicate, columns, disjunctions)) {
                     leftover.add(predicate);
                 }
             }
@@ -172,6 +182,132 @@ public final class QueryAstPolicyCompiler {
         }
         filters.put(column, next);
         return true;
+    }
+
+    /**
+     * SELF∨DEPT and other mixed-column ORs of encodable atoms / same-column IN.
+     * Nested mixed OR flattens. AND-of-OR and unencodable children stay leftover.
+     */
+    private static boolean encodeMixedColumnOr(
+            Predicate predicate,
+            Set<String> columns,
+            List<QueryOr> disjunctions
+    ) {
+        List<Map<String, Object>> branches = new ArrayList<>();
+        if (!collectOrBranches(predicate, columns, branches) || branches.size() < 2) {
+            return false;
+        }
+        List<Map<String, Object>> merged = mergeSameColumnBranches(branches);
+        if (merged.size() < 2) {
+            return false;
+        }
+        disjunctions.add(QueryOr.of(merged));
+        return true;
+    }
+
+    private static boolean collectOrBranches(
+            Predicate predicate,
+            Set<String> columns,
+            List<Map<String, Object>> branches
+    ) {
+        if ("or".equals(predicate.op())) {
+            for (Object arg : predicate.args()) {
+                if (!(arg instanceof Predicate child) || !collectOrBranches(child, columns, branches)) {
+                    return false;
+                }
+            }
+            return !branches.isEmpty();
+        }
+        Map<String, Object> branch = encodeBranch(predicate, columns);
+        if (branch == null || branch.isEmpty()) {
+            return false;
+        }
+        branches.add(branch);
+        return true;
+    }
+
+    private static Map<String, Object> encodeBranch(Predicate predicate, Set<String> columns) {
+        if ("atom".equals(predicate.op())) {
+            return encodeAtomBranch(predicate, columns);
+        }
+        if ("and".equals(predicate.op())) {
+            Map<String, Object> branch = new LinkedHashMap<>();
+            for (Object arg : predicate.args()) {
+                if (!(arg instanceof Predicate child) || !"atom".equals(child.op())) {
+                    return null;
+                }
+                Map<String, Object> atom = encodeAtomBranch(child, columns);
+                if (atom == null) {
+                    return null;
+                }
+                for (Map.Entry<String, Object> entry : atom.entrySet()) {
+                    Object existing = branch.get(entry.getKey());
+                    if (existing != null && !Objects.equals(existing, entry.getValue())) {
+                        return null;
+                    }
+                    branch.put(entry.getKey(), entry.getValue());
+                }
+            }
+            return branch.isEmpty() ? null : branch;
+        }
+        if ("or".equals(predicate.op())) {
+            Map<String, Object> collapsed = new LinkedHashMap<>();
+            List<Predicate> leftover = new ArrayList<>();
+            if (!encodeSameColumnIn(predicate, columns, collapsed, leftover) || collapsed.size() != 1) {
+                return null;
+            }
+            return collapsed;
+        }
+        return null;
+    }
+
+    private static Map<String, Object> encodeAtomBranch(Predicate predicate, Set<String> columns) {
+        if (predicate.args().size() < 3) {
+            return null;
+        }
+        String column = String.valueOf(predicate.args().get(0));
+        String operator = String.valueOf(predicate.args().get(1));
+        Object value = predicate.args().get(2);
+        if ("tenant_id".equals(column)) {
+            throw PermissionException.tenantPredicateRequired(
+                    "DataScope must not author tenant_id; TenantInjector owns it");
+        }
+        Object encoded = filterValue(operator, value);
+        if (encoded == null || !ENCODABLE_COLUMNS.contains(column) || !columns.contains(column)) {
+            return null;
+        }
+        Map<String, Object> branch = new LinkedHashMap<>();
+        branch.put(column, encoded);
+        return branch;
+    }
+
+    private static List<Map<String, Object>> mergeSameColumnBranches(List<Map<String, Object>> branches) {
+        LinkedHashMap<String, LinkedHashMap<Object, Boolean>> singles = new LinkedHashMap<>();
+        List<Map<String, Object>> multi = new ArrayList<>();
+        for (Map<String, Object> branch : branches) {
+            if (branch.size() != 1) {
+                multi.add(branch);
+                continue;
+            }
+            Map.Entry<String, Object> only = branch.entrySet().iterator().next();
+            LinkedHashMap<Object, Boolean> values = singles.computeIfAbsent(only.getKey(), key -> new LinkedHashMap<>());
+            if (only.getValue() instanceof Collection<?> collection) {
+                collection.forEach(item -> values.put(item, Boolean.TRUE));
+            } else {
+                values.put(only.getValue(), Boolean.TRUE);
+            }
+        }
+        List<Map<String, Object>> merged = new ArrayList<>();
+        singles.forEach((column, values) -> {
+            Object next = values.size() == 1
+                    ? values.keySet().iterator().next()
+                    : List.copyOf(values.keySet());
+            Map<String, Object> branch = new LinkedHashMap<>();
+            branch.put(column, next);
+            merged.add(branch);
+        });
+        merged.addAll(multi);
+        return merged;
     }
 
     private static void encodeAtom(
@@ -264,7 +400,7 @@ public final class QueryAstPolicyCompiler {
         return dot < 0 ? column : column.substring(dot + 1);
     }
 
-    private record ScopePlan(Map<String, Object> filters, Predicate leftover) {}
+    private record ScopePlan(Map<String, Object> filters, List<QueryOr> disjunctions, Predicate leftover) {}
 
     private record VisibilityPlan(
             List<String> projection,

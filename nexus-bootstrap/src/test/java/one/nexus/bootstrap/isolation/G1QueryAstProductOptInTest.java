@@ -33,7 +33,6 @@ import one.nexus.permission.engine.FieldRule;
 import one.nexus.permission.engine.Mask;
 import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.field.FieldPolicyProjector;
-import one.nexus.permission.scope.PermissionQueryBinder;
 import one.nexus.permission.scope.QueryAstScopedQuery;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -128,7 +127,7 @@ class G1QueryAstProductOptInTest {
         Predicate orScope = Predicate.anyOf(
                 Predicate.atom("owner_id", "=", "user-alpha"),
                 Predicate.atom("department_id", "=", "d1"));
-        QueryAstScopedQuery.CompiledRead leftover = QueryAstScopedQuery.compile(
+        QueryAstScopedQuery.CompiledRead encodedOr = QueryAstScopedQuery.compile(
                 QueryAst.select("l_alpha_ticket", List.of("id"), filters("deleted_at", null))
                         .withSorts(List.of(QuerySort.asc("id")))
                         .withPage(QueryPage.of(10, 0)),
@@ -136,12 +135,11 @@ class G1QueryAstProductOptInTest {
                 kernel.registry().require("l_alpha_ticket"),
                 kernel.compiler(),
                 AccessContextHolder.current());
-        assertFalse(leftover.scopeFullyEncoded());
-        assertTrue(leftover.bound().sql().contains("owner_id = ?"));
-        int order = leftover.bound().sql().toLowerCase().indexOf(" order by ");
-        assertTrue(leftover.bound().sql().indexOf("AND (") < order);
-        var binder = PermissionQueryBinder.bind("alpha", leftover.encoding().leftoverScope());
-        assertTrue(binder.whereSql().startsWith("tenant_id = ? AND "));
+        assertTrue(encodedOr.scopeFullyEncoded());
+        assertTrue(encodedOr.bound().sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
+        int order = encodedOr.bound().sql().toLowerCase().indexOf(" order by ");
+        assertTrue(encodedOr.bound().sql().indexOf("(\"owner_id\" = ? OR \"department_id\" = ?)") < order);
+        assertEquals(encodedOr.compiled().sql(), encodedOr.bound().sql());
 
         assertTrue(list.encoding().leftoverMaskFields().containsKey("phone"));
         Map<String, Object> projected = FieldPolicyProjector.project(

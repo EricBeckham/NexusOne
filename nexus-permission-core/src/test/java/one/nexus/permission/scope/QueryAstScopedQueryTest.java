@@ -100,7 +100,7 @@ class QueryAstScopedQueryTest {
     }
 
     @Test
-    void leftoverOrStaysOnBinderBeforeOrderAndLimit() {
+    void mixedColumnOrCompilesThroughQueryCompilerBeforeOrderAndLimit() {
         IsolationKernel kernel = kernel();
         AccessContextHolder.set(kernel.tenants().issue(
                 new AuthenticatedMembership(Actor.person("u1"), "alpha", "mem-a", Set.of("alpha")),
@@ -109,7 +109,7 @@ class QueryAstScopedQueryTest {
                 Predicate.atom("owner_id", "=", "u1"),
                 Predicate.atom("department_id", "=", "d1"));
         Decision mixed = new Decision(true, "or", orScope, Map.of(), 1L);
-        QueryAstScopedQuery.CompiledRead leftover = QueryAstScopedQuery.compile(
+        QueryAstScopedQuery.CompiledRead encoded = QueryAstScopedQuery.compile(
                 QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null))
                         .withSorts(List.of(QuerySort.asc("id")))
                         .withPage(QueryPage.of(10, 0)),
@@ -117,30 +117,38 @@ class QueryAstScopedQueryTest {
                 table,
                 kernel.compiler(),
                 AccessContextHolder.current());
+        assertTrue(encoded.scopeFullyEncoded());
+        assertEquals(Predicate.TRUE, encoded.encoding().leftoverScope());
+        String sql = encoded.compiled().sql();
+        assertTrue(sql.contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
+        assertTrue(sql.contains(QueryAstScopedQuery.COMPILER_TENANT));
+        assertTrue(sql.indexOf("(\"owner_id\" = ? OR \"department_id\" = ?)")
+                < sql.toLowerCase().indexOf(" order by "));
+        assertEquals(sql, encoded.bound().sql());
+        assertEquals(List.of("alpha", "u1", "d1", 10, 0), encoded.bound().parameters());
+
+        BoundSql count = QueryAstScopedQuery.count(encoded);
+        assertTrue(count.sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
+        assertTrue(count.sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
+        assertEquals(encoded.compiled().plan(), encoded.executed().plan());
+
+        Predicate leftoverScope = Predicate.anyOf(
+                Predicate.atom("title", "=", "x"),
+                Predicate.atom("secret", "=", "s"));
+        QueryAstScopedQuery.CompiledRead leftover = QueryAstScopedQuery.compile(
+                QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null))
+                        .withSorts(List.of(QuerySort.asc("id")))
+                        .withPage(QueryPage.of(10, 0)),
+                new Decision(true, "leftover", leftoverScope, Map.of(), 1L),
+                table,
+                kernel.compiler(),
+                AccessContextHolder.current());
         assertFalse(leftover.scopeFullyEncoded());
-        assertEquals(orScope, leftover.encoding().leftoverScope());
-        assertFalse(leftover.compiled().sql().contains("owner_id"));
         String bound = leftover.bound().sql();
         int order = bound.toLowerCase().indexOf(" order by ");
         int leftoverAt = bound.indexOf("AND (");
         assertTrue(leftoverAt > 0 && leftoverAt < order);
-        assertTrue(bound.contains("owner_id = ?"));
-        assertTrue(bound.contains("department_id = ?"));
-        assertTrue(bound.startsWith(leftover.compiled().sql().substring(0, leftover.compiled().sql().indexOf(" ORDER"))));
-        assertEquals(List.of("alpha", "u1", "d1", 10, 0), leftover.bound().parameters());
-
-        QueryAstScopedQuery.CompiledRead leftoverCount = QueryAstScopedQuery.compile(
-                QueryAst.select("ledger_entry", List.of("id"), filters("deleted_at", null)),
-                mixed,
-                table,
-                kernel.compiler(),
-                AccessContextHolder.current());
-        BoundSql count = QueryAstScopedQuery.count(leftoverCount);
-        assertTrue(count.sql().contains(QueryAstScopedQuery.COMPILER_TENANT));
-        assertTrue(count.sql().contains("owner_id"));
-        assertEquals(leftover.compiled().plan(), leftover.executed().plan());
-        assertTrue(leftover.executed().sql().startsWith(leftover.compiled().sql().substring(
-                0, leftover.compiled().sql().indexOf(" ORDER"))));
+        assertTrue(bound.contains("title = ?"));
 
         assertThrows(PermissionException.class, () -> QueryAstScopedQuery.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),

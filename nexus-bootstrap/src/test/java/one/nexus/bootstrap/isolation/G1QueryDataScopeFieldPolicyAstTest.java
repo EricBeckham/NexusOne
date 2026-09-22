@@ -143,15 +143,29 @@ class G1QueryDataScopeFieldPolicyAstTest {
         Predicate orScope = Predicate.anyOf(
                 Predicate.atom("owner_id", "=", "user-alpha"),
                 Predicate.atom("department_id", "=", "d1"));
-        QueryAstPolicyCompiler.Encoding leftover = QueryAstPolicyCompiler.encode(
+        QueryAstPolicyCompiler.Encoding encodedOr = QueryAstPolicyCompiler.encode(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
                 orScope,
+                Map.of(),
+                kernel.registry().require("ledger_entry"));
+        assertTrue(encodedOr.scopeFullyEncoded());
+        RenderedSql orSql = kernel.compiler().compile(encodedOr.query(), AccessContextHolder.current());
+        assertTrue(orSql.sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
+        assertTrue(orSql.sql().contains("\"tenant_id\" = ?"));
+        assertEquals(List.of("alpha", "user-alpha", "d1"), orSql.parameters());
+
+        Predicate leftoverScope = Predicate.anyOf(
+                Predicate.atom("title", "=", "x"),
+                Predicate.atom("phone", "=", "1"));
+        QueryAstPolicyCompiler.Encoding leftover = QueryAstPolicyCompiler.encode(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                leftoverScope,
                 Map.of(),
                 kernel.registry().require("ledger_entry"));
         assertFalse(leftover.scopeFullyEncoded());
         var bound = PermissionQueryBinder.bind("alpha", leftover.leftoverScope());
         assertTrue(bound.whereSql().startsWith("tenant_id = ? AND "));
-        assertTrue(bound.whereSql().contains("owner_id"));
+        assertTrue(bound.whereSql().contains("title"));
 
         assertTrue(encoded.leftoverMaskFields().containsKey("phone"));
         Map<String, Object> projected = FieldPolicyProjector.project(

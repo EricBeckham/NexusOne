@@ -19,6 +19,7 @@ import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
+import one.nexus.isolation.api.QueryOr;
 import one.nexus.isolation.api.QueryPage;
 import one.nexus.isolation.api.QuerySort;
 import one.nexus.isolation.api.QuerySubquery;
@@ -609,6 +610,67 @@ class PostgresIsolationIT {
                                 QueryAst.select("ledger_entry", List.of("title"), map("tenant_id", List.of("alpha", "beta"))),
                                 alpha));
                 assertEquals(before, executions.get(), "denied IN / tenant plans must not reach JDBC");
+            } finally {
+                raw.rollback();
+            }
+        }
+    }
+
+    @Test
+    void mixedColumnOrReturnsOwnerOrDeptRowsAndRejectsStolenTenantBeforeJdbc() throws Exception {
+        try (Connection raw = postgres.getPostgresDatabase().getConnection()) {
+            raw.setAutoCommit(false);
+            try {
+                try (Statement fixture = raw.createStatement()) {
+                    fixture.execute("""
+                            CREATE TABLE ledger_entry (
+                                id text PRIMARY KEY,
+                                tenant_id text NOT NULL,
+                                title text NOT NULL,
+                                owner_id text NOT NULL,
+                                department_id text NOT NULL
+                            )
+                            """);
+                }
+                CollectingAuditSink sink = new CollectingAuditSink();
+                TableRegistry registry = new TableRegistry();
+                registry.registerTenant(
+                        "ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id", "department_id");
+                IsolationKernel kernel = IsolationKernel.create(
+                        registry, Set.of("ops.summary"), sink);
+                TenantContext alpha = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-or");
+                TenantContext beta = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-b"), "beta", "mem-b", Set.of("beta")), "trace-b");
+
+                AtomicInteger executions = new AtomicInteger();
+                Connection connection = counting(raw, executions);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a1", "title", "mine", "owner_id", "user-a", "department_id", "d9")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a2", "title", "dept", "owner_id", "user-x", "department_id", "d1")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a3", "title", "other", "owner_id", "user-x", "department_id", "d2")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "b1", "title", "beta", "owner_id", "user-a", "department_id", "d1")), beta);
+
+                QueryAst selfOrDept = QueryAst.select("ledger_entry", List.of("title"), Map.of())
+                        .withDisjunctions(List.of(QueryOr.of(
+                                map("owner_id", "user-a"),
+                                map("department_id", "d1"))));
+                assertEquals(List.of("mine", "dept"), titles(kernel, connection, alpha, selfOrDept));
+
+                int before = executions.get();
+                Connection unusable = unusable();
+                deny(IsolationErrorCode.CROSS_TENANT_READ, () ->
+                        kernel.jdbc().executeQuery(
+                                unusable,
+                                QueryAst.select("ledger_entry", List.of("title"), Map.of())
+                                        .withDisjunctions(List.of(QueryOr.of(
+                                                map("owner_id", "user-a"),
+                                                map("tenant_id", "beta")))),
+                                alpha));
+                assertEquals(before, executions.get(), "denied OR / tenant plans must not reach JDBC");
             } finally {
                 raw.rollback();
             }

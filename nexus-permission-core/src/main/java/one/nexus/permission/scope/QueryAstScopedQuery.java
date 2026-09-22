@@ -15,9 +15,9 @@ import one.nexus.permission.support.PermissionException;
 
 /**
  * Product list / detail / count opt-in: encode safe SELF/DEPT + single-column
- * multi-value {@code IN} ({@code DEPT_AND_CHILDREN} / SPECIFIED) + FieldPolicy
- * visibility onto a Query AST, compile through {@link QueryCompiler}, and keep
- * mixed-column OR (SELF∨DEPT) leftovers on {@link PermissionQueryBinder}.
+ * multi-value {@code IN} ({@code DEPT_AND_CHILDREN} / SPECIFIED) + mixed-column
+ * OR (SELF∨DEPT) + FieldPolicy visibility onto a Query AST and compile through
+ * {@link QueryCompiler}. Unencodable leftovers stay on {@link PermissionQueryBinder}.
  * Leftover BoundSql and {@code COUNT(*)} wrap must stay on that compiler SQL
  * (quoted {@code "tenant_id"}) so raw BoundSql cannot bypass DataScope.
  * Mask / second-auth stay on {@code FieldPolicyProjector}.

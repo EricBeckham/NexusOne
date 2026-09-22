@@ -7,7 +7,7 @@
 | [requirements](./requirements/星枢企业业务平台_需求规格_V1.1.md) | 需求规格 V1.1 |
 | [architecture](./architecture/星枢企业业务平台_技术框架_V1.1.md) | 技术框架 V1.1 |
 | [design](./design/星枢NexusOne_WEB页面设计与前端开发规范_V1.1.md) | Web 页面规范；[H5 规范](./design/星枢NexusOne_H5页面设计与前端开发规范_V1.1.md)；效果图在 `design/references/` |
-| [planning](./planning/实施任务拆解_V1.1.md) | 实施任务拆解；[团队领取清单](./planning/团队领取任务清单_V1.1.md)（对齐 `main` `3cdccca`；P0+M0+G18 已在 main；S0+S1 wave4 切片 #111～#123 / #124 / #125 / #126 / #127 / #128 / #129 / #130 / #131 / #132 / #133 / #134 / #135 / #136 / #137 / #138 / #139 / #140 / #141 / #142 / #143 / #144 / #145 / #146 / #147 / #148 / #149 / #150 / #151 / #152 / #153 / #154 / #155 / #156 / #157 / #158 / #159 / #160 / #161 / #162 / #163 / #164 / #165 / #166 / #167 / #169 已落地，领取清单只记仍开放余量，不宣称产品 G1/G2/G3/G4/G7/G9/G10/G15/G17 通过） |
+| [planning](./planning/实施任务拆解_V1.1.md) | 实施任务拆解；[团队领取清单](./planning/团队领取任务清单_V1.1.md)（对齐 `main` `f1b135c`；P0+M0+G18 已在 main；S0+S1 wave4 切片 #111～#123 / #124 / #125 / #126 / #127 / #128 / #129 / #130 / #131 / #132 / #133 / #134 / #135 / #136 / #137 / #138 / #139 / #140 / #141 / #142 / #143 / #144 / #145 / #146 / #147 / #148 / #149 / #150 / #151 / #152 / #153 / #154 / #155 / #156 / #157 / #158 / #159 / #160 / #161 / #162 / #163 / #164 / #165 / #166 / #167 / #169 / #170 已落地，领取清单只记仍开放余量，不宣称产品 G1/G2/G3/G4/G7/G9/G10/G15/G17 通过） |
 | [g15-h5-mobile](./g15-h5-mobile.md) | G15 H5 移动浏览器：登录回跳 / 文件 / 路由 / 宿主消息（F014 postMessage）。产品 G15 仍开放（APP WebView 原生包 / WeChat/DingTalk 生产） |
 | [g15-f010-h5-runtime](./g15-f010-h5-runtime.md) | G15 F010 H5 运行入口：表单 / 列表 / 待办 / 查询 / 通知跳转（移动浏览器）。桌面页未改；原生 APP / 微信钉钉生产仍开放 |
 | [g15-miniprogram-webview](./g15-miniprogram-webview.md) | G15 leftover：模拟小程序 web-view 父页 + 同源/通道白名单。不是微信 / 钉钉生产验收 |
@@ -32,7 +32,7 @@
 | [g2-report-surface-guard](./g2-report-surface-guard.md) | G2 leftover：报表 query/export 走同一 `SurfaceGuard`（`ledger/read` + `ledger.export.csv/submit`）；不是产品级 G2 关闭 |
 | [g2-physical-dump-surface](./g2-physical-dump-surface.md) | G2 leftover：物理 dump / 原始导出走同一 `SurfaceGuard`（#137；`AuthorizedExport.writeProjected`）；不是产品级 G2 关闭；不重做 #122/#124 |
 | [g1-queryast-product-optin](./g1-queryast-product-optin.md) | G1 leftover：产品 list/detail（`GuardedLedgerStore`）opt-in `QueryAstPolicyCompiler.encode`（#130）；OR/IN/mask/二次授权仍在 AST 旁；不宣称产品 G1 关闭 |
-| [g1-datascope-or-in-ast](./g1-datascope-or-in-ast.md) | G1 leftover：单列 DataScope `IN`（#142；`DEPT_AND_CHILDREN` / SPECIFIED）写入 Query AST；SELF∨DEPT 跨列 OR 仍 fail-closed 在 binder；不宣称产品 G1 关闭 |
+| [g1-datascope-or-in-ast](./g1-datascope-or-in-ast.md) | G1 leftover：单列 DataScope `IN`（#142）+ SELF∨DEPT 跨列 OR 写入 Query AST；empty IN / 不可编码 leftover 仍 binder；不宣称产品 G1 关闭 |
 | [g1-queryast-boundsql-guard](./g1-queryast-boundsql-guard.md) | G1 leftover：`GuardedLedgerStore` leftover BoundSql / COUNT 必须经 `QueryAstScopedQuery` → `GuardedJdbc`（#146）；raw BoundSql 不能绕过 Query AST / DataScope。不重做 #142 AST；不宣称产品 G1 关闭 |
 | [g2-surfaceguard-bypass-ci](./g2-surfaceguard-bypass-ci.md) | G2 leftover：CI / ArchUnit 门禁拦截绕过 `SurfaceGuard` / `PermissionEngine` 的调用方；不是产品级 G2 关闭；与 G1 QueryCompiler JDBC 门禁正交 |
 | [g2-tenant-only-catalog](./g2-tenant-only-catalog.md) | G2 leftover：isolation-only `tenant_only` fail-closed + catalog 定义 HTTP 走同一 `SurfaceGuard`（#144；`ledger/read` + `ledger/write`）；物理 dump 见 sibling leftover；不是产品级 G2 关闭；[证据](./engineering/g2-tenant-only-catalog-EVIDENCE.md) |
