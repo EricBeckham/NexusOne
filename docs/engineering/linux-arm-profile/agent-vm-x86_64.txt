@@ -1,16 +1,70 @@
 # Sanitized agent-VM collect-and-verify output
-# Filled after the first --require-build run on this branch.
+# Host: Ubuntu 24.04.4 LTS x86_64 (not ARM). Docker not used.
+# Re-run after rebase onto origin/main 1377a0a / #107.
 # profile_acceptance=NOT_CLAIMED
-# aarch64_build=SKIP (host uname -m=x86_64; Docker forbidden)
 
 schema_version=1
-status=pending-agent-vm-run
+timestamp_utc=2026-09-22T17:11:54Z
+git_commit=2ea601499cc59a0e6fbfc4286959b104d9a2ae9a
+git_branch=cursor/linux-arm-profile-evidence-5b59
+os_pretty=Ubuntu 24.04.4 LTS
+os_id=ubuntu
+os_version_id=24.04
+kernel=Linux 6.12.94+
 host_uname_m=x86_64
 host_arch_family=x86_64
+cpu_vendor=GenuineIntel
+cpu_model=Intel(R) Xeon(R) Processor
+java_home=/usr/lib/jvm/java-21-openjdk-amd64
+java_version_line=openjdk version "21.0.10" 2026-01-20
 java_feature=21
+java_os_arch=amd64
+java_vm_name=OpenJDK 64-Bit Server VM
+java_status=PASS
+maven_version=3.8.7
 boot_parent_ga=org.springframework.boot:spring-boot-starter-parent:4.1.1
 boot_parent_version=4.1.1
-profile_acceptance=NOT_CLAIMED
+boot_parent_match=PASS
+flyway_pinned=13.7.0
+pg_client_psql=psql (PostgreSQL) 15.19 (Ubuntu 15.19-1.pgdg24.04+2)
+pg_client_pg_config=PostgreSQL 15.19 (Ubuntu 15.19-1.pgdg24.04+2)
+pg_client_15_bin=psql (PostgreSQL) 15.19 (Ubuntu 15.19-1.pgdg24.04+2)
+pg_client_major=15
+pg_client_status=PASS
+pg_client_skip_reason=
+pg_server_live=SKIP
+pg_server_live_version=
+pg_server_live_reason=psql could not connect (no listener, auth, or unset NEXUS_DB_*/PG*); live server version unknown
+pg_server_test_ga=io.zonky.test.postgres:embedded-postgres-binaries-bom:15.18.0
+pg_server_test_version=15.18.0
+docker_present=false
+docker_used=false
+qemu_usermode=false
+minimal_modules=isolation-kernel,nexus-common,nexus-crypto-core
+x86_64_build=PASS
+x86_64_test=PASS
+x86_64_skip_reason=
 aarch64_build=SKIP
 aarch64_test=SKIP
-aarch64_skip_reason=host uname -m=x86_64; no aarch64 CPU; Docker/QEMU user-mode not used
+aarch64_skip_reason=host uname -m=x86_64 (java os.arch=amd64); no aarch64/arm64 CPU; Docker/QEMU user-mode not used (S0+S1 remainder forbids Docker). Cannot execute native aarch64 build/test on this VM.
+profile_acceptance=NOT_CLAIMED
+profile_acceptance_reason=Product Linux/ARM Profile needs native aarch64 hardware plus install/upgrade/rollback/offline/SBOM on an approved OS/CPU/JDK/PG combo. This remainder only inventories and builds a minimal module set on the current host. ARM SKIP or x86-only PASS is not Profile acceptance.
+g18_status=closed_unchanged
+audit_port_changed=false
+
+# Minimal module Surefire (this host only; not ARM)
+# isolation-kernel: Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
+# nexus-common: Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
+# nexus-crypto-core: Tests run: 18, Failures: 0, Errors: 0, Skipped: 0 (plus 14 from -am nexus-common)
+
+# Matrix
+# | Check | Result | Notes |
+# | OS / arch | x86_64 (x86_64) | Ubuntu 24.04.4 LTS |
+# | JDK 21 | PASS | openjdk 21.0.10; os.arch=amd64 |
+# | Boot 4.1.1 coordinates | PASS | org.springframework.boot:spring-boot-starter-parent:4.1.1 |
+# | PostgreSQL 15 client | PASS | 15.19 (Ubuntu 15.19-1.pgdg24.04+2) |
+# | PostgreSQL 15 live server | SKIP | no listener / unset NEXUS_DB_* |
+# | PostgreSQL 15 test-time (Zonky) | recorded | embedded-postgres-binaries-bom:15.18.0 |
+# | x86_64 build/test | PASS / PASS | isolation-kernel,nexus-common,nexus-crypto-core |
+# | aarch64 build/test | SKIP / SKIP | no aarch64 CPU; Docker forbidden |
+# | Product Profile acceptance | NOT_CLAIMED | |

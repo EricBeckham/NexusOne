@@ -1,6 +1,6 @@
 # Linux / ARM Profile evidence (S0+S1 remainder)
 
-Recorded against latest `main` plus this remainder. Operator: cloud agent.
+Recorded **2026-09-22T17:11:54Z** on this agent VM after rebase onto `origin/main` `1377a0a` (#107). Operator: cloud agent. Live output: `.local/linux-arm-profile/agent-vm-x86_64-rebased/` (gitignored). Committed copy: [`docs/engineering/linux-arm-profile/agent-vm-x86_64.txt`](./linux-arm-profile/agent-vm-x86_64.txt).
 
 **Product target Linux/ARM Profile is NOT accepted.** This package is the leftover called out in [团队领取任务清单](../planning/团队领取任务清单_V1.1.md) and [M0-01](./m0-01-engineering-foundation.md): a reproducible collect/verify script, a PASS/SKIP matrix, and what this agent VM can actually run. It is **not** P0-10 / M0-01 redone, **not** install/upgrade/rollback/offline/SBOM, **not** GaussDB, **not** a G18 reopen, and **does not** change `AuditPort`.
 
@@ -12,7 +12,7 @@ G18 stays closed (`docs/g18-business-path.md`). `TARGET-ARM-01` in `poc/p0-10/de
 |---|---|
 | Reproducible collect/verify script | **PASS** — [`scripts/linux-arm-profile/collect-and-verify.sh`](../../scripts/linux-arm-profile/collect-and-verify.sh) (wraps [`poc/p0-10/collect-profile.sh`](../../poc/p0-10/collect-profile.sh)) |
 | Honest PASS/SKIP matrix | **PASS** — x86_64 host cannot emit aarch64 `PASS` |
-| Agent VM native x86_64 inventory + minimal module build/test | See matrix below (filled from script output) |
+| Agent VM native x86_64 inventory + minimal module build/test | **PASS** — isolation-kernel 42, nexus-common 14, nexus-crypto-core 18; 0 fail |
 | Native aarch64 / ARM64 hardware on the agent VM | **SKIP** — `uname -m=x86_64`; no aarch64 CPU; Docker/QEMU user-mode not used (Docker forbidden) |
 | Product Profile acceptance (approved Linux + ARM CPU + JDK 21 + PG 15 install/upgrade/rollback/offline) | **NOT_CLAIMED** |
 | CI cross-check | [`.github/workflows/linux-arm-profile.yml`](../../.github/workflows/linux-arm-profile.yml) — x86_64 required; `ubuntu-24.04-arm` is optional and still not Profile close |
@@ -44,8 +44,9 @@ Filled from the collector. Passwords were never set and are not in the artifact.
 | JDK | OpenJDK **21** (`21.0.10+7-Ubuntu-124.04`), `java.home=/usr/lib/jvm/java-21-openjdk-amd64`, `os.arch=amd64` |
 | Boot coordinates | `org.springframework.boot:spring-boot-starter-parent:4.1.1` from root `pom.xml` |
 | Flyway pin (recorded only) | `13.7.0` |
-| PostgreSQL 15 client | recorded by script (`psql` / `/usr/lib/postgresql/15/bin` or SKIP + reason) |
-| PostgreSQL 15 live server | optional `SHOW server_version`; SKIP if no listener |
+| Maven | 3.8.7 |
+| PostgreSQL 15 client | **PASS** `psql (PostgreSQL) 15.19 (Ubuntu 15.19-1.pgdg24.04+2)` |
+| PostgreSQL 15 live server | **SKIP** — `psql` could not connect (no listener / unset `NEXUS_DB_*`) |
 | PostgreSQL 15 test-time | Zonky `io.zonky.test.postgres:embedded-postgres-binaries-bom:15.18.0` |
 | Minimal modules | `isolation-kernel`, `nexus-common`, `nexus-crypto-core` |
 | Docker | not used |
@@ -57,15 +58,15 @@ Values below are copied from the committed artifact after `collect-and-verify.sh
 
 | Check | Result | Notes |
 |---|---|---|
-| OS / arch | x86_64 | Ubuntu 24.04.4 LTS agent VM |
-| JDK 21 | see artifact | feature version must be 21 |
-| Boot 4.1.1 coordinates | PASS | `spring-boot-starter-parent:4.1.1` |
-| PostgreSQL 15 client | see artifact | SKIP allowed if client absent, with reason |
-| PostgreSQL 15 live server | see artifact | SKIP allowed if unreachable, with reason |
-| PostgreSQL 15 Zonky test BOM | recorded | `15.18.0` — not a target-host install |
-| x86_64 build/test (minimal set) | see artifact | this host only |
-| aarch64 build/test | **SKIP** | host is x86_64; no ARM hardware; Docker forbidden |
-| Product Profile acceptance | **NOT_CLAIMED** | see below |
+| OS / arch | **PASS** x86_64 | Ubuntu 24.04.4 LTS, `uname -m=x86_64` |
+| JDK 21 | **PASS** | OpenJDK `21.0.10`; `os.arch=amd64` |
+| Boot 4.1.1 coordinates | **PASS** | `org.springframework.boot:spring-boot-starter-parent:4.1.1` |
+| PostgreSQL 15 client | **PASS** | `15.19 (Ubuntu 15.19-1.pgdg24.04+2)` |
+| PostgreSQL 15 live server | **SKIP** | no listener; `NEXUS_DB_*` unset |
+| PostgreSQL 15 Zonky test BOM | recorded | `embedded-postgres-binaries-bom:15.18.0` — not a target-host install |
+| x86_64 build/test (minimal set) | **PASS / PASS** | isolation-kernel **42**, nexus-common **14**, nexus-crypto-core **18** |
+| aarch64 build/test | **SKIP / SKIP** | `uname -m=x86_64`; no aarch64 CPU; Docker/QEMU user-mode not used |
+| Product Profile acceptance | **NOT_CLAIMED** | x86 PASS + ARM SKIP is not Profile close |
 
 ## What would still be required to close the Profile
 

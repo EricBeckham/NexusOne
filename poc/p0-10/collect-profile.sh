@@ -21,7 +21,7 @@ fi
 for command_name in mvn psql pg_config docker; do
   if command -v "$command_name" >/dev/null 2>&1; then
     case "$command_name" in
-      mvn) mvn -version 2>&1 | head -n 1 ;;
+      mvn) mvn -B -version 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | head -n 1 ;;
       psql) psql --version ;;
       pg_config) pg_config --version ;;
       docker) docker --version ;;

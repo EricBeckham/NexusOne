@@ -175,7 +175,7 @@ fi
 
 MAVEN_VERSION=not-installed
 if command -v mvn >/dev/null 2>&1; then
-  MAVEN_VERSION="$(mvn -version 2>&1 | awk '/Apache Maven/{print $3; exit}')"
+  MAVEN_VERSION="$(mvn -B -version 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | awk '/Apache Maven/{print $3; exit}')"
 fi
 
 BOOT_GROUP=""
