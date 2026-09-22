@@ -20,6 +20,7 @@ G15 H5 人机 PKCE leftover（`/m/*` Authorization Code + PKCE，Playwright/stub
 G2 leftover：报表 query/export 走同一 `SurfaceGuard` 见 [docs/g2-report-surface-guard.md](./docs/g2-report-surface-guard.md)（不宣称产品 G2 关闭；物理 dump 仍开放）。
 G6 leftover：`RecoveryPort` dry-run 契约（不宣称分钟级 RPO / 产品 HA / 产品 RecoveryPort 关闭；不碰 `haopan_platform`）见 [docs/g6-recovery-port-dry-run.md](./docs/g6-recovery-port-dry-run.md)。
 G4 leftover：SurfaceGuard 守卫拒绝 / 权限拒绝上同一哈希链见 [docs/g4-guard-deny-audit.md](./docs/g4-guard-deny-audit.md)（不宣称产品 G4 关闭；与 #125 桌面 PKCE 点击正交）。
+G1 leftover：导出 Query AST 对 hidden 字段 drop（不再只 reject）见 [docs/g1-export-fieldpolicy-drop.md](./docs/g1-export-fieldpolicy-drop.md)（不宣称产品 G1 关闭；二次授权 / mask 仍在 `FieldPolicyProjector`）。
 
 ## 应用骨架（M0-01）
 

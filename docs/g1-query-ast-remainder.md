@@ -51,7 +51,7 @@ This is **not** a product-wide “zero leak” close. Nested subquery-in-subquer
 | OUTER JOIN / CROSS JOIN | Evidenced in [g1-query-outer-cross-join.md](./g1-query-outer-cross-join.md). |
 | DataScope / FieldPolicy compilation into AST | SELF/DEPT equality + visibility encoding is [g1-datascope-fieldpolicy-ast.md](./g1-datascope-fieldpolicy-ast.md). OR / IN / mask leftovers stay there. |
 | Report UI / physical ledger dump | Unchanged. `ledger.export.csv` is still the Task type. |
-| Silent drop on API reads | Unchanged. Export still rejects hidden/second-auth instead of dropping. |
+| Silent drop on API reads | Unchanged for post-fetch projectors. Export Query AST drops hidden columns ([g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md)); second-auth still rejects. |
 | UI / H5 every page | Not re-walked. |
 | `P3RequestContext` | Unchanged. New AST nodes use `AccessContextHolder` only. |
 | G4 same-request chain | Unchanged. Guard-reject still uses `appendNewTransaction` only. |

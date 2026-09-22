@@ -7,8 +7,9 @@ import one.nexus.permission.engine.FieldRule;
 
 /**
  * Maps M0-05 {@link FieldRule} onto the kernel export FieldPolicy gate.
- * Masking still happens in {@code FieldPolicyProjector}; this adapter only
- * carries visibility + second-auth into {@code IsolatedExport}.
+ * Hidden columns are dropped on the Query AST export path. Masking and
+ * second-auth still happen in {@code FieldPolicyProjector}; this adapter
+ * only carries visibility + second-auth into {@code IsolatedExport}.
  */
 public final class ExportFieldPolicies {
     private ExportFieldPolicies() {}

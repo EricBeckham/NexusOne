@@ -85,13 +85,22 @@ class G1QueryJoinFieldPolicyTest {
                 "title", new FieldRule(true, true),
                 "phone", new FieldRule(true, false, Mask.PARTIAL, true),
                 "secret", new FieldRule(false, false));
-        IsolationException hidden = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+        var dropped = IsolatedExport.compile(
                 kernel.compiler(),
                 QueryAst.select("ledger_entry", List.of("title", "secret"), Map.of()),
                 "alpha",
                 ExportFieldPolicies.from(fields),
+                false);
+        assertTrue(dropped.sql().startsWith("SELECT \"title\" FROM \"ledger_entry\""));
+        assertFalse(dropped.sql().contains("secret"));
+
+        IsolationException hiddenOnly = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
+                kernel.compiler(),
+                QueryAst.select("ledger_entry", List.of("secret"), Map.of()),
+                "alpha",
+                ExportFieldPolicies.from(fields),
                 false));
-        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hidden.error());
+        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hiddenOnly.error());
 
         IsolationException second = assertThrows(IsolationException.class, () -> IsolatedExport.writeProjected(
                 "alpha",

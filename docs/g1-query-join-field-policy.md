@@ -37,7 +37,7 @@ mvn -pl nexus-bootstrap -am test \
 |---|---|
 | `QueryCompilerTest` | INNER JOIN injects `tenant_id` on both tables; foreign / null join tenant and tenant→platform join rejected with records; DataScope cannot strip a join tenant predicate |
 | `PostgresIsolationIT` | Same-tenant join returns only the bound tenant's line; stolen join `tenant_id=beta` never reaches JDBC (`P1.M02.020`) |
-| `IsolatedExportTest` | Hidden / missing / second-auth FieldPolicy rejected before compile or file sink (`P1.M02.021`); same-tenant visible projection compiles a join and writes CSV |
+| `IsolatedExportTest` | Hidden Query AST columns dropped; missing / second-auth / empty leftover still `P1.M02.021`; same-tenant visible projection compiles a join and writes CSV |
 | `G1QueryJoinFieldPolicyTest` | Both codes land on `AuditPort` as `GUARD_REJECT` via `appendNewTransaction`; hash chain intact; `FieldPolicyProjector` drop/mask used on the allowed export |
 
 ## Honest leftover G1 rows
@@ -50,7 +50,7 @@ This is **not** a product-wide “zero leak” close.
 | OUTER JOIN / CROSS JOIN | Evidenced in [g1-query-outer-cross-join.md](./g1-query-outer-cross-join.md). |
 | DataScope / FieldPolicy compilation into AST | SELF/DEPT equality + visibility encoding is [g1-datascope-fieldpolicy-ast.md](./g1-datascope-fieldpolicy-ast.md). OR / IN / mask leftovers stay on `PermissionQueryBinder` / `FieldPolicyProjector`. |
 | Report UI / physical ledger dump | No report screen. `ledger.export.csv` is still the Task type; this package proves the compile / file FieldPolicy gate, not a product export wizard. |
-| Silent drop on API reads | `FieldPolicyProjector` still drops hidden fields on UI/API rows. Export **rejects** a hidden/second-auth request instead of dropping it. |
+| Silent drop on API reads | `FieldPolicyProjector` still drops hidden fields on UI/API rows. Export Query AST **drops** hidden columns ([g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md)) and still rejects second-auth without grant. |
 | UI / H5 every page | Not re-walked. |
 | `P3RequestContext` | Unchanged. Joins / export FieldPolicy use `AccessContextHolder` only. |
 | G4 same-request chain | Login / permission-change / admin / guard-reject wiring is on `main` ([g4-audit-coverage.md](./engineering/g4-audit-coverage.md)). Export + 90-day copy + 365-day same-PG purge: [g4-export-audit-archive.md](./g4-export-audit-archive.md). Same-trace MockMvc walk: [g4-same-trace-walk.md](./g4-same-trace-walk.md). Remaining G4 is browser PKCE / object-store cold / hot-row purge. Guard-reject still uses `appendNewTransaction` only. |
