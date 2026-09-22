@@ -7,6 +7,7 @@ import java.util.TimeZone;
 import one.nexus.event.isolation.ExecutionIsolation;
 import one.nexus.event.isolation.StoredMembership;
 import one.nexus.isolation.boundary.IsolatedEnvelope;
+import one.nexus.task.TaskSubmitGuard;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
 import org.quartz.JobKey;
@@ -20,13 +21,22 @@ public final class IsolatedJobScheduler {
 
     private final Scheduler scheduler;
     private final ExecutionIsolation isolation;
+    private final TaskSubmitGuard submitGuard;
 
     public IsolatedJobScheduler(Scheduler scheduler, ExecutionIsolation isolation) {
+        this(scheduler, isolation, null);
+    }
+
+    public IsolatedJobScheduler(Scheduler scheduler, ExecutionIsolation isolation, TaskSubmitGuard submitGuard) {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.isolation = Objects.requireNonNull(isolation, "isolation");
+        this.submitGuard = submitGuard;
     }
 
     public void scheduleOnce(String name, Instant startAt, String payloadType, String payload) {
+        if (submitGuard != null) {
+            submitGuard.assertJob(payloadType);
+        }
         IsolatedEnvelope envelope = isolation.envelopeFromCurrent(payloadType, payload);
         StoredMembership membership = isolation.requireTenantMembership();
         try {
@@ -48,6 +58,9 @@ public final class IsolatedJobScheduler {
     }
 
     public void scheduleCron(String name, String cron, String payloadType, String payload) {
+        if (submitGuard != null) {
+            submitGuard.assertJob(payloadType);
+        }
         IsolatedEnvelope envelope = isolation.envelopeFromCurrent(payloadType, payload);
         StoredMembership membership = isolation.requireTenantMembership();
         try {

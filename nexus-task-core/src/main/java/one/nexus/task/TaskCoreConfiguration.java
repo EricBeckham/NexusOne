@@ -30,9 +30,10 @@ public class TaskCoreConfiguration {
             DataSource dataSource,
             ExecutionIsolation isolation,
             ExecutionSettings settings,
-            Clock executionClock
+            Clock executionClock,
+            ObjectProvider<TaskSubmitGuard> submitGuard
     ) {
-        return new JdbcTaskQueue(dataSource, isolation, settings, executionClock);
+        return new JdbcTaskQueue(dataSource, isolation, settings, executionClock, submitGuard.getIfAvailable());
     }
 
     @Bean
@@ -94,7 +95,11 @@ public class TaskCoreConfiguration {
     @Bean
     @ConditionalOnBean(Scheduler.class)
     @ConditionalOnMissingBean
-    IsolatedJobScheduler isolatedJobScheduler(Scheduler scheduler, ExecutionIsolation isolation) {
-        return new IsolatedJobScheduler(scheduler, isolation);
+    IsolatedJobScheduler isolatedJobScheduler(
+            Scheduler scheduler,
+            ExecutionIsolation isolation,
+            ObjectProvider<TaskSubmitGuard> submitGuard
+    ) {
+        return new IsolatedJobScheduler(scheduler, isolation, submitGuard.getIfAvailable());
     }
 }

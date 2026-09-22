@@ -26,12 +26,24 @@ public final class JdbcTaskQueue implements TaskQueue {
     private final ExecutionIsolation isolation;
     private final ExecutionSettings settings;
     private final Clock clock;
+    private final TaskSubmitGuard submitGuard;
 
     public JdbcTaskQueue(DataSource dataSource, ExecutionIsolation isolation, ExecutionSettings settings, Clock clock) {
+        this(dataSource, isolation, settings, clock, null);
+    }
+
+    public JdbcTaskQueue(
+            DataSource dataSource,
+            ExecutionIsolation isolation,
+            ExecutionSettings settings,
+            Clock clock,
+            TaskSubmitGuard submitGuard
+    ) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
         this.isolation = Objects.requireNonNull(isolation, "isolation");
         this.settings = settings == null ? ExecutionSettings.defaults() : settings;
         this.clock = clock == null ? Clock.systemUTC() : clock;
+        this.submitGuard = submitGuard;
     }
 
     @Override
@@ -41,6 +53,9 @@ public final class JdbcTaskQueue implements TaskQueue {
 
     @Override
     public UUID submitAt(String taskType, String payload, Instant availableAt) {
+        if (submitGuard != null) {
+            submitGuard.assertTask(taskType);
+        }
         IsolatedEnvelope envelope = isolation.envelopeFromCurrent(taskType, payload);
         StoredMembership membership = isolation.requireTenantMembership();
         IsolatedExecutor.requirePayloadTenant(isolation.requireBound(), envelope.tenantId());

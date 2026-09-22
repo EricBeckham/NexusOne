@@ -4,7 +4,7 @@ Recorded on the agent VM against latest `main` (includes M0-01～04 + Keycloak s
 
 ## G2 (S0+S1) — role matrix + same engine
 
-G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio. Product-wide G2 (report / export / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
+G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio / export Task type / Job / Task submit. Product-wide G2 (report / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
 
 ## Versions
 
@@ -34,7 +34,7 @@ mvn -pl nexus-permission-core -am test
 
 Result (M0-05 baseline): **27 tests, 0 failures, 0 errors, 0 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**.
 
-G2 additions: `G2SameEngineTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3). Form studio remainder: `FormSurfaceGuardTest`, `FormStudioPermissionApiTest`.
+G2 additions: `G2SameEngineTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3), `G2ExportJobTaskEngineTest`, `G2AuthorizedExportTest`, `G2AuthorizedSubmitTest`. Form studio remainder: `FormSurfaceGuardTest`, `FormStudioPermissionApiTest`.
 
 Recorded **2026-09-22T15:29:11Z** on this agent VM (OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**). PostgreSQL was not listening; JDBC/golden tests skipped as designed.
 
@@ -125,7 +125,7 @@ Skipped 5: `RedisInvalidationTest` 3 (no Redis on `:6379`), `GoldenPostgresDataS
 
 ## Honest leftover
 
-- Product-wide G2 (report / export / H5 / form-definition list)
+- Product-wide G2 (report / H5). Form studio + export Task type + Job/Task submit + export cacheStatus are on this engine; general cache is not. form fill / submissions remain open.
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down (ordinary query still fail-closes; no retry-deadline)
