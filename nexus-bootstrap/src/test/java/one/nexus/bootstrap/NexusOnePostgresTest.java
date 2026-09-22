@@ -44,11 +44,16 @@ class NexusOnePostgresTest {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from platform.flyway_schema_history where success and version is not null",
                 Integer.class);
-        assertTrue(applied != null && applied >= 10,
-                "expected V001-V003, V100-V101, V200, V300, V500, V501, V510, V520; got " + applied);
+        assertTrue(applied != null && applied >= 11,
+                "expected V001-V003, V100-V101, V200, V300, V400, V500, V501, V510, V520; got " + applied);
         List<String> versions = jdbc.queryForList(
                 "select version from platform.flyway_schema_history where success and version is not null",
                 String.class);
+        assertTrue(versions.contains("400"), "M0-06 V400 business_meta must be applied, got " + versions);
+        Integer metaTables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'business_meta' and table_name in ('application','ledger','ledger_field')",
+                Integer.class);
+        assertEquals(3, metaTables);
         assertTrue(versions.contains("500"), "M0-09 V500 execution channel must be applied, got " + versions);
         assertTrue(versions.contains("501"), "M0-11 V501 audit hash chain must be applied, got " + versions);
         assertTrue(versions.contains("510"), "M0-10 V510 files must be applied, got " + versions);

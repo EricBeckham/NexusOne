@@ -1,0 +1,24 @@
+nexus:
+  p3:
+    demo-context: true
+
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
+  datasource:
+    url: ${NEXUS_TEST_DATASOURCE_URL:${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus_p3_test}}
+    username: ${NEXUS_DB_USER:${NEXUS_DATASOURCE_USERNAME:nexus}}
+    password: ${NEXUS_DB_PASSWORD:${NEXUS_DATASOURCE_PASSWORD:}}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    schemas: platform
+    default-schema: platform
+    table: flyway_schema_history
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    create-schemas: true
+  sql:
+    init:
+      mode: never

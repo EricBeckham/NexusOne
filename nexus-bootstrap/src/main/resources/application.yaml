@@ -55,6 +55,8 @@ nexus:
   p1:
     demo-context:
       enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
+  p3:
+    demo-context: ${NEXUS_P3_DEMO_CONTEXT_ENABLED:false}
   iam:
     persistence: ${NEXUS_IAM_PERSISTENCE:memory}
     idp: ${NEXUS_IAM_IDP:stub}

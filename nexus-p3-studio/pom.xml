@@ -10,11 +10,60 @@
   </parent>
   <artifactId>nexus-p3-studio</artifactId>
   <name>NexusOne P3 Studio</name>
-  <description>App, ledger metadata, forms. Owned by M0-06/07.</description>
+  <description>M0-06 application/ledger metadata, SchemaService, and ledger CRUD. Forms/publish are M0-07.</description>
   <dependencies>
     <dependency>
       <groupId>one.nexus</groupId>
       <artifactId>nexus-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>isolation-kernel</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-p1-tenant</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-permission-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

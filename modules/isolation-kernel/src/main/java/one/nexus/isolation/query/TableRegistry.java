@@ -34,6 +34,25 @@ public final class TableRegistry {
         return register(new TableDescriptor(name, TableScope.PLATFORM, java.util.Set.of(columns), ownerModule, schemaVersion));
     }
 
+    public TableRegistry registerAppShared(String name, String ownerModule, int schemaVersion, String... columns) {
+        return register(new TableDescriptor(name, TableScope.APP_SHARED, java.util.Set.of(columns), ownerModule, schemaVersion));
+    }
+
+    /**
+     * SchemaService uses this when a ledger physical table gains columns. Frozen
+     * registries stay immutable; callers must not freeze the live product registry.
+     */
+    public TableRegistry replace(TableDescriptor table) {
+        Objects.requireNonNull(table, "table");
+        if (frozen) {
+            throw new IllegalStateException("registry is frozen");
+        }
+        Identifiers.require(table.name());
+        table.columns().forEach(Identifiers::require);
+        tables.put(table.name(), table);
+        return this;
+    }
+
     public TableRegistry freeze() {
         frozen = true;
         return this;
