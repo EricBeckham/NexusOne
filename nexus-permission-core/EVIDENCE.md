@@ -34,7 +34,21 @@ mvn -pl nexus-permission-core -am test
 
 Result (M0-05 baseline): **27 tests, 0 failures, 0 errors, 0 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**.
 
-G2 additions: `G2SameEngineTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3). Recorded with the PR test run.
+G2 additions: `G2SameEngineTest`, `G2RoleMatrixApiTest`, `G2SurfaceAgreementTest` (p3).
+
+Recorded **2026-09-22T15:29:11Z** on this agent VM (OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**). PostgreSQL was not listening; JDBC/golden tests skipped as designed.
+
+```bash
+mvn -pl nexus-permission-core -am test
+# BUILD SUCCESS — Tests run: 32, Failures: 0, Errors: 0, Skipped: 4
+
+mvn -pl nexus-permission-core,nexus-p3-studio -am test \
+  -Dtest=G2SameEngineTest,G2RoleMatrixApiTest,G2SurfaceAgreementTest,PermissionDataScopeHookTest,FieldPolicyProjectorTest,PermissionApiTest,TenantMemberGrantSeedApiTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+# BUILD SUCCESS at 2026-09-22T15:28:46Z
+# permission-core: G2SameEngine 2, FieldPolicy 1, G2RoleMatrixApi 1, PermissionApi 2, TenantMemberGrantSeed 1
+# p3-studio: PermissionDataScopeHook 4, G2SurfaceAgreement 3
+```
 
 | Class | What it proved |
 |---|---|

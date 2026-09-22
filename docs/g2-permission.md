@@ -46,4 +46,4 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-See `nexus-permission-core/EVIDENCE.md` for the recorded run.
+Recorded **2026-09-22T15:29:11Z** (OpenJDK 21.0.10 / Maven 3.8.7 / Boot 4.1.1): permission-core **32** run / **0** fail / **4** skip (no local PG). Targeted G2 + hook suite **BUILD SUCCESS** at **2026-09-22T15:28:46Z** (14 tests). See `nexus-permission-core/EVIDENCE.md`.
