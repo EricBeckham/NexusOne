@@ -11,13 +11,20 @@
  * Simulated 小程序 web-view parent: /m/mp-webview-harness embeds the
  * same H5 with ?host=mp-webview. APP WebView contract walk: injected
  * window.NexusAppWebView at /m/app-webview-harness uses the same envelope.
- * Native iOS/Android WebView binary and WeChat/DingTalk production stay open.
+ * Production-host contract stub: /m/wx-dt-harness embeds the same H5 with
+ * ?host=wechat-prod-stub or ?host=dingtalk-prod-stub. That stub does not
+ * accept vendor production. Native iOS/Android WebView binary and
+ * WeChat/DingTalk production stay open.
  */
 import { DEFAULT_MOBILE_HOME, isSafeMobileReturn, safeMobileReturn } from "../auth/safeReturn.js";
 
 export const HOST_CHANNELS = Object.freeze(["login", "route", "file", "close"]);
 export const MP_WEBVIEW_QUERY = "mp-webview";
 export const MP_WEBVIEW_HOST = "miniprogram-webview-sim";
+export const VENDOR_WECHAT_QUERY = "wechat-prod-stub";
+export const VENDOR_DINGTALK_QUERY = "dingtalk-prod-stub";
+export const VENDOR_WECHAT_HOST = "wechat-prod-stub";
+export const VENDOR_DINGTALK_HOST = "dingtalk-prod-stub";
 export const OTHER_HOSTS_OPEN = Object.freeze([
   "APP WebView",
   "WeChat/DingTalk 小程序 production",
@@ -115,12 +122,32 @@ export function isMiniProgramWebViewEmbed(win = defaultWindow()) {
   }
 }
 
+export function vendorProdStubQuery(win = defaultWindow()) {
+  if (!win || !isEmbedded(win)) {
+    return null;
+  }
+  try {
+    const params = new URLSearchParams(win.location?.search || "");
+    const host = params.get("host");
+    if (host === VENDOR_WECHAT_QUERY || host === VENDOR_DINGTALK_QUERY) {
+      return host;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function detectHostKind(win = defaultWindow()) {
   if (resolveAppWebViewTarget(win)) {
     return "app-webview";
   }
   if (isMiniProgramWebViewEmbed(win)) {
     return MP_WEBVIEW_HOST;
+  }
+  const vendorStub = vendorProdStubQuery(win);
+  if (vendorStub) {
+    return vendorStub;
   }
   if (isEmbedded(win)) {
     return "embedded";
@@ -157,6 +184,9 @@ export function isSafeHostPath(path) {
     return false;
   }
   if (clean === "/m/app-webview-harness" || clean.startsWith("/m/app-webview-harness/")) {
+    return false;
+  }
+  if (clean === "/m/wx-dt-harness" || clean.startsWith("/m/wx-dt-harness/")) {
     return false;
   }
   return true;

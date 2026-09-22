@@ -66,6 +66,21 @@ describe("F014 HostBridgePort contract", () => {
     expect(hostCapabilities(win).host).toBe("miniprogram-webview-sim");
     expect(hostCapabilities(win).fallback).toBeNull();
   });
+
+  it("names WeChat / DingTalk production stubs from query and leaves production open", () => {
+    const wechat = createFakeWindow({
+      embedded: true,
+      search: "?embedded=true&host=wechat-prod-stub",
+    });
+    const dingtalk = createFakeWindow({
+      embedded: true,
+      search: "?embedded=true&host=dingtalk-prod-stub",
+    });
+    expect(hostCapabilities(wechat).host).toBe("wechat-prod-stub");
+    expect(hostCapabilities(dingtalk).host).toBe("dingtalk-prod-stub");
+    expect(hostCapabilities(wechat).productionAccepted).toBe(false);
+    expect(hostCapabilities(dingtalk).fallback).toBeNull();
+  });
 });
 
 describe("payload and origin guards", () => {
@@ -92,6 +107,7 @@ describe("payload and origin guards", () => {
     expect(isSafeHostPath("/m/host-harness")).toBe(false);
     expect(isSafeHostPath("/m/mp-webview-harness")).toBe(false);
     expect(isSafeHostPath("/m/app-webview-harness")).toBe(false);
+    expect(isSafeHostPath("/m/wx-dt-harness")).toBe(false);
     expect(isSafeHostPath("/m/p3/files?tab=recent")).toBe(true);
     expect(encodeHostMessage({
       source: HOST_SOURCE,

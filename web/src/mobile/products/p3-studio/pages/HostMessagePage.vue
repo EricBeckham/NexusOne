@@ -47,12 +47,14 @@
     </div>
     <div class="m-card">
       <h3>验收宿主</h3>
-      <p class="m-muted">移动浏览器 iframe、模拟小程序 web-view 与 APP WebView 网页宿主走同一 envelope。原生包 / 微信钉钉生产未交付。</p>
+      <p class="m-muted">移动浏览器 iframe、模拟小程序 web-view、APP WebView 网页宿主与微信钉钉生产契约桩走同一 envelope。原生包 / 微信钉钉生产未交付。</p>
       <router-link class="m-btn ghost" to="/m/host-harness" data-testid="host-open-harness">打开 iframe 宿主页</router-link>
       <div style="height:8px" />
       <router-link class="m-btn ghost" to="/m/mp-webview-harness" data-testid="host-open-mp-harness">打开模拟小程序 web-view</router-link>
       <div style="height:8px" />
       <router-link class="m-btn ghost" to="/m/app-webview-harness" data-testid="host-open-app-webview">打开 APP WebView 模拟宿主</router-link>
+      <div style="height:8px" />
+      <router-link class="m-btn ghost" to="/m/wx-dt-harness" data-testid="host-open-wx-dt">打开微信钉钉生产宿主契约桩</router-link>
     </div>
   </div>
 </template>
