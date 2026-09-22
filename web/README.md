@@ -50,6 +50,7 @@ cd web && npm run assert:isolation
 | `/p2/org` | `/api/v1/departments/tree` | |
 | `/p2/positions` | positions + employments | Position ≠ Role |
 | `/p2/permissions/*` | none | TODO M0-05 |
-| `/p3/ledgers\|forms\|todos` | none | TODO M0-06/07/08 |
+| `/p3/ledgers\|todos` | none | TODO M0-06/08 |
+| `/p3/forms` | `GET /api/v1/p3/forms` | API is M0-07; this page is still a stub (M0-12) |
 
 Do not treat this shell as a Keycloak Authorization Code + PKCE acceptance. Product login remains M0-04’s confidential client.

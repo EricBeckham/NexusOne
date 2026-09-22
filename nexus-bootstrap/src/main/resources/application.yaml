@@ -39,7 +39,7 @@ management:
     env:
       enabled: true
 
-# Single nexus map: M0-09 execution, M0-12 P1/P2 bindings, M0-11 crypto/audit, M0-10 cache/files/notify.
+# Single nexus map: M0-09 execution, M0-12 P1/P2, M0-11 crypto/audit, M0-10 cache/files/notify, M0-07 studio.
 # Library application.yml files are not the monolith’s config source.
 nexus:
   execution:
@@ -88,6 +88,10 @@ nexus:
     persistence: jdbc
     outbox: auto
     demo-context: false
+  studio:
+    persistence: ${NEXUS_STUDIO_PERSISTENCE:jdbc}
+    demo-context: ${NEXUS_STUDIO_DEMO_CONTEXT:false}
+    seed-demo-metadata: ${NEXUS_STUDIO_SEED_DEMO_METADATA:true}
 
 info:
   app:
