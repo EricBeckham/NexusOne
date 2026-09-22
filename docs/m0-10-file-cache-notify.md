@@ -74,4 +74,6 @@ API：`POST/GET/DELETE /api/v1/files`，`POST /api/v1/files/{id}/signed-url`。
 
 不要求 Docker、本机 Redis 或 S3。隔离与二次授权用内存 / Fake Redis 断言“拒绝前零次后端调用”。  
 可选 live 钻：`LiveRedisIsolationDrillTest` / `LiveMinioIsolationDrillTest` / `LiveG1CacheFileDrillTest`（`./scripts/g1-live-redis-minio-drill.sh`）。服务不可达时 `assumeTrue` 跳过，不失败。见 [g1-live-redis-minio.md](./g1-live-redis-minio.md)。  
+Ops 专用端口演练见 [engineering/runbooks/live-redis-minio-isolation.md](./engineering/runbooks/live-redis-minio-isolation.md)（`:16379` / `:19000`，缺后端则 SKIP）。  
+
 PostgreSQL 15 上的 Jdbc 仓库随 bootstrap Flyway 迁移；`NexusOnePostgresTest` 在库可达时要求版本化迁移 ≥ 10（含 V510 / V520）。

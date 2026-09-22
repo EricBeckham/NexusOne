@@ -11,6 +11,7 @@
 - 恢复到隔离 bucket / 前缀，不要覆盖源 bucket。
 - 使用 P0 锁定的社区 MinIO：`RELEASE.2025-09-07T16-13-09Z`，本机 API `127.0.0.1:9100`。
 - 对象键保持租户前缀 `tenants/{tenantId}/…`；演练同时放入两个租户对象 + `platform/` 标记，证明这是环境级整桶恢复，不是单租户导出。
+- 跨租户前缀在访问对象前拒绝（隔离内核 / File Guard）。Live 前缀拒绝见 [live-redis-minio-isolation.md](./live-redis-minio-isolation.md)，不是本 restore 演练。
 - 凭证走 SecretPort（S0：进程内 overlay 或环境变量 `S3_ACCESS_KEY` / `S3_SECRET_KEY`），或本机 workdir。不得写入 Git。不要求 OpenBao / KMS。
 - 不发明第二套存储产品。AIStor 企业镜像/授权仍由采购/交付提供，本演练不替代。
 
