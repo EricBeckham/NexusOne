@@ -379,11 +379,11 @@ G7 leftover Vue click of that control (stub login, not a three-type close, G18 s
 
 Path `POST /api/v1/p3/path/submit-start` with `form_id` requires `form.write` before start, then `process.instance`/`start`. See [docs/g2-submit-start-form-write.md](../docs/g2-submit-start-form-write.md).
 
-Agent VM **2026-09-22T17:38:56Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
+Agent VM after rebase onto `main@440a504` (**#113**). **2026-09-22T17:43:30Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker.
 
 ```bash
 ./scripts/g2-submit-start-form-write.sh
 ```
 
-`G2SubmitStartFormWriteIT` **3/3** — missing `form.write` is `403 P2.PERM.0003` with zero `form_submission` / process / physical row; `tenant_member` seed cells still start leave; explicit deny is `P2.PERM.0002`. `G18BusinessPathIT` **4/4** at **2026-09-22T17:39:09Z**.
+`G2SubmitStartFormWriteIT` **3/3** — missing `form.write` is `403 P2.PERM.0003` with zero `form_submission` / process / physical row; `tenant_member` seed cells still start leave; explicit deny is `P2.PERM.0002`. `G18BusinessPathIT` **4/4**. Reactor **Tests run: 20, Failures: 0** at **2026-09-22T17:43:30Z**.
 
