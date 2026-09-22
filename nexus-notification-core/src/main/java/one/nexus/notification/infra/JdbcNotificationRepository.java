@@ -35,8 +35,8 @@ public final class JdbcNotificationRepository implements NotificationRepository 
                 .param("payload", notification.payloadJson())
                 .param("status", notification.status().name())
                 .param("outbox_id", notification.outboxMessageId())
-                .param("created_at", notification.createdAt())
-                .param("read_at", notification.readAt())
+                .param("created_at", Timestamp.from(notification.createdAt()))
+                .param("read_at", notification.readAt() == null ? null : Timestamp.from(notification.readAt()))
                 .update();
     }
 
