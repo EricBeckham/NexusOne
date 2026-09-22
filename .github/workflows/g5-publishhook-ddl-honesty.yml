@@ -1,0 +1,89 @@
+name: g5-publishhook-ddl-honesty
+
+# Honesty gate for the G5 PublishHook / real SchemaService DDL leftover
+# beyond #196/#171/#145. Does not start live PG 15 or a product JAR.
+# Does not redo #94 / #145 / #171 / #196. Not product G5 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g5-publishhook-ddl-honesty.sh"
+      - "scripts/g5-publishhook-ddl-honesty/**"
+      - ".github/workflows/g5-publishhook-ddl-honesty.yml"
+      - "docs/g5-publishhook-ddl-honesty.md"
+      - "docs/engineering/g5-publishhook-ddl-honesty-EVIDENCE.md"
+      - "docs/README.md"
+  pull_request:
+    paths:
+      - "scripts/g5-publishhook-ddl-honesty.sh"
+      - "scripts/g5-publishhook-ddl-honesty/**"
+      - ".github/workflows/g5-publishhook-ddl-honesty.yml"
+      - "docs/g5-publishhook-ddl-honesty.md"
+      - "docs/engineering/g5-publishhook-ddl-honesty-EVIDENCE.md"
+      - "docs/README.md"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g5-publishhook-ddl-honesty.sh --verify-report \
+          scripts/g5-publishhook-ddl-honesty/fixtures/honest-skip.env
+      - name: Fake real SchemaService DDL PASS without a walk is rejected
+        run: ./scripts/g5-publishhook-ddl-honesty.sh --verify-report \
+          scripts/g5-publishhook-ddl-honesty/fixtures/fake-real-ddl-pass.env fail
+      - name: Fake PublishHook real-DDL PASS without a walk is rejected
+        run: ./scripts/g5-publishhook-ddl-honesty.sh --verify-report \
+          scripts/g5-publishhook-ddl-honesty/fixtures/fake-publishhook-ddl-pass.env fail
+      - name: Fake memory-harness-as-real-DDL is rejected
+        run: ./scripts/g5-publishhook-ddl-honesty.sh --verify-report \
+          scripts/g5-publishhook-ddl-honesty/fixtures/fake-memory-as-real-ddl.env fail
+      - name: Fake product G5 close is rejected
+        run: ./scripts/g5-publishhook-ddl-honesty.sh --verify-report \
+          scripts/g5-publishhook-ddl-honesty/fixtures/fake-g5-close.env fail
+      - name: Fake #196 redo is rejected
+        run: ./scripts/g5-publishhook-ddl-honesty.sh --verify-report \
+          scripts/g5-publishhook-ddl-honesty/fixtures/fake-redone.env fail
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest real-DDL SKIP
+        run: |
+          chmod +x ./scripts/g5-publishhook-ddl-honesty.sh
+          ./scripts/g5-publishhook-ddl-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g5-publishhook-ddl-honesty"
+          ./scripts/g5-publishhook-ddl-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^mid_publish_memory_harness=PASS$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^memory_harness_is_real_ddl=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^confirm_then_abort_wrapper_is_real_ddl=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^zonky_94_145_is_this_leftover_pass=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^real_schema_service_ddl_abort=SKIP$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^publishhook_real_ddl=SKIP$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^g5_close=NOT_CLAIMED$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^leftover_rows_all=true$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^redone_94=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^redone_145=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^redone_171=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^redone_196=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g5-publishhook-ddl-honesty/report.env"
+          grep -F 'g2-h5-every-page-form-write-honesty' docs/README.md
+          grep -F 'g5-mid-publish-failure-honesty' docs/README.md
+          grep -F 'g9-redis-down-invalidate-remainder' docs/README.md
+          grep -F 'g17-mfa-recovery-vue-otp-honesty' docs/README.md
+          grep -F 'g2-ops-pg-dump-honesty' docs/README.md
+          grep -F 'g9-sentinel-cluster-remainder-honesty' docs/README.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g5-publishhook-ddl-honesty
+          path: ${{ runner.temp }}/g5-publishhook-ddl-honesty
