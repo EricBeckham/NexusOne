@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/DMN/20151101"
+             namespace="http://nexus.one/poc/dmn" name="ApprovalDecision">
+  <decision id="approvalDecision" name="Approval Decision">
+    <decisionTable id="approvalDecisionTable" hitPolicy="FIRST">
+      <input id="amountInput" label="Amount">
+        <inputExpression id="amountExpression" typeRef="integer"><text>amount</text></inputExpression>
+      </input>
+      <output id="routeOutput" name="route" typeRef="string"/>
+      <rule id="largeRule">
+        <inputEntry id="largeTest"><text>&gt;= 100</text></inputEntry>
+        <outputEntry id="largeOutput"><text>"review"</text></outputEntry>
+      </rule>
+      <rule id="smallRule">
+        <inputEntry id="smallTest"><text>-</text></inputEntry>
+        <outputEntry id="smallOutput"><text>"auto"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

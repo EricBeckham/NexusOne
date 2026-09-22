@@ -4,6 +4,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Properties;
@@ -83,6 +86,110 @@ public final class Main {
         }
     }
 
+    private static String failoverId() {
+        String id = System.getenv("P0_07_FAILOVER_ID");
+        if (id == null || !id.matches("[a-zA-Z0-9-]{8,80}")) {
+            throw new IllegalArgumentException("Set P0_07_FAILOVER_ID to an 8-80 character alphanumeric/hyphen run ID");
+        }
+        return id;
+    }
+
+    private static void ensureRecoveryLog() throws Exception {
+        try (Connection c = DriverManager.getConnection(URL, USER, password());
+             Statement s = c.createStatement()) {
+            s.execute("CREATE TABLE IF NOT EXISTS quartz.poc_recovery_log (id bigserial PRIMARY KEY, run_id varchar(80) NOT NULL, phase varchar(30) NOT NULL, scheduler_instance varchar(200) NOT NULL, at_time timestamptz NOT NULL DEFAULT now())");
+        }
+    }
+
+    private static void recoveryLog(String runId, String phase, String instance) throws Exception {
+        try (Connection c = DriverManager.getConnection(URL, USER, password());
+             PreparedStatement s = c.prepareStatement("INSERT INTO quartz.poc_recovery_log (run_id, phase, scheduler_instance) VALUES (?, ?, ?)")) {
+            s.setString(1, runId);
+            s.setString(2, phase);
+            s.setString(3, instance);
+            s.executeUpdate();
+        }
+    }
+
+    public static final class RecoveryJob implements Job {
+        @Override public void execute(JobExecutionContext context) throws JobExecutionException {
+            String runId = context.getJobDetail().getJobDataMap().getString("runId");
+            try {
+                String instance = context.getScheduler().getSchedulerInstanceId();
+                String phase = context.isRecovering() ? "RECOVER_START" : "START";
+                recoveryLog(runId, phase, instance);
+                System.out.println("FAILOVER " + phase + " " + runId + " on " + instance);
+                if (!context.isRecovering()) Thread.sleep(60_000);
+                recoveryLog(runId, "COMPLETE", instance);
+                System.out.println("FAILOVER COMPLETE " + runId + " on " + instance);
+            } catch (Exception e) {
+                throw new JobExecutionException(e, false);
+            }
+        }
+    }
+
+    private static void scheduleRecovery() throws Exception {
+        String runId = failoverId();
+        ensureRecoveryLog();
+        Scheduler s = scheduler();
+        try {
+            s.scheduleJob(JobBuilder.newJob(RecoveryJob.class)
+                            .withIdentity("failover-" + runId, "poc")
+                            .usingJobData("runId", runId)
+                            .requestRecovery(true)
+                            .build(),
+                    TriggerBuilder.newTrigger()
+                            .withIdentity("failover-" + runId, "poc")
+                            .startAt(Date.from(Instant.now().plusSeconds(2)))
+                            .build());
+            System.out.println("SCHEDULED recovery job for " + runId);
+        } finally {
+            s.shutdown();
+        }
+    }
+
+    private static long recoveryCount(String runId, String phase) throws Exception {
+        try (Connection c = DriverManager.getConnection(URL, USER, password());
+             PreparedStatement s = c.prepareStatement("SELECT count(*) FROM quartz.poc_recovery_log WHERE run_id=? AND phase=?")) {
+            s.setString(1, runId);
+            s.setString(2, phase);
+            try (ResultSet r = s.executeQuery()) { r.next(); return r.getLong(1); }
+        }
+    }
+
+    private static void checkRecovery() throws Exception {
+        String runId = failoverId();
+        if (recoveryCount(runId, "START") != 1 || recoveryCount(runId, "RECOVER_START") != 1
+                || recoveryCount(runId, "COMPLETE") != 1) {
+            throw new IllegalStateException("Recovery counts must be START=1, RECOVER_START=1, COMPLETE=1 for " + runId);
+        }
+        try (Connection c = DriverManager.getConnection(URL, USER, password());
+             PreparedStatement s = c.prepareStatement("SELECT count(DISTINCT scheduler_instance) FROM quartz.poc_recovery_log WHERE run_id=?")) {
+            s.setString(1, runId);
+            try (ResultSet r = s.executeQuery()) {
+                r.next();
+                if (r.getLong(1) != 2) throw new IllegalStateException("Recovery must run on a different scheduler instance");
+            }
+        }
+        System.out.println("PASS: failed-node recovery on a second instance for " + runId);
+    }
+
+    private static void recoveryStatus() throws Exception {
+        String runId = failoverId();
+        ensureRecoveryLog();
+        long active;
+        try (Connection c = DriverManager.getConnection(URL, USER, password());
+             Statement s = c.createStatement();
+             ResultSet r = s.executeQuery("SELECT count(*) FROM quartz.qrtz_scheduler_state WHERE sched_name='P007Cluster'")) {
+            r.next();
+            active = r.getLong(1);
+        }
+        System.out.println("ACTIVE_NODE_COUNT=" + active);
+        System.out.println("START=" + recoveryCount(runId, "START"));
+        System.out.println("RECOVER_START=" + recoveryCount(runId, "RECOVER_START"));
+        System.out.println("COMPLETE=" + recoveryCount(runId, "COMPLETE"));
+    }
+
     private static void schedule() throws Exception {
         Scheduler s = scheduler();
         try {
@@ -134,6 +241,22 @@ public final class Main {
                 assertSql("SELECT count(*) FROM quartz.poc_fire_log WHERE job_key='misfire'", 1);
                 System.out.println("PASS: 20 unique clustered executions and one misfire execution");
             }
+            case "failover-schedule" -> scheduleRecovery();
+            case "failover-node" -> {
+                Scheduler s = scheduler();
+                s.start();
+                System.out.println("FAILOVER_NODE_READY instance=" + s.getSchedulerInstanceId());
+                try {
+                    String stopFile = System.getenv("P0_07_STOP_FILE");
+                    long deadline = System.currentTimeMillis() + 100_000;
+                    while (System.currentTimeMillis() < deadline) {
+                        if (stopFile != null && Files.exists(Path.of(stopFile))) break;
+                        Thread.sleep(500);
+                    }
+                } finally { s.shutdown(true); }
+            }
+            case "failover-check" -> checkRecovery();
+            case "failover-status" -> recoveryStatus();
             default -> throw new IllegalArgumentException("Unknown mode: " + args[0]);
         }
     }

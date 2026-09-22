@@ -57,13 +57,26 @@ docker compose --env-file .env exec -T postgres psql -U poc -d nexus_p0_07 -c 's
 
 | 项目 | 待补证据 | 当前状态 |
 |---|---|---|
-| 真正故障转移 | 两节点运行时强制杀死持有执行中的节点，监测恢复、重复副作用、misfire 和重试；需业务幂等表保护 | 未运行 |
+| 单任务节点故障转移 | 运行 `run-local-failover.ps1`，验证持有长任务的节点被定向终止后，存活节点以 recovery 模式接管，完成一次 | 已在本地 PostgreSQL 15.18 PoC 通过；见 `TEST-RESULTS.md` |
+| 业务级故障安全 | 多任务并发、外部副作用幂等、数据库 Task Queue/Outbox 联动、真实网络分区与进程重启；需业务幂等表保护 | 未运行 |
 | 并发/压力 | 多节点长期运行、时钟同步、锁竞争、Misfire 积压与 P95 | 未运行 |
 | 升级/回滚 | 旧版 Quartz 表和 Flyway 迁移升级、备份恢复、旧应用版本兼容 | 未运行 |
 | 生产隔离 | 使用最小权限数据库账号；本 PoC 的镜像初始化账号 `poc` 是超级用户 | 未运行 |
 | 交付矩阵 | Java 21、目标 Linux/CPU、PostgreSQL 版本、许可证、SBOM/CVE、离线源 | 未运行 |
 
-本机没有 Docker CLI；Compose YAML 静态解析通过。已在独立本地 PostgreSQL 15.18 测试实例 `127.0.0.1:55438/nexus_p0_07` 执行数据库验证：Flyway V1/V2、故意失败的 V3 事务回滚、修复 V3 与历史校验均通过；Quartz 两个节点共执行 20 个唯一任务及 1 个 Misfire，分别记录 10 和 11 次。运行期间补充了 Quartz 声明为 provided 的 `c3p0:0.10.1` 依赖，并使 JDBC URL、用户、密码可通过 `P0_07_JDBC_URL`、`P0_07_DB_USER`、`P0_07_DB_PASSWORD` 覆盖。该实例仅绑定回环地址并使用本地 host trust；它不是目标 Linux/Java 21 Profile，也尚未验证真正节点故障转移、长期压力或升级兼容性。
+本机没有 Docker CLI；Compose YAML 静态解析通过。已在独立本地 PostgreSQL 15.18 测试实例 `127.0.0.1:55438/nexus_p0_07` 执行数据库验证：Flyway V1/V2、故意失败的 V3 事务回滚、修复 V3 与历史校验均通过；Quartz 两个节点共执行 20 个唯一任务及 1 个 Misfire，分别记录 10 和 11 次。单任务节点故障转移也已通过，细节见 `TEST-RESULTS.md`。运行期间补充了 Quartz 声明为 provided 的 `c3p0:0.10.1` 依赖，并使 JDBC URL、用户、密码可通过 `P0_07_JDBC_URL`、`P0_07_DB_USER`、`P0_07_DB_PASSWORD` 覆盖。该实例仅绑定回环地址并使用本地 host trust；它不是目标 Linux/Java 21 Profile，也尚未验证业务级幂等、长期压力或升级兼容性。
+
+本地故障转移复现命令（只接受下述回环地址和专用数据库，脚本只终止自己启动且命令行匹配的 Java PoC 节点）：
+
+```powershell
+$env:P0_07_JDBC_URL = 'jdbc:postgresql://127.0.0.1:55438/nexus_p0_07'
+$env:P0_07_DB_USER = 'nexus_poc'
+mvn -q -DskipTests compile
+mvn -q dependency:build-classpath '-Dmdep.outputFile=target/classpath.txt'
+./run-local-failover.ps1
+```
+
+脚本先启动节点 A，调度一个 `requestRecovery(true)` 的长任务；确认任务已开始后启动节点 B，确认 B 就绪，再核验并终止 A 的专属 PID。B 必须记录 `RECOVER_START` 和 `COMPLETE`，测试断言原执行、恢复执行和完成各一次，且两个实例 ID 不同。完成后 B 通过停止标志正常退出。受故障注入性质影响，Quartz 的 `qrtz_scheduler_state` 可留下已退出节点的旧 check-in 行；再次执行时 Quartz 会清理，但应在目标环境纳入监控。
 
 ## 来源
 

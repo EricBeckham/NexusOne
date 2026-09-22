@@ -64,6 +64,14 @@ public final class PocTest {
         equal("SELECT \"id\" FROM \"ledger_entry\"", summary.sql);
         equal(true, summary.plan.platformContext);
         equal("SELECT \"id\" FROM \"platform_metric\"", executor.compile(Poc.Query.select("platform_metric", Arrays.asList("id"), map()), platform).sql);
+        Poc.NativeSqlPort nativePort = new Poc.NativeSqlPort(executor, Collections.singletonMap("infra.count-ledger", "ledger_entry"));
+        Poc.RenderedSql nativeCount = nativePort.compileCount("infra.count-ledger", alpha);
+        equal("SELECT count(*) FROM \"ledger_entry\" WHERE \"tenant_id\" = ?", nativeCount.sql);
+        equal(Arrays.asList("alpha"), nativeCount.parameters);
+        equal(true, nativeCount.plan.tenantRequired);
+        denied(() -> nativePort.compileCount("business.raw-sql", alpha));
+        denied(() -> nativePort.compileCount("infra.count-ledger", null));
+        equal("SELECT count(*) FROM \"ledger_entry\"", nativePort.compileCount("infra.count-ledger", platform).sql);
         System.out.println("PASS " + checks + " isolation assertions");
     }
 }

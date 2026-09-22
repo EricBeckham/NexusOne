@@ -167,6 +167,32 @@ public final class Poc {
         }
     }
 
+    /** Infrastructure-owned native templates only. Callers cannot supply SQL or table names. */
+    public static final class NativeSqlPort {
+        private final Executor executor;
+        private final Map<String, String> countTemplates;
+        public NativeSqlPort(Executor executor, Map<String, String> countTemplates) {
+            this.executor = executor;
+            this.countTemplates = Collections.unmodifiableMap(new LinkedHashMap<String, String>(countTemplates));
+        }
+        public RenderedSql compileCount(String templateId, Context context) {
+            String table = countTemplates.get(templateId);
+            if (table == null) throw new SecurityException("native template is not whitelisted");
+            // Derive the access plan from the same guarded AST path. A tenant predicate
+            // is mandatory for tenant callers; platform access uses its audited context.
+            RenderedSql checked = executor.compile(Query.select(table, Collections.singletonList("id"),
+                Collections.<String, Object>emptyMap()), context);
+            String sql = "SELECT count(*) FROM " + quote(checked.plan.table);
+            if (checked.plan.tenantRequired && !checked.plan.platformContext) {
+                sql += " WHERE \"tenant_id\" = ?";
+                if (checked.parameters.size() != 1) throw new SecurityException("native tenant binding mismatch");
+            } else if (!checked.parameters.isEmpty()) {
+                throw new SecurityException("unexpected native parameters");
+            }
+            return new RenderedSql(sql, checked.parameters, checked.plan);
+        }
+    }
+
     private static final class TenantInjector {
         private static Query inject(Query q, Table table, Context context) {
             if (context == null) throw new SecurityException("missing context");

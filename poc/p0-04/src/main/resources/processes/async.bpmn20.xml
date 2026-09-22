@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://nexus.one/poc">
+  <process id="asyncProbeProcess" name="Async Probe" isExecutable="true">
+    <startEvent id="start"/><sequenceFlow id="toProbe" sourceRef="start" targetRef="probe"/>
+    <serviceTask id="probe" name="Async Probe" flowable:async="true"
+                 flowable:delegateExpression="${asyncProbe}"/>
+    <sequenceFlow id="toEnd" sourceRef="probe" targetRef="end"/><endEvent id="end"/>
+  </process>
+</definitions>
