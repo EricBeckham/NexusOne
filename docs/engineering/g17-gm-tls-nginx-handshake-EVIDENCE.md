@@ -43,8 +43,8 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Real Tongsuo/Nginx GMTLS handshake | pending record | PASS only with Tongsuo nginx + Tongsuo `s_client` + observed handshake |
-| handshake_observed | pending | must stay `false` on SKIP |
+| Real Tongsuo/Nginx GMTLS handshake | **SKIP** (expected) | nginx not on PATH; stock OpenSSL 3.0.13 is not Tongsuo |
+| handshake_observed | **false** | honesty gate requires `false` on SKIP |
 | GM/T 0024 enc-cert negotiated | **SKIP** | RFC 8998 leftover; NTLS only when binaries exist |
 | #110 / #129 redo | **false** | dual-cert and dual-stack probe untouched |
 | #154 recovery / email MFA | **not redone** | [g17-admin-mfa-recovery-email.md](../g17-admin-mfa-recovery-email.md) |
