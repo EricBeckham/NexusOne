@@ -1,6 +1,6 @@
 # Linux / ARM Profile leftover: TARGET-ARM-01 / supply-chain-evidence honesty — evidence
 
-Recorded on this branch after rebase onto `origin/main` `2f2825a` (Merge #161). Operator: cloud agent. Live output: `.local/linux-arm-profile-honesty/` (gitignored). Committed copy: [`linux-arm-profile/agent-vm-x86_64-honesty.txt`](./linux-arm-profile/agent-vm-x86_64-honesty.txt) (filled after the honesty run on this branch).
+Recorded on this branch after rebase onto `origin/main` `fce63de` (Merge #164). Operator: cloud agent. Live output: `.local/linux-arm-profile-honesty/` (gitignored). Committed copy: [`linux-arm-profile/agent-vm-x86_64-honesty.txt`](./linux-arm-profile/agent-vm-x86_64-honesty.txt) (filled after the honesty run on this branch).
 
 **Product target Linux/ARM Profile is NOT accepted.** This leftover does **not** redo #105 collect/verify or #127 lifecycle. It does **not** rewrite P0-10 / M0-01～M0-12. It does **not** change `AuditPort`. **G18 stays closed.**
 
