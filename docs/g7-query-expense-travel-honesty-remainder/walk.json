@@ -8,6 +8,7 @@
     "g7-withdraw-browser-evidence-honesty",
     "g7-withdraw-expense-travel",
     "g2-h5-every-page-form-write-remainder-honesty",
+    "g9-redis-down-invalidate-remainder-honesty",
     "g4-hot-purge-staging-leftover-honesty",
     "g10-leftover-honesty-remainder",
     "g3-outbox-consume-idempotent-honesty",
@@ -18,6 +19,6 @@
   "live_browser_query_click": "SKIP",
   "g7Close": "NOT_CLAIMED",
   "g18": "closed_unchanged",
-  "timestampUtc": "2026-09-22T22:18:39Z",
+  "timestampUtc": "2026-09-22T22:21:51Z",
   "evidence": "scripts/g7-query-expense-travel-honesty-remainder.sh"
 }
