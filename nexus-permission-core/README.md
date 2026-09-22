@@ -14,6 +14,7 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | FieldPolicy projection / masking / second-auth | `FieldPolicyProjector` |
 | list / detail / total / pagination share one WHERE (`tenant_id` first) | `PermissionQueryBinder` / `ScopedQuery` |
 | Isolation kernel seam: AND extra filters, never strip `tenant_id` | `IsolationDataScopeInjector` |
+| Query AST SELF/DEPT + FieldPolicy visibility (opt-in) | `QueryAstPolicyCompiler` |
 | PolicySnapshot version + LRU + fail-closed | `SnapshotManager` |
 | Short-cycle version poll (between requests) | `PolicySnapshotPoller` |
 | Redis 3.2 PUBLISH/SUBSCRIBE invalidate-only (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |
@@ -108,7 +109,7 @@ export NEXUS_REDIS_PORT=6379
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
 - Redis failover / Cluster / Sentinel (P2-down timeout-then-reject is on `SnapshotManager`, not Sentinel)
-- Query AST OUTER/CROSS JOIN and nested subquery (IN/EXISTS, batch INSERT, sort, and page isolation is M0-02; this module still binds OR DataScope via `PermissionQueryBinder`)
+- Query AST OR / multi-value IN DataScope (SELF/DEPT equality + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler`; OUTER/CROSS JOIN and nested subquery isolation is M0-02)
 - SQL Guard implementation (owned by M0-02)
 - Live Keycloak (owned by M0-04)
 - Docker / Compose as a hard dependency

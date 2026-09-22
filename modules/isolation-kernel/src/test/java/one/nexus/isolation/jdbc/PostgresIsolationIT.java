@@ -463,8 +463,104 @@ class PostgresIsolationIT {
             }
         }
     }
+    @Test
+    void selfAndDeptFiltersReturnOnlyBoundOwnerAndRejectStolenTenantBeforeJdbc() throws Exception {
+        try (Connection raw = postgres.getPostgresDatabase().getConnection()) {
+            raw.setAutoCommit(false);
+            try {
+                try (Statement fixture = raw.createStatement()) {
+                    fixture.execute("""
+                            CREATE TABLE ledger_entry (
+                                id text PRIMARY KEY,
+                                tenant_id text NOT NULL,
+                                title text NOT NULL,
+                                owner_id text NOT NULL,
+                                department_id text NOT NULL,
+                                secret text
+                            )
+                            """);
+                }
+                CollectingAuditSink sink = new CollectingAuditSink();
+                TableRegistry registry = new TableRegistry();
+                registry.registerTenant(
+                        "ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id", "department_id", "secret");
+                IsolationKernel selfKernel = IsolationKernel.create(
+                        registry,
+                        Set.of("ops.summary"),
+                        sink,
+                        one.nexus.isolation.spi.DataScopeInjector.andEquals(map("owner_id", "user-a")),
+                        (q, t, c) -> q);
+                IsolationKernel deptKernel = IsolationKernel.create(
+                        registry,
+                        Set.of("ops.summary"),
+                        sink,
+                        one.nexus.isolation.spi.DataScopeInjector.andEquals(map("department_id", "d1")),
+                        (q, t, c) -> q);
+                TenantContext alpha = selfKernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-a");
+                TenantContext beta = selfKernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-b"), "beta", "mem-b", Set.of("beta")), "trace-b");
+
+                AtomicInteger executions = new AtomicInteger();
+                Connection connection = counting(raw, executions);
+                selfKernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a1", "title", "mine", "owner_id", "user-a", "department_id", "d1", "secret", "s1")), alpha);
+                selfKernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "a2", "title", "other", "owner_id", "user-x", "department_id", "d2", "secret", "s2")), alpha);
+                selfKernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map(
+                        "id", "b1", "title", "beta", "owner_id", "user-a", "department_id", "d1", "secret", "s3")), beta);
+
+                List<String> selfTitles = titles(
+                        selfKernel,
+                        connection,
+                        alpha,
+                        QueryAst.select("ledger_entry", List.of("title", "secret"), Map.of())
+                                .withProjection(List.of("title")));
+                assertEquals(List.of("mine"), selfTitles);
+                List<String> deptTitles = titles(
+                        deptKernel,
+                        connection,
+                        alpha,
+                        QueryAst.select("ledger_entry", List.of("title"), Map.of()));
+                assertEquals(List.of("mine"), deptTitles);
+
+                int before = executions.get();
+                Connection unusable = unusable();
+                deny(IsolationErrorCode.CROSS_TENANT_READ, () ->
+                        selfKernel.jdbc().executeQuery(
+                                unusable,
+                                QueryAst.select("ledger_entry", List.of("title"), map("tenant_id", "beta")),
+                                alpha));
+                deny(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, () -> {
+                    IsolationKernel hostile = IsolationKernel.create(
+                            registry,
+                            Set.of("ops.summary"),
+                            sink,
+                            (query, table, context) -> query.withFilters(map("owner_id", "user-a")),
+                            (q, t, c) -> q);
+                    hostile.jdbc().executeQuery(
+                            unusable,
+                            QueryAst.select("ledger_entry", List.of("title"), Map.of()),
+                            alpha);
+                });
+                assertEquals(before, executions.get(), "denied DataScope/tenant plans must not reach JDBC");
+            } finally {
+                raw.rollback();
+            }
+        }
+    }
+
     private static List<String> titles(IsolationKernel kernel, Connection connection, TenantContext tenant) throws Exception {
-        return kernel.jdbc().executeQuery(connection, QueryAst.select("ledger_entry", List.of("title"), Map.of()), tenant)
+        return titles(kernel, connection, tenant, QueryAst.select("ledger_entry", List.of("title"), Map.of()));
+    }
+
+    private static List<String> titles(
+            IsolationKernel kernel,
+            Connection connection,
+            TenantContext tenant,
+            QueryAst query
+    ) throws Exception {
+        return kernel.jdbc().executeQuery(connection, query, tenant)
                 .stream()
                 .map(row -> String.valueOf(row.get("title")))
                 .toList();

@@ -85,7 +85,8 @@ mvn -pl nexus-permission-core -am test
 | `DataScopeCompilerTest` | SELF / DEPT / DEPT_AND_CHILDREN / SPECIFIED / ALL |
 | `PredicateSqlCompilerTest` | Golden parameterized SQL; unknown column rejected |
 | `ListDetailTotalPaginationTest` | list / detail / total / page share `tenant_id = ? AND (scope)` |
-| `IsolationDataScopeInjectorTest` | Extra AND filters; refuses missing/replaced `tenant_id` |
+| `IsolationDataScopeInjectorTest` | Extra AND filters; refuses missing/replaced `tenant_id`; Query AST injector ANDs SELF without stripping tenant |
+| `QueryAstPolicyCompilerTest` | SELF/DEPT equality + hidden drop onto Query AST; OR / multi-value IN leftover |
 | `FieldPolicyProjectorTest` | Drop hidden; FULL mask without second auth |
 | `GoldenPostgresDataScopeTest` | Rows Alpha + Beta; r4/r9 excluded; cross-tenant UPDATE of r9 rejected |
 | `DualTenantIsolationTest` | Tenant A grants do not appear in B snapshot; evaluate(A, B) is `tenant_boundary` |
@@ -190,6 +191,6 @@ Recorded **2026-09-22T17:50:40Z** on this agent VM after rebase onto `main@ec116
 | `G9PolicySnapshotFailoverTest` | 5/5 | Existing Redis-down GRANT path unchanged |
 | `PermissionEngineTest` | 7/7 | Truth table unchanged |
 - Time/IP context evaluation (upstream Predicate only)
-- Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL
+- Isolation-kernel QueryAst still cannot encode OR / multi-value IN trees; SELF/DEPT equality + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler` ([docs/g1-datascope-fieldpolicy-ast.md](../docs/g1-datascope-fieldpolicy-ast.md)). Product list/detail still uses `PermissionQueryBinder` unless callers opt in.
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
 - Demo `tenant_member` ALL-scope seed remains for the closed G18 walk and is not permission-complete

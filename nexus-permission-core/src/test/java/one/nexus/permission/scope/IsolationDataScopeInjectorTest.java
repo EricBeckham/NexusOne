@@ -6,6 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import one.nexus.isolation.IsolationKernel;
+import one.nexus.isolation.api.Actor;
+import one.nexus.isolation.api.AuthenticatedMembership;
+import one.nexus.isolation.api.QueryAst;
+import one.nexus.isolation.api.RenderedSql;
+import one.nexus.isolation.api.TableDescriptor;
+import one.nexus.isolation.api.TableScope;
+import one.nexus.isolation.api.TenantContext;
+import one.nexus.isolation.audit.CollectingAuditSink;
+import one.nexus.isolation.query.TableRegistry;
+import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.support.PermissionException;
 import org.junit.jupiter.api.Test;
@@ -39,5 +51,44 @@ class IsolationDataScopeInjectorTest {
                 Predicate.atom("owner_id", "=", "u1"));
         assertEquals("SELECT id FROM ledger WHERE tenant_id = ? AND (owner_id = ?)", bound.sql());
         assertEquals(List.of("t1", "u1"), bound.parameters());
+    }
+
+    @Test
+    void queryAstInjectorAndsSelfWithoutStrippingTenant() {
+        TableDescriptor table = new TableDescriptor(
+                "ledger_entry",
+                TableScope.TENANT,
+                Set.of("id", "tenant_id", "title", "owner_id"),
+                "p3",
+                1);
+        IsolationDataScopeInjector scoped = new IsolationDataScopeInjector(
+                new Decision(true, "self", Predicate.atom("owner_id", "=", "u1"), Map.of(), 1L));
+        QueryAst after = scoped.inject(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of("tenant_id", "t1")),
+                table,
+                null);
+        assertEquals("t1", after.filters().get("tenant_id"));
+        assertEquals("u1", after.filters().get("owner_id"));
+        assertThrows(PermissionException.class, () -> scoped.inject(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()),
+                table,
+                null));
+    }
+
+    @Test
+    void kernelCompilerRendersEncodedSelfThroughInjector() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id");
+        IsolationDataScopeInjector scoped = new IsolationDataScopeInjector(Map.of("owner_id", "u1"));
+        IsolationKernel kernel = IsolationKernel.create(
+                registry, Set.of("ops.summary"), new CollectingAuditSink(), scoped, (q, t, c) -> q);
+        TenantContext alpha = kernel.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-a");
+        RenderedSql sql = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id", "title"), Map.of()), alpha);
+        assertEquals(
+                "SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"owner_id\" = ?",
+                sql.sql());
+        assertEquals(List.of("alpha", "u1"), sql.parameters());
     }
 }

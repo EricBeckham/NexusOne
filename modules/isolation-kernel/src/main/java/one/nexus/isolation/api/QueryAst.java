@@ -13,7 +13,10 @@ import java.util.Objects;
  * add INNER / OUTER / CROSS JOIN of registered tables; SELECT / UPDATE / DELETE
  * may add IN / EXISTS subqueries, including nested subquery-in-subquery; SELECT
  * may add ORDER BY + LIMIT/OFFSET; INSERT may be a multi-row batch. Each tenant
- * table still gets its own {@code tenant_id} predicate.
+ * table still gets its own {@code tenant_id} predicate. Safe SELF/DEPT DataScope
+ * equality atoms may already sit in {@link #filters()}; FieldPolicy-visible
+ * columns may already sit in {@link #projection()}. OR / IN trees and masks stay
+ * outside this AST.
  */
 public final class QueryAst {
     private final QueryKind kind;
@@ -139,6 +142,10 @@ public final class QueryAst {
 
     public QueryAst withValues(Map<String, Object> nextValues) {
         return new QueryAst(kind, table, projection, nextValues, filters, joins, subqueries, sorts, page, batchRows);
+    }
+
+    public QueryAst withProjection(List<String> nextProjection) {
+        return new QueryAst(kind, table, nextProjection, values, filters, joins, subqueries, sorts, page, batchRows);
     }
 
     public QueryAst withFilters(Map<String, Object> nextFilters) {

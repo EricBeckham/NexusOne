@@ -2,8 +2,8 @@
 
 Honest leftover work. These are not claimed as done.
 
-- Query AST leftovers beyond this kernel: callers that skip `QueryCompiler`, report UI / physical dump, and DataScope / FieldPolicy compilation into the AST. INNER / OUTER / CROSS JOIN and nested IN/EXISTS subquery-in-subquery are compiled; each tenant table at every join and nesting level gets its own `tenant_id` predicate.
-- DataScope / FieldPolicy compilation into the AST (M0-05). The DataScope seam still cannot strip `tenant_id` (including join predicates). Export uses a visibility/second-auth gate (`ExportFieldPolicyGuard`); mask merge stays in `FieldPolicyProjector`.
+- Query AST leftovers beyond this kernel: callers that skip `QueryCompiler`, report UI / physical dump, and OR / multi-value IN DataScope. INNER / OUTER / CROSS JOIN and nested IN/EXISTS subquery-in-subquery are compiled; each tenant table at every join and nesting level gets its own `tenant_id` predicate. Safe SELF/DEPT equality and FieldPolicy-visible projections can be encoded onto the AST ([g1-datascope-fieldpolicy-ast.md](../../../docs/g1-datascope-fieldpolicy-ast.md)).
+- DataScope / FieldPolicy leftovers (M0-05). The DataScope seam still cannot strip `tenant_id` (including join predicates) and may AND SELF/DEPT equality atoms. OR / multi-value IN stay outside the AST. Export uses a visibility/second-auth gate (`ExportFieldPolicyGuard`); mask merge stays in `FieldPolicyProjector`.
 - Generic NativeSqlPort beyond count templates.
 - Static scanner is regex-based: aliases, reflection, generated code, and JNI are not covered. Must keep infrastructure-root allowlisting tight.
 - No servlet/Spring filter here — M0-01 must call `RequestIsolationPolicy` from its filter/interceptor.

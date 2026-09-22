@@ -29,6 +29,9 @@ import one.nexus.isolation.spi.SoftDeleteInjector;
  * (including nested subquery-in-subquery), multi-row INSERT, ORDER BY, and
  * LIMIT/OFFSET of registered tables are compiled here. Each tenant-scoped table,
  * including every nested subquery level, gets its own {@code tenant_id} predicate.
+ * SELF/DEPT equality atoms and FieldPolicy-visible projections may already be
+ * encoded on the AST; {@link DataScopeInjector} may only AND extra predicates
+ * and cannot strip {@code tenant_id}.
  */
 public final class QueryCompiler {
     private final TableRegistry registry;

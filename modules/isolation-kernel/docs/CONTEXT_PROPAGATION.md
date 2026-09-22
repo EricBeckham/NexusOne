@@ -29,7 +29,7 @@ TenantContext  (ThreadLocal via AccessContextHolder)
 ```text
 QueryAst  (no SQL text; SELECT may INNER JOIN / IN-EXISTS including nested subquery-in-subquery / ORDER BY / LIMIT; INSERT may batch)
    → TenantInjector          (cannot be disabled; each join and every subquery level too; each batch row)
-   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id, join tenant, subquery/nested-subquery tenant, or batch tenant)
+   → DataScopeInjector SPI   (M0-05; cannot remove tenant_id, join tenant, subquery/nested-subquery tenant, or batch tenant; may AND SELF/DEPT equality atoms)
    → SoftDeleteInjector SPI
    → TableAccessPlan Guard   (primary + each join + each subquery level)
    → parameterized PostgreSQL renderer
@@ -84,7 +84,7 @@ Platform context may read tenant prefixes (ops/reconciliation) but tenant contex
 
 `ExportGuard` / `IsolatedExport` is the export surface. Cross-tenant export is `P1.M02.019` and must not submit a Task, write a file, or update export cache status. Task type `ledger.export.csv` still travels in `IsolatedEnvelope`. Accepted submit / writeFile / dispatch emit `EXPORT_ACCEPTED`; product `AuditPortIsolationSink` persists those with `AuditPort.append` on the existing hash chain.
 
-`IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. Cross-tenant INNER / OUTER / CROSS JOIN is `P1.M02.020` and must not reach JDBC. Cross-tenant IN/EXISTS subquery is `P1.M02.022`; stolen batch INSERT is `P1.M02.023`; unregistered ORDER BY is `P1.M02.024`; LIMIT/OFFSET outside `1..1000` / `offset >= 0` is `P1.M02.025`. None of those reach JDBC.
+`IsolatedExport.compile` / `writeProjected` also require FieldPolicy. Hidden or second-auth fields are `P1.M02.021` and must not compile Query AST or call the file sink. API-side FieldPolicy visibility may already have dropped hidden columns from `QueryAst.projection()`; that drop does not relax the export reject. Cross-tenant INNER / OUTER / CROSS JOIN is `P1.M02.020` and must not reach JDBC. Cross-tenant IN/EXISTS subquery is `P1.M02.022`; stolen batch INSERT is `P1.M02.023`; unregistered ORDER BY is `P1.M02.024`; LIMIT/OFFSET outside `1..1000` / `offset >= 0` is `P1.M02.025`. None of those reach JDBC.
 
 ## 7. Audit
 

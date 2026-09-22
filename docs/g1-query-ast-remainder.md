@@ -49,7 +49,7 @@ This is **not** a product-wide “zero leak” close. Nested subquery-in-subquer
 | Still open | Why |
 |---|---|
 | OUTER JOIN / CROSS JOIN | Evidenced in [g1-query-outer-cross-join.md](./g1-query-outer-cross-join.md). |
-| DataScope / FieldPolicy compilation into AST | Unchanged from [g1-query-join-field-policy.md](./g1-query-join-field-policy.md). |
+| DataScope / FieldPolicy compilation into AST | SELF/DEPT equality + visibility encoding is [g1-datascope-fieldpolicy-ast.md](./g1-datascope-fieldpolicy-ast.md). OR / IN / mask leftovers stay there. |
 | Report UI / physical ledger dump | Unchanged. `ledger.export.csv` is still the Task type. |
 | Silent drop on API reads | Unchanged. Export still rejects hidden/second-auth instead of dropping. |
 | UI / H5 every page | Not re-walked. |

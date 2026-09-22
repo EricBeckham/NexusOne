@@ -119,6 +119,53 @@ class QueryCompilerTest {
     }
 
     @Test
+    void selfAndDeptEqualityAtomsRenderBesideTenantPredicate() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id", "department_id", "secret");
+        IsolationKernel kernel = IsolationKernel.create(
+                registry,
+                Set.of("ops.summary"),
+                new CollectingAuditSink(),
+                DataScopeInjector.andEquals(map("owner_id", "user-a", "department_id", "d1")),
+                (q, t, c) -> q);
+        TenantContext alpha = alpha(kernel);
+        RenderedSql scoped = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id", "title"), Map.of())
+                        .withProjection(List.of("id", "title")),
+                alpha);
+        assertTrue(scoped.sql().startsWith("SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE "));
+        assertTrue(scoped.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(scoped.sql().contains("\"owner_id\" = ?"));
+        assertTrue(scoped.sql().contains("\"department_id\" = ?"));
+        assertEquals("alpha", scoped.parameters().getFirst());
+        assertTrue(scoped.parameters().containsAll(List.of("user-a", "d1")));
+        assertEquals(3, scoped.parameters().size());
+        RenderedSql rewritten = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id", "title", "secret"), Map.of())
+                        .withProjection(List.of("id", "title")),
+                alpha);
+        assertTrue(rewritten.sql().startsWith("SELECT \"id\", \"title\" FROM"));
+        assertTrue(!rewritten.sql().contains("secret"));
+    }
+
+    @Test
+    void dataScopeAndEqualsCannotAuthorTenantId() {
+        TableRegistry registry = new TableRegistry();
+        registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "owner_id");
+        IsolationKernel kernel = IsolationKernel.create(
+                registry,
+                Set.of("ops.summary"),
+                new CollectingAuditSink(),
+                DataScopeInjector.andEquals(map("tenant_id", "beta", "owner_id", "user-a")),
+                (q, t, c) -> q);
+        TenantContext alpha = alpha(kernel);
+        RenderedSql scoped = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()), alpha);
+        assertEquals("SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"owner_id\" = ?", scoped.sql());
+        assertEquals(List.of("alpha", "user-a"), scoped.parameters());
+    }
+
+    @Test
     void dataScopeCannotStripTenantPredicate() {
         TableRegistry registry = new TableRegistry();
         registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
