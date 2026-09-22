@@ -105,6 +105,7 @@ class S0SecretRotateGetenvLeftoverHonestyTest {
         assertTrue(report.get("leftover_rows").contains("g7-query-expense-travel-honesty-remainder"));
         assertTrue(report.get("leftover_rows").contains("g1-fieldpolicy-mask-second-auth-remainder-honesty"));
         assertTrue(report.get("leftover_rows").contains("g17-mfa-recovery-vue-otp-remainder-honesty"));
+        assertTrue(report.get("leftover_rows").contains("g5-publishhook-ddl-remainder-honesty"));
         S0SecretRotateGetenvLeftoverHonesty.verify(
                 S0SecretRotateGetenvLeftoverHonesty.parseReport(fixture("honest-skip.env")));
     }
@@ -173,6 +174,7 @@ class S0SecretRotateGetenvLeftoverHonestyTest {
         assertTrue(leftover.contains("g7-query-expense-travel-honesty-remainder"));
         assertTrue(leftover.contains("g1-fieldpolicy-mask-second-auth-remainder-honesty"));
         assertTrue(leftover.contains("g17-mfa-recovery-vue-otp-remainder-honesty"));
+        assertTrue(leftover.contains("g5-publishhook-ddl-remainder-honesty"));
         assertTrue(leftover.contains("does **not** redo #223") || leftover.contains("Does **not** redo #223")
                 || leftover.contains("不重做 #223"));
         assertTrue(leftover.contains("OpenBao"));
