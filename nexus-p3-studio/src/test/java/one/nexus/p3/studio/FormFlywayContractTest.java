@@ -30,5 +30,11 @@ class FormFlywayContractTest {
         assertFalse(text.contains("v501__"));
         assertFalse(text.contains("v510__"));
         assertFalse(text.contains("v520__"));
+        Path v531 = Path.of("src/main/resources/db/migration/V531__form_submission_ledger_record.sql");
+        assertTrue(Files.isRegularFile(v531), v531.toAbsolutePath().toString());
+        String v531Text = Files.readString(v531).toLowerCase(Locale.ROOT);
+        assertTrue(v531Text.contains("ledger_record_id"));
+        assertFalse(v531Text.contains("create table business_data"));
+        assertFalse(v531Text.contains("create table l_"));
     }
 }

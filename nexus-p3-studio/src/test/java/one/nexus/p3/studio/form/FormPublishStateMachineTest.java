@@ -11,12 +11,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import one.nexus.common.error.ErrorCode;
 import one.nexus.common.error.NexusException;
 import one.nexus.isolation.IsolationKernel;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.isolation.query.TableRegistry;
+import one.nexus.p3.port.LedgerRecordSink;
 import one.nexus.p3.studio.StudioIsolation;
 import one.nexus.p3.studio.meta.FieldRef;
 import one.nexus.p3.studio.meta.InMemoryLedgerMetadataCatalog;
@@ -69,6 +71,56 @@ class FormPublishStateMachineTest {
                 "applicant", "alice"));
         assertEquals(1, submission.runningVersion());
         assertEquals("年假", submission.values().get("title"));
+        assertNull(submission.ledgerRecordId());
+    }
+
+    @Test
+    void submitWritesThroughLedgerRecordSink() {
+        UUID ledgerId = UUID.fromString("0199a1c0-0000-7000-8000-00000000aed1");
+        UUID recordId = UUID.fromString("0199a1c0-0000-7000-8000-00000000aec1");
+        AtomicReference<String> code = new AtomicReference<>();
+        AtomicReference<Map<String, Object>> captured = new AtomicReference<>();
+        LedgerRecordSink sink = new LedgerRecordSink() {
+            @Override
+            public UUID insert(String ledgerCode, Map<String, Object> values) {
+                code.set(ledgerCode);
+                captured.set(values);
+                return recordId;
+            }
+
+            @Override
+            public Map<String, Object> update(UUID id, UUID rec, Map<String, Object> values) {
+                return Map.of();
+            }
+
+            @Override
+            public Map<String, Object> get(UUID id, UUID rec) {
+                return Map.of();
+            }
+
+            @Override
+            public java.util.Optional<UUID> findLedgerId(UUID tenantId, String ledgerCode) {
+                return java.util.Optional.of(ledgerId);
+            }
+
+            @Override
+            public java.util.Optional<String> physicalTable(UUID tenantId, UUID id) {
+                return java.util.Optional.of("l_alpha_leave");
+            }
+
+            @Override
+            public void writeApprovalStatus(UUID id, UUID rec, String status) {}
+        };
+        FormService service = new FormService(store, metadata, PublishHook.noop(), Clock.systemUTC(), null, sink);
+        FormRecord form = service.create("demo", "leave_form", "请假单", null, leaveBindings());
+        service.validate(form.formId());
+        service.publish(form.formId(), "v1");
+        FormSubmission submission = service.submit(form.formId(), Map.of(
+                "title", "年假", "days", 3, "applicant", "alice"));
+        assertEquals(recordId, submission.ledgerRecordId());
+        assertEquals(ledgerId, submission.ledgerId());
+        assertEquals("leave_request", code.get());
+        assertEquals("年假", captured.get().get("title"));
     }
 
     @Test

@@ -6,24 +6,26 @@ import java.sql.Statement;
 import org.flywaydb.core.Flyway;
 import org.springframework.test.context.DynamicPropertyRegistry;
 
-final class EmbeddedFlowSupport {
+public final class EmbeddedFlowSupport {
     private EmbeddedFlowSupport() {}
 
-    static EmbeddedPostgres start() throws Exception {
+    public static EmbeddedPostgres start() throws Exception {
         EmbeddedPostgres postgres = EmbeddedPostgres.builder().start();
         assertPostgres15(postgres);
         try (Connection connection = postgres.getPostgresDatabase().getConnection();
              Statement statement = connection.createStatement()) {
             statement.execute("CREATE SCHEMA IF NOT EXISTS flowable");
             statement.execute("CREATE SCHEMA IF NOT EXISTS business_meta");
+            statement.execute("CREATE SCHEMA IF NOT EXISTS business_data");
             statement.execute("CREATE SCHEMA IF NOT EXISTS platform");
             statement.execute("CREATE SCHEMA IF NOT EXISTS iam");
+            statement.execute("GRANT USAGE, CREATE ON SCHEMA business_data TO CURRENT_USER");
         }
         migrate(postgres);
         return postgres;
     }
 
-    static void migrate(EmbeddedPostgres postgres) {
+    public static void migrate(EmbeddedPostgres postgres) {
         Flyway.configure()
                 .dataSource(jdbcUrl(postgres), "postgres", "postgres")
                 .locations("classpath:db/migration")
@@ -34,11 +36,11 @@ final class EmbeddedFlowSupport {
                 .migrate();
     }
 
-    static String jdbcUrl(EmbeddedPostgres postgres) {
+    public static String jdbcUrl(EmbeddedPostgres postgres) {
         return "jdbc:postgresql://127.0.0.1:" + postgres.getPort() + "/postgres";
     }
 
-    static void register(DynamicPropertyRegistry registry, EmbeddedPostgres postgres) {
+    public static void register(DynamicPropertyRegistry registry, EmbeddedPostgres postgres) {
         registry.add("spring.datasource.url", () -> jdbcUrl(postgres));
         registry.add("spring.datasource.username", () -> "postgres");
         registry.add("spring.datasource.password", () -> "postgres");
@@ -51,7 +53,7 @@ final class EmbeddedFlowSupport {
         registry.add("nexus.flow.engine", () -> "flowable-7.1.0-in-process");
     }
 
-    static void assertPostgres15(EmbeddedPostgres postgres) throws Exception {
+    public static void assertPostgres15(EmbeddedPostgres postgres) throws Exception {
         try (Connection connection = postgres.getPostgresDatabase().getConnection();
              Statement statement = connection.createStatement();
              var rs = statement.executeQuery("SHOW server_version")) {

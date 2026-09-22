@@ -262,10 +262,11 @@ public final class JdbcFormStore implements FormStore {
     public void insertSubmission(FormSubmission submission) {
         jdbc.sql("""
                         INSERT INTO business_meta.form_submission (
-                          submission_id, form_id, tenant_id, running_version, values_json, submitted_at, submitted_by)
+                          submission_id, form_id, tenant_id, running_version, values_json,
+                          submitted_at, submitted_by, ledger_id, ledger_record_id)
                         VALUES (
                           :submission_id, :form_id, :tenant_id, :running_version, CAST(:values AS jsonb),
-                          :submitted_at, :submitted_by)
+                          :submitted_at, :submitted_by, :ledger_id, :ledger_record_id)
                         """)
                 .param("submission_id", submission.submissionId())
                 .param("form_id", submission.formId())
@@ -274,28 +275,53 @@ public final class JdbcFormStore implements FormStore {
                 .param("values", json(submission.values()))
                 .param("submitted_at", ts(submission.submittedAt()))
                 .param("submitted_by", submission.submittedBy())
+                .param("ledger_id", submission.ledgerId())
+                .param("ledger_record_id", submission.ledgerRecordId())
                 .update();
     }
 
     @Override
     public List<FormSubmission> submissions(UUID tenantId, UUID formId) {
         return jdbc.sql("""
-                        SELECT submission_id, form_id, tenant_id, running_version, values_json, submitted_at, submitted_by
+                        SELECT submission_id, form_id, tenant_id, running_version, values_json,
+                               submitted_at, submitted_by, ledger_id, ledger_record_id
                           FROM business_meta.form_submission
                          WHERE form_id = :form_id AND tenant_id = :tenant_id
                          ORDER BY submitted_at DESC
                         """)
                 .param("form_id", formId)
                 .param("tenant_id", tenantId)
-                .query((rs, row) -> new FormSubmission(
-                        rs.getObject("submission_id", UUID.class),
-                        rs.getObject("form_id", UUID.class),
-                        rs.getObject("tenant_id", UUID.class),
-                        rs.getInt("running_version"),
-                        readMap(rs.getString("values_json")),
-                        rs.getTimestamp("submitted_at").toInstant(),
-                        rs.getString("submitted_by")))
+                .query(this::mapSubmission)
                 .list();
+    }
+
+    @Override
+    public Optional<FormSubmission> findByLedgerRecord(UUID tenantId, UUID ledgerRecordId) {
+        return jdbc.sql("""
+                        SELECT submission_id, form_id, tenant_id, running_version, values_json,
+                               submitted_at, submitted_by, ledger_id, ledger_record_id
+                          FROM business_meta.form_submission
+                         WHERE tenant_id = :tenant_id AND ledger_record_id = :record_id
+                         ORDER BY submitted_at DESC
+                         LIMIT 1
+                        """)
+                .param("tenant_id", tenantId)
+                .param("record_id", ledgerRecordId)
+                .query(this::mapSubmission)
+                .optional();
+    }
+
+    private FormSubmission mapSubmission(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+        return new FormSubmission(
+                rs.getObject("submission_id", UUID.class),
+                rs.getObject("form_id", UUID.class),
+                rs.getObject("tenant_id", UUID.class),
+                rs.getInt("running_version"),
+                readMap(rs.getString("values_json")),
+                rs.getTimestamp("submitted_at").toInstant(),
+                rs.getString("submitted_by"),
+                rs.getObject("ledger_id", UUID.class),
+                rs.getObject("ledger_record_id", UUID.class));
     }
 
     private void replaceBindings(FormRecord form) {

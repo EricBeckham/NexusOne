@@ -144,6 +144,8 @@ public class FormController {
         json.put("values", submission.values());
         json.put("submitted_at", submission.submittedAt().toString());
         json.put("submitted_by", submission.submittedBy());
+        json.put("ledger_id", submission.ledgerId() == null ? null : submission.ledgerId().toString());
+        json.put("ledger_record_id", submission.ledgerRecordId() == null ? null : submission.ledgerRecordId().toString());
         return json;
     }
 

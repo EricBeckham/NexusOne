@@ -35,6 +35,22 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-event-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-notification-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-cache-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-audit-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.flowable</groupId>
       <artifactId>flowable-engine</artifactId>
       <version>${flowable.version}</version>

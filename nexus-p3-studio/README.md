@@ -41,12 +41,16 @@ UI is **not** in this module (M0-12).
 | GET | `/api/v1/todos/pending` / `/api/v1/p3/todos` |
 | GET | `/api/v1/todos/done` |
 | GET | `/api/v1/todos/initiated` |
+| POST | `/api/v1/p3/path/submit-start` |
+| POST | `/api/v1/p3/path/tasks/{todoId}/approve` |
+| POST | `/api/v1/p3/path/tasks/{todoId}/reject` |
+| POST | `/api/v1/p3/path/instances/{instanceId}/withdraw` |
 
 Demo tenant headers (test only, `nexus.p3.demo-context=true` and/or `nexus.studio.demo-context=true`): `X-Nexus-Demo-Tenant-Id`, `X-Nexus-Demo-Tenant-Code`, `X-Nexus-Demo-Actor-Id`.
 
 Flow mutating routes require `Authorization: Bearer` and `X-Nexus-Context-Id`. `X-Tenant-Id` is rejected (`P3.FLOW.0006`).
 
-Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md). Sequential approval: [docs/engineering/m0-08-sequential-approval.md](../docs/engineering/m0-08-sequential-approval.md).
+Form publish details: [docs/m0-07-form-publish.md](../docs/m0-07-form-publish.md). Sequential approval: [docs/engineering/m0-08-sequential-approval.md](../docs/engineering/m0-08-sequential-approval.md). One real backend path (publish → physical row → sequential approval → Outbox `notify.inbox` → audit hash chain): [docs/g18-business-path.md](../docs/g18-business-path.md). Product G18 is **not** closed; Vue shells remain MOCK.
 
 ```bash
 mvn -pl nexus-p3-studio -am test

@@ -36,7 +36,8 @@ public class P3IsolationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/api/v1/p3");
+        String path = request.getRequestURI();
+        return !path.startsWith("/api/v1/p3") || path.startsWith("/api/v1/p3/path");
     }
 
     @Override

@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(basePackages = "one.nexus.p3.flow")
+@RestControllerAdvice(basePackages = {"one.nexus.p3.flow", "one.nexus.p3.path"})
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 @ConditionalOnProperty(name = "nexus.flow.engine")
 public class FlowExceptionHandler {

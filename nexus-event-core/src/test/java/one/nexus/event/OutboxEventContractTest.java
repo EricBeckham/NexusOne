@@ -228,4 +228,26 @@ class OutboxEventContractTest {
         assertEquals(1, h.reconcile.reclaimExpiredLeases());
         assertEquals("FAILED", h.store.find(id).orElseThrow().status());
     }
+
+    @Test
+    void appendJoinsSpringTransactionAndRollsBack() {
+        Harness h = harness();
+        EmbeddedExecutionSupport.bind(h.isolation, "alpha", "trace-tx");
+        org.springframework.jdbc.support.JdbcTransactionManager tm =
+                new org.springframework.jdbc.support.JdbcTransactionManager(dataSource);
+        org.springframework.transaction.support.TransactionTemplate template =
+                new org.springframework.transaction.support.TransactionTemplate(tm);
+        assertThrows(IllegalStateException.class, () -> template.execute(status -> {
+            h.store.append(OutboxAppendCommand.notifyInbox("notify.created", "{\"tx\":true}"));
+            throw new IllegalStateException("force rollback");
+        }));
+        Integer count = Jdbc.call(dataSource, connection -> {
+            try (var rs = connection.createStatement().executeQuery(
+                    "SELECT count(*) FROM platform.exec_outbox WHERE destination = 'notify.inbox' AND trace_id = 'trace-tx'")) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        });
+        assertEquals(0, count);
+    }
 }

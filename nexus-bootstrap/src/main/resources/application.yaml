@@ -68,7 +68,10 @@ nexus:
     key-version: ${NEXUS_CRYPTO_KEY_VERSION:1}
     master-key: ${NEXUS_CRYPTO_MASTER_KEY:}
   audit:
-    persistence: ${NEXUS_AUDIT_PERSISTENCE:memory}
+    persistence: ${NEXUS_AUDIT_PERSISTENCE:jdbc}
+  permission:
+    persistence: ${NEXUS_PERMISSION_PERSISTENCE:memory}
+    seed-tenant-member-grants: ${NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS:true}
   cache:
     env: ${NEXUS_CACHE_ENV:dev}
     mode: ${NEXUS_CACHE_MODE:auto}

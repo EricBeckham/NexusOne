@@ -13,7 +13,7 @@ public final class SearchPathConnections {
     public static Connection open(DataSource dataSource) {
         Connection connection = DataSourceUtils.getConnection(dataSource);
         try (Statement statement = connection.createStatement()) {
-            statement.execute("SET LOCAL search_path TO business_data, business_meta, platform, public");
+            statement.execute("SET LOCAL search_path TO business_data, business_meta, flowable, platform, public");
         } catch (SQLException ex) {
             DataSourceUtils.releaseConnection(connection, dataSource);
             throw new IllegalStateException("failed to set search_path", ex);

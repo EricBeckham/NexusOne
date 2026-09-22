@@ -130,6 +130,14 @@ public final class InMemoryFormStore implements FormStore {
     }
 
     @Override
+    public synchronized Optional<FormSubmission> findByLedgerRecord(UUID tenantId, UUID ledgerRecordId) {
+        return submissions.values().stream()
+                .flatMap(List::stream)
+                .filter(row -> row.tenantId().equals(tenantId) && ledgerRecordId.equals(row.ledgerRecordId()))
+                .findFirst();
+    }
+
+    @Override
     public synchronized void runAtomically(Runnable action) {
         Map<UUID, FormRecord> formCopy = copyForms();
         Map<UUID, List<FormVersion>> versionCopy = copyVersions();

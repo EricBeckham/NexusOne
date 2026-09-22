@@ -58,6 +58,14 @@ class QueryCompilerTest {
                 QueryAst.insert("ledger_entry", map("id", "1", "title", "hi")), alpha);
         assertEquals("INSERT INTO \"ledger_entry\" (\"id\", \"title\", \"tenant_id\") VALUES (?, ?, ?)", inserted.sql());
         assertEquals(List.of("1", "hi", "alpha"), inserted.parameters());
+
+        RenderedSql nullable = kernel.compiler().compile(
+                QueryAst.insert("ledger_entry", map("id", "2", "title", null)), alpha);
+        assertEquals("INSERT INTO \"ledger_entry\" (\"id\", \"title\", \"tenant_id\") VALUES (?, ?, ?)", nullable.sql());
+        assertEquals(3, nullable.parameters().size());
+        assertEquals("2", nullable.parameters().get(0));
+        assertEquals(null, nullable.parameters().get(1));
+        assertEquals("alpha", nullable.parameters().get(2));
     }
 
     @Test

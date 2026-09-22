@@ -47,7 +47,7 @@ public final class JdbcOutboxStore implements OutboxPort, EventPort {
         IsolatedExecutor.requirePayloadTenant(isolation.requireBound(), envelope.tenantId());
         UUID id = UuidV7.generate();
         Instant now = Instant.now(clock);
-        Jdbc.run(dataSource, connection -> {
+        Jdbc.transactionalRun(dataSource, connection -> {
             try (PreparedStatement ps = connection.prepareStatement("""
                     INSERT INTO platform.exec_outbox (
                         id, tenant_id, trace_id, actor_id, actor_type, membership_id,

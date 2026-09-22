@@ -52,10 +52,16 @@ public class FlowAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        String inbound = request.getHeader(TraceIds.HEADER);
         String fromMdc = MDC.get(TraceIds.MDC_KEY);
-        String traceId = (fromMdc != null && !fromMdc.isBlank())
-                ? fromMdc
-                : TraceIds.resolve(request.getHeader(TraceIds.HEADER), request.getHeader(TraceIds.TRACEPARENT_HEADER));
+        String traceId;
+        if (TraceIds.isValid(inbound)) {
+            traceId = inbound.trim();
+        } else if (fromMdc != null && !fromMdc.isBlank()) {
+            traceId = fromMdc;
+        } else {
+            traceId = TraceIds.resolve(inbound, request.getHeader(TraceIds.TRACEPARENT_HEADER));
+        }
         TenantContextHolder.clear();
         boolean boundIsolation = false;
         try {
@@ -103,7 +109,8 @@ public class FlowAuthFilter extends OncePerRequestFilter {
     static boolean isFlowPath(String path) {
         return path.startsWith("/api/v1/process")
                 || path.startsWith("/api/v1/todos")
-                || path.startsWith("/api/v1/p3/todos");
+                || path.startsWith("/api/v1/p3/todos")
+                || path.startsWith("/api/v1/p3/path");
     }
 
     private static boolean isPublic(String path) {
