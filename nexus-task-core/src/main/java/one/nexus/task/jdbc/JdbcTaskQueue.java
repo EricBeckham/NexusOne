@@ -20,6 +20,7 @@ import one.nexus.isolation.boundary.IsolatedEnvelope;
 import one.nexus.isolation.boundary.IsolatedExecutor;
 import one.nexus.task.TaskQueue;
 import one.nexus.task.TaskRecord;
+import one.nexus.task.TaskSubmitGuard;
 
 public final class JdbcTaskQueue implements TaskQueue {
     private final DataSource dataSource;
