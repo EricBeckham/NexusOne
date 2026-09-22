@@ -56,6 +56,7 @@ describe("G15 WeChat/DingTalk prod-gap + native-bridge honesty beyond #167/#181"
       "g15-native-bridge-stub",
     ]));
     expect(ALL_SIBLING_LEFTOVER_ROWS).toEqual(expect.arrayContaining([
+      "linux-arm-profile-leftover-honesty",
       "g4-p1-staging-audit-events-honesty",
       "g6-recovery-port-dry-run-honesty",
       "s0s1-live-redis-minio-isolation-honesty",

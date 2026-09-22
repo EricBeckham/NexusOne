@@ -38,6 +38,7 @@ export const SIBLING_LEFTOVER_ROWS = Object.freeze([
 
 export const ALL_SIBLING_LEFTOVER_ROWS = Object.freeze([
   ...SIBLING_LEFTOVER_ROWS,
+  "linux-arm-profile-leftover-honesty",
   "g4-p1-staging-audit-events-honesty",
   "g6-recovery-port-dry-run-honesty",
   "s0s1-live-redis-minio-isolation-honesty",
