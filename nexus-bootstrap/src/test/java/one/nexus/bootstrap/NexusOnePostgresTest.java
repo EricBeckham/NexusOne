@@ -20,7 +20,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(PostgresAvailableCondition.class)
-class NexusOnePostgresIT {
+class NexusOnePostgresTest {
     private final HttpClient http = HttpClient.newHttpClient();
 
     @LocalServerPort
@@ -42,7 +42,8 @@ class NexusOnePostgresIT {
     @Test
     void flywayAppliedStaticSchemaOnly() {
         Integer applied = jdbc.queryForObject(
-                "select count(*) from platform.flyway_schema_history where success", Integer.class);
+                "select count(*) from platform.flyway_schema_history where success and version is not null",
+                Integer.class);
         assertEquals(3, applied);
         Integer ledgerTables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'business_data'", Integer.class);
