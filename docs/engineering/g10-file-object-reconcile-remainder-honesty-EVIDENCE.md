@@ -45,11 +45,11 @@ Do **not** treat `./scripts/g10-leftover-honesty-remainder.sh` or `./scripts/g10
 
 ## Results (agent VM)
 
-Filled after the leftover honesty remainder script on this VM at `2026-09-22T22:31:48Z`. Live output is gitignored under `.local/g10-file-object-reconcile-remainder-honesty/`. A sanitized copy is [`g10-file-object-reconcile-remainder-honesty/agent-vm.env`](./g10-file-object-reconcile-remainder-honesty/agent-vm.env).
+Filled after the leftover honesty remainder script on this VM at `2026-09-22T22:33:20Z`. Live output is gitignored under `.local/g10-file-object-reconcile-remainder-honesty/`. A sanitized copy is [`g10-file-object-reconcile-remainder-honesty/agent-vm.env`](./g10-file-object-reconcile-remainder-honesty/agent-vm.env).
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** | honest SKIP accepted; fake live MinIO / object / Keycloak / apply PASS, fake `g10_close=CLOSED`, fake #228 redo, and fake #228-harness-as-live rejected (`2026-09-22T22:31:48Z`) |
+| Honesty fixtures | **PASS** | honest SKIP accepted; fake live MinIO / object / Keycloak / apply PASS, fake `g10_close=CLOSED`, fake #228 redo, and fake #228-harness-as-live rejected (`2026-09-22T22:33:20Z`) |
 | leftover #169 cells still honest | **PASS** | counting preview/apply + tenant-prefix stay PASS; committed live MinIO SKIP |
 | leftover #179 cells still honest | **PASS** | dry-run default no-write; committed live Keycloak / apply SKIP |
 | leftover #202 cells still honest | **PASS** | parent leftover honesty fixtures stay PASS; not a live MinIO walk |
