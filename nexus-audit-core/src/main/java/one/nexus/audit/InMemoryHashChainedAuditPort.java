@@ -1,6 +1,7 @@
 package one.nexus.audit;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -16,6 +17,7 @@ public final class InMemoryHashChainedAuditPort implements AuditPort {
     private final List<ChainedAuditEvent> events = new ArrayList<>();
     private final ReentrantLock lock = new ReentrantLock();
     private byte[] lastHash = AuditHashChain.GENESIS.clone();
+    private long nextIndex = 0;
 
     public InMemoryHashChainedAuditPort(CryptoPort crypto) {
         this.chain = new AuditHashChain(Objects.requireNonNull(crypto, "crypto"));
@@ -35,8 +37,9 @@ public final class InMemoryHashChainedAuditPort implements AuditPort {
         Objects.requireNonNull(event, "event");
         lock.lock();
         try {
-            ChainedAuditEvent linked = chain.link(events.size(), lastHash, event);
+            ChainedAuditEvent linked = chain.link(nextIndex, lastHash, event);
             events.add(linked);
+            nextIndex = linked.chainIndex() + 1;
             lastHash = linked.eventHash();
             return linked;
         } finally {
@@ -72,6 +75,24 @@ public final class InMemoryHashChainedAuditPort implements AuditPort {
     @Override
     public HashChainVerification verifyChain() {
         return chain.verify(chain());
+    }
+
+    /**
+     * Hot-prefix purge hook used by {@link AuditHotPurge}. Does not rewrite
+     * {@code nextIndex} or the chain head, so a later {@link #append} keeps
+     * gapless indexes after the live suffix.
+     */
+    void removeByEventIds(Collection<UUID> ids) {
+        Objects.requireNonNull(ids, "ids");
+        if (ids.isEmpty()) {
+            return;
+        }
+        lock.lock();
+        try {
+            events.removeIf(event -> ids.contains(event.event().eventId()));
+        } finally {
+            lock.unlock();
+        }
     }
 
     List<ChainedAuditEvent> copyWithTamperedHash(UUID eventId) {

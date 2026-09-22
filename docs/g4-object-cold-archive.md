@@ -43,7 +43,7 @@ This is **not** a product-wide G4 close.
 
 | Still open | Why |
 |---|---|
-| Hot purge after 90 days | `platform.audit_record` is append-only (`REVOKE DELETE`). Cold archive is a **copy** |
+| Hot purge after 90 days | Leftover implementation is [g4-hot-purge-90d.md](./g4-hot-purge-90d.md). This cold-copy package still does not DELETE hot rows |
 | Live MinIO cold drill | Fake/counting storage is the required evidence here; live S3 stays SecretPort + optional G1/G6 drills |
 | Human browser Authorization Code + PKCE click | HTTP-driver PKCE is on `main` ([g4-pkce-login-audit.md](./g4-pkce-login-audit.md) / #108). HTTPS loopback leftover is [g4-pkce-https-browser.md](./g4-pkce-https-browser.md). Chromium / human laptop click still needs to trust that CA (or an insecure-origin exception) |
 | Tenant TaskQueue / IsolatedQuartzJob for archive | Those APIs require membership; cold archive is a platform Job |

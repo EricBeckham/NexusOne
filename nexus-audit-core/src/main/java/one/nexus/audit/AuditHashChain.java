@@ -44,11 +44,25 @@ public final class AuditHashChain {
                 ChainedAuditEvent.keyVersionOf(crypto.currentKey()));
     }
 
+    /**
+     * Verifies remaining hot rows in order. A full chain still starts at
+     * index 0 / {@link #GENESIS}. After a 90-day hot prefix purge the first
+     * remaining row may start at a later index; the stored {@code previousHash}
+     * of that suffix head is accepted so the live tail can still be checked.
+     * Genesis-to-head proof for purged rows lives in archive / cold copies.
+     */
     public HashChainVerification verify(List<ChainedAuditEvent> inOrder) {
-        byte[] prev = GENESIS;
+        if (inOrder == null || inOrder.isEmpty()) {
+            return HashChainVerification.ok(0);
+        }
+        long expectedIndex = inOrder.get(0).chainIndex();
+        if (expectedIndex < 0) {
+            return HashChainVerification.broken(0, "unexpected chain index " + expectedIndex);
+        }
+        byte[] prev = expectedIndex == 0 ? GENESIS : inOrder.get(0).previousHash();
         long checked = 0;
         for (ChainedAuditEvent linked : inOrder) {
-            if (linked.chainIndex() != checked) {
+            if (linked.chainIndex() != expectedIndex) {
                 return HashChainVerification.broken(checked, "unexpected chain index " + linked.chainIndex());
             }
             if (!Arrays.equals(prev, linked.previousHash())) {
@@ -62,6 +76,7 @@ public final class AuditHashChain {
                 return HashChainVerification.broken(checked, "event hash mismatch at " + linked.chainIndex());
             }
             prev = linked.eventHash();
+            expectedIndex++;
             checked++;
         }
         return HashChainVerification.ok(checked);

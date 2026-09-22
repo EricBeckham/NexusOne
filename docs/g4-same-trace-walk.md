@@ -60,7 +60,7 @@ This is **not** a product-wide G4 close.
 |---|---|
 | Browser Authorization Code + PKCE login | HTTP-driver + native Keycloak 26.x PKCE on the hash chain is [g4-pkce-login-audit.md](./g4-pkce-login-audit.md). HTTPS loopback leftover is [g4-pkce-https-browser.md](./g4-pkce-https-browser.md). Human laptop click still needs to trust the local CA. |
 | 365-day archive expiry | Closed on `main` via #90 (`purgeImplemented=true`). Not reopened here. |
-| Hot purge after 90 days | Archive is a copy; hot table is append-only |
+| Hot purge after 90 days | Leftover implementation is [g4-hot-purge-90d.md](./g4-hot-purge-90d.md). This walk does not DELETE hot rows |
 | Object-store / cold archive | Same-PG table only |
 | HTTP export wizard / report UI | `ledger.export.csv` is the guarded surface, not a physical ledger dump |
 | Switching P1 `GET /tenants/{id}/audit-events` off staging | Unchanged from #77 |
