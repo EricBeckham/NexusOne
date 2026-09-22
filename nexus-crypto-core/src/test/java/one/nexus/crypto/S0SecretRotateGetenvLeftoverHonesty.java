@@ -57,6 +57,7 @@ public final class S0SecretRotateGetenvLeftoverHonesty {
     public static final String ROW_G17_GMTLS = "g17-gm-tls-nginx-handshake-honesty";
     public static final String ROW_G2_OPS = "g2-ops-pg-dump-honesty";
     public static final String ROW_G2_H5 = "g2-h5-every-page-form-write-honesty";
+    public static final String ROW_G2_H5_REM = "g2-h5-every-page-form-write-remainder-honesty";
     public static final String ROW_G4 = "g4-export-wizard-deny-honesty";
     public static final String ROW_G10 = "g10-leftover-honesty";
     public static final String ROW_G5 = "g5-mid-publish-failure-honesty";
@@ -108,6 +109,7 @@ public final class S0SecretRotateGetenvLeftoverHonesty {
             ROW_G17_GMTLS,
             ROW_G2_OPS,
             ROW_G2_H5,
+            ROW_G2_H5_REM,
             ROW_G4,
             ROW_G10,
             ROW_G5,

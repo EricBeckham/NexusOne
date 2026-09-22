@@ -129,7 +129,7 @@ verify_report_inner() {
 
   local rows
   rows="$(report_get "$file" leftover_rows_kept)"
-  for row in g7-withdraw-evidence g7-withdraw-expense-travel g7-withdraw-browser g7-withdraw-browser-honesty g7-query-expense-travel g7-query-expense-travel-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty g5-publishhook-ddl-honesty g17-gm-tls-nginx-handshake-honesty g1-queryast-export-honesty g15-wx-dt-native-bridge-remainder g17-separation-leftover-honesty g4-pkce-spa-verifier-remainder-honesty s0-secret-rotate-getenv-remainder-honesty s0-secret-rotate-getenv-leftover-honesty g6-recovery-port-dry-run-remainder-honesty g2-report-physical-dump-honesty g10-leftover-honesty-remainder g3-outbox-consume-idempotent-honesty g9-live-multi-jvm-replica-remainder-honesty g4-hot-purge-staging-leftover-honesty; do
+  for row in g7-withdraw-evidence g7-withdraw-expense-travel g7-withdraw-browser g7-withdraw-browser-honesty g7-query-expense-travel g7-query-expense-travel-honesty g2-h5-every-page-form-write-honesty g2-h5-every-page-form-write-remainder-honesty g9-redis-down-invalidate-remainder g17-mfa-recovery-vue-otp-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty g5-publishhook-ddl-honesty g17-gm-tls-nginx-handshake-honesty g1-queryast-export-honesty g15-wx-dt-native-bridge-remainder g17-separation-leftover-honesty g4-pkce-spa-verifier-remainder-honesty s0-secret-rotate-getenv-remainder-honesty s0-secret-rotate-getenv-leftover-honesty g6-recovery-port-dry-run-remainder-honesty g2-report-physical-dump-honesty g10-leftover-honesty-remainder g3-outbox-consume-idempotent-honesty g9-live-multi-jvm-replica-remainder-honesty g4-hot-purge-staging-leftover-honesty; do
     echo "$rows" | grep -Fq "$row" || { echo "FAIL: leftover_rows_kept must keep $row" >&2; return 1; }
   done
 
@@ -318,6 +318,7 @@ g7-query-expense-travel
 g7-query-expense-travel-honesty
 g7-business-types
 g2-h5-every-page-form-write-honesty
+g2-h5-every-page-form-write-remainder-honesty
 g17-mfa-recovery-vue-otp-honesty
 g2-ops-pg-dump-honesty
 g9-sentinel-cluster-remainder-honesty
@@ -405,6 +406,8 @@ grep -Fq 's0-secret-rotate-getenv-remainder-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover s0-secret-rotate-getenv-remainder-honesty (#223)"
 grep -Fq 's0-secret-rotate-getenv-leftover-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover s0-secret-rotate-getenv-leftover-honesty"
+grep -Fq 'g2-h5-every-page-form-write-remainder-honesty.md' "$README" \
+  || fail "docs/README.md must keep sibling leftover g2-h5-every-page-form-write-remainder-honesty (#232)"
 grep -Fq 'g6-recovery-port-dry-run-remainder-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover g6-recovery-port-dry-run-remainder-honesty (#225)"
 grep -Fq 'g2-report-physical-dump-honesty.md' "$README" \
@@ -535,7 +538,7 @@ REPORT="$OUT/report.env"
   kv stub_walk_travel "$STUB_TRAVEL"
   kv stub_walk_is_not_live "$STUB_NOT_LIVE"
   kv screenshot_artifacts "$SCREENSHOTS"
-  kv leftover_rows_kept "g7-withdraw-evidence,g7-withdraw-expense-travel,g7-withdraw-browser,g7-withdraw-browser-honesty,g7-query-expense-travel,g7-query-expense-travel-honesty,g2-h5-every-page-form-write-honesty,g9-redis-down-invalidate-remainder,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty,g5-publishhook-ddl-honesty,g17-gm-tls-nginx-handshake-honesty,g1-queryast-export-honesty,g15-wx-dt-native-bridge-remainder,g17-separation-leftover-honesty,g4-pkce-spa-verifier-remainder-honesty,s0-secret-rotate-getenv-remainder-honesty,s0-secret-rotate-getenv-leftover-honesty,g6-recovery-port-dry-run-remainder-honesty,g2-report-physical-dump-honesty,g10-leftover-honesty-remainder,g3-outbox-consume-idempotent-honesty,g9-live-multi-jvm-replica-remainder-honesty,g4-hot-purge-staging-leftover-honesty"
+  kv leftover_rows_kept "g7-withdraw-evidence,g7-withdraw-expense-travel,g7-withdraw-browser,g7-withdraw-browser-honesty,g7-query-expense-travel,g7-query-expense-travel-honesty,g2-h5-every-page-form-write-honesty,g2-h5-every-page-form-write-remainder-honesty,g9-redis-down-invalidate-remainder,g17-mfa-recovery-vue-otp-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty,g5-publishhook-ddl-honesty,g17-gm-tls-nginx-handshake-honesty,g1-queryast-export-honesty,g15-wx-dt-native-bridge-remainder,g17-separation-leftover-honesty,g4-pkce-spa-verifier-remainder-honesty,s0-secret-rotate-getenv-remainder-honesty,s0-secret-rotate-getenv-leftover-honesty,g6-recovery-port-dry-run-remainder-honesty,g2-report-physical-dump-honesty,g10-leftover-honesty-remainder,g3-outbox-consume-idempotent-honesty,g9-live-multi-jvm-replica-remainder-honesty,g4-hot-purge-staging-leftover-honesty"
   kv leftover_rows_all "$LEFTOVER_ROWS_ALL"
   kv same_tx_append_unchanged "$SAME_TX"
   kv live_jar_endpoint_set "$LIVE_ENDPOINT_SET"
