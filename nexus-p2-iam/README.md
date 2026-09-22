@@ -66,7 +66,7 @@ These are **not** accepted:
 - SAML
 - LDAP / Active Directory federation
 - SMS MFA, hardware MFA / WebAuthn, TOTP enrollment UX, email MFA product acceptance (admin *session gate* is [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md); native Keycloak admin TOTP leftover is [docs/g17-admin-totp-enrollment.md](../docs/g17-admin-totp-enrollment.md); not a full G17 close)
-- Human-browser Authorization Code + PKCE as an accepted Web/H5 UI (loopback HTTP drops Keycloak 26 `Secure` cookies). Opt-in `GET /api/v1/auth/authorize-url?pkce=s256` + `code_verifier` on `POST /api/v1/auth/login` is the HTTP-driver path; see [docs/g4-pkce-login-audit.md](../docs/g4-pkce-login-audit.md). Product default authorize URL stays confidential-client without PKCE. `p0-smoke` direct-grant must not be copied into production.
+- Human-laptop Authorization Code + PKCE as an accepted Web/H5 UI. HTTP-driver PKCE is [docs/g4-pkce-login-audit.md](../docs/g4-pkce-login-audit.md). Local self-signed HTTPS + cookie-honoring HTTP/2 leftover is [docs/g4-pkce-https-browser.md](../docs/g4-pkce-https-browser.md). Product default authorize URL stays confidential-client without PKCE. `p0-smoke` direct-grant must not be copied into production.
 - Keycloak Organizations as Nexus org master data or acceptance evidence (Employment is not synced to Organizations)
 - File metadata ↔ object store reconcile (other G10 half; [g10-file-reconcile.md](../docs/g10-file-reconcile.md))
 - Keycloak old-version upgrade / rollback matrices (single version 26.5.2 only)

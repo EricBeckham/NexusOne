@@ -1,6 +1,8 @@
 package one.nexus.p2.idp;
 
 import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -16,16 +18,19 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 
 /**
- * Loopback HTTP helper for Keycloak's login form. Not a browser. Used by M0-04
- * confidential-client smoke and the G4 Authorization Code + PKCE walk.
+ * Loopback helper for Keycloak's login form. Not a product Web/H5 UI.
  *
- * <p>Keycloak 26 sets {@code AUTH_SESSION_ID} / {@code KC_RESTART} as {@code Secure; SameSite=None}
- * even on loopback HTTP. The JDK {@code CookieManager} will not send those cookies on {@code http://},
- * which produces "Restart login cookie not found". This driver stores and returns cookies
- * regardless of the Secure flag so the live HTTP walk can complete. Product browsers on HTTPS
- * still honor Secure cookies normally.
+ * <p>The default constructor is the M0-04 / #108 HTTP walk: Keycloak 26 sets
+ * {@code AUTH_SESSION_ID} / {@code KC_RESTART} as {@code Secure; SameSite=None}
+ * even on loopback HTTP, so this driver stores and returns those cookies despite
+ * the Secure flag.
+ *
+ * <p>{@link #httpsHonoringSecureCookies(SSLContext)} is the G4 HTTPS leftover:
+ * JDK {@code CookieManager} (honors Secure; does not ignore it) over HTTP/2
+ * against local TLS. A real browser on HTTPS behaves the same way.
  */
 public final class AuthorizationCodeDriver {
     private static final Pattern FORM_ACTION = Pattern.compile(
@@ -36,13 +41,48 @@ public final class AuthorizationCodeDriver {
             "(?i)<input[^>]*type=\"hidden\"[^>]*name=\"([^\"]+)\"[^>]*value=\"([^\"]*)\"");
 
     private final HttpClient http;
+    private volatile HttpClient.Version lastVersion = HttpClient.Version.HTTP_1_1;
 
     public AuthorizationCodeDriver() {
-        this.http = HttpClient.newBuilder()
-                .cookieHandler(new LoopbackSecureCookieHandler())
+        this(httpClient(new LoopbackSecureCookieHandler(), null, HttpClient.Version.HTTP_1_1));
+    }
+
+    public AuthorizationCodeDriver(HttpClient http) {
+        this.http = http;
+    }
+
+    /**
+     * Cookie-preserving HTTPS / HTTP/2 driver. Uses the JDK cookie jar, which
+     * sends {@code Secure} cookies only on {@code https://}.
+     */
+    public static AuthorizationCodeDriver httpsHonoringSecureCookies(SSLContext ssl) {
+        CookieManager cookies = new CookieManager();
+        cookies.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
+        return new AuthorizationCodeDriver(httpClient(cookies, ssl, HttpClient.Version.HTTP_2));
+    }
+
+    public static HttpClient httpsClient(SSLContext ssl) {
+        return httpClient(new CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER), ssl, HttpClient.Version.HTTP_2);
+    }
+
+    public HttpClient.Version lastHttpVersion() {
+        return lastVersion;
+    }
+
+    public HttpClient http() {
+        return http;
+    }
+
+    private static HttpClient httpClient(CookieHandler cookies, SSLContext ssl, HttpClient.Version version) {
+        HttpClient.Builder builder = HttpClient.newBuilder()
+                .cookieHandler(cookies)
+                .version(version)
                 .followRedirects(HttpClient.Redirect.NEVER)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+                .connectTimeout(Duration.ofSeconds(10));
+        if (ssl != null) {
+            builder.sslContext(ssl);
+        }
+        return builder.build();
     }
 
     public record CodeAndState(String code, String state, String redirectUri) {}
@@ -378,7 +418,9 @@ public final class AuthorizationCodeDriver {
     }
 
     private HttpResponse<String> send(HttpRequest request) throws Exception {
-        return http.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        lastVersion = response.version();
+        return response;
     }
 
     private static HttpRequest GET(String url) {

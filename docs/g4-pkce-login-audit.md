@@ -60,7 +60,7 @@ Recorded on this agent VM after the live walk. Fill the table from the script ou
 
 | Still open | Why |
 |---|---|
-| Human browser click / Chromium UI | Keycloak 26 sets `AUTH_SESSION_ID` / `KC_RESTART` as `Secure; SameSite=None` on loopback HTTP. A real browser will not send those cookies on `http://127.0.0.1` (`LOGIN_ERROR` / `cookie_not_found`). The HTTP driver returns them anyway. A human click needs HTTPS (or an equivalent insecure-origin exception) and then: open `GET /api/v1/auth/authorize-url?pkce=s256`, visit `url`, sign in, `POST /api/v1/auth/login` with `code` + `code_verifier` and `X-Trace-Id`. `GET /api/v1/auth/callback` does not carry the verifier. |
+| Human browser click / Chromium UI | HTTP driver leftover is unchanged. Local self-signed HTTPS + cookie-honoring HTTP/2 driver is the next slice: [g4-pkce-https-browser.md](./g4-pkce-https-browser.md). A laptop click still needs to trust that CA (or `--unsafely-treat-insecure-origin-as-secure`). `GET /api/v1/auth/callback` still does not carry the verifier. |
 | SPA-generated verifier | This walk is BFF-shaped: the authorize-url response includes `code_verifier`. A production public-client page should generate the verifier in the browser and never ask the backend to mint it. |
 | Full G4 product close | 90-day hot purge, HTTP export wizard, switching P1 tenant audit-events off staging. Object-store cold archive is on `main` via #104. |
 | G17 / G6 | Not this package |
