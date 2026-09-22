@@ -1,0 +1,23 @@
+# Local credentials and overrides
+.env
+.env.*
+!.env.example
+*.local
+
+# Java
+target/
+build/
+*.class
+.gradle/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
