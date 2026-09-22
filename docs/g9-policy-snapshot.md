@@ -17,7 +17,7 @@ Channel loss is covered by (1): a reader that never received PUBLISH still sees 
 
 | Leftover | Why |
 |---|---|
-| Full G9 failover | No Sentinel / Cluster / replica promotion. Bounded P2-down timeout-then-reject is [g9-p2-timeout-reject.md](./g9-p2-timeout-reject.md). Ordinary query fail-closed on version/load failure remains. Fail-closed DENY after Redis-down / lost invalidate is [g9-failover-remainder.md](./g9-failover-remainder.md). |
+| Full G9 failover | No Sentinel / Cluster / replica promotion. Bounded P2-down timeout-then-reject is [g9-p2-timeout-reject.md](./g9-p2-timeout-reject.md). Ordinary query fail-closed on version/load failure remains. Fail-closed DENY after Redis-down / lost invalidate is [g9-failover-remainder.md](./g9-failover-remainder.md). In-process dual-reader / lost-invalidate version-poll is [g9-multinode-partition.md](./g9-multinode-partition.md). |
 | G2 product-wide same engine | Report / export / H5 / form-definition list / simulation admin stay on #73 and later work. |
 | `tenant_member` | Demo ALL-scope seed for the closed G18 leave walk. Propagation evidence uses role `g9_self_reader` + `DataScope.SELF`. |
 | Live Redis 3.2 on this VM | RESP2 client + tests are present; they skip when `127.0.0.1:6379` is down. |

@@ -63,12 +63,12 @@ and reused for `COUNT(*)`, `SELECT … LIMIT/OFFSET`, and detail-by-id. That hap
 - Redis is **invalidate-only**: PUBLISH + optional SUBSCRIBE + a short-lived version hint key. The snapshot body is never written to Redis.
 - Redis GET/SET/PUBLISH/SUBSCRIBE failure is logged; evaluation continues from the database. Redis is not a truth source.
 - Version read or snapshot load failure on the request path is **fail-closed** (`SnapshotUnavailable` / `P2.PERM.0005`). Background poll failures are skipped.
-- G9 Redis-down / decide==durable evidence: [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md). Version poll remainder: [docs/g9-policy-snapshot.md](../docs/g9-policy-snapshot.md). Fail-closed DENY leftover: [docs/g9-failover-remainder.md](../docs/g9-failover-remainder.md).
+- G9 Redis-down / decide==durable evidence: [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md). Version poll remainder: [docs/g9-policy-snapshot.md](../docs/g9-policy-snapshot.md). Fail-closed DENY leftover: [docs/g9-failover-remainder.md](../docs/g9-failover-remainder.md). In-process dual-reader / lost-invalidate version-poll leftover: [docs/g9-multinode-partition.md](../docs/g9-multinode-partition.md).
 - High-risk writes fail closed if the loaded version is not current.
 - Key shape (P0-05): `nexus:v1:{tenant-id}:cache:permission:snapshot` (reserved; unused as a payload).
 - Channel: `nexus:v1:permission:invalidate`.
 - Request-path version/load is bounded by `nexus.permission.snapshot-load-timeout` (default 2s). Hang past the clock fail-closes `P2.PERM.0005`. See [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md).
-- **Not claimed:** Redis Sentinel/Cluster failover, replica promotion, or multi-node partition tests. That leftover is full G9 failover, not this remainder.
+- **Not claimed:** Redis Sentinel/Cluster failover, replica promotion, or a live multi-JVM network partition. In-process dual-reader / lost-invalidate version-poll is [docs/g9-multinode-partition.md](../docs/g9-multinode-partition.md). That leftover is full G9 failover, not this remainder.
 - Demo `tenant_member` ALL-scope seed is **not** treated as permission-complete. Propagation tests write a real `g9_self_reader` SELF grant.
 
 ## Run
