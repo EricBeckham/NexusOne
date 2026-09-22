@@ -53,6 +53,7 @@ describe("G15 WeChat/DingTalk prod-gap + native-bridge remainder beyond #167/#18
       "g2-ops-pg-dump-honesty",
       "g9-sentinel-cluster-remainder-honesty",
       "g5-publishhook-ddl-honesty",
+      "g17-gm-tls-nginx-handshake-honesty",
       "g17-mfa-recovery-vue-otp-honesty",
       "g9-redis-down-invalidate-remainder",
       "g15-wx-dt-native-bridge-honesty",
