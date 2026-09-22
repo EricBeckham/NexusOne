@@ -33,6 +33,7 @@ const files = {
   appWebViewHarness: read("src/mobile/products/p3-studio/pages/AppWebViewHarnessPage.vue"),
   wxDtHarness: read("src/mobile/products/p3-studio/pages/WeChatDingTalkHarnessPage.vue"),
   nativeBridgeHarness: read("src/mobile/products/p3-studio/pages/NativeBridgeHarnessPage.vue"),
+  nativeBridgeHonesty: read("src/mobile/products/p3-studio/pages/NativeBridgeHonestyPage.vue"),
   shell: read("src/mobile/layouts/NxMobileShell.vue"),
   hostBridge: read("src/mobile/host/hostBridge.js"),
   ledger: read("src/views/studio/LedgerListView.vue"),
@@ -78,6 +79,7 @@ requireIncludes("router", files.router, [
   'path: "/m/app-webview-harness"',
   'path: "/m/wx-dt-harness"',
   'path: "/m/native-bridge-harness"',
+  'path: "/m/native-bridge-honesty-harness"',
   "beforeEach",
   'path: "/m/login"',
   'query: { return: returnTo }',
@@ -112,6 +114,7 @@ requireIncludes("mp harness", files.mpHarness, ["mp-webview", "mp-capsule", "MP_
 requireIncludes("app WebView harness", files.appWebViewHarness, ["NexusAppWebView", "app-webview-send-login", "非原生"]);
 requireIncludes("wx-dt harness", files.wxDtHarness, ["wx-dt-harness", "wx-dt-pick-wechat", "wx-dt-pick-dingtalk", "不是生产验收"]);
 requireIncludes("native-bridge harness", files.nativeBridgeHarness, ["native-bridge-harness", "native-bridge-pick-ios", "native-bridge-pick-android", "不是上架"]);
+requireIncludes("native-bridge honesty", files.nativeBridgeHonesty, ["native-bridge-honesty-harness", "native-bridge-honesty-pick-ios", "native-bridge-honesty-pick-android", "不是上架"]);
 requireIncludes("hostBridge", files.hostBridge, ["HostBridgePort", "postMessage", "nexus-h5", "nexus-host"]);
 
 forbidIncludes("hostBridge", files.hostBridge, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
@@ -119,6 +122,7 @@ forbidIncludes("host page", files.hostPage, ["isWeChat", "isDingTalk"]);
 forbidIncludes("mp harness", files.mpHarness, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
 forbidIncludes("wx-dt harness", files.wxDtHarness, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
 forbidIncludes("native-bridge harness", files.nativeBridgeHarness, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
+forbidIncludes("native-bridge honesty", files.nativeBridgeHonesty, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
 forbidIncludes("home", files.home, ["未在本切片验收"]);
 
 for (const [name, text] of Object.entries({
