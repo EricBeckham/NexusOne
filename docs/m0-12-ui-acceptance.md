@@ -18,6 +18,8 @@ Recorded against `main` @ `ace55ff`. Stub login「浏览器管理员」, tenant 
 
 The HTTP dual-tenant / P3 live scripts and `G18BusinessPathIT` are a different path: they hit `/api/v1/p3/*`, which already seeded `tenant_member`. The browser permission page did not. Product G18 is **NOT CLOSED** via browser. Do not treat a later non-zero snapshot as a G18 close.
 
+IT on this branch (`TenantMemberGrantSeedApiTest`, **2026-09-22T14:17:57Z**): stub login + issued context → snapshot `grant_count > 0` and `ledger/read` is not `no_grant`. That is the permission-shell path, not a browser G18 close.
+
 ## How to run
 
 PostgreSQL **15.x** on localhost, credentials from the environment, no Docker.

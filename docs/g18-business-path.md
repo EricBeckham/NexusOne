@@ -23,6 +23,16 @@ HTTP E2E / `G18BusinessPathIT` already seeded `tenant_member` because they hit `
 
 This branch extends the same seed (`nexus.permission.seed-tenant-member-grants=true`) so `PermissionAuthFilter` and `FlowAuthFilter` assign role `tenant_member` to the current **person id** (not position code `TENANT_ADMIN`) after stub/browser login + issued context. `TenantMemberGrantSeedApiTest` is the IT for that browser-shaped path. It does **not** close product G18.
 
+IT on this branch at **2026-09-22T14:17:57Z** (agent VM, OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**):
+
+```bash
+mvn -pl nexus-permission-core -am test \
+  -Dtest=TenantMemberGrantSeedApiTest,PermissionApiTest,TenantMemberGrantSeederTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+`BUILD SUCCESS` — 4 tests. Seed API: stub login + issued context → snapshot `grant_count > 0`; `ledger/read|write`, `form/read`, `process.task` approve/reject allowed (not `no_grant`); assignment is `user` + person id. `PermissionApiTest` still observes `no_grant` with the seed property unset. P3 `IssuedTenantIsolationFilterTest` **5/5** and `PermissionDataScopeHookTest` **4/4**. Product G18 is **not** closed.
+
 ## Runtime gates (ledger 403 / notify 403 / empty `audit_record`)
 
 Fixes for the live path Eric hit. Product G18 is still not closed.
