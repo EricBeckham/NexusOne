@@ -83,6 +83,7 @@ public final class G2ReportPhysicalDumpHonesty {
             "g4-pkce-spa-verifier-honesty.md",
             "g4-pkce-spa-verifier-remainder-honesty.md",
             "s0-secret-rotate-getenv-remainder-honesty.md",
+            "g6-recovery-port-dry-run-remainder-honesty.md",
             "linux-arm-profile-honesty.md",
             "linux-arm-profile-leftover-honesty.md",
             "g17-separation-of-duties.md",
@@ -239,6 +240,7 @@ public final class G2ReportPhysicalDumpHonesty {
                 && readme.contains("[g17-separation-leftover-honesty](./g17-separation-leftover-honesty.md)")
                 && readme.contains("[g4-pkce-spa-verifier-remainder-honesty](./g4-pkce-spa-verifier-remainder-honesty.md)")
                 && readme.contains("[s0-secret-rotate-getenv-remainder-honesty](./s0-secret-rotate-getenv-remainder-honesty.md)")
+                && readme.contains("[g6-recovery-port-dry-run-remainder-honesty](./g6-recovery-port-dry-run-remainder-honesty.md)")
                 && !readme.toLowerCase(Locale.ROOT).contains("product g2 closed")
                 && !readme.contains("产品级 G2 已关闭");
     }
@@ -338,7 +340,8 @@ public final class G2ReportPhysicalDumpHonesty {
                 "g15-wx-dt-native-bridge-remainder",
                 "g17-separation-leftover-honesty",
                 "g4-pkce-spa-verifier-remainder-honesty",
-                "s0-secret-rotate-getenv-remainder-honesty")) {
+                "s0-secret-rotate-getenv-remainder-honesty",
+                "g6-recovery-port-dry-run-remainder-honesty")) {
             if (!rows.contains(row)) {
                 errors.add("leftover_rows_kept must keep " + row);
             }
@@ -434,7 +437,8 @@ public final class G2ReportPhysicalDumpHonesty {
                         + "g17-gm-tls-nginx-handshake-honesty,g1-queryast-export-honesty,"
                         + "g15-wx-dt-native-bridge-remainder,g17-separation-leftover-honesty,"
                         + "g4-pkce-spa-verifier-remainder-honesty,"
-                        + "s0-secret-rotate-getenv-remainder-honesty");
+                        + "s0-secret-rotate-getenv-remainder-honesty,"
+                        + "g6-recovery-port-dry-run-remainder-honesty");
         report.put("leftover_rows_all", "true");
         report.put("live_jar_endpoint_set", Boolean.toString(inventory.endpointSet()));
         report.put("live_jar_context_set", Boolean.toString(inventory.issuedContextSet()));

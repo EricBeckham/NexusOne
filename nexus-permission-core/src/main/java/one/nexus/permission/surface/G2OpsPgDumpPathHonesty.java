@@ -59,6 +59,7 @@ public final class G2OpsPgDumpPathHonesty {
             "g4-pkce-spa-verifier-honesty.md",
             "g4-pkce-spa-verifier-remainder-honesty.md",
             "s0-secret-rotate-getenv-remainder-honesty.md",
+            "g6-recovery-port-dry-run-remainder-honesty.md",
             "linux-arm-profile-honesty.md",
             "linux-arm-profile-leftover-honesty.md",
             "g17-separation-of-duties.md",

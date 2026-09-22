@@ -78,6 +78,7 @@ class G2ReportPhysicalDumpHonestyTest {
         assertTrue(report.get("leftover_rows_kept").contains("g9-sentinel-cluster-remainder-honesty"));
         assertTrue(report.get("leftover_rows_kept").contains("g4-pkce-spa-verifier-remainder-honesty"));
         assertTrue(report.get("leftover_rows_kept").contains("s0-secret-rotate-getenv-remainder-honesty"));
+        assertTrue(report.get("leftover_rows_kept").contains("g6-recovery-port-dry-run-remainder-honesty"));
     }
 
     @Test
@@ -146,6 +147,7 @@ class G2ReportPhysicalDumpHonestyTest {
         assertTrue(text.contains("[g17-separation-leftover-honesty](./g17-separation-leftover-honesty.md)"));
         assertTrue(text.contains("[g4-pkce-spa-verifier-remainder-honesty](./g4-pkce-spa-verifier-remainder-honesty.md)"));
         assertTrue(text.contains("[s0-secret-rotate-getenv-remainder-honesty](./s0-secret-rotate-getenv-remainder-honesty.md)"));
+        assertTrue(text.contains("[g6-recovery-port-dry-run-remainder-honesty](./g6-recovery-port-dry-run-remainder-honesty.md)"));
         assertFalse(text.toLowerCase(Locale.ROOT).contains("product g2 closed"));
         assertFalse(text.contains("产品级 G2 已关闭"));
 
