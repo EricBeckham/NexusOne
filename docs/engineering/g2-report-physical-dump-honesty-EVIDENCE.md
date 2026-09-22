@@ -45,7 +45,7 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | pending collect | fake live PASS / `g2_close=CLOSED` / redo / report-as-dump rejected |
+| Honesty fixtures | **PASS** | fake live PASS / `g2_close=CLOSED` / redo / report-as-dump rejected |
 | #124 report SurfaceGuard harness | **PASS** (gate) | not rewritten |
 | #137 dump SurfaceGuard harness | **PASS** (gate) | not rewritten |
 | leftover rows kept | **true** | #124/#137/#122 + H5 form.write + #217 + #210 + all sibling leftover rows |
