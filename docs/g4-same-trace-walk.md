@@ -63,7 +63,7 @@ This is **not** a product-wide G4 close.
 | Hot purge after 90 days | Leftover implementation is [g4-hot-purge-90d.md](./g4-hot-purge-90d.md). This walk does not DELETE hot rows |
 | Object-store / cold archive | Same-PG table only |
 | HTTP export wizard / report UI | Leftover implementation is [g4-export-wizard.md](./g4-export-wizard.md). Not a product export UI |
-| Switching P1 `GET /tenants/{id}/audit-events` off staging | Unchanged from #77 |
+| Switching P1 `GET /tenants/{id}/audit-events` off staging | Honesty leftover is [g4-p1-staging-audit-events.md](./g4-p1-staging-audit-events.md). GET still reads staging. |
 | G6 / G17 | Not this package |
 
 G18 remains closed. Same-TX `append` joining is unchanged.
