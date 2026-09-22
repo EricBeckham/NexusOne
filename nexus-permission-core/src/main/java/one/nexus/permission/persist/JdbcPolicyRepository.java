@@ -1,5 +1,6 @@
 package one.nexus.permission.persist;
 
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ public final class JdbcPolicyRepository implements PolicyRepository {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
                 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
                 """,
-                role.id(), role.tenantId(), role.code(), role.name(), role.systemRole(), role.status(), now, now);
+                role.id(), role.tenantId(), role.code(), role.name(), role.systemRole(), role.status(), ts(now), ts(now));
         ensureVersion(role.tenantId());
         return role;
     }
@@ -94,7 +95,7 @@ public final class JdbcPolicyRepository implements PolicyRepository {
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 assignment.id(), assignment.tenantId(), assignment.principalType(), assignment.principalId(),
-                assignment.roleId(), now);
+                assignment.roleId(), ts(now));
         return assignment;
     }
 
@@ -147,7 +148,7 @@ public final class JdbcPolicyRepository implements PolicyRepository {
                 grant.id(), grant.tenantId(), grant.effect(), rule.principalType(), rule.principalId(),
                 rule.resource(), rule.action(), rule.scopeKind().name(),
                 rule.specifiedDepartmentIds().isEmpty() ? null : String.join(",", rule.specifiedDepartmentIds()),
-                now);
+                ts(now));
         rule.fields().forEach((name, field) -> jdbc.update(
                 """
                 INSERT INTO iam.perm_field_policy
@@ -197,7 +198,7 @@ public final class JdbcPolicyRepository implements PolicyRepository {
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 share.id(), share.tenantId(), share.resource(), share.recordId(),
-                share.principalType(), share.principalId(), now);
+                share.principalType(), share.principalId(), ts(now));
         return share;
     }
 
@@ -241,7 +242,7 @@ public final class JdbcPolicyRepository implements PolicyRepository {
                     SET policy_version = iam.perm_policy_version.policy_version + 1,
                         updated_at = EXCLUDED.updated_at
                 """,
-                tenantId, now);
+                tenantId, ts(now));
         return currentVersion(tenantId);
     }
 
@@ -281,7 +282,7 @@ public final class JdbcPolicyRepository implements PolicyRepository {
                 VALUES (?, 1, ?)
                 ON CONFLICT (tenant_id) DO NOTHING
                 """,
-                tenantId, clock.instant());
+                tenantId, ts(clock.instant()));
     }
 
     private Map<String, FieldRule> loadFields(UUID tenantId, UUID grantId) {
@@ -310,6 +311,10 @@ public final class JdbcPolicyRepository implements PolicyRepository {
                 rs.getString("name"),
                 rs.getBoolean("system_role"),
                 rs.getString("status"));
+    }
+
+    private static Timestamp ts(Instant instant) {
+        return instant == null ? null : Timestamp.from(instant);
     }
 
     private static List<String> split(String value) {

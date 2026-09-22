@@ -9,7 +9,7 @@ public final class PostgresAvailable {
 
     public static Connection openOrAbort() {
         String url = System.getenv().getOrDefault(
-                "NEXUS_PERM_TEST_JDBC_URL", "jdbc:postgresql:///nexus_p2_perm_test");
+                "NEXUS_PERM_TEST_JDBC_URL", "jdbc:postgresql://127.0.0.1:5432/nexus_p2_perm_test");
         String user = System.getenv().getOrDefault("NEXUS_PERM_TEST_JDBC_USER", "ubuntu");
         String password = System.getenv().getOrDefault("NEXUS_PERM_TEST_JDBC_PASSWORD", "");
         try {
