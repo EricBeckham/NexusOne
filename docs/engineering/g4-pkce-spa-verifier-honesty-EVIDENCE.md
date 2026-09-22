@@ -1,6 +1,6 @@
 # G4 leftover — live Keycloak CA / SPA PKCE honesty beyond #147 — evidence
 
-Recorded on this branch after rebase onto `origin/main` (`607394e`, Merge #175 G7 withdraw-browser honesty; also #176 at `4457ec2`). **Not** a product G4 close. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. #108 / #120 / #125 / #147 / #152 / #166 leftovers were not redone.
+Recorded on this branch after rebase onto `origin/main` (`135ba83e`, Merge #178 claim-list tip sync; also #175 at `607394e`). **Not** a product G4 close. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. #108 / #120 / #125 / #147 / #152 / #166 leftovers were not redone.
 
 See [docs/g4-pkce-spa-verifier-honesty.md](../g4-pkce-spa-verifier-honesty.md). Keep **both** leftover rows in [docs/README.md](../README.md): [g4-pkce-spa-verifier.md](../g4-pkce-spa-verifier.md) (#147) and this leftover.
 
@@ -43,7 +43,7 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | **PASS** / fake live PASS rejected / fake CA PASS rejected / fake `g4_close=CLOSED` rejected | `2026-09-22T19:52:09Z` |
+| Honesty fixtures | **PASS** / fake live PASS rejected / fake CA PASS rejected / fake `g4_close=CLOSED` rejected | `2026-09-22T19:55:30Z` after rebase onto `135ba83e` |
 | SPA mint / RFC 7636 / client-held | **PASS** (gate) | collect `--skip-tests` on this VM (`mvn` not on PATH) |
 | leftover rows kept | **true** | both README leftover rows stay |
 | Live Keycloak SPA-held token exchange | **SKIP** (expected) | discovery unreachable / walk not observed; #147 probe is not a live exchange |
