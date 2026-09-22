@@ -109,7 +109,7 @@ export NEXUS_REDIS_PORT=6379
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate
 - Redis failover / Cluster / Sentinel (P2-down timeout-then-reject is on `SnapshotManager`, not Sentinel; honesty SKIP is [docs/g9-sentinel-cluster-honesty.md](../docs/g9-sentinel-cluster-honesty.md))
-- Query AST mixed-column OR (SELF∨DEPT) DataScope (SELF/DEPT equality + single-column `IN` + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler`; export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md); OUTER/CROSS JOIN and nested subquery isolation is M0-02)
+- Query AST mixed-column OR (SELF∨DEPT) DataScope (SELF/DEPT equality + single-column `IN` + FieldPolicy visibility can be encoded via `QueryAstPolicyCompiler`; export hidden drop is [docs/g1-export-fieldpolicy-drop.md](../docs/g1-export-fieldpolicy-drop.md); mask / second-auth honesty leftover is [docs/g1-fieldpolicy-mask-second-auth.md](../docs/g1-fieldpolicy-mask-second-auth.md); OUTER/CROSS JOIN and nested subquery isolation is M0-02)
 - SQL Guard implementation (owned by M0-02)
 - Live Keycloak (owned by M0-04)
 - Docker / Compose as a hard dependency

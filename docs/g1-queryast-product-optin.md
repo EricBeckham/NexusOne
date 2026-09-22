@@ -45,7 +45,7 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 | Still open | Why |
 |---|---|
 | OR / multi-value IN / `DEPT_AND_CHILDREN` | Single-column `IN` is [g1-datascope-or-in-ast.md](./g1-datascope-or-in-ast.md). Mixed-column SELF∨DEPT leftover still ANDs via `PermissionQueryBinder`. |
-| FieldPolicy mask / second-auth | AST drops hidden columns on the opted-in path. Mask merge and second-auth still run in `FieldPolicyProjector`. Export hidden drop is [g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md). |
+| FieldPolicy mask / second-auth | Honesty leftover: [g1-fieldpolicy-mask-second-auth.md](./g1-fieldpolicy-mask-second-auth.md). AST drops hidden columns on the opted-in path. Mask merge and second-auth still run in `FieldPolicyProjector`. Export hidden drop is [g1-export-fieldpolicy-drop.md](./g1-export-fieldpolicy-drop.md). |
 | `COUNT(*)` wrap | Totals wrap compiled SELECT text. Not a Query AST node. |
 | Callers that still skip | `PermissionService.scopedQuery`, `PermissionDataScopeHook` / `TenantOnlyDataScopeHook` `.query()` strings, G2 agreement tests that read `ScopedQuery.whereSql()`, and any adapter that still builds `BoundSql` without `QueryAstScopedQuery`. |
 | Report UI / physical ledger dump | `#124` put report query/export on `SurfaceGuard`. Query HTTP now inherits this list opt-in. Physical dump / `pg_dump` / a report wizard stay open. |
