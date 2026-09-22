@@ -112,17 +112,33 @@ class G3InboxConsumeIdempotentTest {
                 null);
     }
 
-    private static final class CountingRepository extends InMemoryNotificationRepository {
+    private static final class CountingRepository implements NotificationRepository {
+        private final InMemoryNotificationRepository delegate = new InMemoryNotificationRepository();
         private final AtomicInteger updates = new AtomicInteger();
+
+        @Override
+        public void insert(Notification notification) {
+            delegate.insert(notification);
+        }
 
         @Override
         public void update(Notification notification) {
             updates.incrementAndGet();
-            super.update(notification);
+            delegate.update(notification);
+        }
+
+        @Override
+        public java.util.Optional<Notification> find(UUID id) {
+            return delegate.find(id);
+        }
+
+        @Override
+        public java.util.List<Notification> listByRecipient(UUID tenantId, String recipientSubject) {
+            return delegate.listByRecipient(tenantId, recipientSubject);
         }
 
         int rows() {
-            return listByRecipient(UUID.fromString(TENANT), "user-a").size();
+            return delegate.listByRecipient(UUID.fromString(TENANT), "user-a").size();
         }
     }
 
