@@ -65,3 +65,13 @@ On `uname -m=x86_64`, every `aarch64_*` cell is `SKIP` with a reason. Schema cel
 A sanitized agent-VM copy is `docs/engineering/linux-arm-profile/agent-vm-x86_64-lifecycle.txt`.
 
 Evidence: [docs/engineering/linux-arm-profile-lifecycle-EVIDENCE.md](../../docs/engineering/linux-arm-profile-lifecycle-EVIDENCE.md).
+
+## TARGET-ARM-01 / supply-chain-evidence honesty leftover
+
+After #105 / #127. Does **not** re-run the scripts above. `TARGET-ARM-01` stays `not-tested`. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`. A this-host x86 leftover note is **not** an aarch64 PASS and is **not** Profile close.
+
+```bash
+./scripts/linux-arm-profile-honesty.sh
+```
+
+Evidence: [docs/linux-arm-profile-honesty.md](../../docs/linux-arm-profile-honesty.md).
