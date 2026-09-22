@@ -15,7 +15,7 @@
           <label>显示名</label>
           <input v-model="name" required />
         </div>
-        <button class="primary" type="submit">生成 token 并登录</button>
+        <button class="primary" type="submit" data-testid="stub-login">生成 token 并登录</button>
       </form>
       <form class="nx-card" @submit.prevent="onTokenLogin">
         <h3>粘贴 access token</h3>

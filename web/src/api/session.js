@@ -88,6 +88,13 @@ export async function refreshSession() {
   return view;
 }
 
+export async function ensureContext() {
+  if (!session.accessToken) {
+    return null;
+  }
+  return loginWithAccessToken(session.accessToken);
+}
+
 export function clearIdentity() {
   session.accessToken = "";
   session.contextId = "";

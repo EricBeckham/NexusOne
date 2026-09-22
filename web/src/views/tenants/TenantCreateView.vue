@@ -14,7 +14,7 @@
         <input v-model="initIam" type="checkbox" />
         同时调用 P2 <code>/internal/tenants/{id}/admin-users</code>
       </label>
-      <button class="primary" type="submit">创建</button>
+        <button class="primary" type="submit" data-testid="create-tenant">创建</button>
     </form>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <pre v-if="result" class="nx-card nx-code">{{ JSON.stringify(result, null, 2) }}</pre>
@@ -25,7 +25,7 @@
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { p1, p2 } from "../../api/client";
-import { session } from "../../api/session";
+import { ensureContext, session } from "../../api/session";
 
 const router = useRouter();
 const form = reactive({
@@ -52,6 +52,9 @@ async function submit() {
         username: form.admin.email,
       });
       result.value = { ...created, iam_admin: iam };
+      if (session.accessToken) {
+        await ensureContext();
+      }
     }
     router.push(`/p1/tenants/${tenant.id}`);
   } catch (err) {

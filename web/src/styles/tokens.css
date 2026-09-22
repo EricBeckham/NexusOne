@@ -75,3 +75,30 @@ a { color: var(--nx-primary); text-decoration: none; }
 .nx-error { color: var(--nx-danger); font-size: 13px; }
 .nx-muted { color: var(--nx-text-secondary); }
 .nx-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+.nx-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.nx-table th, .nx-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--nx-divider);
+}
+.nx-table th {
+  color: var(--nx-text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+}
+.primary {
+  background: var(--nx-product);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+}

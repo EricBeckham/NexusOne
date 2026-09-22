@@ -16,7 +16,7 @@
     <div class="nx-card" style="margin-top:16px;">
       <div v-for="row in flat" :key="row.id" class="node" :style="{ paddingLeft: row.depth * 16 + 'px' }">
         <strong>{{ row.name }}</strong>
-        <span class="nx-muted"> {{ row.code }}</span>
+        <span class="nx-muted"> · {{ row.code }}</span>
       </div>
       <p v-if="!flat.length" class="nx-muted">空组织或尚未签发上下文</p>
     </div>
@@ -26,6 +26,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { p2 } from "../../api/client";
+import { ensureContext, session } from "../../api/session";
 
 const tree = ref([]);
 const error = ref("");
@@ -49,6 +50,9 @@ async function reload() {
 
 onMounted(async () => {
   try {
+    if (session.accessToken && !session.contextId) {
+      await ensureContext();
+    }
     await reload();
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;

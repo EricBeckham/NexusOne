@@ -35,7 +35,7 @@
 import { onMounted, reactive, ref } from "vue";
 import NxStatus from "../../components/NxStatus.vue";
 import { p2 } from "../../api/client";
-import { session } from "../../api/session";
+import { ensureContext, session } from "../../api/session";
 
 const rows = ref([]);
 const error = ref("");
@@ -47,6 +47,9 @@ async function reload() {
 
 onMounted(async () => {
   try {
+    if (session.accessToken && !session.contextId) {
+      await ensureContext();
+    }
     if (session.contextId) {
       await reload();
     }

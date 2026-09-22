@@ -46,6 +46,7 @@
             </option>
           </select>
           <span class="nx-muted nx-code">{{ session.displayName || "未登录" }}</span>
+          <button class="link" type="button" @click="refresh">刷新会话</button>
           <router-link to="/login">会话</router-link>
         </div>
       </header>
@@ -59,7 +60,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { persist, session, switchTenant } from "../api/session";
+import { persist, session, switchTenant, ensureContext } from "../api/session";
 
 const route = useRoute();
 const product = computed(() => route.meta.product || "p1");
@@ -73,6 +74,14 @@ async function onSwitch(tenantId) {
     await switchTenant(tenantId);
   } catch (error) {
     session.error = error.message;
+    alert(error.message);
+  }
+}
+
+async function refresh() {
+  try {
+    await ensureContext();
+  } catch (error) {
     alert(error.message);
   }
 }
@@ -123,5 +132,6 @@ nav a.router-link-active {
 }
 .top-actions { display: flex; gap: 12px; align-items: center; }
 .switch { display: flex; gap: 6px; align-items: center; color: var(--nx-text-secondary); font-size: 13px; }
+.link { color: var(--nx-primary); background: none; border: 0; cursor: pointer; font-size: 13px; }
 .content { padding: 24px; }
 </style>
