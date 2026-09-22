@@ -81,7 +81,7 @@ Agent VM **2026-09-22T16:44:54Z**. `./scripts/g5-form-publish-rollback.sh` → `
 | 表单 Draft / Validate / Publish / Running 成功路径 | 已有；G18 浏览器走过成功发布 |
 | 表单校验失败 → DRAFT | **本包 IT / HTTP** |
 | 表单发布中途失败 → Running / snapshot 不变 | **本包 IT / HTTP**。产品扇门是 `SchemaService.ensurePhysicalTable`（CREATE / evolve / confirm）。evolve abort 是必填新列 + 已有行，经现场 `JdbcSchemaService` + PG 15 `23502`。leftover 见 [g5-mid-publish-failure.md](./g5-mid-publish-failure.md)：CREATE abort（`42P07`）与 SchemaService 成功后再 abort（DDL 回滚）。都不是产品「失败发布」开关 |
-| 浏览器再点一次失败发布 | 诚实 leftover [g5-browser-failed-publish.md](./g5-browser-failed-publish.md)。PASS/SKIP leftover [g5-mid-publish-failure-honesty.md](./g5-mid-publish-failure-honesty.md)。PublishHook / 真实 SchemaService DDL leftover [g5-publishhook-ddl-honesty.md](./g5-publishhook-ddl-honesty.md)。活 browser/IdP/JAR / 活 PG 15 不可用时 SKIP。UI「查看 publish-log」只读日志，不模拟失败。不宣称产品 G5 关闭 |
+| 浏览器再点一次失败发布 | 诚实 leftover [g5-browser-failed-publish.md](./g5-browser-failed-publish.md)。PASS/SKIP leftover [g5-mid-publish-failure-honesty.md](./g5-mid-publish-failure-honesty.md)。PublishHook / 真实 SchemaService DDL leftover [g5-publishhook-ddl-honesty.md](./g5-publishhook-ddl-honesty.md)。Publish remainder leftover [g5-publishhook-ddl-remainder-honesty.md](./g5-publishhook-ddl-remainder-honesty.md)。活 browser/IdP/JAR / 活 PG 15 不可用时 SKIP。UI「查看 publish-log」只读日志，不模拟失败。不宣称产品 G5 关闭 |
 | 应用包 / P4 交付发布 | 不在本包 |
 | 表单设计器 | M0-12 壳，不是设计器产品 |
 | G7 / G2 / G4 / G1 | 并行包，这里不关 |
