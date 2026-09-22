@@ -1,0 +1,143 @@
+name: g9-redis-down-invalidate-remainder-honesty
+
+# Honesty leftover remainder beyond #197/#174/#83/#121.
+# Does not re-run g9-redis-down-invalidate-remainder.sh collect
+# or #83/#121/#174 suites.
+# Parent leftover remainder / honesty fixtures stay PASS.
+# Live Redis-down / live invalidate stay SKIP unless present AND observed.
+# Product G9 is not closed.
+
+on:
+  push:
+    paths:
+      - "scripts/g9-redis-down-invalidate-remainder-honesty.sh"
+      - "scripts/g9-redis-down-invalidate-remainder-honesty/**"
+      - "docs/g9-redis-down-invalidate-remainder-honesty.md"
+      - "docs/engineering/g9-redis-down-invalidate-remainder-honesty-EVIDENCE.md"
+      - "docs/README.md"
+      - ".github/workflows/g9-redis-down-invalidate-remainder-honesty.yml"
+  pull_request:
+    paths:
+      - "scripts/g9-redis-down-invalidate-remainder-honesty.sh"
+      - "scripts/g9-redis-down-invalidate-remainder-honesty/**"
+      - "docs/g9-redis-down-invalidate-remainder-honesty.md"
+      - "docs/engineering/g9-redis-down-invalidate-remainder-honesty-EVIDENCE.md"
+      - "docs/README.md"
+      - ".github/workflows/g9-redis-down-invalidate-remainder-honesty.yml"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g9-redis-down-invalidate-remainder-honesty.sh --verify-report scripts/g9-redis-down-invalidate-remainder-honesty/fixtures/honest-skip.env
+      - name: Fake live Redis-down PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-remainder-honesty.sh --verify-report \
+            scripts/g9-redis-down-invalidate-remainder-honesty/fixtures/fake-live-redis-down-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live Redis-down PASS without redis_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live Redis-down PASS rejected"
+      - name: Fake live invalidate PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-remainder-honesty.sh --verify-report \
+            scripts/g9-redis-down-invalidate-remainder-honesty/fixtures/fake-live-invalidate-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live invalidate PASS without live_invalidate_observed=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live invalidate PASS rejected"
+      - name: Fake product G9 close is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-remainder-honesty.sh --verify-report \
+            scripts/g9-redis-down-invalidate-remainder-honesty/fixtures/fake-g9-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g9_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G9 close rejected"
+      - name: Fake #197 redo is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-remainder-honesty.sh --verify-report \
+            scripts/g9-redis-down-invalidate-remainder-honesty/fixtures/fake-redone.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake leftover_197_redone=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake #197 redo rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest leftover dead-client PASS / live SKIP
+        run: |
+          chmod +x ./scripts/g9-redis-down-invalidate-remainder-honesty.sh
+          ./scripts/g9-redis-down-invalidate-remainder-honesty.sh \
+            --out "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty"
+          ./scripts/g9-redis-down-invalidate-remainder-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_83_cells_honest=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_121_cells_honest=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_174_cells_honest=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_197_cells_honest=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_174_honesty_gate=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_197_honesty_gate=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^dead_client_harness=PASS$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^dead_client_is_not_live_down=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^live_redis_down=SKIP$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^redis_down_observed=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^live_invalidate=SKIP$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^live_invalidate_observed=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^g9_close=NOT_CLAIMED$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g9-policysnapshot-invalidate' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g9-failover-remainder' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g9-redis-down-invalidate-honesty' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g9-redis-down-invalidate-remainder' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g3-outbox-consume-idempotent-honesty' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g10-leftover-honesty-remainder' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g9-live-multi-jvm-replica-remainder-honesty' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g4-hot-purge-staging-leftover-honesty' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g7-withdraw-browser-evidence-honesty' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E 'g2-h5-every-page-form-write-remainder-honesty' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_83_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_121_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_174_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_197_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_226_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_228_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_229_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_230_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_212_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_232_kept=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_197_redone=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^leftover_174_redone=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^policy_snapshot_redesigned=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-remainder-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g9-redis-down-invalidate-remainder-honesty
+          path: ${{ runner.temp }}/g9-redis-down-invalidate-remainder-honesty
