@@ -1,6 +1,6 @@
 # S0 leftover: env / process secret rotate-without-restart evidence
 
-Recorded **2026-09-22T18:46:43Z** on this agent VM; rebased onto `origin/main` `f89e2f1` (Merge #149). **Not** a product S0 close. **Not** OpenBao / KMS. **Not** CORE-SEC-003. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
+Recorded **2026-09-22T18:52:12Z** on this agent VM after rebase onto `origin/main` `f89e2f1` (Merge #149). **Not** a product S0 close. **Not** OpenBao / KMS. **Not** CORE-SEC-003. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned.
 
 See [docs/s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md). Secrets were supplied via injected env maps; none are committed.
 
@@ -23,7 +23,7 @@ See [docs/s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-resta
 
 ## Results (agent VM)
 
-Finished at: **2026-09-22T18:46:43Z**. `SecretPortRotateWithoutRestartTest` Tests run: **7**, Failures: **0**, Errors: **0**, Skipped: **1**. `EnvSecretAdapterTest` **3/3**. `SecretPortTest` **3/3**. `FileSecretPortWiringTest` **5/5**. **BUILD SUCCESS** (8.193 s). PASS: env-map rotate-without-restart picked up; OS getenv snapshot SKIP.
+Finished at: **2026-09-22T18:52:12Z**. `SecretPortRotateWithoutRestartTest` Tests run: **7**, Failures: **0**, Errors: **0**, Skipped: **1**. `EnvSecretAdapterTest` **3/3**. `SecretPortTest` **3/3**. `FileSecretPortWiringTest` **5/5**. **BUILD SUCCESS** (4.489 s). PASS: env-map rotate-without-restart picked up; OS getenv snapshot SKIP.
 
 | Check | Result | Notes |
 |---|---|---|
