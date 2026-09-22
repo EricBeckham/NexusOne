@@ -86,6 +86,7 @@ requireIncludes("docs/README leftover rows", files.docsIndex, [
   "g4-p1-staging-audit-events",
   "g4-pkce-spa-verifier",
   "g15-native-bridge-stub",
+  "g17-admin-mfa-recovery-email",
 ]);
 requireIncludes("doc", files.doc, [
   "POST /api/v1/p3/path/instances/{id}/withdraw",
