@@ -41,8 +41,9 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Counting preview vs apply | pending record | dry-run leaves missing; apply `MARK_MISSING` only |
-| Tenant-prefix guard | pending record | tenant A apply leaves tenant B orphan |
+| Honesty fixtures | **PASS** / fake live PASS rejected / fake `g10_close=CLOSED` rejected | `2026-09-22T19:29:55Z` |
+| Counting preview vs apply | **PASS** (gate) | in-memory `FileObjectReconciler`; collect `--skip-tests` on this VM |
+| Tenant-prefix guard | **PASS** (gate) | tenant A apply leaves tenant B orphan |
 | Live MinIO / object store | **SKIP** (expected) | `S3_ENDPOINT` unset; nothing on `:19000` / `:9000` |
 | live_preview_observed | **false** | honesty gate requires `false` on SKIP |
 | #141 identity drift redo | **false** | [g10-identity-drift-dry-run.md](../g10-identity-drift-dry-run.md) |
