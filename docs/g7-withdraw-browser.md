@@ -106,6 +106,7 @@ Expense / travel UI clicks here are the **same Vue button** against stub initiat
 |---|---|
 | Leave withdraw HTTP | **on main** [g7-withdraw-evidence.md](./g7-withdraw-evidence.md) |
 | Expense / travel withdraw HTTP | **on main** [g7-withdraw-expense-travel.md](./g7-withdraw-expense-travel.md) |
+| Expense / travel list / detail / todo query | leftover [g7-query-expense-travel.md](./g7-query-expense-travel.md); not this package |
 | Leave UI click of `todo-withdraw` | **this package** (Vitest + Playwright against stub login) |
 | Expense / travel UI click | same control on stub rows if the walk includes them; **not** a catalog/live-JAR close |
 | Live product-JAR browser withdraw | optional confirmation; not required to keep G18 closed |

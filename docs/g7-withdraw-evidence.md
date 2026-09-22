@@ -86,6 +86,7 @@ Recorded **2026-09-22T15:40:45Z** on this branch with `./scripts/g7/run-withdraw
 | Leave withdraw HTTP (submit-start → withdraw → query → audit) | **this package** |
 | Leave withdraw browser click | leftover [g7-withdraw-browser.md](./g7-withdraw-browser.md); G18 walk did not click it |
 | Expense / travel catalog | **on main** (#69). Not rewritten here |
+| Expense / travel list / detail / todo query | leftover [g7-query-expense-travel.md](./g7-query-expense-travel.md); not this package |
 | `tenant_member` seed `process.instance/withdraw` | **on main** (#69). `guard()` still only hard-fails `explicit_deny` / `tenant_boundary` |
 | G7 three-type close | **not claimed** |
 | G18 | **stays closed** |
