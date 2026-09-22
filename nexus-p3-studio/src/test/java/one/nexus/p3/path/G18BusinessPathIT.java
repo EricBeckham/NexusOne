@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.UUID;
 import one.nexus.audit.AuditPort;
 import one.nexus.audit.ChainedAuditEvent;
+import one.nexus.event.OutboxPort;
+import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.isolation.IsolationKernel;
 import one.nexus.p2.IdentityModule;
 import one.nexus.p2.admin.TenantAdminInitializer;
@@ -55,6 +57,7 @@ class G18BusinessPathIT {
     @Autowired AuditPort auditPort;
     @Autowired G18RollbackProbe rollbackProbe;
     @Autowired IsolationKernel isolationKernel;
+    @Autowired OutboxPort outboxPort;
 
     @BeforeAll
     static void startPostgres() throws Exception {
@@ -68,6 +71,9 @@ class G18BusinessPathIT {
 
     @Test
     void publishSubmitApprovalOutboxAndAuditShareOnePath() throws Exception {
+        assertTrue(outboxPort instanceof JdbcOutboxStore,
+                () -> "G18 must use product EventCoreConfiguration Outbox, got "
+                        + (outboxPort == null ? "null" : outboxPort.getClass().getName()));
         identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
                 TENANT, "G18 Admin", "g18-admin@example.com", "g18-admin"));
         Session admin = login("g18-admin", "g18-admin@example.com", "G18 Admin");

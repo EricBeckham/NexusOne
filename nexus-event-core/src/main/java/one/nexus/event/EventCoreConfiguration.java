@@ -1,8 +1,6 @@
 package one.nexus.event;
 
 import java.time.Clock;
-import java.time.Duration;
-import java.util.List;
 import javax.sql.DataSource;
 import one.nexus.event.isolation.ExecutionIsolation;
 import one.nexus.event.jdbc.JdbcDeadLetterStore;
@@ -11,13 +9,21 @@ import one.nexus.event.jdbc.JdbcJobLogWriter;
 import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.event.jdbc.JdbcReconciliation;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+/**
+ * M0-09 JDBC outbox / dispatcher. Must be <strong>auto-configuration</strong>, not a
+ * component-scanned {@code @Configuration}: {@code @ConditionalOnBean(DataSource)} on a
+ * scanned class is evaluated before {@link DataSourceAutoConfiguration}, so the product
+ * monolith never registered {@link JdbcOutboxStore} / {@link OutboxPort}. G18 IT hid this
+ * by declaring those beans on {@code G18PathApplication}.
+ */
+@AutoConfiguration(after = DataSourceAutoConfiguration.class)
 @ConditionalOnBean(DataSource.class)
 @EnableConfigurationProperties(ExecutionProperties.class)
 public class EventCoreConfiguration {
@@ -44,9 +50,9 @@ public class EventCoreConfiguration {
             DataSource dataSource,
             ExecutionIsolation isolation,
             ExecutionSettings settings,
-            Clock executionClock
+            ObjectProvider<Clock> clocks
     ) {
-        return new JdbcOutboxStore(dataSource, isolation, settings, executionClock);
+        return new JdbcOutboxStore(dataSource, isolation, settings, clock(clocks));
     }
 
     @Bean
@@ -63,14 +69,14 @@ public class EventCoreConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    IdempotencyStore idempotencyStore(DataSource dataSource, Clock executionClock) {
-        return new JdbcIdempotencyStore(dataSource, executionClock);
+    IdempotencyStore idempotencyStore(DataSource dataSource, ObjectProvider<Clock> clocks) {
+        return new JdbcIdempotencyStore(dataSource, clock(clocks));
     }
 
     @Bean
     @ConditionalOnMissingBean
-    JdbcDeadLetterStore jdbcDeadLetterStore(DataSource dataSource, Clock executionClock) {
-        return new JdbcDeadLetterStore(dataSource, executionClock);
+    JdbcDeadLetterStore jdbcDeadLetterStore(DataSource dataSource, ObjectProvider<Clock> clocks) {
+        return new JdbcDeadLetterStore(dataSource, clock(clocks));
     }
 
     @Bean
@@ -81,8 +87,8 @@ public class EventCoreConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    JobLogWriter jobLogWriter(DataSource dataSource, Clock executionClock) {
-        return new JdbcJobLogWriter(dataSource, executionClock);
+    JobLogWriter jobLogWriter(DataSource dataSource, ObjectProvider<Clock> clocks) {
+        return new JdbcJobLogWriter(dataSource, clock(clocks));
     }
 
     @Bean
@@ -91,9 +97,9 @@ public class EventCoreConfiguration {
             JdbcOutboxStore outbox,
             DataSource dataSource,
             JdbcDeadLetterStore deadLetters,
-            Clock executionClock
+            ObjectProvider<Clock> clocks
     ) {
-        return new JdbcReconciliation(outbox, dataSource, deadLetters, executionClock);
+        return new JdbcReconciliation(outbox, dataSource, deadLetters, clock(clocks));
     }
 
     @Bean
@@ -106,7 +112,7 @@ public class EventCoreConfiguration {
             DeadLetterStore deadLetters,
             JobLogWriter jobLog,
             ExecutionSettings settings,
-            Clock executionClock,
+            ObjectProvider<Clock> clocks,
             ExecutionProperties properties
     ) {
         return new OutboxDispatcher(
@@ -117,7 +123,16 @@ public class EventCoreConfiguration {
                 deadLetters,
                 jobLog,
                 settings,
-                executionClock,
+                clock(clocks),
                 properties.dispatcherEnabled());
+    }
+
+    /**
+     * Product already has more than one {@link Clock} ({@code clock} from IAM,
+     * {@code studioClock} when scan order creates it first). Injecting {@code Clock}
+     * by type would fail after Outbox auto-config attaches.
+     */
+    private static Clock clock(ObjectProvider<Clock> clocks) {
+        return clocks.orderedStream().findFirst().orElseGet(Clock::systemUTC);
     }
 }

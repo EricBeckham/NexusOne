@@ -88,3 +88,9 @@ Lag: if the oldest `PENDING`/`FAILED` row is older than 30s the dispatcher logs 
 | `IdempotencyStore` | `nexus-event-core` |
 | `ReconciliationPort` | `nexus-event-core` |
 | `IsolatedEnvelope` / `RequestIsolationPolicy` | `modules/isolation-kernel` |
+
+## 6. Product wiring
+
+`EventCoreConfiguration` is Spring Boot **auto-configuration** (`after = DataSourceAutoConfiguration`), registered in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
+
+A component-scanned `@Configuration` with `@ConditionalOnBean(DataSource)` is evaluated **before** the DataSource exists, so `JdbcOutboxStore` / `OutboxPort` never register and `NotificationService` fails at monolith startup. Notify-only tests use `nexus.notify.outbox=record|immediate`. Product `nexus.notify.outbox=auto` must not create an in-memory Outbox.
