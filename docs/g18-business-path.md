@@ -3,7 +3,29 @@
 Work package: wire **one** vertical path so publish → physical ledger row → sequential approval → Outbox in-app notify → audit hash chain run in the same Spring / PostgreSQL transaction model.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15, Flowable **7.1.0**, Flyway **13.7.0**. No Docker. Platform versions unchanged.
 
-**This does not close product G18.** Vue now exposes create ledger, form publish, **submit-start**, path todo actions, notifications, and audit-by-trace against live HTTP (`/api/v1/p3/*`; MOCK adapters removed). Eric’s browser walk on `ace55ff` only reached tenant/org/permission snapshot (`grant_count=0` / `no_grant`, and no create/publish/submit-start UI) and is **NOT CLOSED**. Permission matrix UI, H5, and a browser end-to-end walkthrough are still open until Eric re-runs them. **Do not claim product G18 closed.**
+**Product G18 is closed** for the one vertical slice in 需求规格 V1.1 §12: 租户 → 组织权限 → 台账 → 表单 → 发布 → 业务数据 → 顺序审批 → 待办 → 查询 → 站内通知 → 审计. Closed **2026-09-22** on `main` `38f1a73` by the browser record below, plus the already-recorded same-transaction rollback (`G18RollbackProbe`) and dispatcher timing (`docs/m0-09-outbox-api.md`).
+
+Still open, and not part of this close: G7 (three business types), G4 (login / permission / admin / export / guard-reject on the same chain), G2 permission-matrix UI, G15 H5, G1 export/file/cache/Job/Task, G6, G17, and the target Linux/ARM profile.
+
+## Browser walkthrough on `38f1a73` (G18 close)
+
+Local JAR, no Docker. UI `http://127.0.0.1:5173`, API `http://127.0.0.1:18086`, PostgreSQL **15.18** database `nexus_g18_loop`. Stub login `ui2231@example.com` / 浏览器管理员. Servers stopped after the walk. Keycloak on `:8080` was left running.
+
+| Step | Result |
+|---|---|
+| Login + issued context | Workbench after stub login |
+| Tenant | 浏览器租户 `ui2231`, `01a0c98a-1f3c-7f72-b724-6ac34746e981` |
+| Org | Person 浏览器管理员 ACTIVE; department Root / `ROOT` |
+| Permission | Snapshot `grant_count=7`, `version=10`; `ledger`/`read` `allowed=true` |
+| Ledger | `leave2231` 请假台账 READY, quota 1/10, physical table `l_ui2231_leave2231` (`01a0c98b-1b4b-7c83-b528-2f07e3305bc0`) |
+| Form / publish | `leave2231_form` (`01a0c98b-7128-71a6-8d9f-d49baedf20d9`) Validate PASS, `running_version=1` |
+| Data + sequential approval | submit-start「年假 / 3 / 浏览器走通」; record `01a0c98c-019b-739e-afa6-cf13ba27097a`; process `01a0c98c-03ce-70dc-8db1-31ac651f7375` |
+| Todo | Todo `01a0c98c-0407-726d-a725-34a3c9cd380a` was PENDING; 同意 set `approval_status=APPROVED` |
+| Query | Ledger record row: 年假, 3, 浏览器走通, APPROVED |
+| In-app notify | `approval.task.assigned` and `approval.task.approved` both `DELIVERED`. Outbox `notify.in_app.deliver` both `DISPATCHED` |
+| Audit | Submit trace `1a1f7b8b-4de0-4ef0-978c-3d39a65744ff`: `p3.path.submitted`, `p3.approval.started` (`chain_index` 4–5). Approve uses a new trace `cb9e0a9f-0943-4384-aa06-31f05e292103`: `p3.path.decided`, `p3.approval.approved` (`chain_index` 6–7). `previous_hash` of indexes 4–7 matches the prior `event_hash` |
+
+Same-transaction rollback is the earlier `G18RollbackProbe.submitStartThenFail` (business row, `exec_outbox`, `audit_record`, and chain head all roll back). This walk observed the committed chain; it did not repeat the failure probe. Dispatcher start-of-delivery timing remains the **2026-09-22T13:39:16Z** measurement (P95 **238 ms** / 20 samples, product poller **25 ms**, lag alarm **30s**). This walk showed both inbox rows `DELIVERED` and did not re-measure P95.
 
 ## Browser walkthrough on `ace55ff` (not a G18 close)
 
@@ -19,9 +41,9 @@ Eric’s browser path on `main` @ `ace55ff` (stub login「浏览器管理员」,
 | `POST /api/v1/permission/check` `ledger`/`read` | **`allowed=false`, reason `no_grant`** |
 | Ledger records / form publish / sequential approval / todo / notify / audit | **Not reached** — blocked by `no_grant` **and** missing shell buttons |
 
-HTTP E2E / `G18BusinessPathIT` already seeded `tenant_member` because they hit `/api/v1/p3/*` (`IssuedTenantIsolationFilter`). The permission shell used by the browser (`/api/v1/permission/snapshot|check`) went through `PermissionAuthFilter`, which bound TenantContext but **did not seed**. Product G18 is **NOT CLOSED** via browser.
+HTTP E2E / `G18BusinessPathIT` already seeded `tenant_member` because they hit `/api/v1/p3/*` (`IssuedTenantIsolationFilter`). The permission shell used by the browser (`/api/v1/permission/snapshot|check`) went through `PermissionAuthFilter`, which bound TenantContext but **did not seed**. That `ace55ff` browser result did not close G18. The `38f1a73` walk did (`grant_count=7`).
 
-#66 on `main` (`7fffd39`) extends the same seed (`nexus.permission.seed-tenant-member-grants=true`) so `PermissionAuthFilter` and `FlowAuthFilter` assign role `tenant_member` to the current **person id** (not position code `TENANT_ADMIN`) after stub/browser login + issued context. `TenantMemberGrantSeedApiTest` is the IT for that browser-shaped path. It does **not** close product G18.
+#66 on `main` (`7fffd39`) extends the same seed (`nexus.permission.seed-tenant-member-grants=true`) so `PermissionAuthFilter` and `FlowAuthFilter` assign role `tenant_member` to the current **person id** (not position code `TENANT_ADMIN`) after stub/browser login + issued context. `TenantMemberGrantSeedApiTest` is the IT for that browser-shaped path. The product close is the browser record at the top, which observed the seed.
 
 IT recorded **2026-09-22T14:17:57Z** (agent VM, OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**):
 
@@ -31,7 +53,7 @@ mvn -pl nexus-permission-core -am test \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS` — 4 tests. Seed API: stub login + issued context → snapshot `grant_count > 0`; `ledger/read|write`, `form/read`, `process.task` approve/reject allowed (not `no_grant`); assignment is `user` + person id. `PermissionApiTest` still observes `no_grant` with the seed property unset. P3 `IssuedTenantIsolationFilterTest` **5/5** and `PermissionDataScopeHookTest` **4/4**. Product G18 is **not** closed.
+`BUILD SUCCESS` — 4 tests. Seed API: stub login + issued context → snapshot `grant_count > 0`; `ledger/read|write`, `form/read`, `process.task` approve/reject allowed (not `no_grant`); assignment is `user` + person id. `PermissionApiTest` still observes `no_grant` with the seed property unset. P3 `IssuedTenantIsolationFilterTest` **5/5** and `PermissionDataScopeHookTest` **4/4**. This IT run is the seed evidence cited by the G18 close.
 
 ## Browser shell (this PR — still not a G18 close)
 
@@ -45,11 +67,11 @@ Previous UI on `ace55ff` listed live P3 resources but had no create/publish/subm
 | Todos empty, no approve | Inbox + `POST /api/v1/p3/path/tasks/{id}/approve\|reject` |
 | No sidebar for notify / audit | `/p3/notifications`, `/p3/audit` (`GET /api/v1/notifications`, `GET /api/v1/audit/traces/{traceId}`) |
 
-Do **not** treat this as product G18 closed. Eric must re-run the browser E2E on this branch.
+That shell commit did not itself close G18. The close is the `38f1a73` browser record at the top of this file.
 
 ## Runtime gates (ledger 403 / notify 403 / empty `audit_record`)
 
-Fixes for the live path Eric hit. Product G18 is still not closed.
+Fixes for the live path Eric hit. They are part of the wiring the later browser close relied on.
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -70,12 +92,12 @@ After #62, `nexus.notify.outbox=auto` no longer registers in-memory `RecordingOu
 
 **Fix:** `EventCoreConfiguration` is now `@AutoConfiguration(after = DataSourceAutoConfiguration)` listed in `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`. `@ConditionalOnBean(DataSource)` runs after the DataSource exists. Outbox beans take `Clock` via `ObjectProvider` because IAM `clock` and P3 `studioClock` can both exist. The G18 host no longer declares Outbox beans; it uses the same auto-config as the product.
 
-This unblocks empty-DB product boot / E2E. It does **not** close product G18.
+This unblocks empty-DB product boot / E2E. Boot itself is not the G18 close; the browser record at the top is.
 
 
 ## What is proven (runnable)
 
-Recorded on this branch at **2026-09-22T13:39:16Z** (dispatcher SLO) after #64 same-TX audit (**2026-09-22T13:36:12Z**). Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` / `JdbcAuditChainTest` skipped). G18 IT still leaves the poller **off**. Product G18 is **not** closed.
+Recorded on this branch at **2026-09-22T13:39:16Z** (dispatcher SLO) after #64 same-TX audit (**2026-09-22T13:36:12Z**). Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` / `JdbcAuditChainTest` skipped). G18 IT still leaves the poller **off** so it can assert `PENDING`. The product close cites the dispatcher measurement in this section and the delivered inbox rows from the browser walk.
 
 | Component | Version |
 |---|---|
@@ -164,9 +186,9 @@ Tenant isolation for ledger/outbox/notify is M0-02 `AccessContextHolder` / `Requ
 | Item | Status |
 |---|---|
 | Vue 台账 / 表单 / 待办 | Live HTTP (`/api/v1/p3/*`); create / publish / submit-start / path approve in this PR; MOCK toggle retired |
-| Live UI clicking this path | **NOT CLOSED.** On `ace55ff` the browser stopped at permission snapshot (`grant_count=0` / `no_grant`) **and** had no create/publish/submit-start UI. #66 seeds the browser subject; this PR adds the buttons. Eric must re-walk. Still not a tenant→…→audit walkthrough |
-| Product-wide G18 / G7 three-business | Open — **do not claim closed** |
-| Outbox dispatcher P95 / 30s alarm | Product dispatcher is **on** (`dispatcher-enabled=true`). Delivery + lag alarm: `docs/m0-09-outbox-api.md`, `OutboxEventContractTest`, `NexusOneOutboxDispatcherTest`. G18 IT still leaves dispatcher off to assert PENDING. **Not** a product G18 close |
+| Live UI clicking this path | **CLOSED** 2026-09-22 on `38f1a73`. See the browser table at the top. The `ace55ff` walk remains the prior, incomplete result |
+| G7 three business types | Open. G18 is one slice, not three businesses |
+| Outbox dispatcher P95 / 30s alarm | Cited as G18 evidence: `docs/m0-09-outbox-api.md`, P95 **238 ms**, product poller **25 ms**, lag alarm **30s**. The live walk delivered both inbox rows. G18 IT still leaves the poller off so it can assert `PENDING` |
 | Concurrent G18 submits holding the chain lock for the whole business TX | Accepted trade-off vs private commit (keeps gapless hash indexes + rollback atomicity) |
 | `appendNewTransaction` from a TX that already called `append` | Deadlock on `audit_chain_meta`; G18 path does not do this |
 | Full G4/G6/G17 | Unchanged |

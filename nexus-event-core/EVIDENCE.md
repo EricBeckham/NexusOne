@@ -1,6 +1,6 @@
 # M0-09 event-core evidence
 
-Recorded on the agent VM **2026-09-22T13:39:16Z**. Not a target Profile / Linux-ARM / offline-package acceptance. No Docker. **Does not close product G18.**
+Recorded on the agent VM **2026-09-22T13:39:16Z**. Not a target Profile / Linux-ARM / offline-package acceptance. No Docker. Dispatcher timing cited by the G18 close in [docs/g18-business-path.md](../docs/g18-business-path.md).
 
 ## Versions
 

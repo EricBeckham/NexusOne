@@ -2,7 +2,7 @@
   <div>
     <div class="nx-page-header">
       <h1>审计哈希链</h1>
-      <p>只读 <code>GET /api/v1/audit/traces/{traceId}</code>。按当前租户过滤，不改链。产品 G18 未关闭。</p>
+      <p>只读 <code>GET /api/v1/audit/traces/{traceId}</code>。按当前租户过滤，不改链。G18 的数据与审批事件按 trace 可查。</p>
     </div>
     <NxSourceBanner body="M0-11 platform.audit_record。submit-start / approve 会带 X-Trace-Id。空列表表示该 trace 在本租户没有事件，不是 MOCK。" />
     <form class="nx-card" style="margin-bottom:16px;max-width:720px;" @submit.prevent="load">

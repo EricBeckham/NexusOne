@@ -7,7 +7,7 @@
       </div>
       <button class="ghost" type="button" @click="reload">刷新</button>
     </div>
-    <NxSourceBanner body="M0-10。列表为空不一定是故障：dispatcher 未投递或尚未走 submit-start。本页不关闭 G18。" />
+    <NxSourceBanner body="M0-10。列表为空不一定是故障：dispatcher 未投递或尚未走 submit-start。" />
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <table class="nx-table" data-testid="notify-table">

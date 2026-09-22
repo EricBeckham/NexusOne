@@ -67,7 +67,7 @@ Flyway `V501__audit_hash_chain.sql`（V500 已由 M0-09 占用）。P1 的 `plat
 
 `JdbcHashChainedAuditPort.append` joins an ambient Spring transaction through `DataSourceUtils` on the shared DataSource (same pattern as M0-09 `JdbcOutboxStore`). The chain-head `SELECT ... FOR UPDATE`, the `audit_record` INSERT, and the `audit_chain_meta` head update do **not** commit on a private connection. A business rollback therefore rolls the hash-chain writes back with the business row. Trade-off: the single-row chain lock is held until that transaction ends, so concurrent `append` callers serialize. That keeps `chain_index` gapless and append-only; a shorter private commit would re-introduce chain/business divergence. `appendNewTransaction` still commits privately so guard-reject can survive rollback, and must not be called from a TX that already holds the lock via `append`.
 
-G18 submit/approve/withdraw use `append`. This does **not** close product G18.
+G18 submit/approve/withdraw use `append`. The product close is [g18-business-path.md](../g18-business-path.md); this section only records that `append` joins the business transaction.
 
 ### 3. Trace 关联（兼容 M0-01）
 
@@ -92,7 +92,7 @@ Runbook：
 
 | 项 | 原因 |
 |---|---|
-| 业务路径端到端哈希链（登录→权限→管理→数据→审批→守卫拒绝落在同一条真实请求上） | G18 submit/approve 已把 `DATA`/`APPROVAL` 打进 `AuditPort.append` 且与业务行同 TX。登录/权限/管理/守卫拒绝仍未全部接线。**不**声称产品 G18 关闭 |
+| 业务路径端到端哈希链（登录→权限→管理→数据→审批→守卫拒绝落在同一条真实请求上） | G18 的数据与审批事件已关闭（见 `docs/g18-business-path.md`）。本行是 G4：登录、权限、管理、守卫拒绝仍未全部接线 |
 | 并发 `append` 把链锁持有到业务 TX 结束 | 与同 TX 回滚原子性的取舍；未改成更短的私有提交 |
 | 全路径哈希校验作为产品门禁 | 内存与 JDBC 测试可验证**已写入**的链，不能代表真实业务闭环 |
 | P1 `GET /tenants/{id}/audit-events` 切换到 M0-11 | P1 staging 表仍在；切换会改 M0-03 行为，留给接线 PR |

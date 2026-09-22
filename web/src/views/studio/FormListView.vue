@@ -9,7 +9,7 @@
         {{ showCreate ? "收起创建" : "创建表单" }}
       </button>
     </div>
-    <NxSourceBanner body="Live GET /api/v1/p3/forms。创建绑定所选台账的 field_code。G5 由模块测试覆盖；本页不关闭 G18。" />
+    <NxSourceBanner body="Live GET /api/v1/p3/forms。创建绑定所选台账的 field_code。G5 由模块测试覆盖。" />
     <form v-if="showCreate" class="nx-card" style="margin-bottom:16px;" data-testid="form-create-form" @submit.prevent="onCreate">
       <h3>创建表单</h3>
       <p class="nx-muted">绑定所选台账的业务字段（跳过 approval_status）。Validate 要求台账字段已存在。</p>

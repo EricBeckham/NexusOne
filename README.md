@@ -31,7 +31,7 @@ java -jar nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
 
 ## 前端与双租户验收（M0-12）
 
-最小 Vue 3 壳与 HTTP 对抗脚本。P1 租户 / P2 组织身份 / P3 台账表单待办 / 权限快照走已合并 live API；**不宣称 G18 关闭**。清单与运行方式：[docs/m0-12-ui-acceptance.md](./docs/m0-12-ui-acceptance.md)，界面：[web/README.md](./web/README.md)。
+最小 Vue 3 壳与 HTTP 对抗脚本。P1 租户 / P2 组织身份 / P3 台账表单待办 / 权限快照走已合并 live API。产品 G18（一条纵向闭环）已关闭，记录在 [docs/g18-business-path.md](./docs/g18-business-path.md)。清单与运行方式：[docs/m0-12-ui-acceptance.md](./docs/m0-12-ui-acceptance.md)，界面：[web/README.md](./web/README.md)。
 
 ```bash
 export NEXUS_DB_URL='jdbc:postgresql://127.0.0.1:5432/nexusone'

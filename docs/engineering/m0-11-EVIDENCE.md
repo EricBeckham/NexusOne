@@ -1,6 +1,6 @@
 # M0-11 evidence (Boot 4.1.1 + PostgreSQL 15.x)
 
-Recorded **2026-09-22** on the agent VM against `main` (`d19fba5`). Same-TX hash-chain hardening re-ran `nexus-audit-core` on this branch at **2026-09-22T13:36:12Z** (Zonky PG 15.18; live `127.0.0.1:5432` still absent). **Not** a target Profile / Linux-ARM / offline-package acceptance. **Not** G4 / G6 / G17. **Not** product G18 closed.
+Recorded **2026-09-22** on the agent VM against `main` (`d19fba5`). Same-TX hash-chain hardening re-ran `nexus-audit-core` on this branch at **2026-09-22T13:36:12Z** (Zonky PG 15.18; live `127.0.0.1:5432` still absent). **Not** a target Profile / Linux-ARM / offline-package acceptance. **Not** G4 / G6 / G17. Product G18 was closed later by the browser record in [g18-business-path.md](../g18-business-path.md); this file stays the M0-11 library evidence.
 
 Secrets (`NEXUS_DB_PASSWORD`, `NEXUS_CRYPTO_MASTER_KEY`) were supplied via environment only; none are committed.
 

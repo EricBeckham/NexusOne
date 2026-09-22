@@ -6,7 +6,7 @@ Vue 3 shell for tenant admin, org/identity, permission snapshot, and **P3 台账
 - Permission pages talk to **M0-05** `/api/v1/permission` (health / snapshot / check).
 - Ledger / form / todo pages talk to live **M0-06/07/08** HTTP plus the G18 path (`/api/v1/p3/path/submit-start`).
 - Notify: `/api/v1/notifications`. Audit by trace (read-only): `/api/v1/audit/traces/{traceId}`.
-- This package **does not close G18**. Eric’s previous browser walk on `ace55ff` only reached tenant / org / permission snapshot and is **not closed**.
+- Product G18 (one vertical slice) is closed by the 2026-09-22 browser record in [docs/g18-business-path.md](../docs/g18-business-path.md). The earlier `ace55ff` walk only reached tenant / org / permission snapshot.
 
 ## Run
 
