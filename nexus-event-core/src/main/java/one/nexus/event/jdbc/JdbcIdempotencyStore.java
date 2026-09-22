@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import javax.sql.DataSource;
 import one.nexus.event.IdempotencyStore;
 import one.nexus.event.support.Jdbc;
@@ -20,11 +21,20 @@ public final class JdbcIdempotencyStore implements IdempotencyStore {
 
     @Override
     public Claim claim(String scope, String key, String tenantId, String traceId) {
+        return insertClaim(scope, key, tenantId, traceId, false);
+    }
+
+    @Override
+    public Claim claimInTransaction(String scope, String key, String tenantId, String traceId) {
+        return insertClaim(scope, key, tenantId, traceId, true);
+    }
+
+    private Claim insertClaim(String scope, String key, String tenantId, String traceId, boolean transactional) {
         if (scope == null || scope.isBlank() || key == null || key.isBlank()) {
             throw new IllegalArgumentException("scope and key are required");
         }
         Instant now = Instant.now(clock);
-        return Jdbc.call(dataSource, connection -> {
+        Jdbc.ConnectionWork<Claim> work = connection -> {
             try (PreparedStatement ps = connection.prepareStatement("""
                     INSERT INTO platform.exec_idempotency (scope, idempotency_key, tenant_id, trace_id, first_seen_at)
                     VALUES (?, ?, ?, ?, ?)
@@ -37,8 +47,55 @@ public final class JdbcIdempotencyStore implements IdempotencyStore {
                 ps.setTimestamp(5, Jdbc.ts(now));
                 int inserted = ps.executeUpdate();
                 return inserted == 1 ? Claim.FIRST : Claim.DUPLICATE;
-            } catch (SQLException ex) {
-                throw ex;
+            }
+        };
+        return transactional ? Jdbc.transactionalCall(dataSource, work) : Jdbc.call(dataSource, work);
+    }
+
+    @Override
+    public void remember(String scope, String key, String resultRef) {
+        if (scope == null || scope.isBlank() || key == null || key.isBlank()) {
+            throw new IllegalArgumentException("scope and key are required");
+        }
+        if (resultRef == null || resultRef.isBlank()) {
+            throw new IllegalArgumentException("resultRef is required");
+        }
+        Jdbc.transactionalCall(dataSource, connection -> {
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    UPDATE platform.exec_idempotency
+                       SET result_ref = ?
+                     WHERE scope = ? AND idempotency_key = ?
+                    """)) {
+                ps.setString(1, resultRef);
+                ps.setString(2, scope);
+                ps.setString(3, key);
+                if (ps.executeUpdate() != 1) {
+                    throw new IllegalStateException("idempotency key not claimed: " + scope + "/" + key);
+                }
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public Optional<String> resultRef(String scope, String key) {
+        if (scope == null || scope.isBlank() || key == null || key.isBlank()) {
+            throw new IllegalArgumentException("scope and key are required");
+        }
+        return Jdbc.transactionalCall(dataSource, connection -> {
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    SELECT result_ref FROM platform.exec_idempotency
+                    WHERE scope = ? AND idempotency_key = ?
+                    """)) {
+                ps.setString(1, scope);
+                ps.setString(2, key);
+                try (var rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        return Optional.empty();
+                    }
+                    String ref = rs.getString(1);
+                    return ref == null || ref.isBlank() ? Optional.empty() : Optional.of(ref);
+                }
             }
         });
     }

@@ -318,22 +318,26 @@ export async function fillForm(id, body) {
 
 export async function submitStart(formId, body) {
   const traceId = body.trace_id || body.traceId || newTraceId();
+  const idempotencyKey = body.idempotency_key || body.idempotencyKey || newTraceId();
   rememberTrace(traceId);
   const started = await api("/api/v1/p3/path/submit-start", {
     method: "POST",
     traceId,
+    headers: { "Idempotency-Key": idempotencyKey },
     body: {
       form_id: formId,
       values: body.values || {},
       process_key: body.process_key || body.processKey || "nexusSequentialApproval",
       assignee_type: body.assignee_type || body.assigneeType || "PERSON",
       assignee_ref: body.assignee_ref || body.assigneeRef,
+      idempotency_key: idempotencyKey,
     },
   });
   return wrap({
     ...started,
     trace_id: traceId,
-    note: "POST /api/v1/p3/path/submit-start：物理台账行 + Flowable 顺序审批。",
+    idempotency_key: idempotencyKey,
+    note: "POST /api/v1/p3/path/submit-start：物理台账行 + Flowable 顺序审批。重复同一 Idempotency-Key 不写第二行。",
   });
 }
 

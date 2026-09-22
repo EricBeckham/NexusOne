@@ -15,6 +15,7 @@
 
 M0-10（CachePort / File Service / 站内通知）见 [docs/m0-10-file-cache-notify.md](./docs/m0-10-file-cache-notify.md)。
 M0-07（基础表单与发布）见 [docs/m0-07-form-publish.md](./docs/m0-07-form-publish.md)。G5 表单失败回滚证据见 [docs/g5-form-publish-rollback.md](./docs/g5-form-publish-rollback.md)。
+G3（submit-start 幂等键与记录乐观锁）见 [docs/g3-data-consistency.md](./docs/g3-data-consistency.md)。 Outbox 消费幂等沿用 [docs/m0-09-outbox-api.md](./docs/m0-09-outbox-api.md)。
 
 ## 应用骨架（M0-01）
 

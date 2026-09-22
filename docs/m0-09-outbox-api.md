@@ -120,3 +120,5 @@ Worker / Quartz knobs (`worker-enabled`, `quartz-enabled`, `quartz-auto-startup`
 - `NexusOneOutboxDispatcherTest` — product `NexusOneApplication` on Zonky PG 15; PENDING → DISPATCHED; `notify.inbox` DELIVERED and `GET /api/v1/notifications` readable.
 
 Measurements are in-process Zonky PostgreSQL 15, not a multi-node load run. Recorded **2026-09-22T13:39:16Z**: event-core P95 **238 ms** (20 samples); product poller `dispatched_at - created_at` **25 ms**. Product poll-interval 500ms is well under the 5s P95 cap; the 30s alarm is a log (`OUTBOX_LAG_ALARM`), not a pager webhook.
+
+G3 (S0+S1 data consistency) **reuses** this consumer-idempotency evidence. It does not rebuild Outbox / Dispatcher. Submit-start keys and record `version` locks are documented in [g3-data-consistency.md](./g3-data-consistency.md).

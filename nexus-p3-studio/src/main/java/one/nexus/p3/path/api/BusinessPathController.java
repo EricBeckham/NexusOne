@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,13 +31,17 @@ public class BusinessPathController {
     }
 
     @PostMapping("/submit-start")
-    public Map<String, Object> submitAndStart(@RequestBody SubmitStartBody body) {
+    public Map<String, Object> submitAndStart(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestBody SubmitStartBody body) {
+        String key = firstNonBlank(idempotencyKey, body == null ? null : body.idempotencyKey());
         return pathJson(path.submitAndStart(new SubmitStartCommand(
                 body.formId(),
                 body.values() == null ? Map.of() : body.values(),
                 body.processKey(),
                 AssigneeType.parse(body.assigneeType()),
-                body.assigneeRef())));
+                body.assigneeRef(),
+                key)));
     }
 
     @PostMapping("/tasks/{todoId}/approve")
@@ -63,9 +68,21 @@ public class BusinessPathController {
         json.put("ledger_code", view.ledgerCode());
         json.put("physical_table", view.physicalTable());
         json.put("approval_status", view.approvalStatus());
+        json.put("record_version", view.recordVersion());
+        json.put("idempotent_replay", view.idempotentReplay());
         json.put("process", processJson(view.process()));
         json.put("todo", todoJson(view.todo()));
         return json;
+    }
+
+    private static String firstNonBlank(String header, String body) {
+        if (header != null && !header.isBlank()) {
+            return header.trim();
+        }
+        if (body != null && !body.isBlank()) {
+            return body.trim();
+        }
+        return null;
     }
 
     private static Map<String, Object> decisionJson(DecisionView view) {
@@ -107,5 +124,6 @@ public class BusinessPathController {
             Map<String, Object> values,
             String processKey,
             String assigneeType,
-            String assigneeRef) {}
+            String assigneeRef,
+            String idempotencyKey) {}
 }

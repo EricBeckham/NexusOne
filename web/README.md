@@ -67,7 +67,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/p3/ledgers` | GET list + POST applications + POST ledgers | Create UI; quota from P1 if platform mode |
 | `/p3/ledgers/:id` | ledger + `.../records` + POST `.../fields` | No field PUT |
 | `/p3/forms` | GET list + POST create | Bind selected ledger field_code |
-| `/p3/forms/:id` | validate / publish / **submit-start** | Fill writes physical row + starts Flowable |
+| `/p3/forms/:id` | validate / publish / **submit-start** | Fill writes physical row + starts Flowable. Each click sends `Idempotency-Key` (G3) |
 | `/p3/todos` | `/api/v1/p3/todos` + `/api/v1/p3/path/tasks/*` | Approve/reject updates ledger approval_status |
 | `/p3/notifications` | `GET /api/v1/notifications` | Mark read |
 | `/p3/audit` | `GET /api/v1/audit/traces/{traceId}` | Read-only, tenant-filtered |

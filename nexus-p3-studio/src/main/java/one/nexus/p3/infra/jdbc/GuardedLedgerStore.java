@@ -24,6 +24,7 @@ import one.nexus.p3.domain.FieldType;
 import one.nexus.p3.domain.LedgerDefinition;
 import one.nexus.p3.domain.LedgerField;
 import one.nexus.p3.domain.LedgerIdentifiers;
+import one.nexus.p3.domain.P3ErrorCodes;
 import one.nexus.p3.domain.P3Exception;
 import one.nexus.p3.domain.SystemColumns;
 import one.nexus.p3.port.DataScopeHook;
@@ -84,21 +85,39 @@ public class GuardedLedgerStore {
         }
         patch.put(SystemColumns.UPDATED_AT, Timestamp.from(Instant.now()));
         patch.put(SystemColumns.UPDATED_BY, context.actor().actorId());
+        Map<String, Object> current = detail(ledger, fields, id);
+        long currentVersion = asVersion(current.get(SystemColumns.VERSION));
+        if (expectedVersion != null && currentVersion != expectedVersion) {
+            throw P3Exception.recordConflict(
+                    "stale record version",
+                    Map.of("expected", expectedVersion, "actual", currentVersion, "id", id.toString()));
+        }
+        long lockVersion = expectedVersion != null ? expectedVersion : currentVersion;
+        long nextVersion = currentVersion + 1;
+        patch.put(SystemColumns.VERSION, nextVersion);
         Map<String, Object> filters = new LinkedHashMap<>();
         filters.put(SystemColumns.ID, id);
-        if (expectedVersion != null) {
-            filters.put(SystemColumns.VERSION, expectedVersion);
-        }
-        // version bump via read-modify: Query AST equality only, so encode next version in values
-        Map<String, Object> current = detail(ledger, fields, id);
-        long nextVersion = ((Number) current.get(SystemColumns.VERSION)).longValue() + 1;
-        if (expectedVersion != null && ((Number) current.get(SystemColumns.VERSION)).longValue() != expectedVersion) {
-            throw P3Exception.recordConflict("stale record version");
-        }
-        patch.put(SystemColumns.VERSION, nextVersion);
+        filters.put(SystemColumns.VERSION, lockVersion);
         int updated = executeWrite(QueryAst.update(ledger.physicalTable(), patch, filters));
         if (updated == 0) {
-            throw P3Exception.recordNotFound(id);
+            Map<String, Object> latest;
+            try {
+                latest = detail(ledger, fields, id);
+            } catch (P3Exception ex) {
+                if (ex.errorCode().equals(P3ErrorCodes.RECORD_NOT_FOUND)) {
+                    throw ex;
+                }
+                throw ex;
+            }
+            throw P3Exception.recordConflict(
+                    "stale record version",
+                    Map.of(
+                            "expected",
+                            lockVersion,
+                            "actual",
+                            asVersion(latest.get(SystemColumns.VERSION)),
+                            "id",
+                            id.toString()));
         }
         return detail(ledger, fields, id);
     }
@@ -304,6 +323,16 @@ public class GuardedLedgerStore {
             case BOOLEAN -> raw instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(raw));
             case TIMESTAMPTZ -> Timestamp.from(Instant.parse(String.valueOf(raw)));
         };
+    }
+
+    private static long asVersion(Object raw) {
+        if (raw instanceof Number number) {
+            return number.longValue();
+        }
+        if (raw == null) {
+            throw P3Exception.recordConflict("record is missing version");
+        }
+        return Long.parseLong(String.valueOf(raw));
     }
 
     private static String stringOrNull(Object value) {

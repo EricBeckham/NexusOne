@@ -38,6 +38,9 @@ if (!files.live.includes("/api/v1/p3/applications") || !files.live.includes("/le
 if (!files.live.includes("/api/v1/p3/path/submit-start")) {
   failures.push("p3-live.js must call /api/v1/p3/path/submit-start");
 }
+if (!files.live.includes("Idempotency-Key")) {
+  failures.push("p3-live.js must send Idempotency-Key on submit-start");
+}
 if (!files.live.includes("/api/v1/p3/path/tasks/") || !files.live.includes("/approve")) {
   failures.push("p3-live.js must call path approve/reject");
 }
