@@ -124,6 +124,15 @@
               <mainClass>one.nexus.permission.scan.OpsPgDumpHonestyCheckMain</mainClass>
             </configuration>
           </execution>
+          <execution>
+            <id>h5-page-honesty</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <mainClass>one.nexus.permission.scan.H5PageSurfaceHonestyCheckMain</mainClass>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>

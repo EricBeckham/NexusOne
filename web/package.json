@@ -25,6 +25,7 @@
     "assert:h5-mp-webview": "node scripts/assert-h5-mp-webview.mjs",
     "assert:h5-runtime": "node scripts/assert-h5-runtime.mjs",
     "assert:h5-permission": "node scripts/assert-h5-permission.mjs",
+    "assert:h5-every-page": "node scripts/assert-h5-every-page.mjs",
     "assert:h5-app-webview": "node scripts/assert-h5-app-webview.mjs",
     "assert:h5-wx-dt": "node scripts/assert-h5-wx-dt.mjs",
     "assert:h5-native-bridge": "node scripts/assert-h5-native-bridge.mjs",
