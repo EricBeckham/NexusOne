@@ -24,7 +24,7 @@ OUT=""
 VERIFY_REPORT=""
 SKIP_TESTS=0
 
-REQUIRED_LEFTOVER_ROWS="s0-secret-rotate-without-restart s0-secret-getenv-snapshot-honesty s0-secret-rotate-without-restart-honesty s0-secret-rotate-getenv-remainder-honesty s0-secret-rotate-getenv-leftover-honesty s0s1-live-redis-minio-isolation-honesty g7-withdraw-browser-evidence-honesty g4-hot-purge-staging-leftover-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g10-leftover-honesty-remainder g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty g9-sentinel-cluster-remainder-honesty g9-sentinel-cluster-honesty g9-live-multi-jvm-replica g9-redis-down-invalidate-remainder g9-redis-down-invalidate-remainder-honesty g9-redis-down-invalidate-honesty g17-mfa-recovery-vue-otp-honesty g17-mfa-recovery-email-honesty g17-gm-tls-nginx-handshake-honesty g2-ops-pg-dump-honesty g2-h5-every-page-form-write-honesty g2-h5-every-page-form-write-remainder-honesty g4-export-wizard-deny-honesty g10-leftover-honesty g5-mid-publish-failure-honesty g5-publishhook-ddl-honesty g3-outbox-consume-crash-honesty g1-queryast-boundsql-honesty g1-queryast-export-honesty g15-wx-dt-native-bridge-honesty g15-wx-dt-native-bridge-remainder linux-arm-profile-leftover-honesty g4-p1-staging-audit-events-honesty g6-recovery-port-dry-run-honesty g17-separation-honesty g17-separation-leftover-honesty g4-hot-purge-90d-honesty g1-fieldpolicy-mask-second-auth-honesty g10-identity-drift-honesty g15-native-bridge-honesty g4-pkce-spa-verifier-honesty g4-pkce-spa-verifier-remainder-honesty g5-browser-failed-publish g7-withdraw-browser-honesty g7-query-expense-travel-honesty g2-form-write-honesty g10-file-reconcile-honesty g7-withdraw-browser"
+REQUIRED_LEFTOVER_ROWS="s0-secret-rotate-without-restart s0-secret-getenv-snapshot-honesty s0-secret-rotate-without-restart-honesty s0-secret-rotate-getenv-remainder-honesty s0-secret-rotate-getenv-leftover-honesty s0s1-live-redis-minio-isolation-honesty g7-withdraw-browser-evidence-honesty g4-hot-purge-staging-leftover-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g10-leftover-honesty-remainder g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty g9-sentinel-cluster-remainder-honesty g9-sentinel-cluster-honesty g9-live-multi-jvm-replica g9-redis-down-invalidate-remainder g9-redis-down-invalidate-remainder-honesty g9-redis-down-invalidate-honesty g17-mfa-recovery-vue-otp-honesty g17-mfa-recovery-email-honesty g17-gm-tls-nginx-handshake-honesty g2-ops-pg-dump-honesty g2-h5-every-page-form-write-honesty g2-h5-every-page-form-write-remainder-honesty g4-export-wizard-deny-honesty g10-leftover-honesty g5-mid-publish-failure-honesty g5-publishhook-ddl-honesty g3-outbox-consume-crash-honesty g1-queryast-boundsql-honesty g1-queryast-export-honesty g15-wx-dt-native-bridge-honesty g15-wx-dt-native-bridge-remainder linux-arm-profile-leftover-honesty g4-p1-staging-audit-events-honesty g6-recovery-port-dry-run-honesty g17-separation-honesty g17-separation-leftover-honesty g4-hot-purge-90d-honesty g1-fieldpolicy-mask-second-auth-honesty g10-identity-drift-honesty g15-native-bridge-honesty g4-pkce-spa-verifier-honesty g4-pkce-spa-verifier-remainder-honesty g5-browser-failed-publish g7-withdraw-browser-honesty g7-query-expense-travel-honesty g7-query-expense-travel-honesty-remainder g1-fieldpolicy-mask-second-auth-remainder-honesty g2-form-write-honesty g10-file-reconcile-honesty g7-withdraw-browser"
 
 usage() {
   cat <<'EOF'
@@ -215,6 +215,10 @@ grep -Fq 'g2-h5-every-page-form-write-remainder-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover g2-h5-every-page-form-write-remainder-honesty (#232)"
 grep -Fq 'g9-redis-down-invalidate-remainder-honesty.md' "$README" \
   || fail "docs/README.md must keep sibling leftover g9-redis-down-invalidate-remainder-honesty (#237)"
+grep -Fq 'g7-query-expense-travel-honesty-remainder.md' "$README" \
+  || fail "docs/README.md must keep sibling leftover g7-query-expense-travel-honesty-remainder (#239)"
+grep -Fq 'g1-fieldpolicy-mask-second-auth-remainder-honesty.md' "$README" \
+  || fail "docs/README.md must keep sibling leftover g1-fieldpolicy-mask-second-auth-remainder-honesty (#238)"
 
 echo "== Honesty fixtures (this leftover)"
 verify_report "$HERE/s0-secret-rotate-getenv-leftover-honesty/fixtures/honest-skip.env"
@@ -398,7 +402,7 @@ MATRIX="$OUT/matrix.md"
   echo "| Live S3/MinIO client rotate | SKIP | ${S3_REASON} |"
   echo "| OpenBao / KMS introduced | false | ARCH-007 |"
   echo "| #143 / #180 / #200 / #223 redo | false | sibling leftovers |"
-  echo "| Leftover rows kept | true | #143 + #180 + #200 + #223 + ALL siblings including #212 G7 leftover / #232 G2 leftover / #237 G9 Redis-down leftover |"
+  echo "| Leftover rows kept | true | #143 + #180 + #200 + #223 + ALL siblings including #212 G7 leftover / #232 G2 leftover / #237 G9 leftover / #239 G7 leftover / #238 G1 FieldPolicy leftover |"
   echo "| Docker used | $DOCKER_USED | present=$DOCKER_PRESENT |"
   echo "| S0 / SecretPort close | NOT_CLAIMED | G18 closed_unchanged; AuditPort untouched |"
 } >"$MATRIX"

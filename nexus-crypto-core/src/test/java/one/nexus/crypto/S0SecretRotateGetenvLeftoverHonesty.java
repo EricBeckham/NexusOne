@@ -82,6 +82,8 @@ public final class S0SecretRotateGetenvLeftoverHonesty {
     public static final String ROW_G5_BROWSER = "g5-browser-failed-publish";
     public static final String ROW_G7_WITHDRAW = "g7-withdraw-browser-honesty";
     public static final String ROW_G7_QUERY = "g7-query-expense-travel-honesty";
+    public static final String ROW_G7_QUERY_REM = "g7-query-expense-travel-honesty-remainder";
+    public static final String ROW_G1_MASK_REM = "g1-fieldpolicy-mask-second-auth-remainder-honesty";
     public static final String ROW_G2_FORM = "g2-form-write-honesty";
     public static final String ROW_G10_FILE = "g10-file-reconcile-honesty";
     public static final String ROW_G7_BROWSER = "g7-withdraw-browser";
@@ -135,6 +137,8 @@ public final class S0SecretRotateGetenvLeftoverHonesty {
             ROW_G5_BROWSER,
             ROW_G7_WITHDRAW,
             ROW_G7_QUERY,
+            ROW_G7_QUERY_REM,
+            ROW_G1_MASK_REM,
             ROW_G2_FORM,
             ROW_G10_FILE,
             ROW_G7_BROWSER
