@@ -15,7 +15,7 @@
         <router-link class="ghost" to="/p3/forms">返回列表</router-link>
       </div>
     </div>
-    <NxSourceBanner body="Live M0-07 validate / publish。填报默认 submit-start。G5 回滚由服务端事务覆盖。" />
+    <NxSourceBanner body="Live M0-07 validate / publish。填报默认 submit-start，并带 Idempotency-Key（G3 重复提交不写第二行）。G5 回滚由服务端事务覆盖。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-tabs">

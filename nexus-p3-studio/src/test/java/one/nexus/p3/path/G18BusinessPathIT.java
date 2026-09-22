@@ -4,13 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import one.nexus.audit.AuditPort;
 import one.nexus.audit.ChainedAuditEvent;
 import one.nexus.audit.HashChainVerification;
@@ -208,7 +215,8 @@ class G18BusinessPathIT {
                     java.util.Map.of("title", "rollback", "days", 1, "applicant", "bob"),
                     "nexusSequentialApproval",
                     AssigneeType.PERSON,
-                    person.id().toString())));
+                    person.id().toString(),
+                    "g18-rollback-key")));
         } finally {
             clearHolders();
         }
@@ -238,6 +246,187 @@ class G18BusinessPathIT {
                 "select next_index from platform.audit_chain_meta where id = 1", Long.class));
         HashChainVerification afterRollback = auditPort.verifyChain();
         assertTrue(afterRollback.intact(), afterRollback.failure());
+        assertEquals(0, jdbc.queryForObject(
+                "select count(*) from platform.exec_idempotency where scope = ? and idempotency_key = ?",
+                Integer.class,
+                BusinessPathService.SUBMIT_START_SCOPE,
+                tenant + ":g18-rollback-key"),
+                "failed submit-start must roll back the idempotency claim");
+    }
+
+    @Test
+    void repeatedSubmitStartWithSameKeyDoesNotCreateSecondRow() throws Exception {
+        UUID tenant = UUID.fromString("77777777-7777-4777-8777-777777777777");
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                tenant, "G3 Idem", "g3-idem@example.com", "g3-idem"));
+        Session admin = login("g3-idem", "g3-idem@example.com", "G3 Idem");
+        Member reviewer = provisionMember(admin, "g3-reviewer", "g3-reviewer@example.com", "G3 Reviewer");
+        var person = identity.repository().findPersonByAccount(
+                tenant, identity.repository().findAccountByEmail("g3-idem@example.com").orElseThrow().id())
+                .orElseThrow();
+        JsonNode prepared = preparePublishedForm(tenant, "g3a", person.id());
+        UUID formId = UUID.fromString(prepared.path("form_id").asText());
+        String physicalTable = prepared.path("physical_table").asText();
+        String key = "g3-submit-start-once";
+        String body = """
+                {"form_id":"%s","process_key":"nexusSequentialApproval",
+                 "assignee_type":"PERSON","assignee_ref":"%s",
+                 "values":{"title":"年假","days":3,"applicant":"alice","reason":"g3"}}
+                """.formatted(formId, reviewer.personId);
+
+        String first = mvc.perform(post("/api/v1/p3/path/submit-start")
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId)
+                        .header("Idempotency-Key", key)
+                        .header("X-Trace-Id", "0199a1c0-0000-7000-8000-00000000a031")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idempotent_replay").value(false))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode firstJson = mapper.readTree(first);
+        String recordId = firstJson.path("record_id").asText();
+        String submissionId = firstJson.path("submission_id").asText();
+
+        String second = mvc.perform(post("/api/v1/p3/path/submit-start")
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId)
+                        .header("Idempotency-Key", key)
+                        .header("X-Trace-Id", "0199a1c0-0000-7000-8000-00000000a032")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idempotent_replay").value(true))
+                .andExpect(jsonPath("$.record_id").value(recordId))
+                .andExpect(jsonPath("$.submission_id").value(submissionId))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertEquals(recordId, mapper.readTree(second).path("record_id").asText());
+
+        assertEquals(1, jdbc.queryForObject(
+                "select count(*) from business_data." + physicalTable + " where tenant_id = ? and deleted_at is null",
+                Integer.class,
+                tenant.toString()));
+        assertEquals(1, jdbc.queryForObject(
+                "select count(*) from business_meta.form_submission where form_id = ?",
+                Integer.class,
+                formId));
+        assertEquals(1, jdbc.queryForObject(
+                "select count(*) from business_meta.process_instance where tenant_id = ?",
+                Integer.class,
+                tenant));
+        assertEquals(1, jdbc.queryForObject(
+                "select count(*) from platform.exec_idempotency where scope = ? and idempotency_key = ?",
+                Integer.class,
+                BusinessPathService.SUBMIT_START_SCOPE,
+                tenant + ":" + key));
+    }
+
+    @Test
+    void concurrentRecordEditConflictsOnVersion() throws Exception {
+        UUID tenant = UUID.fromString("88888888-8888-4888-8888-888888888888");
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                tenant, "G3 Lock", "g3-lock@example.com", "g3-lock"));
+        Session admin = login("g3-lock", "g3-lock@example.com", "G3 Lock");
+        var person = identity.repository().findPersonByAccount(
+                tenant, identity.repository().findAccountByEmail("g3-lock@example.com").orElseThrow().id())
+                .orElseThrow();
+        JsonNode prepared = preparePublishedForm(tenant, "g3b", person.id());
+        UUID ledgerId = UUID.fromString(prepared.path("ledger_id").asText());
+
+        String created = mvc.perform(post("/api/v1/p3/ledgers/" + ledgerId + "/records")
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId)
+                        .header("X-Trace-Id", "0199a1c0-0000-7000-8000-00000000a033")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"lock-me","days":1,"applicant":"alice","reason":"g3"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.version").value(1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode row = mapper.readTree(created);
+        UUID recordId = UUID.fromString(row.path("id").asText());
+        long version = row.path("version").asLong();
+
+        mvc.perform(patch("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(Map.of(
+                                "values", Map.of("reason", "first-writer"),
+                                "version", version))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(2))
+                .andExpect(jsonPath("$.reason").value("first-writer"));
+
+        String stale = mvc.perform(patch("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(Map.of(
+                                "values", Map.of("reason", "stale-writer"),
+                                "version", version))))
+                .andExpect(status().isConflict())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertTrue(stale.contains("P3.RECORD.0002"), stale);
+
+        String fresh = mvc.perform(get("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode current = mapper.readTree(fresh);
+        assertEquals(2, current.path("version").asLong());
+        assertEquals("first-writer", current.path("reason").asText());
+
+        long startVersion = current.path("version").asLong();
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CountDownLatch gate = new CountDownLatch(1);
+        Future<Integer> left = pool.submit(() -> patchStatus(
+                admin, ledgerId, recordId, startVersion, "concurrent-left", gate));
+        Future<Integer> right = pool.submit(() -> patchStatus(
+                admin, ledgerId, recordId, startVersion, "concurrent-right", gate));
+        gate.countDown();
+        int statusA = left.get(15, TimeUnit.SECONDS);
+        int statusB = right.get(15, TimeUnit.SECONDS);
+        pool.shutdownNow();
+        assertTrue(
+                (statusA == 200 && statusB == 409) || (statusA == 409 && statusB == 200),
+                "expected one winner and one version conflict, got " + statusA + "/" + statusB);
+
+        String after = mvc.perform(get("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertEquals(3, mapper.readTree(after).path("version").asLong());
+    }
+
+    private int patchStatus(Session admin, UUID ledgerId, UUID recordId, long version, String reason, CountDownLatch gate)
+            throws Exception {
+        gate.await(5, TimeUnit.SECONDS);
+        return mvc.perform(patch("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(Map.of(
+                                "values", Map.of("reason", reason),
+                                "version", version))))
+                .andReturn()
+                .getResponse()
+                .getStatus();
     }
 
     private void assertIamLedgerWriteAndQuery(Session session, UUID ledgerId) throws Exception {

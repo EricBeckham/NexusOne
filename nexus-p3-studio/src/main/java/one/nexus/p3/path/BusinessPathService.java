@@ -8,6 +8,7 @@ import one.nexus.audit.AuditPort;
 import one.nexus.common.error.ErrorCode;
 import one.nexus.common.error.NexusException;
 import one.nexus.common.time.Utc;
+import one.nexus.event.IdempotencyStore;
 import one.nexus.event.OutboxAppendCommand;
 import one.nexus.event.OutboxPort;
 import one.nexus.isolation.api.AccessContext;
@@ -46,6 +47,9 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(name = "nexus.flow.engine")
 @ConditionalOnBean({SequentialApprovalService.class, LedgerRecordSink.class})
 public class BusinessPathService {
+    static final String SUBMIT_START_SCOPE = "p3.path.submit-start";
+    static final int MAX_IDEMPOTENCY_KEY = 128;
+
     private final FormService forms;
     private final SequentialApprovalService approvals;
     private final JdbcProcessStore processStore;
@@ -53,6 +57,7 @@ public class BusinessPathService {
     private final ObjectProvider<OutboxPort> outbox;
     private final ObjectProvider<ApprovalNotificationPublisher> notifications;
     private final ObjectProvider<AuditPort> audits;
+    private final ObjectProvider<IdempotencyStore> idempotency;
 
     public BusinessPathService(
             FormService forms,
@@ -61,7 +66,8 @@ public class BusinessPathService {
             LedgerRecordSink ledgerRecords,
             ObjectProvider<OutboxPort> outbox,
             ObjectProvider<ApprovalNotificationPublisher> notifications,
-            ObjectProvider<AuditPort> audits) {
+            ObjectProvider<AuditPort> audits,
+            ObjectProvider<IdempotencyStore> idempotency) {
         this.forms = Objects.requireNonNull(forms, "forms");
         this.approvals = Objects.requireNonNull(approvals, "approvals");
         this.processStore = Objects.requireNonNull(processStore, "processStore");
@@ -69,12 +75,37 @@ public class BusinessPathService {
         this.outbox = outbox;
         this.notifications = notifications;
         this.audits = audits;
+        this.idempotency = idempotency;
     }
 
     @Transactional
     public PathView submitAndStart(SubmitStartCommand command) {
         requireIsolation();
         one.nexus.p2.kernel.TenantContext iam = requireIam();
+        String key = normalizeIdempotencyKey(command.idempotencyKey());
+        String storedKey = key == null ? null : storedIdempotencyKey(iam.tenantId(), key);
+        if (storedKey != null) {
+            IdempotencyStore store = requireIdempotency();
+            IdempotencyStore.Claim claim = store.claimInTransaction(
+                    SUBMIT_START_SCOPE, storedKey, iam.tenantId().toString(), isolationTrace());
+            if (claim == IdempotencyStore.Claim.DUPLICATE) {
+                String ref = store.resultRef(SUBMIT_START_SCOPE, storedKey)
+                        .orElseThrow(() -> new NexusException(
+                                ErrorCode.API_CONFLICT,
+                                409,
+                                "submit-start replay is not ready",
+                                Map.of("idempotency_key", key)));
+                return loadExisting(UUID.fromString(ref), true);
+            }
+        }
+        PathView started = startFresh(command, iam);
+        if (storedKey != null) {
+            requireIdempotency().remember(SUBMIT_START_SCOPE, storedKey, started.recordId().toString());
+        }
+        return started;
+    }
+
+    private PathView startFresh(SubmitStartCommand command, one.nexus.p2.kernel.TenantContext iam) {
         FormSubmission submission = forms.submit(command.formId(), command.values());
         UUID ledgerId = submission.ledgerId();
         UUID recordId = submission.ledgerRecordId();
@@ -134,7 +165,78 @@ public class BusinessPathService {
                 submission,
                 process,
                 todo,
-                Utc.now());
+                Utc.now(),
+                false,
+                row.get("version"));
+    }
+
+    private PathView loadExisting(UUID recordId, boolean replay) {
+        FormSubmission submission = forms.findByLedgerRecord(recordId)
+                .orElseThrow(() -> new NexusException(
+                        ErrorCode.FORM_SUBMIT_INVALID,
+                        409,
+                        "submit-start key points at a missing record",
+                        Map.of("record_id", recordId.toString())));
+        UUID ledgerId = submission.ledgerId();
+        FormVersion running = forms.running(submission.formId());
+        String ledgerCode = FormService.uniqueLedgerCode(running.snapshot());
+        ProcessInstanceView process = processStore
+                .findInstanceByBusinessKey(submission.tenantId(), recordId.toString())
+                .orElse(null);
+        TodoView todo = process == null
+                ? null
+                : processStore.todosForInstance(process.tenantId(), process.id()).stream()
+                        .filter(item -> item.status() == TodoStatus.PENDING)
+                        .findFirst()
+                        .orElseGet(() -> processStore.todosForInstance(process.tenantId(), process.id()).stream()
+                                .findFirst()
+                                .orElse(null));
+        Map<String, Object> row = ledgerRecords.get(ledgerId, recordId);
+        return new PathView(
+                submission.submissionId(),
+                submission.formId(),
+                ledgerId,
+                recordId,
+                ledgerCode,
+                ledgerRecords.physicalTable(submission.tenantId(), ledgerId).orElse(""),
+                row.get(LedgerRecordSink.APPROVAL_STATUS),
+                submission,
+                process,
+                todo,
+                Utc.now(),
+                replay,
+                row.get("version"));
+    }
+
+    private IdempotencyStore requireIdempotency() {
+        IdempotencyStore store = idempotency == null ? null : idempotency.getIfAvailable();
+        if (store == null) {
+            throw new NexusException(
+                    ErrorCode.API_INTERNAL, 500, "idempotency store is required for submit-start keys", Map.of());
+        }
+        return store;
+    }
+
+    static String normalizeIdempotencyKey(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String key = raw.trim();
+        if (key.isEmpty()) {
+            return null;
+        }
+        if (key.length() > MAX_IDEMPOTENCY_KEY) {
+            throw new NexusException(
+                    ErrorCode.API_BAD_REQUEST,
+                    400,
+                    "idempotency key must be 1.." + MAX_IDEMPOTENCY_KEY + " characters",
+                    Map.of("length", key.length()));
+        }
+        return key;
+    }
+
+    static String storedIdempotencyKey(UUID tenantId, String clientKey) {
+        return tenantId + ":" + clientKey;
     }
 
     @Transactional

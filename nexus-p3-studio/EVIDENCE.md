@@ -280,3 +280,22 @@ mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap
 
 Proven vs still MOCK: physical `l_g18a_leave` row after publish/submit; IAM `POST/GET` ledger records without `P2.PERM.0003`; `GET /api/v1/notifications` with issued context without `P1.M02.001`; approval+record+outbox **and** `platform.audit_record` / `audit_chain_meta` roll back together; `platform.exec_outbox` `destination=notify.inbox` PENDING in the G18 IT (dispatcher off); product boot delivers that destination to DISPATCHED / `notify.inbox` DELIVERED; happy-path `platform.audit_record` rows for the path trace (`p3.path.submitted` / `p3.approval.started` / `p3.approval.approved`) with `verifyChain()` intact. Product `OutboxPort` is M0-09 `EventCoreConfiguration` auto-config (`JdbcOutboxStore` after DataSource). Vue now exposes create ledger / form publish / submit-start / path todos / notify / audit-by-trace. The browser loop was re-run on `38f1a73` and closed product G18; see `docs/g18-business-path.md`.
 
+# G3 submit-start idempotency + record versions
+
+See [docs/g3-data-consistency.md](../docs/g3-data-consistency.md). Outbox consumer idempotency is **not** rebuilt; it reuses the M0-09 measurements above (`docs/m0-09-outbox-api.md`).
+
+| Case | Test | Expected |
+|---|---|---|
+| Same `Idempotency-Key` on `submit-start` | `G18BusinessPathIT.repeatedSubmitStartWithSameKeyDoesNotCreateSecondRow` | One physical row, one submission, one process, `idempotent_replay=true` on the second call |
+| Failed submit rolls back the claim | `G18BusinessPathIT.approvalAndLedgerRowRollBackTogether` | `platform.exec_idempotency` count 0 for `g18-rollback-key` |
+| Stale / concurrent `version` | `G18BusinessPathIT.concurrentRecordEditConflictsOnVersion` | `409 P3.RECORD.0002`; concurrent pair is 200 + 409 |
+| Key shape | `G3IdempotencyKeyTest` | Tenant prefix; overlong key rejected |
+
+Command:
+
+```bash
+mvn -pl nexus-p3-studio -am test -Dtest=G3IdempotencyKeyTest,G18BusinessPathIT
+```
+
+Recorded run: fill after the agent test wave on this branch.
+

@@ -54,7 +54,11 @@ public final class P3Exception extends NexusException {
     }
 
     public static P3Exception recordConflict(String message) {
-        return new P3Exception(P3ErrorCodes.RECORD_CONFLICT, 409, message, Map.of());
+        return recordConflict(message, Map.of());
+    }
+
+    public static P3Exception recordConflict(String message, Map<String, Object> details) {
+        return new P3Exception(P3ErrorCodes.RECORD_CONFLICT, 409, message, details == null ? Map.of() : details);
     }
 
     public static P3Exception queryInvalid(String message) {

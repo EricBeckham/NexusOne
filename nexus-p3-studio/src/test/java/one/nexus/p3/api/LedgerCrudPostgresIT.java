@@ -109,11 +109,26 @@ class LedgerCrudPostgresIT {
                 .getContentAsString();
         assertEquals("alpha-one", mapper.readTree(detail).path("title").asText());
 
+        long version = first.path("version").asLong();
+        assertEquals(1, version);
         mvc.perform(patch("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
                         .headers(headers(ALPHA, "alpha", ACTOR_A))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(Map.of("values", Map.of("title", "alpha-one-updated")))))
+                        .content(mapper.writeValueAsString(Map.of(
+                                "values", Map.of("title", "alpha-one-updated"),
+                                "version", version))))
                 .andExpect(status().isOk());
+        String stale = mvc.perform(patch("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
+                        .headers(headers(ALPHA, "alpha", ACTOR_A))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(Map.of(
+                                "values", Map.of("title", "stale"),
+                                "version", version))))
+                .andExpect(status().isConflict())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertTrue(stale.contains("P3.RECORD.0002"), stale);
 
         mvc.perform(get("/api/v1/p3/ledgers/" + ledgerId + "/records/" + recordId)
                         .headers(headers(BETA, "beta", ACTOR_B)))
