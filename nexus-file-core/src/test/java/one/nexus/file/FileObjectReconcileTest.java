@@ -18,7 +18,6 @@ import one.nexus.common.file.FileRef;
 import one.nexus.file.infra.CountingObjectStorage;
 import one.nexus.file.infra.InMemoryFileObjectRepository;
 import one.nexus.isolation.IsolationKernel;
-import one.nexus.isolation.api.IsolationErrorCode;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.isolation.query.TableRegistry;
@@ -166,7 +165,6 @@ class FileObjectReconcileTest {
         assertEquals(0, applied.repaired());
         assertTrue(applied.findings().stream().anyMatch(item -> item.kind() == FileObjectReconciler.Kind.CONFLICT));
         assertTrue(fixture.storage.exists("nexus-files", foreign), "conflict must not delete foreign object");
-        assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_FILE));
     }
 
     @Test

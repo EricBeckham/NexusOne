@@ -65,3 +65,5 @@ export S3_TEST_BUCKET=nexus-isolation-drill
 The live suite **skips** when `S3_*` is unset or the endpoint is down. Fake/counting storage always proves in CI.
 
 Command log and honest gaps: `nexus-file-core/EVIDENCE.md`.
+
+Recorded **2026-09-22T16:49:54Z**: Counting / memory `mvn -pl nexus-file-core,nexus-bootstrap,nexus-common -am test` (selected suites) → file-core **21 run / 0 fail / 1 skip**, bootstrap handler **2/2**. Live `LiveMinioFileReconcileOptionalTest` skipped (`S3_ENDPOINT` unset; nothing on `:19000` / `:9000`). Java **21.0.10**, Maven **3.9.11**, Boot **4.1.1**. No Docker.
