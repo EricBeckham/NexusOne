@@ -44,11 +44,11 @@ public final class SurfaceGuardBypassAllowlist {
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/TenantOnlyDataScopeHook.java");
 
     /**
-     * P3 {@code @RestController} leftover that is a surface path but still
-     * tenant-person filter only (H5 UI gates via {@code /check}).
+     * No remaining unguarded P3 leftover RestController. Todo HTTP now goes
+     * through {@code TodoSurfaceGuard}. Keep the list so the gate can grow
+     * a documented leftover later without a shape change.
      */
-    public static final List<String> UNGUARDED_P3_LEFTOVER_PATHS = List.of(
-            "nexus-p3-studio/src/main/java/one/nexus/p3/flow/api/TodoController.java");
+    public static final List<String> UNGUARDED_P3_LEFTOVER_PATHS = List.of();
 
     /**
      * Tokens that count as going through SurfaceGuard / the same Decision.
@@ -61,6 +61,7 @@ public final class SurfaceGuardBypassAllowlist {
             "ReportSurfaceGuard",
             "DumpSurfaceGuard",
             "CatalogSurfaceGuard",
+            "TodoSurfaceGuard",
             "PermissionDataScopeHook",
             "AuthorizedExport",
             "AuthorizedSubmit",
@@ -83,10 +84,11 @@ public final class SurfaceGuardBypassAllowlist {
                             "nexus-permission-core/src/main/java/one/nexus/permission/api/PermissionController.java")),
             new Module(
                     "nexus-p3-studio",
-                    "Form / H5 / report / dump / list-detail / flow / path wrappers around SurfaceGuard",
+                    "Form / H5 / report / dump / catalog / todo / list-detail / flow / path wrappers around SurfaceGuard",
                     List.of(
                             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/flow/SequentialApprovalService.java",
+                            "nexus-p3-studio/src/main/java/one/nexus/p3/flow/api/TodoController.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/path/BusinessPathService.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/studio/api/FormController.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/report/ReportController.java",

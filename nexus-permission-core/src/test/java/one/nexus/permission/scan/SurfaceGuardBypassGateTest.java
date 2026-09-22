@@ -120,9 +120,9 @@ class SurfaceGuardBypassGateTest {
                 .anyMatch(p -> p.endsWith("AuthorizedExport.java")));
         assertTrue(SurfaceGuardBypassAllowlist.EXPORT_PATHS.stream()
                 .anyMatch(p -> p.endsWith("IsolatedExport.java")));
-        assertTrue(SurfaceGuardBypassAllowlist.UNGUARDED_P3_LEFTOVER_PATHS.stream()
-                .anyMatch(p -> p.endsWith("TodoController.java")));
+        assertTrue(SurfaceGuardBypassAllowlist.UNGUARDED_P3_LEFTOVER_PATHS.isEmpty());
         assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("SurfaceGuard"));
+        assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("TodoSurfaceGuard"));
         assertFalse(
                 SurfaceGuardBypassAllowlist.PRODUCT_SOURCE_ROOTS.contains("poc"),
                 "poc is not a product source root");

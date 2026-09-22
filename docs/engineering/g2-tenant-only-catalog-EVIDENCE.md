@@ -40,7 +40,7 @@ Filled after the contract suite on this VM.
 ## Honest leftovers
 
 - Physical ledger dump (in-flight #137)
-- Todo HTTP (`TodoController`) tenant-person filter
+- Todo HTTP (`TodoController`) — sibling leftover [g2-todo-http-surface.md](../g2-todo-http-surface.md)
 - `TenantOnlyDataScopeHook` no-engine leftover when demo headers bind P2 without `PermissionModule`
 - Catalog HTTP without a `CatalogSurfaceGuard` bean (isolation host, FormController-shaped skip)
 - UI / H5 every page not re-walked

@@ -12,8 +12,9 @@ import one.nexus.permission.support.PermissionException;
  * silently skip {@link SurfaceGuard}. It does not evaluate grants and does
  * not redesign {@code PermissionEngine}.
  *
- * <p>Not a product-wide G2 close. Todo HTTP stays leftover. Physical dump is
- * the sibling leftover and also uses this constructor.
+ * <p>Not a product-wide G2 close. Todo HTTP is the sibling leftover
+ * {@code TodoSurfaceCatalog} and also uses this constructor. Physical dump
+ * and catalog definition HTTP do too.
  */
 public final class IsolationOnlyDecision {
     public static final String REASON = "tenant_only";
