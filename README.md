@@ -17,6 +17,7 @@ M0-10（CachePort / File Service / 站内通知）见 [docs/m0-10-file-cache-not
 M0-07（基础表单与发布）见 [docs/m0-07-form-publish.md](./docs/m0-07-form-publish.md)。G5 表单失败回滚证据见 [docs/g5-form-publish-rollback.md](./docs/g5-form-publish-rollback.md)。G7 请假撤回 HTTP 证据见 [docs/g7-withdraw-evidence.md](./docs/g7-withdraw-evidence.md)。G7 浏览器撤回 leftover（Vue `todo-withdraw`，不宣称 G7 产品关闭）见 [docs/g7-withdraw-browser.md](./docs/g7-withdraw-browser.md)。G9 version poll 见 [docs/g9-policy-snapshot.md](./docs/g9-policy-snapshot.md)；Redis-down failover 见 [docs/g9-policysnapshot-invalidate.md](./docs/g9-policysnapshot-invalidate.md)。
 G3（submit-start 幂等键与记录乐观锁）见 [docs/g3-data-consistency.md](./docs/g3-data-consistency.md)。 Outbox 消费幂等沿用 [docs/m0-09-outbox-api.md](./docs/m0-09-outbox-api.md)。
 G15 H5 人机 PKCE leftover（`/m/*` Authorization Code + PKCE，Playwright/stub；不宣称产品 G15 关闭）见 [docs/g15-h5-pkce-browser.md](./docs/g15-h5-pkce-browser.md)。
+G2 leftover：报表 query/export 走同一 `SurfaceGuard` 见 [docs/g2-report-surface-guard.md](./docs/g2-report-surface-guard.md)（不宣称产品 G2 关闭；物理 dump 仍开放）。
 
 ## 应用骨架（M0-01）
 

@@ -48,6 +48,9 @@ UI is **not** in this module (M0-12).
 | GET | `/api/v1/p3/business-types` |
 | POST | `/api/v1/p3/business-types/{code}/provision` |
 | POST | `/api/v1/p3/path/instances/{instanceId}/withdraw` |
+| GET | `/api/v1/p3/reports/decision` | Both `ledger/read` and `ledger.export.csv/submit` Decisions; no throw |
+| POST | `/api/v1/p3/reports/query` | `ledger/read` via `ReportSurfaceGuard` **before** record list |
+| POST | `/api/v1/p3/reports/export` | `ledger.export.csv/submit` via `ReportSurfaceGuard` then `AuthorizedExport`. Not a physical dump |
 
 Demo tenant headers (test only, `nexus.p3.demo-context=true` and/or `nexus.studio.demo-context=true`): `X-Nexus-Demo-Tenant-Id`, `X-Nexus-Demo-Tenant-Code`, `X-Nexus-Demo-Actor-Id`.
 

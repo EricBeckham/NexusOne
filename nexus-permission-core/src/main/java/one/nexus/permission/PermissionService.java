@@ -21,7 +21,7 @@ import one.nexus.permission.scope.PermissionQueryBinder;
 import one.nexus.permission.scope.ScopedQuery;
 import one.nexus.permission.support.PermissionException;
 
-/** Unified decision entry used by UI / API / list / detail / flow / form studio / form fill / submit-start / H5 /m/* / export / Job / Task. */
+/** Unified decision entry used by UI / API / list / detail / flow / form studio / form fill / submit-start / H5 /m/* / report query/export / export / Job / Task. */
 public final class PermissionService {
     private final PolicyRepository repository;
     private final SubjectDirectory subjects;
