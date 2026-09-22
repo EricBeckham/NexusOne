@@ -114,7 +114,8 @@ class G18BusinessPathIT {
                 "select count(*) from platform.exec_outbox where destination = 'notify.inbox' and trace_id = ?",
                 Integer.class,
                 TRACE);
-        assertEquals(1, outbox);
+        assertEquals(1, outbox, () -> jdbc.queryForList(
+                "select destination, trace_id, status, event_type from platform.exec_outbox").toString());
         assertEquals("PENDING", jdbc.queryForObject(
                 "select status from platform.exec_outbox where destination = 'notify.inbox' and trace_id = ? limit 1",
                 String.class,

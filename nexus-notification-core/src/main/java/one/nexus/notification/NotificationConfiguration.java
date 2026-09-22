@@ -1,10 +1,9 @@
 package one.nexus.notification;
 
 import java.time.Clock;
-import java.util.List;
-import javax.sql.DataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,16 +40,22 @@ public class NotificationConfiguration {
     }
 
     /**
-     * Fallback only when M0-09 {@code EventCoreConfiguration} has no DataSource.
-     * The monolith uses {@code JdbcOutboxStore} as {@link OutboxPort}.
+     * In-memory fallbacks for notify-only tests. {@code nexus.notify.outbox=auto}
+     * (product / G18) must use M0-09 {@link OutboxPort} — never steal that bean
+     * before DataSource auto-config registers {@code JdbcOutboxStore}.
      */
     @Bean
-    @ConditionalOnMissingBean({OutboxPort.class, DataSource.class})
-    OutboxPort outboxPort(NotificationProperties properties, InAppDeliveryHandler handler) {
-        if ("immediate".equalsIgnoreCase(properties.getOutbox())) {
-            return new ImmediateOutboxPort(List.of(handler));
-        }
+    @ConditionalOnMissingBean(OutboxPort.class)
+    @ConditionalOnProperty(name = "nexus.notify.outbox", havingValue = "record")
+    OutboxPort recordingOutboxPort() {
         return new RecordingOutboxPort();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(OutboxPort.class)
+    @ConditionalOnProperty(name = "nexus.notify.outbox", havingValue = "immediate")
+    OutboxPort immediateOutboxPort(InAppDeliveryHandler handler) {
+        return new ImmediateOutboxPort(List.of(handler));
     }
 
     @Bean
