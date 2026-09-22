@@ -16,6 +16,8 @@
     "assert:g17-totp-enroll": "node scripts/assert-g17-totp-enrollment-ux.mjs",
     "test:g17-mfa-recovery-email": "vitest run src/auth/recoveryCodes.test.js src/auth/emailMfa.test.js src/auth/totpEnrollment.test.js src/views/org/recovery-codes.browser.test.js src/views/org/email-mfa.browser.test.js src/views/org/totp-enroll.browser.test.js src/views/login-mfa.browser.test.js",
     "assert:g17-mfa-recovery-email": "node scripts/assert-g17-mfa-recovery-email.mjs",
+    "test:g17-vue-otp-writeback": "vitest run src/auth/totpWriteback.test.js src/views/org/totp-enroll.browser.test.js",
+    "assert:g17-vue-otp-writeback": "node scripts/assert-g17-vue-otp-writeback.mjs",
     "assert:isolation": "node scripts/assert-client-isolation.mjs",
     "assert:p3-live": "node scripts/assert-p3-live.mjs",
     "assert:h5": "node scripts/assert-h5-mobile.mjs",
