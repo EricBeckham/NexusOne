@@ -1,8 +1,8 @@
 # G1 leftover — FieldPolicy mask / second-auth honesty evidence
 
-Recorded on this branch after rebase onto `origin/main` `eab843f` (Merge #143 secret rotate-without-restart; includes #155 ops `pg_dump` honesty). **Not** a product G1 close. **Not** a redo of #115 / #130 / #134 / #142 / #146. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. Mask / 二次授权 stay on `FieldPolicyProjector`.
+Recorded on this branch after rebase onto `origin/main` `3c6dea2` (Merge #159 Vue `todo-withdraw` HTTP reachability; includes #143 secret rotate-without-restart and #155 ops `pg_dump` honesty). **Not** a product G1 close. **Not** a redo of #115 / #130 / #134 / #142 / #146. **Not** a G18 reopen. `AuditPort.append` / `appendNewTransaction` same-TX rules were not redesigned. Mask / 二次授权 stay on `FieldPolicyProjector`.
 
-See [docs/g1-fieldpolicy-mask-second-auth.md](../g1-fieldpolicy-mask-second-auth.md). Keep leftover rows [g2-ops-pg-dump.md](../g2-ops-pg-dump.md) and [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md).
+See [docs/g1-fieldpolicy-mask-second-auth.md](../g1-fieldpolicy-mask-second-auth.md). Keep leftover rows [g7-withdraw-browser.md](../g7-withdraw-browser.md), [g2-ops-pg-dump.md](../g2-ops-pg-dump.md), and [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md).
 
 ## Versions
 

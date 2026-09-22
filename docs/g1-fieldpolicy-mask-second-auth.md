@@ -4,7 +4,7 @@ S0+S1 PostgreSQL slice. Not an M0 redo. G18 stays closed. `#115` encoded SELF/DE
 
 It is an **honesty leftover**. Mask merge and 二次授权 still sit **beside** Query AST on `FieldPolicyProjector`. A passing harness means the leftover is still open. It does **not** claim a product-wide G1 close. It does **not** invent a second tenant context. It does **not** change `AuditPort.append` same-TX joining.
 
-Orthogonal to `#155` ops `pg_dump` honesty ([g2-ops-pg-dump.md](./g2-ops-pg-dump.md)) and `#143` SecretPort rotate-without-restart ([s0-secret-rotate-without-restart.md](./s0-secret-rotate-without-restart.md)). Keep both leftover rows.
+Orthogonal to `#159` Vue `todo-withdraw` HTTP reachability ([g7-withdraw-browser.md](./g7-withdraw-browser.md)), `#155` ops `pg_dump` honesty ([g2-ops-pg-dump.md](./g2-ops-pg-dump.md)), and `#143` SecretPort rotate-without-restart ([s0-secret-rotate-without-restart.md](./s0-secret-rotate-without-restart.md)). Keep those leftover rows in `docs/README.md`.
 
 ## What this leftover covers
 
@@ -27,7 +27,7 @@ Orthogonal to `#155` ops `pg_dump` honesty ([g2-ops-pg-dump.md](./g2-ops-pg-dump
 | Mixed-column OR (SELF∨DEPT) | Still `PermissionQueryBinder`. |
 | `COUNT(*)` as a Query AST node | Still a wrap. |
 | UI / H5 / report UI | Not re-walked. |
-| `#155` ops `pg_dump` / `#143` secret rotate | Orthogonal leftover rows kept. |
+| `#159` G7 browser withdraw / `#155` ops `pg_dump` / `#143` secret rotate | Orthogonal leftover rows kept. |
 | G18 reopen / `AuditPort` | Closed / untouched. |
 
 ## How to run
