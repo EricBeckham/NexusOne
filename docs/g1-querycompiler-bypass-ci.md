@@ -51,6 +51,7 @@ Recorded on this agent VM. Java **21.0.10**, Maven **3.9.16**, Spring Boot **4.1
 ```
 mvn -f modules/isolation-kernel/pom.xml test -Dtest=QueryCompilerBypassGateTest,SqlBypassScannerTest
 # Tests run: 9 (7 gate + 2 scanner), Failures: 0  BUILD SUCCESS  2026-09-22T17:37:12Z
+# full isolation-kernel suite: Tests run: 55, Failures: 0  BUILD SUCCESS  2026-09-22T17:39:35Z
 
 mvn -f modules/isolation-kernel/pom.xml -q exec:java@querycompiler-bypass -Dexec.args="--repo ."
 # PASS QueryCompiler bypass gate: /workspace

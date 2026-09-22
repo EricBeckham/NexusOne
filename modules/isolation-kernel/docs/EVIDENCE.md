@@ -4,10 +4,10 @@ Recorded 2026-09-22 on this agent VM. Java 21.0.10, Maven 3.9.16, in-process Pos
 
 ## `mvn test`
 
-G1 join + export FieldPolicy re-run **2026-09-22T15:41:22Z**. Subquery / batch / sort / page remainder **2026-09-22T16:45:38Z**. Nested subquery-in-subquery **2026-09-22T17:08:42Z**. OUTER / CROSS JOIN remainder **2026-09-22T17:09:50Z**. DataScope / FieldPolicy AST encoding **2026-09-22T17:37:17Z**:
+G1 join + export FieldPolicy re-run **2026-09-22T15:41:22Z**. Subquery / batch / sort / page remainder **2026-09-22T16:45:38Z**. Nested subquery-in-subquery **2026-09-22T17:08:42Z**. OUTER / CROSS JOIN remainder **2026-09-22T17:09:50Z**. DataScope / FieldPolicy AST encoding **2026-09-22T17:37:17Z**. QueryCompiler-bypass CI gate **2026-09-22T17:39:35Z**:
 
 ```
-Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 59 (52 DataScope/FieldPolicy AST + 7 QueryCompilerBypassGateTest), Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
