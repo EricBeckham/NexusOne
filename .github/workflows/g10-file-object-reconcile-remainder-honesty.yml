@@ -1,0 +1,124 @@
+name: g10-file-object-reconcile-remainder-honesty
+
+# Honesty leftover remainder beyond #228/#202/#169/#179/#141.
+# Does not re-run g10-leftover-honesty-remainder.sh collect or #141/#169/#179/#202 scripts.
+# Parent leftover honesty fixtures stay PASS and are NOT a live MinIO / object walk.
+# Live MinIO / object / Keycloak stay SKIP unless present AND observed.
+# Product G10 is not closed.
+
+on:
+  push:
+    paths:
+      - "scripts/g10-file-object-reconcile-remainder-honesty.sh"
+      - "scripts/g10-file-object-reconcile-remainder-honesty/**"
+      - "docs/g10-file-object-reconcile-remainder-honesty.md"
+      - "docs/engineering/g10-file-object-reconcile-remainder-honesty-EVIDENCE.md"
+      - "docs/engineering/g10-leftover-honesty-remainder/agent-vm.env"
+      - "docs/engineering/g10-leftover-honesty/agent-vm.env"
+      - "docs/engineering/g10-file-reconcile-honesty/agent-vm.env"
+      - "docs/engineering/g10-identity-drift-honesty/agent-vm.env"
+      - "docs/README.md"
+      - ".github/workflows/g10-file-object-reconcile-remainder-honesty.yml"
+  pull_request:
+    paths:
+      - "scripts/g10-file-object-reconcile-remainder-honesty.sh"
+      - "scripts/g10-file-object-reconcile-remainder-honesty/**"
+      - "docs/g10-file-object-reconcile-remainder-honesty.md"
+      - "docs/engineering/g10-file-object-reconcile-remainder-honesty-EVIDENCE.md"
+      - "docs/engineering/g10-leftover-honesty-remainder/agent-vm.env"
+      - "docs/engineering/g10-leftover-honesty/agent-vm.env"
+      - "docs/engineering/g10-file-reconcile-honesty/agent-vm.env"
+      - "docs/engineering/g10-identity-drift-honesty/agent-vm.env"
+      - "docs/README.md"
+      - ".github/workflows/g10-file-object-reconcile-remainder-honesty.yml"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g10-file-object-reconcile-remainder-honesty.sh --verify-report \
+          scripts/g10-file-object-reconcile-remainder-honesty/fixtures/honest-skip.env
+      - name: Fake live MinIO / object PASS without a walk is rejected
+        run: ./scripts/g10-file-object-reconcile-remainder-honesty.sh --verify-report \
+          scripts/g10-file-object-reconcile-remainder-honesty/fixtures/fake-live-minio-pass.env fail
+      - name: Fake live Keycloak PASS without a walk is rejected
+        run: ./scripts/g10-file-object-reconcile-remainder-honesty.sh --verify-report \
+          scripts/g10-file-object-reconcile-remainder-honesty/fixtures/fake-live-keycloak-pass.env fail
+      - name: Fake live apply PASS is rejected
+        run: ./scripts/g10-file-object-reconcile-remainder-honesty.sh --verify-report \
+          scripts/g10-file-object-reconcile-remainder-honesty/fixtures/fake-live-apply-pass.env fail
+      - name: Fake product G10 close is rejected
+        run: ./scripts/g10-file-object-reconcile-remainder-honesty.sh --verify-report \
+          scripts/g10-file-object-reconcile-remainder-honesty/fixtures/fake-g10-close.env fail
+      - name: Fake #228 redo is rejected
+        run: ./scripts/g10-file-object-reconcile-remainder-honesty.sh --verify-report \
+          scripts/g10-file-object-reconcile-remainder-honesty/fixtures/fake-redone.env fail
+      - name: Fake #228-harness-as-live-MinIO is rejected
+        run: ./scripts/g10-file-object-reconcile-remainder-honesty.sh --verify-report \
+          scripts/g10-file-object-reconcile-remainder-honesty/fixtures/fake-harness-as-live.env fail
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest live MinIO / object SKIP
+        run: |
+          chmod +x ./scripts/g10-file-object-reconcile-remainder-honesty.sh
+          ./scripts/g10-file-object-reconcile-remainder-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty"
+          ./scripts/g10-file-object-reconcile-remainder-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_169_cells_honest=PASS$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_179_cells_honest=PASS$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_202_cells_honest=PASS$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_228_cells_honest=PASS$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_228_honesty_gate=PASS$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^harness_228_is_not_live_minio=true$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^harness_228_is_not_live_object=true$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^harness_228_is_not_product_g10=true$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^harness_202_is_not_live_minio=true$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^counting_preview_apply=PASS$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^tenant_prefix_guard=PASS$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^live_minio_reconcile=SKIP$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^live_object_reconcile=SKIP$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^live_keycloak_8080=SKIP$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^live_apply=SKIP$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^live_preview_observed=false$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^g10_close=NOT_CLAIMED$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_rows_all=true$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_228_redone=false$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^leftover_202_redone=false$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g10-file-object-reconcile-remainder-honesty/report.env"
+          grep -F 'g10-leftover-honesty-remainder' docs/README.md
+          grep -F 'g10-leftover-honesty' docs/README.md
+          grep -F 'g10-file-reconcile-honesty' docs/README.md
+          grep -F 'g2-h5-every-page-form-write-remainder-honesty' docs/README.md
+          grep -F 'g9-redis-down-invalidate-remainder-honesty' docs/README.md
+          grep -F 'g7-query-expense-travel-honesty-remainder' docs/README.md
+          grep -F 'g1-fieldpolicy-mask-second-auth-remainder-honesty' docs/README.md
+          grep -F 'g17-mfa-recovery-vue-otp-remainder-honesty' docs/README.md
+          grep -F 'g5-publishhook-ddl-remainder-honesty' docs/README.md
+          grep -F 's0-secret-rotate-getenv-leftover-honesty' docs/README.md
+          grep -F 'g2-h5-every-page-form-write-honesty' docs/README.md
+          grep -F 'g7-withdraw-browser-evidence-honesty' docs/README.md
+          grep -F 'g4-hot-purge-staging-leftover-honesty' docs/README.md
+          grep -F 'g9-live-multi-jvm-replica-remainder-honesty' docs/README.md
+          grep -F 'g3-outbox-consume-idempotent-honesty' docs/README.md
+          grep -F 'g6-recovery-port-dry-run-remainder-honesty' docs/README.md
+          grep -F 's0-secret-rotate-getenv-remainder-honesty' docs/README.md
+          grep -F 'g4-pkce-spa-verifier-remainder-honesty' docs/README.md
+          grep -F 'g17-separation-leftover-honesty' docs/README.md
+          grep -F 'g10-file-object-reconcile-remainder-honesty' docs/README.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g10-file-object-reconcile-remainder-honesty
+          path: ${{ runner.temp }}/g10-file-object-reconcile-remainder-honesty
