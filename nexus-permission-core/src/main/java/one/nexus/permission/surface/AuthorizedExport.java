@@ -4,13 +4,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import one.nexus.audit.AuditCaptures;
+import one.nexus.audit.AuditPort;
+import one.nexus.common.trace.TraceIds;
 import one.nexus.isolation.api.ExportFieldRule;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.RenderedSql;
 import one.nexus.isolation.boundary.IsolatedEnvelope;
 import one.nexus.isolation.boundary.IsolatedExport;
-import one.nexus.audit.AuditPort;
 import one.nexus.isolation.query.QueryCompiler;
+import one.nexus.p2.kernel.TenantContext;
+import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.PermissionService;
 
 /**
@@ -18,9 +22,12 @@ import one.nexus.permission.PermissionService;
  * type, then {@link IsolatedExport}. Isolation reject-before-sink is unchanged
  * and remains a distinct {@code P1.M02.019} from authorization {@code P2.PERM.*}.
  * Deny reuses {@link AuditPort#appendNewTransaction} when an audit port is
- * passed. Same-TX {@code append} is unchanged.
+ * passed. Wizard begin / complete reuse {@link AuditPort#append} (same-TX join).
+ * Same-TX {@code append} / {@code appendNewTransaction} rules are unchanged.
  */
 public final class AuthorizedExport {
+    public static final String WIZARD_SURFACE = "export.wizard";
+
     private AuthorizedExport() {}
 
     public static IsolatedEnvelope submit(PermissionService service, String resourceTenantId, String payload) {
@@ -124,5 +131,48 @@ public final class AuthorizedExport {
         AuthorizedSubmit.export(service, null);
         return IsolatedExport.writeProjected(
                 resourceTenantId, relativePath, columns, rows, policy, secondAuthorizationGranted, sink);
+    }
+
+    /**
+     * HTTP export-wizard begin. Deny uses the existing SurfaceGuard
+     * {@code appendNewTransaction} pair. Accepted begin uses {@code append}
+     * so it joins an ambient Spring TX. Does not call IsolatedExport sinks.
+     */
+    public static void beginWizard(PermissionService service, AuditPort audits, String wizardId) {
+        AuthorizedSubmit.export(service, audits);
+        emitWizard(audits, AuditCaptures.EXPORT_BEGUN, wizardId, "begin");
+    }
+
+    /**
+     * HTTP export-wizard complete. Guard + IsolatedExport.submit first, then
+     * {@code p3.export.completed} via {@code append}. IsolatedExport already
+     * emits {@code EXPORT_ACCEPTED} → {@code p3.export.submitted}.
+     */
+    public static IsolatedEnvelope completeWizard(
+            PermissionService service, AuditPort audits, String resourceTenantId, String payload, String wizardId) {
+        IsolatedEnvelope envelope = submit(service, audits, resourceTenantId, payload);
+        emitWizard(audits, AuditCaptures.EXPORT_COMPLETED, wizardId, "complete");
+        return envelope;
+    }
+
+    private static void emitWizard(AuditPort audits, String eventType, String wizardId, String step) {
+        TenantContext context = TenantContextHolder.get();
+        if (audits == null || context == null) {
+            return;
+        }
+        String id = wizardId == null ? "" : wizardId;
+        audits.append(AuditCaptures.export(
+                eventType,
+                true,
+                context == null ? null : context.tenantId(),
+                context == null ? null : context.personId(),
+                IsolatedExport.TASK_TYPE,
+                id,
+                "wizard." + step,
+                TraceIds.currentOrUnknown(),
+                Map.of(
+                        "step", step,
+                        "wizard_id", id,
+                        "surface", WIZARD_SURFACE)));
     }
 }

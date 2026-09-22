@@ -38,7 +38,7 @@ P1 `GET /tenants/{id}/audit-events` still reads staging `platform.audit_event` (
 | Permission grant / role assignment append (`append` joins ambient TX) | Switching P1 `GET /tenants/{id}/audit-events` off staging |
 | Admin tenant create (and other P1 admin writes) land on the same chain; `append` rolls back with the business TX | Hot purge after 90 days (archive is a copy). Object-store cold archive: [g4-object-cold-archive.md](../g4-object-cold-archive.md) |
 | Guard-reject from `IsolationAuditor` / `RequestIsolationPolicy` uses `appendNewTransaction` and survives a surrounding rollback | G6 restore drill, G17 classified / GM delivery, target Linux/ARM Profile |
-| `JdbcAuditChainTransactionTest` 4/4 — library same-TX rules unchanged | HTTP export wizard / report UI |
+| `JdbcAuditChainTransactionTest` 4/4 — library same-TX rules unchanged | HTTP export wizard leftover is [g4-export-wizard.md](../g4-export-wizard.md). Not a product export UI |
 | `GET /api/v1/audit/traces/{traceId}` returns tenant-scoped G4 events | Full G4 product close (human laptop PKCE click / hot-row purge). HTTPS loopback driver is [g4-pkce-https-browser.md](../g4-pkce-https-browser.md) |
 | Same-trace MockMvc walk login→permission→admin→export→guard-reject ([g4-same-trace-walk.md](../g4-same-trace-walk.md)) | 90-day copy + 365-day same-PG purge already on `main` ([g4-export-audit-archive.md](../g4-export-audit-archive.md)) |
 | SurfaceGuard form/H5/report/Job/Task deny on the same chain ([g4-guard-deny-audit.md](../g4-guard-deny-audit.md)) | Isolation-only `tenant_only` skip; silent `require(service, resource, action)` fixtures |

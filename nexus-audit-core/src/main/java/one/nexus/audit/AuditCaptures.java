@@ -26,6 +26,8 @@ public final class AuditCaptures {
     public static final String EXPORT_SUBMITTED = "p3.export.submitted";
     public static final String EXPORT_FILE_WRITTEN = "p3.export.file.written";
     public static final String EXPORT_DISPATCHED = "p3.export.dispatched";
+    public static final String EXPORT_BEGUN = "p3.export.begun";
+    public static final String EXPORT_COMPLETED = "p3.export.completed";
 
     private AuditCaptures() {}
 

@@ -43,4 +43,7 @@ export const p3 = {
   exportReport: (...args) => live.exportReport(...args),
   dumpDecision: (...args) => live.dumpDecision(...args),
   exportDump: (...args) => live.exportDump(...args),
+  exportWizardDecision: (...args) => live.exportWizardDecision(...args),
+  beginExportWizard: (...args) => live.beginExportWizard(...args),
+  completeExportWizard: (...args) => live.completeExportWizard(...args),
 };
