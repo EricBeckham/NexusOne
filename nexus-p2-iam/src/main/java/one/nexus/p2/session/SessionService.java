@@ -7,6 +7,7 @@ import one.nexus.p2.account.AccountReconciler;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.domain.Model;
 import one.nexus.p2.idp.IdentityProviderPort;
+import one.nexus.p2.idp.Pkce;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.p2.support.DomainException;
@@ -94,8 +95,17 @@ public final class SessionService {
         return idp.authorizationUrl(state, redirectUri, acrValues);
     }
 
+    public IdentityProviderPort.AuthorizeUrl authorizationUrl(
+            String state, String redirectUri, String acrValues, Pkce.Challenge pkce) {
+        return idp.authorizationUrl(state, redirectUri, acrValues, pkce);
+    }
+
     public SessionView loginWithCode(String code, String redirectUri) {
-        IdentityProviderPort.TokenSet tokens = idp.exchangeAuthorizationCode(code, redirectUri);
+        return loginWithCode(code, redirectUri, null);
+    }
+
+    public SessionView loginWithCode(String code, String redirectUri, String codeVerifier) {
+        IdentityProviderPort.TokenSet tokens = idp.exchangeAuthorizationCode(code, redirectUri, codeVerifier);
         return loginWithAccessToken(tokens.accessToken());
     }
 

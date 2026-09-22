@@ -18,7 +18,9 @@ import java.util.Optional;
 
 /**
  * OIDC + Admin API adapter for Keycloak 26.5.2. Does not use Keycloak Organizations,
- * SAML, LDAP, or browser PKCE as an accepted product path.
+ * SAML, or LDAP. Authorization Code + PKCE is opt-in ({@code code_challenge} /
+ * {@code code_verifier}); the default authorize URL stays confidential-client
+ * without PKCE so the M0-04 live smoke is unchanged.
  */
 public final class KeycloakIdentityProvider implements IdentityProviderPort {
     private final RestClient http;
@@ -50,6 +52,11 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
 
     @Override
     public AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues) {
+        return authorizationUrl(state, redirectUri, acrValues, null);
+    }
+
+    @Override
+    public AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues, Pkce.Challenge pkce) {
         String url = issuer + "/protocol/openid-connect/auth"
                 + "?client_id=" + enc(clientId)
                 + "&response_type=code"
@@ -59,16 +66,30 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
         if (acrValues != null && !acrValues.isBlank()) {
             url += "&acr_values=" + enc(acrValues);
         }
+        if (pkce != null && pkce.challenge() != null && !pkce.challenge().isBlank()) {
+            url += "&code_challenge=" + enc(pkce.challenge())
+                    + "&code_challenge_method=" + enc(pkce.method());
+        }
         return new AuthorizeUrl(url, state);
     }
 
     @Override
     public TokenSet exchangeAuthorizationCode(String code, String redirectUri) {
-        Map<String, Object> body = postForm(issuer + "/protocol/openid-connect/token",
-                "grant_type=authorization_code&code=" + enc(code)
-                        + "&redirect_uri=" + enc(redirectUri)
-                        + "&client_id=" + enc(clientId)
-                        + "&client_secret=" + enc(clientSecret));
+        return exchangeAuthorizationCode(code, redirectUri, null);
+    }
+
+    @Override
+    public TokenSet exchangeAuthorizationCode(String code, String redirectUri, String codeVerifier) {
+        StringBuilder form = new StringBuilder("grant_type=authorization_code&code=").append(enc(code))
+                .append("&redirect_uri=").append(enc(redirectUri))
+                .append("&client_id=").append(enc(clientId));
+        if (clientSecret != null && !clientSecret.isBlank()) {
+            form.append("&client_secret=").append(enc(clientSecret));
+        }
+        if (codeVerifier != null && !codeVerifier.isBlank()) {
+            form.append("&code_verifier=").append(enc(codeVerifier));
+        }
+        Map<String, Object> body = postForm(issuer + "/protocol/openid-connect/token", form.toString());
         if (body.get("access_token") == null) {
             throw new IllegalStateException("Keycloak token endpoint returned no access_token");
         }

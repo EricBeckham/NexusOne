@@ -1,6 +1,7 @@
 package one.nexus.p2;
 
 import one.nexus.p2.admin.TenantAdminInitializer;
+import one.nexus.p2.idp.AuthorizationCodeDriver;
 import one.nexus.p2.idp.IdentityProviderPort;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;

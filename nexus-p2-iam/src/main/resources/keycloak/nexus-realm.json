@@ -64,6 +64,36 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "nexus-web",
+      "name": "NexusOne public browser PKCE client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://127.0.0.1:18088/api/v1/auth/callback",
+        "http://127.0.0.1:8088/api/v1/auth/callback",
+        "http://127.0.0.1:8080/api/v1/auth/callback",
+        "http://127.0.0.1:5173/callback"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:18088",
+        "http://127.0.0.1:8088",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:5173"
+      ],
+      "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
+      "optionalClientScopes": ["offline_access", "phone"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
     }
   ]
 }

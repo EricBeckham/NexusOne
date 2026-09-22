@@ -58,7 +58,7 @@ This is **not** a product-wide G4 close.
 
 | Still open | Why |
 |---|---|
-| Browser Authorization Code + PKCE login | Stub IdP + MockMvc here. No headless Keycloak without Docker on this agent. |
+| Browser Authorization Code + PKCE login | HTTP-driver + native Keycloak 26.x PKCE on the hash chain is [g4-pkce-login-audit.md](./g4-pkce-login-audit.md). Human Chromium click on loopback HTTP is still open (Secure cookies). |
 | 365-day archive expiry | Closed on `main` via #90 (`purgeImplemented=true`). Not reopened here. |
 | Hot purge after 90 days | Archive is a copy; hot table is append-only |
 | Object-store / cold archive | Same-PG table only |

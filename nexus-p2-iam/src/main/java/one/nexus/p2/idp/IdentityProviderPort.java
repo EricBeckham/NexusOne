@@ -45,7 +45,17 @@ public interface IdentityProviderPort {
         return authorizationUrl(state, redirectUri);
     }
 
+    /** Optional PKCE. Default ignores {@code pkce}. */
+    default AuthorizeUrl authorizationUrl(String state, String redirectUri, String acrValues, Pkce.Challenge pkce) {
+        return authorizationUrl(state, redirectUri, acrValues);
+    }
+
     TokenSet exchangeAuthorizationCode(String code, String redirectUri);
+
+    /** Optional PKCE verifier. Default ignores {@code codeVerifier}. */
+    default TokenSet exchangeAuthorizationCode(String code, String redirectUri, String codeVerifier) {
+        return exchangeAuthorizationCode(code, redirectUri);
+    }
 
     IdentityClaims validate(String accessToken);
 
