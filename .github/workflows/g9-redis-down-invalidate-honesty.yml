@@ -1,0 +1,97 @@
+name: g9-redis-down-invalidate-honesty
+
+# Honesty gate for the G9 Redis-down / PolicySnapshot invalidate leftover.
+# Does not start Redis. Does not redo #100/#121/#128/#148/#161.
+# Not product G9 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g9-redis-down-invalidate-honesty.sh"
+      - "scripts/g9-redis-down-invalidate-honesty/**"
+      - ".github/workflows/g9-redis-down-invalidate-honesty.yml"
+      - "docs/g9-redis-down-invalidate-honesty.md"
+      - "docs/engineering/g9-redis-down-invalidate-honesty-EVIDENCE.md"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/redis/G9RedisDownInvalidateHonesty.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/engine/G9RedisDownInvalidateHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/g9-redis-down-invalidate-honesty.sh"
+      - "scripts/g9-redis-down-invalidate-honesty/**"
+      - ".github/workflows/g9-redis-down-invalidate-honesty.yml"
+      - "docs/g9-redis-down-invalidate-honesty.md"
+      - "docs/engineering/g9-redis-down-invalidate-honesty-EVIDENCE.md"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/redis/G9RedisDownInvalidateHonesty.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/engine/G9RedisDownInvalidateHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g9-redis-down-invalidate-honesty.sh --verify-report scripts/g9-redis-down-invalidate-honesty/fixtures/honest-skip.env
+      - name: Fake live Redis-down PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-honesty.sh --verify-report \
+            scripts/g9-redis-down-invalidate-honesty/fixtures/fake-live-redis-down-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live Redis-down PASS without redis_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live Redis-down PASS rejected"
+      - name: Fake live invalidate PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-honesty.sh --verify-report \
+            scripts/g9-redis-down-invalidate-honesty/fixtures/fake-live-invalidate-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live invalidate PASS without redis_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live invalidate PASS rejected"
+      - name: Fake product G9 close is rejected
+        run: |
+          set +e
+          ./scripts/g9-redis-down-invalidate-honesty.sh --verify-report \
+            scripts/g9-redis-down-invalidate-honesty/fixtures/fake-g9-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g9_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G9 close rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest live Redis-down / invalidate SKIP
+        run: |
+          chmod +x ./scripts/g9-redis-down-invalidate-honesty.sh
+          ./scripts/g9-redis-down-invalidate-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g9-redis-down-invalidate-honesty"
+          ./scripts/g9-redis-down-invalidate-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+          grep -E '^live_redis_down=SKIP$' "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+          grep -E '^live_invalidate=SKIP$' "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+          grep -E '^dead_client_is_not_live_down=true$' "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+          grep -E '^g9_close=NOT_CLAIMED$' "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+          grep -E '^g9_100_121_128_148_161_redone=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g9-redis-down-invalidate-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g9-redis-down-invalidate-honesty
+          path: ${{ runner.temp }}/g9-redis-down-invalidate-honesty
