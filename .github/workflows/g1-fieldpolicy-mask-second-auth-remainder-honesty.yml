@@ -1,0 +1,169 @@
+name: g1-fieldpolicy-mask-second-auth-remainder-honesty
+
+# Honesty leftover remainder beyond #184/#162/#215.
+# Does not re-run g1-fieldpolicy-mask-second-auth-honesty.sh or #162/#215 scripts.
+# Parent leftover honesty fixtures stay PASS.
+# Live JAR / IsolatedExport mask / second-auth stay SKIP unless present AND observed.
+# Product G1 is not closed.
+
+on:
+  push:
+    paths:
+      - "scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh"
+      - "scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/**"
+      - "docs/g1-fieldpolicy-mask-second-auth-remainder-honesty.md"
+      - "docs/engineering/g1-fieldpolicy-mask-second-auth-remainder-honesty-EVIDENCE.md"
+      - "docs/engineering/g1-fieldpolicy-mask-second-auth-remainder-honesty/agent-vm.env"
+      - "docs/README.md"
+      - ".github/workflows/g1-fieldpolicy-mask-second-auth-remainder-honesty.yml"
+  pull_request:
+    paths:
+      - "scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh"
+      - "scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/**"
+      - "docs/g1-fieldpolicy-mask-second-auth-remainder-honesty.md"
+      - "docs/engineering/g1-fieldpolicy-mask-second-auth-remainder-honesty-EVIDENCE.md"
+      - "docs/engineering/g1-fieldpolicy-mask-second-auth-remainder-honesty/agent-vm.env"
+      - "docs/README.md"
+      - ".github/workflows/g1-fieldpolicy-mask-second-auth-remainder-honesty.yml"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh --verify-report scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/fixtures/honest-skip.env
+      - name: Fake live API mask PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh --verify-report \
+            scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/fixtures/fake-live-api-mask-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_api_mask=PASS without live_jar_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live API mask PASS rejected"
+      - name: Fake live IsolatedExport mask PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh --verify-report \
+            scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/fixtures/fake-live-export-mask-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_export_mask=PASS without live_export_mask_observed=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live IsolatedExport mask PASS rejected"
+      - name: Fake live second-auth PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh --verify-report \
+            scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/fixtures/fake-live-second-auth-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_second_auth=PASS without live_second_auth_observed=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live second-auth PASS rejected"
+      - name: Fake product G1 close is rejected
+        run: |
+          set +e
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh --verify-report \
+            scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/fixtures/fake-g1-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g1_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G1 close rejected"
+      - name: Fake mask-on-AST is rejected
+        run: |
+          set +e
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh --verify-report \
+            scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/fixtures/fake-mask-on-ast.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake mask_on_ast=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake mask-on-AST rejected"
+      - name: Fake #184 redo is rejected
+        run: |
+          set +e
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh --verify-report \
+            scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty/fixtures/fake-redone.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake redone_184=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake #184 redo rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest leftover #162/#184/#215 PASS / live SKIP
+        run: |
+          chmod +x ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh \
+            --out "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty"
+          ./scripts/g1-fieldpolicy-mask-second-auth-remainder-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_162_cells_honest=PASS$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_184_cells_honest=PASS$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_215_cells_honest=PASS$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_184_honesty_gate=PASS$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_beside_ast=PASS$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^mask_on_ast=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^isolated_export_applies_mask=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^live_api_mask=SKIP$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^live_export_mask=SKIP$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^live_second_auth=SKIP$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^live_api_mask_observed=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^g1_close=NOT_CLAIMED$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g1-fieldpolicy-mask-second-auth-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g1-fieldpolicy-mask-second-auth-remainder-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g1-queryast-export-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g9-live-multi-jvm-replica-remainder-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g4-hot-purge-staging-leftover-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g7-withdraw-browser-evidence-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g2-h5-every-page-form-write-remainder-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g9-redis-down-invalidate-remainder-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g7-query-expense-travel-honesty-remainder' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g3-outbox-consume-idempotent-honesty' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E 'g10-leftover-honesty-remainder' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_162_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_184_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_215_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_229_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_230_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_212_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_232_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_237_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_239_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_226_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^leftover_228_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^redone_162=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^redone_184=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^redone_215=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g1-fieldpolicy-mask-second-auth-remainder-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g1-fieldpolicy-mask-second-auth-remainder-honesty
+          path: ${{ runner.temp }}/g1-fieldpolicy-mask-second-auth-remainder-honesty

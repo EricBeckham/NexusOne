@@ -79,3 +79,5 @@ See [engineering/g1-fieldpolicy-mask-second-auth-honesty-EVIDENCE.md](./engineer
 - UI / H5 / report UI FieldPolicy walk
 - Product-wide G1 close
 - Redo of #115 / #130 / #134 / #142 / #146 / #162 / #168
+
+Remainder honesty beyond this leftover (and #162 / #215) is [g1-fieldpolicy-mask-second-auth-remainder-honesty.md](./g1-fieldpolicy-mask-second-auth-remainder-honesty.md). Keep this leftover row.
