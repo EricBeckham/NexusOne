@@ -33,6 +33,7 @@ public final class MfaClaims {
             return false;
         }
         for (String part : amr.toLowerCase().split("[,\\s\\[\\]]+")) {
+            part = part.replace("\"", "").trim();
             if (part.isBlank()) {
                 continue;
             }

@@ -152,22 +152,32 @@ Result: **Tests run: 1, Failures: 0, Errors: 0, Skipped: 0**. `nexus.iam.idp=key
 
 Product policy `nexus.iam.mfa.admin-required=true` (default). Session gate on the existing M0-04 login path. Same Keycloak 26.5.2 client; no second IdP. **Not** a full G17 close. **G18 stays closed.**
 
+Recorded **2026-09-22T16:45:36Z** (targeted) and **2026-09-22T16:45:52Z** (full module) on the agent VM. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**. No Docker. No live PostgreSQL / Keycloak required.
+
 ```bash
 mvn -pl nexus-p2-iam -am test \
   -Dtest=AdminMfaSessionTest,AdminMfaApiTest,MfaClaimsTest,SessionLoginAuditTest,IdentityApiTest,DualTenantIsolationTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Recorded after the IT run on this branch. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md).
+**BUILD SUCCESS**. Tests run: **23**, Failures: **0**, Errors: **0**, Skipped: **0**.
+
+`AdminMfaSessionTest` **7/7**, `AdminMfaApiTest` **1/1**, `MfaClaimsTest` **2/2**, `SessionLoginAuditTest` **1/1**, `IdentityApiTest` **4/4**, `DualTenantIsolationTest` **8/8**.
+
+```bash
+mvn -pl nexus-p2-iam -am test
+```
+
+**BUILD SUCCESS** at **2026-09-22T16:45:52Z**. `nexus-p2-iam`: Tests run: **36**, Failures: **0**, Errors: **0**, Skipped: **3** (`LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest`, `JdbcDualTenantIsolationTest` — Keycloak / PostgreSQL 15 not listening). Permission admin-login regression (`TenantMemberGrantSeedApiTest`, `PermissionApiTest`, `G2RoleMatrixApiTest`, `G9PolicySnapshotApiTest`): **5/5** at **2026-09-22T16:46:03Z**.
 
 | Check | Result |
 |---|---|
-| Policy disabled + admin password-only token issues context (failing-before) | `AdminMfaSessionTest.beforeGateAdminWithoutMfaCouldIssuePrivilegedContext` |
-| Policy forced + same token → `P2.IAM.MFA_REQUIRED`, no context (passing-after) | `AdminMfaSessionTest.afterGateAdminWithoutMfaCannotIssuePrivilegedSession` |
-| Admin MFA token issues context | yes |
-| Non-admin password-only still issues context | yes |
-| HTTP `POST /api/v1/auth/login` admin without MFA → 403 | `AdminMfaApiTest` |
-| `GET /api/v1/auth/authorize-url?acr=mfa` includes `acr_values=mfa` | yes |
+| Policy disabled + admin password-only token issues context (failing-before) | PASS |
+| Policy forced + same token → `P2.IAM.MFA_REQUIRED`, no context (passing-after) | PASS |
+| Admin MFA token issues context | PASS |
+| Non-admin password-only still issues context | PASS |
+| HTTP `POST /api/v1/auth/login` admin without MFA → 403 | PASS |
+| `GET /api/v1/auth/authorize-url?acr=mfa` includes `acr_values=mfa` | PASS |
 | SAML / SMS MFA / hardware / browser PKCE | not claimed |
 | Live Keycloak admin OTP walk | not run |
 | G18 reopen | **no** |

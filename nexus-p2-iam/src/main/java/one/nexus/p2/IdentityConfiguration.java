@@ -119,7 +119,7 @@ public class IdentityConfiguration {
 
         public AdminMfaPolicy mfaPolicy() {
             return new AdminMfaPolicy(
-                    mfa.adminRequired(),
+                    mfa.forced(),
                     mfa.platformTenantUuid(),
                     mfa.positionCodes());
         }
@@ -135,7 +135,7 @@ public class IdentityConfiguration {
                 return new Mfa(true, AdminMfaPolicy.DEFAULT_PLATFORM_TENANT.toString(), null);
             }
 
-            public boolean adminRequired() {
+            public boolean forced() {
                 return adminRequired == null || adminRequired;
             }
 

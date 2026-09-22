@@ -29,7 +29,7 @@ Runnable without Keycloak (`nexus.iam.persistence=memory`, `nexus.iam.idp=stub`)
 mvn -pl nexus-p2-iam -am test
 ```
 
-**25 tests, 0 failures, 3 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0**. Skips: `LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest` (opt-in `NEXUS_KEYCLOAK_SMOKE=1`), and `JdbcDualTenantIsolationTest` when PostgreSQL 15 is unreachable.
+**36 tests, 0 failures, 3 skipped** on OpenJDK 21.0.10 / Spring Boot **4.1.1** / Flyway **13.7.0** (includes G17 admin-MFA slice). Skips: `LiveKeycloakSmokeTest`, `LiveKeycloakPersonReconcileTest` (opt-in `NEXUS_KEYCLOAK_SMOKE=1`), and `JdbcDualTenantIsolationTest` when PostgreSQL 15 is unreachable.
 
 G10 identity half (persons vs Keycloak on **8080**): [docs/g10-identity-reconcile.md](../docs/g10-identity-reconcile.md). File/object reconcile is out of this module.
 
@@ -47,6 +47,7 @@ Covered by tests:
 - Flyway `V200__iam_identity.sql` in schema `iam`: tenant tables have `tenant_id UUID NOT NULL`; `iam.iam_global_account` is platform-scoped.
 - Invite / password-reset hooks record Keycloak execute-actions when SMTP is enabled.
 - HTTP login-form helper sends Keycloak 26 `Secure` loopback cookies (`AuthorizationCodeDriverTest`).
+- Admin MFA gate: tenant/platform admin without MFA cannot issue a privileged session (`P2.IAM.MFA_REQUIRED`); non-admin password-only still can. See [docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md).
 
 `JdbcDualTenantIsolationTest` ran against **PostgreSQL 15.19** (`Ubuntu 15.19-1.pgdg24.04+2`):
 

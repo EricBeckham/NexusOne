@@ -40,7 +40,7 @@ mvn -pl nexus-p2-iam -am test \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Recorded command log: `nexus-p2-iam/EVIDENCE.md` (G17 admin-MFA slice).
+Recorded **2026-09-22T16:45:36Z** on the agent VM (OpenJDK 21.0.10 / Maven 3.8.7 / Boot 4.1.1): **BUILD SUCCESS**, 23 run / 0 fail. Full `mvn -pl nexus-p2-iam -am test` at **2026-09-22T16:45:52Z**: **36** run / **0** fail / **3** skip. Command log: `nexus-p2-iam/EVIDENCE.md`.
 
 Failing-before / passing-after is `AdminMfaSessionTest`:
 
