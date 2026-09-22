@@ -39,9 +39,9 @@ Filled after the collect script on this VM. Live output is gitignored under `.lo
 
 | Check | Result | Notes |
 |---|---|---|
-| Honesty fixtures | pending | fake delivery PASS / G17-close rejected |
-| #154 local recovery codes | pending | 8 hashed codes; consume once |
-| #154 email request without SMTP | pending | `P2.IAM.SMTP_DISABLED` |
+| Honesty fixtures | **PASS** / fake delivery PASS rejected / fake `g17_close=CLOSED` rejected | `2026-09-22T19:38:33Z` |
+| #154 local recovery codes | **PASS** (gate) | 8 hashed codes; consume once; collect `--skip-tests` on this VM |
+| #154 email request without SMTP | **PASS** (gate) | `P2.IAM.SMTP_DISABLED` |
 | Live email OTP mailbox | **SKIP** | SMTP off; no mailbox observed |
 | Live Keycloak recovery-authn-codes | **SKIP** | issuer unreachable / not enrolled |
 | Product G17 / 等保 / 密评 / Vue→Keycloak otp | **NOT_CLAIMED** | leftovers stay open |
