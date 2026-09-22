@@ -21,11 +21,26 @@ Same reject-before-execute rules as INNER JOIN: stolen / null join `tenant_id`, 
 
 ## Evidence
 
-Recorded after the targeted suite on this agent VM. Java / Maven / Boot / PG versions and counts are filled after `mvn test`.
+Recorded on this agent VM. Java **21.0.10**, Maven **3.9.16**, Spring Boot **4.1.1**. Isolation-kernel `PostgresIsolationIT` uses in-process PostgreSQL **15.18** (Zonky). No Docker.
 
 ```
-# pending targeted suite — see follow-up commit
+mvn -f modules/isolation-kernel/pom.xml test
+# Tests run: 43, Failures: 0, Errors: 0, Skipped: 0  BUILD SUCCESS  2026-09-22T17:09:50Z
+
+mvn -pl nexus-bootstrap -am test \
+    -Dtest=G1QueryOuterCrossJoinTest,G1QueryAstRemainderTest,G1QueryJoinFieldPolicyTest,G1IsolationSurfacesTest \
+    -Dsurefire.failIfNoSpecifiedTests=false
+# BUILD SUCCESS  2026-09-22T17:10:15Z
+# G1QueryOuterCrossJoinTest 1/1, G1QueryAstRemainderTest 1/1,
+# G1QueryJoinFieldPolicyTest 1/1, G1IsolationSurfacesTest 1/1
 ```
+
+| Suite | What it proved |
+|---|---|
+| `QueryCompilerTest` | LEFT / RIGHT / FULL OUTER and CROSS inject `tenant_id` on both tables; stolen / null join tenant, tenant→platform, OUTER without `ON`, and CROSS with `ON` rejected with records; DataScope cannot strip an OUTER/CROSS join tenant predicate |
+| `PostgresIsolationIT` | Same-tenant LEFT JOIN keeps the orphan entry and never attaches a beta line; CROSS JOIN stays on the bound tenant's line; stolen / illegal joins never reach JDBC (`P1.M02.020`) |
+| `IsolatedExportTest` | Stolen LEFT / CROSS rejected before export compile; same-tenant visible projection compiles both shapes with join `tenant_id = ?` |
+| `G1QueryOuterCrossJoinTest` | Stolen LEFT / CROSS, OUTER without `ON`, and CROSS with `ON` land on `AuditPort` as `GUARD_REJECT` via `appendNewTransaction` (`P1.M02.020`); hash chain intact; `IsolatedExport.compile` of same-tenant LEFT and CROSS is allowed |
 
 ## Honest leftover G1 rows
 
