@@ -310,6 +310,8 @@ Browser failed-publish click / PublishHook honesty leftover (live browser/IdP/JA
 
 Mid-publish / browser failed-publish honesty leftover (memory harness PASS; live browser/IdP/JAR SKIP; not a product G5 close; not a #94/#145/#171 redo): [docs/g5-mid-publish-failure-honesty.md](../docs/g5-mid-publish-failure-honesty.md).
 
+PublishHook / real SchemaService DDL honesty leftover (memory harness is not real DDL; live PG 15 / PublishHook SKIP; not a product G5 close; not a #94/#145/#171/#196 redo): [docs/g5-publishhook-ddl-honesty.md](../docs/g5-publishhook-ddl-honesty.md).
+
 Recorded **pending-this-run**. `./scripts/g5-form-publish-rollback.sh` → **pending**. No Docker.
 
 # G18 one real business path (backend)
