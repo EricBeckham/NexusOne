@@ -2,7 +2,7 @@
 
 Recorded **2026-09-22T17:11:54Z** on this agent VM after rebase onto `origin/main` `1377a0a` (#107). Operator: cloud agent. Live output: `.local/linux-arm-profile/agent-vm-x86_64-rebased/` (gitignored). Committed copy: [`docs/engineering/linux-arm-profile/agent-vm-x86_64.txt`](./linux-arm-profile/agent-vm-x86_64.txt).
 
-**Product target Linux/ARM Profile is NOT accepted.** This package is the leftover called out in [团队领取任务清单](../planning/团队领取任务清单_V1.1.md) and [M0-01](./m0-01-engineering-foundation.md): a reproducible collect/verify script, a PASS/SKIP matrix, and what this agent VM can actually run. It is **not** P0-10 / M0-01 redone, **not** install/upgrade/rollback/offline/SBOM, **not** GaussDB, **not** a G18 reopen, and **does not** change `AuditPort`.
+**Product target Linux/ARM Profile is NOT accepted.** This package is the leftover called out in [团队领取任务清单](../planning/团队领取任务清单_V1.1.md) and [M0-01](./m0-01-engineering-foundation.md): a reproducible collect/verify script, a PASS/SKIP matrix, and what this agent VM can actually run. It is **not** P0-10 / M0-01 redone, **not** GaussDB, **not** a G18 reopen, and **does not** change `AuditPort`. Install / upgrade / rollback / offline / SBOM leftover (still **not** Profile close) is [linux-arm-profile-lifecycle-EVIDENCE.md](./linux-arm-profile-lifecycle-EVIDENCE.md).
 
 G18 stays closed (`docs/g18-business-path.md`). `TARGET-ARM-01` in `poc/p0-10/deployment-matrix.csv` stays `not-tested`.
 
@@ -73,8 +73,8 @@ Values below are copied from the committed artifact after `collect-and-verify.sh
 All of the following remain open. This remainder does not perform them.
 
 1. Freeze a delivery row: approved Linux distribution + **aarch64** CPU model + JDK 21 build + PostgreSQL 15.x + install method + package digest.
-2. Run install, upgrade, rollback, and offline package on **that** row (and a separate x86_64 row). Do not copy this VM's results across architectures.
-3. Record SBOM / license / CVE / offline media. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`.
+2. Run install, upgrade, rollback, and official offline media on **that** row (and a separate x86_64 row). Do not copy this VM's results across architectures. A this-host leftover drill lives in [linux-arm-profile-lifecycle-EVIDENCE.md](./linux-arm-profile-lifecycle-EVIDENCE.md) and still does not close the Profile.
+3. Record product SBOM / license / CVE / offline media. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`.
 4. Native aarch64 `collect-and-verify.sh --require-build` on real ARM hardware (or a provisioned ARM runner whose `uname -m` is `aarch64`). GitHub `ubuntu-24.04-arm` is a CI cross-check only.
 
 ## Explicitly out of scope

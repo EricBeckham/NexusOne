@@ -49,3 +49,19 @@ A sanitized copy of one agent-VM run is committed at `docs/engineering/linux-arm
 CI: `.github/workflows/linux-arm-profile.yml` (x86_64 required; `ubuntu-24.04-arm` is a cross-check and must not be treated as Profile acceptance).
 
 Evidence: [docs/engineering/linux-arm-profile-EVIDENCE.md](../../docs/engineering/linux-arm-profile-EVIDENCE.md).
+
+## Install / upgrade / rollback / offline / SBOM leftover
+
+After #105. Same honesty rules. **Not** a Profile close.
+
+```bash
+./scripts/linux-arm-profile/lifecycle.sh
+./scripts/linux-arm-profile/lifecycle.sh --out .local/linux-arm-profile-lifecycle/manual
+./scripts/linux-arm-profile/lifecycle.sh --verify-report .local/linux-arm-profile-lifecycle/manual/report.env
+```
+
+On `uname -m=x86_64`, every `aarch64_*` cell is `SKIP` with a reason. Schema cells need PostgreSQL 15 `initdb`/`pg_ctl`/`psql`/`pg_dump`/`pg_restore` on a dedicated port (default `55442`, never `5432`). Missing binaries are SKIP, not a fake PASS. SBOM is CycloneDX when Maven can produce a BOM, otherwise `dependency:tree`. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`.
+
+A sanitized agent-VM copy is `docs/engineering/linux-arm-profile/agent-vm-x86_64-lifecycle.txt`.
+
+Evidence: [docs/engineering/linux-arm-profile-lifecycle-EVIDENCE.md](../../docs/engineering/linux-arm-profile-lifecycle-EVIDENCE.md).
