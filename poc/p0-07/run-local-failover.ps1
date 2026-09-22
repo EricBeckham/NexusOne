@@ -4,7 +4,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-if ($env:P0_07_JDBC_URL -ne 'jdbc:postgresql://127.0.0.1:55438/nexus_p0_07' -or $env:P0_07_DB_USER -ne 'nexus_poc') {
+$allowedUrls = @(
+    'jdbc:postgresql://127.0.0.1:5432/nexus_p0_07',
+    'jdbc:postgresql://127.0.0.1:55438/nexus_p0_07'
+)
+if ($env:P0_07_JDBC_URL -notin $allowedUrls -or $env:P0_07_DB_USER -notin @('postgres', 'nexus_poc')) {
     throw 'This local fault-injection script only targets the dedicated loopback nexus_p0_07 PoC database'
 }
 if (-not (Test-Path -LiteralPath $JavaPath)) { throw "Java executable not found: $JavaPath" }
@@ -21,8 +25,12 @@ $nodeA = $null
 $nodeB = $null
 
 function Invoke-Mode([string]$mode) {
-    $output = & $JavaPath '-cp' $classpath 'poc.Main' $mode 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "Mode $mode failed: $($output -join ' ')" }
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $output = & $JavaPath '-cp' $classpath 'poc.Main' $mode 2>&1 | ForEach-Object { "$_" }
+    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previous
+    if ($exitCode -ne 0) { throw "Mode $mode failed: $($output -join ' ')" }
     return $output
 }
 

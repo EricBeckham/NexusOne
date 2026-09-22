@@ -11,11 +11,19 @@ if (-not $env:PGDATABASE -or -not $env:PGUSER) { throw 'Set PGDATABASE and PGUSE
 New-Item -ItemType Directory -Force -Path (Join-Path $root 'results') | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $log = Join-Path $root "results/bench-$stamp.log"
+function Invoke-Psql([string[]]$ArgumentList, [string]$LogPath, [switch]$Append) {
+  $previous = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  & $psql @ArgumentList 2>&1 | Tee-Object -FilePath $LogPath -Append:$Append | Out-Host
+  $exitCode = $LASTEXITCODE
+  $ErrorActionPreference = $previous
+  return $exitCode
+}
 Push-Location $root
 try {
-  & $psql -X -v ON_ERROR_STOP=1 -v "tenant_count=$TenantCount" -v "custom_per_tenant=$CustomPerTenant" -v "shared_tables=$SharedTables" -f 'contract.sql' 2>&1 | Tee-Object -FilePath $log
-  if ($LASTEXITCODE -ne 0) { throw 'Contract failed; see log' }
-  & $psql -X -v ON_ERROR_STOP=1 -v "tenant_count=$TenantCount" -v "custom_per_tenant=$CustomPerTenant" -v "shared_tables=$SharedTables" -f 'bench.sql' 2>&1 | Tee-Object -FilePath $log -Append
-  if ($LASTEXITCODE -ne 0) { throw 'Benchmark failed; see log' }
+  $code = Invoke-Psql -ArgumentList @('-X','-v','ON_ERROR_STOP=1','-v',"tenant_count=$TenantCount",'-v',"custom_per_tenant=$CustomPerTenant",'-v',"shared_tables=$SharedTables",'-f','contract.sql') -LogPath $log
+  if ($code -ne 0) { throw 'Contract failed; see log' }
+  $code = Invoke-Psql -ArgumentList @('-X','-v','ON_ERROR_STOP=1','-v',"tenant_count=$TenantCount",'-v',"custom_per_tenant=$CustomPerTenant",'-v',"shared_tables=$SharedTables",'-f','bench.sql') -LogPath $log -Append
+  if ($code -ne 0) { throw 'Benchmark failed; see log' }
   Write-Host "Benchmark log: $log"
 } finally { Pop-Location }
