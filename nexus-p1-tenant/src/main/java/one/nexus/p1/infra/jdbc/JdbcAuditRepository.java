@@ -9,9 +9,9 @@ import java.util.UUID;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import one.nexus.p1.domain.AuditEvent;
 import one.nexus.p1.port.AuditRepository;
 import one.nexus.p1.port.TableAccessPlan;
@@ -114,7 +114,7 @@ public class JdbcAuditRepository implements AuditRepository {
     private String json(Object value) {
         try {
             return mapper.writeValueAsString(value);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("json write failed", ex);
         }
     }
@@ -125,7 +125,7 @@ public class JdbcAuditRepository implements AuditRepository {
                 return java.util.Map.of();
             }
             return mapper.readValue(json, new TypeReference<>() {});
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("json read failed", ex);
         }
     }

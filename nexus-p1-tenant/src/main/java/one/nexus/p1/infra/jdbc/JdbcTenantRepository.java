@@ -9,8 +9,8 @@ import java.util.UUID;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import one.nexus.p1.domain.EntitlementPayload;
 import one.nexus.p1.domain.EntitlementProjection;
 import one.nexus.p1.domain.ProjectionSource;
@@ -270,7 +270,7 @@ public class JdbcTenantRepository implements TenantRepository {
         EntitlementPayload payload;
         try {
             payload = mapper.readValue(rs.getString("payload"), EntitlementPayload.class);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("entitlement payload parse failed", ex);
         }
         return new EntitlementProjection(
@@ -289,7 +289,7 @@ public class JdbcTenantRepository implements TenantRepository {
     private String json(Object value) {
         try {
             return mapper.writeValueAsString(value);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("json write failed", ex);
         }
     }

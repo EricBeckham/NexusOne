@@ -1,6 +1,12 @@
 package one.nexus.p1;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -8,16 +14,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import one.nexus.p1.config.P1Properties;
 import one.nexus.p1.infra.isolation.DemoPlatformContextFilter;
 
@@ -31,13 +33,12 @@ class TenantModuleIT {
     int port;
 
     @Autowired
-    TestRestTemplate http;
-
-    @Autowired
     ObjectMapper mapper;
 
     @Autowired
     P1Properties properties;
+
+    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
     @BeforeAll
     static void requirePassword() {
@@ -147,7 +148,16 @@ class TenantModuleIT {
 
     private List<String> listCodes() throws Exception {
         JsonNode body = get("/api/v1/p1/tenants").path("body");
-        return body.findValuesAsText("code");
+        ArrayList<String> codes = new ArrayList<>();
+        if (body != null && body.isArray()) {
+            for (JsonNode node : body) {
+                JsonNode code = node.get("code");
+                if (code != null && !code.isNull()) {
+                    codes.add(code.asText());
+                }
+            }
+        }
+        return codes;
     }
 
     private JsonNode createTenant(String code, String name) throws Exception {
@@ -166,16 +176,20 @@ class TenantModuleIT {
     }
 
     private JsonNode exchange(HttpMethod method, String path, Object body, HttpStatus expected) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-        headers.set(DemoPlatformContextFilter.ACTOR_HEADER, ACTOR.toString());
-        headers.set(DemoPlatformContextFilter.REASON_HEADER, "m0-03-it");
-        headers.set(DemoPlatformContextFilter.TRACE_HEADER, "trace-" + UUID.randomUUID());
-        headers.set(DemoPlatformContextFilter.ACTOR_TENANT_HEADER, properties.getPlatformTenant().getId().toString());
-        HttpEntity<?> entity = body == null ? new HttpEntity<>(headers) : new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = http.exchange(url(path), method, entity, String.class);
-        assertThat(response.getStatusCode()).isEqualTo(expected);
-        JsonNode parsed = mapper.readTree(response.getBody() == null ? "{}" : response.getBody());
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url(path)))
+                .timeout(Duration.ofSeconds(15))
+                .header("Content-Type", "application/json")
+                .header(DemoPlatformContextFilter.ACTOR_HEADER, ACTOR.toString())
+                .header(DemoPlatformContextFilter.REASON_HEADER, "m0-03-it")
+                .header(DemoPlatformContextFilter.TRACE_HEADER, "trace-" + UUID.randomUUID())
+                .header(DemoPlatformContextFilter.ACTOR_TENANT_HEADER, properties.getPlatformTenant().getId().toString());
+        HttpRequest.BodyPublisher publisher = body == null
+                ? HttpRequest.BodyPublishers.noBody()
+                : HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body));
+        HttpRequest request = builder.method(method.name(), publisher).build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(expected.value());
+        JsonNode parsed = mapper.readTree(response.body() == null || response.body().isBlank() ? "{}" : response.body());
         return mapper.createObjectNode().set("body", parsed);
     }
 
