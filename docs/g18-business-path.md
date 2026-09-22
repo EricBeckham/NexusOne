@@ -32,7 +32,7 @@ This unblocks empty-DB product boot / E2E. It does **not** close product G18.
 
 ## What is proven (runnable)
 
-Recorded on this branch at **2026-09-22T13:20:39Z**. Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` skipped).
+Recorded on this branch at **2026-09-22T13:36:12Z**. Agent VM, no Docker. Live `127.0.0.1:5432` was not listening (`NexusOnePostgresTest` / `JdbcAuditChainTest` skipped).
 
 | Component | Version |
 |---|---|
@@ -45,10 +45,10 @@ Recorded on this branch at **2026-09-22T13:20:39Z**. Agent VM, no Docker. Live `
 
 | Suite | Result |
 |---|---|
-| `EventCoreConfigurationTest` | **4/4** (DS → `JdbcOutboxStore`; no DS → no Outbox; two `Clock` beans still register Outbox) |
-| `NexusOneProductBootTest` | **1/1** — product `NexusOneApplication` on empty Zonky PG 15; Flyway **15** scripts to **v550**; `NotificationService` + `JdbcOutboxStore` |
-| `G18BusinessPathIT` | **2/2** (Outbox is `JdbcOutboxStore` from auto-config, not a G18 bean) |
-| `NotificationApiTest` | **1/1** (`outbox=record` still works without DataSource) |
+| `JdbcAuditChainTransactionTest` | **4/4** — `append` joins Spring TX; rollback clears record + `next_index`; happy commit intact; `appendNewTransaction` survives |
+| `nexus-audit-core` | **11** run, **0** fail, **1** skip (`JdbcAuditChainTest`, no live PG) |
+| `NexusOneProductBootTest` | **1/1** — product `NexusOneApplication` on empty Zonky PG 15 |
+| `G18BusinessPathIT` | **2/2** (happy path + rollback includes `audit_record` / chain head) |
 
 | Behavior | Evidence |
 |---|---|
@@ -64,12 +64,12 @@ Recorded on this branch at **2026-09-22T13:20:39Z**. Agent VM, no Docker. Live `
 Command:
 
 ```bash
-mvn -pl nexus-event-core,nexus-notification-core,nexus-p3-studio,nexus-bootstrap -am test \
-    -Dtest=EventCoreConfigurationTest,NotificationApiTest,G18BusinessPathIT,NexusOneProductBootTest,NexusOnePostgresTest \
-    -Dsurefire.failIfNoSpecifiedTests=false
+mvn -pl nexus-audit-core -am test
+mvn -pl nexus-p3-studio -am test -Dtest=G18BusinessPathIT -Dsurefire.failIfNoSpecifiedTests=false
+mvn -pl nexus-bootstrap -am test -Dtest=NexusOneProductBootTest,NexusOnePostgresTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-`BUILD SUCCESS` at **2026-09-22T13:20:39Z**. `NexusOnePostgresTest` skipped (no local PG listener).
+`BUILD SUCCESS` at **2026-09-22T13:36:12Z**. `NexusOnePostgresTest` and `JdbcAuditChainTest` skipped (no local PG listener).
 
 ## API (IAM session + M0-02 isolation)
 

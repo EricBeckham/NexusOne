@@ -1,6 +1,6 @@
 # M0-11 evidence (Boot 4.1.1 + PostgreSQL 15.x)
 
-Recorded **2026-09-22** on the agent VM against `main` (`d19fba5`). **Not** a target Profile / Linux-ARM / offline-package acceptance. **Not** G4 / G6 / G17.
+Recorded **2026-09-22** on the agent VM against `main` (`d19fba5`). Same-TX hash-chain hardening re-ran `nexus-audit-core` on this branch at **2026-09-22T13:36:12Z** (Zonky PG 15.18; live `127.0.0.1:5432` still absent). **Not** a target Profile / Linux-ARM / offline-package acceptance. **Not** G4 / G6 / G17. **Not** product G18 closed.
 
 Secrets (`NEXUS_DB_PASSWORD`, `NEXUS_CRYPTO_MASTER_KEY`) were supplied via environment only; none are committed.
 
@@ -33,12 +33,12 @@ mvn -pl nexus-common,nexus-crypto-core,nexus-audit-core,nexus-bootstrap -am test
 |---|---|---|---|
 | `nexus-common` | 14 | 0 | 0 |
 | `nexus-crypto-core` | 14 | 0 | 0 |
-| `nexus-audit-core` | 7 | 0 | 0 |
+| `nexus-audit-core` | 11 | 0 | 1 (`JdbcAuditChainTest`, no live PG) |
 | `nexus-bootstrap` | 8 | 0 | 0 |
 
 `nexus-crypto-core` includes `FixedVectorTest` (7) against published SHA-256 / SM3 / HMAC-SHA256 RFC 4231 / NIST AES-256-GCM / GM/T 0002 SM4-ECB / GM/T 0003 SM2 sample keys, plus BC 1.85.2 + Java 21 frozen SM4-GCM and HMAC-SM3.
 
-`nexus-audit-core` includes `JdbcAuditChainTest` against PostgreSQL 15.19 (`platform.audit_record` append + `verifyChain()`) and `JdbcAuditChainTransactionTest` on Zonky PG 15 (`append` joins Spring TX / rolls back with the chain head; `appendNewTransaction` still survives).
+`nexus-audit-core` includes `JdbcAuditChainTest` (skipped here; no live `nexus_m0_11_test`) and `JdbcAuditChainTransactionTest` **4/4** on Zonky PG 15.18 (`append` joins Spring TX / rolls back with the chain head; commit leaves an intact chain; `appendNewTransaction` still survives). Recorded **2026-09-22T13:36:12Z**.
 
 Bootstrap `NexusOnePostgresTest` asserts Flyway applied **≥ 8** versioned migrations including **V500** (M0-09) and **V501** (M0-11). After rebase onto #51–#53 a clean `nexusone` applied **9** SQL versions (V001–V003, V100–V101, V200, V300, V500, V501). `GET /api/v1/meta/runtime` returns `crypto_suite":"INTERNATIONAL"` without key material.
 
