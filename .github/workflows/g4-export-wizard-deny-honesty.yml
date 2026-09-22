@@ -1,0 +1,106 @@
+name: g4-export-wizard-deny-honesty
+
+# Honesty gate for export-wizard complete-deny / SurfaceGuard deny leftover beyond #166/#136.
+# Does not redo #136/#152/#166/#190. Does not change AuditPort same-TX. Not product G4 close.
+
+on:
+  push:
+    paths:
+      - "scripts/g4-export-wizard-deny-honesty.sh"
+      - "scripts/g4-export-wizard-deny-honesty/**"
+      - ".github/workflows/g4-export-wizard-deny-honesty.yml"
+      - "docs/g4-export-wizard-deny-honesty.md"
+      - "docs/engineering/g4-export-wizard-deny-honesty-EVIDENCE.md"
+      - "nexus-permission-core/src/main/java/one/nexus/permission/surface/G4ExportWizardDenyHonesty.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/surface/G4ExportWizardDenyHonestyTest.java"
+  pull_request:
+    paths:
+      - "scripts/g4-export-wizard-deny-honesty.sh"
+      - "scripts/g4-export-wizard-deny-honesty/**"
+      - ".github/workflows/g4-export-wizard-deny-honesty.yml"
+      - "docs/g4-export-wizard-deny-honesty.md"
+      - "docs/engineering/g4-export-wizard-deny-honesty-EVIDENCE.md"
+      - "nexus-permission-core/src/main/java/one/nexus/permission/surface/G4ExportWizardDenyHonesty.java"
+      - "nexus-permission-core/src/test/java/one/nexus/permission/surface/G4ExportWizardDenyHonestyTest.java"
+
+jobs:
+  honesty-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Honest SKIP report is accepted
+        run: ./scripts/g4-export-wizard-deny-honesty.sh --verify-report scripts/g4-export-wizard-deny-honesty/fixtures/honest-skip.env
+      - name: Fake live JAR PASS without a walk is rejected
+        run: |
+          set +e
+          ./scripts/g4-export-wizard-deny-honesty.sh --verify-report \
+            scripts/g4-export-wizard-deny-honesty/fixtures/fake-live-pass.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake live_jar_wizard_deny=PASS without live_jar_present=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake live JAR PASS rejected"
+      - name: Fake product G4 close is rejected
+        run: |
+          set +e
+          ./scripts/g4-export-wizard-deny-honesty.sh --verify-report \
+            scripts/g4-export-wizard-deny-honesty/fixtures/fake-g4-close.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake g4_close=CLOSED to fail"
+            exit 1
+          fi
+          echo "PASS: fake G4 close rejected"
+      - name: Redo of #166 is rejected
+        run: |
+          set +e
+          ./scripts/g4-export-wizard-deny-honesty.sh --verify-report \
+            scripts/g4-export-wizard-deny-honesty/fixtures/fake-redo.env
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected fake redo_166=true to fail"
+            exit 1
+          fi
+          echo "PASS: fake #166 redo rejected"
+
+  inventory-skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Collect honest live SKIP
+        run: |
+          chmod +x ./scripts/g4-export-wizard-deny-honesty.sh
+          ./scripts/g4-export-wizard-deny-honesty.sh --skip-tests \
+            --out "$RUNNER_TEMP/g4-export-wizard-deny-honesty"
+          ./scripts/g4-export-wizard-deny-honesty.sh \
+            --verify-report "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^guard_deny_harness=PASS$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^export_wizard_deny_harness=PASS$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^same_tx_append_unchanged=PASS$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^live_jar_wizard_deny=SKIP$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^live_browser_wizard=SKIP$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^live_5432_jdbc=SKIP$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^live_keycloak_idp=SKIP$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^live_wizard_deny_observed=false$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^g4_close=NOT_CLAIMED$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^redo_136=false$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^redo_152=false$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^redo_166=false$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^redo_190=false$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^g18_status=closed_unchanged$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^audit_port_changed=false$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^p0_m0_redone=false$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+          grep -E '^leftover_rows_kept=true$' "$RUNNER_TEMP/g4-export-wizard-deny-honesty/report.env"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g4-export-wizard-deny-honesty
+          path: ${{ runner.temp }}/g4-export-wizard-deny-honesty
