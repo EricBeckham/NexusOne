@@ -5,6 +5,7 @@ import one.nexus.common.error.ApiError;
 import one.nexus.common.error.ErrorCode;
 import one.nexus.common.error.NexusException;
 import one.nexus.common.trace.TraceIds;
+import one.nexus.isolation.api.IsolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(NexusException.class)
     public ResponseEntity<Map<String, Object>> handleNexus(NexusException ex) {
         return body(ex.httpStatus(), ex.errorCode(), ex.getMessage(), ex.details());
+    }
+
+    @ExceptionHandler(IsolationException.class)
+    public ResponseEntity<Map<String, Object>> handleIsolation(IsolationException ex) {
+        ApiError error = new ApiError(ex.code(), ex.getMessage(), ex.traceId(), Map.of());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error.toJsonMap());
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

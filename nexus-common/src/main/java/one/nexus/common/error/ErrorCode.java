@@ -22,6 +22,17 @@ public record ErrorCode(String product, String module, int number) {
     public static final ErrorCode JOB_DEAD = of("CORE", "JOB", 2);
     public static final ErrorCode EVT_UNKNOWN_DESTINATION = of("CORE", "EVT", 1);
     public static final ErrorCode EVT_DISPATCH_FAILED = of("CORE", "EVT", 2);
+    public static final ErrorCode CACHE_UNAVAILABLE = of("CORE", "CACHE", 1);
+    public static final ErrorCode CACHE_LOCK_HELD = of("CORE", "CACHE", 2);
+    public static final ErrorCode FILE_NOT_FOUND = of("CORE", "FILE", 1);
+    public static final ErrorCode FILE_DENIED = of("CORE", "FILE", 2);
+    public static final ErrorCode FILE_INVALID = of("CORE", "FILE", 3);
+    public static final ErrorCode FILE_DELETED = of("CORE", "FILE", 4);
+    public static final ErrorCode NOTIFY_TEMPLATE_MISSING = of("CORE", "NOTIFY", 1);
+    public static final ErrorCode NOTIFY_CHANNEL_UNSUPPORTED = of("CORE", "NOTIFY", 2);
+    public static final ErrorCode NOTIFY_NOT_FOUND = of("CORE", "NOTIFY", 3);
+    public static final ErrorCode NOTIFY_INVALID = of("CORE", "NOTIFY", 4);
+    public static final ErrorCode NOTIFY_ASYNC_BLOCKED = of("CORE", "NOTIFY", 5);
     public static final ErrorCode CRYPTO_SUITE_MISMATCH = of("CORE", "CRYPTO", 1);
     public static final ErrorCode CRYPTO_KEY_UNKNOWN = of("CORE", "CRYPTO", 2);
     public static final ErrorCode CRYPTO_INTEGRITY = of("CORE", "CRYPTO", 3);

@@ -13,6 +13,8 @@
 
 当前执行口径：数据库为本机 PostgreSQL 15，缓存为本机 Redis 3.2；Java 应用直接以本机 JAR/进程运行，**不使用 Docker**。凭据只通过本机环境变量或受控 Secret 提供，不写入仓库或 Issue。`poc/` 是此前验证资产，不能自动视为正式验收通过。
 
+M0-10（CachePort / File Service / 站内通知）见 [docs/m0-10-file-cache-notify.md](./docs/m0-10-file-cache-notify.md)。
+
 ## 应用骨架（M0-01）
 
 模块地图、错误码、Flyway 版本窗与本机 JAR 启动见 [docs/engineering/m0-01-engineering-foundation.md](./docs/engineering/m0-01-engineering-foundation.md)。

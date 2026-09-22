@@ -9,6 +9,8 @@ class ErrorCodeTest {
     @Test
     void formatsProductModuleNumber() {
         assertEquals("CORE.API.0001", ErrorCode.API_BAD_REQUEST.code());
+        assertEquals("CORE.FILE.0001", ErrorCode.FILE_NOT_FOUND.code());
+        assertEquals("CORE.NOTIFY.0002", ErrorCode.NOTIFY_CHANNEL_UNSUPPORTED.code());
         assertEquals("P1.TENANT.0001", ErrorCode.of("P1", "TENANT", 1).code());
         assertEquals(ErrorCode.API_NOT_FOUND, ErrorCode.parse("CORE.API.0002"));
     }

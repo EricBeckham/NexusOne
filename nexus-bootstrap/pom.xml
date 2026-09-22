@@ -18,6 +18,10 @@
     </dependency>
     <dependency>
       <groupId>one.nexus</groupId>
+      <artifactId>isolation-kernel</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
       <artifactId>nexus-data-core</artifactId>
     </dependency>
     <dependency>
@@ -35,6 +39,10 @@
     <dependency>
       <groupId>one.nexus</groupId>
       <artifactId>nexus-task-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-cache-core</artifactId>
     </dependency>
     <dependency>
       <groupId>one.nexus</groupId>

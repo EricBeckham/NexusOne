@@ -30,6 +30,7 @@ nexusone (pom)
 ├─ nexus-expression-core     受限表达式（后续）
 ├─ nexus-event-core          M0-09 Outbox
 ├─ nexus-task-core           M0-09 Quartz / Task Queue
+├─ nexus-cache-core          M0-10 Redis 3.2 CachePort
 ├─ nexus-file-core           M0-10
 ├─ nexus-notification-core   M0-10
 ├─ nexus-audit-core          M0-11
