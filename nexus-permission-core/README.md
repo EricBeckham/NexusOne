@@ -62,7 +62,7 @@ and reused for `COUNT(*)`, `SELECT … LIMIT/OFFSET`, and detail-by-id. That hap
 - Redis is **invalidate-only**: PUBLISH + optional SUBSCRIBE + a short-lived version hint key. The snapshot body is never written to Redis.
 - Redis GET/SET/PUBLISH/SUBSCRIBE failure is logged; evaluation continues from the database. Redis is not a truth source.
 - Version read or snapshot load failure on the request path is **fail-closed** (`SnapshotUnavailable` / `P2.PERM.0005`). Background poll failures are skipped.
-- G9 Redis-down / decide==durable evidence: [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md). Version poll remainder: [docs/g9-policy-snapshot.md](../docs/g9-policy-snapshot.md).
+- G9 Redis-down / decide==durable evidence: [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md). Version poll remainder: [docs/g9-policy-snapshot.md](../docs/g9-policy-snapshot.md). Fail-closed DENY leftover: [docs/g9-failover-remainder.md](../docs/g9-failover-remainder.md).
 - High-risk writes fail closed if the loaded version is not current.
 - Key shape (P0-05): `nexus:v1:{tenant-id}:cache:permission:snapshot` (reserved; unused as a payload).
 - Channel: `nexus:v1:permission:invalidate`.

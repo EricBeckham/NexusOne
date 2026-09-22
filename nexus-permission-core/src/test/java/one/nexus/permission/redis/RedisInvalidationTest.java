@@ -1,6 +1,7 @@
 package one.nexus.permission.redis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,6 +39,7 @@ class RedisInvalidationTest {
         assertEquals(1, manager.get(tenant).version());
         versions.put(tenant, 2L);
         invalidation.notifyTenant(tenant);
+        assertTrue(invalidation.lastRemoteNotifySucceeded(), "live Redis PUBLISH+SET EX is a remote success");
         assertTrue(manager.isMarkedInvalidated(tenant));
         assertEquals(2, manager.get(tenant).version());
         assertEquals(List.of(1L, 2L), loaded);
@@ -58,6 +60,11 @@ class RedisInvalidationTest {
         RedisPolicyInvalidation invalidation = new RedisPolicyInvalidation(dead, ex -> failures.incrementAndGet());
         invalidation.notifyTenant("t1");
         assertTrue(failures.get() >= 1, "publish failure must be observed, not treated as success");
+        assertFalse(invalidation.lastRemoteNotifySucceeded(),
+                "Redis-down notify must not be recorded as a remote success");
+        RedisPolicyInvalidation.RemoteNotifyOutcome last = invalidation.lastRemoteNotify();
+        assertTrue(last != null && !last.published() && !last.versionHintWritten());
+        assertTrue(invalidation.remoteNotifyFailureCount() >= 1);
 
         SnapshotManager manager = new SnapshotManager(tenant -> {
             throw new IllegalStateException("db version unavailable");

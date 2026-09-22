@@ -171,6 +171,7 @@ mvn -pl nexus-permission-core -am test
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round). Redis-down / lost-channel decide==durable evidence is [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md)
 - G9 bounded timeout when P2 is down: evidenced in [docs/g9-p2-timeout-reject.md](../docs/g9-p2-timeout-reject.md). Redis Sentinel/Cluster still not claimed.
+- G9 fail-closed DENY after Redis-down / lost invalidate: [docs/g9-failover-remainder.md](../docs/g9-failover-remainder.md). Not a full G9 product close.
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
