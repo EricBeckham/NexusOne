@@ -4,7 +4,7 @@ Recorded on the agent VM against latest `main` (includes M0-01～04 + Keycloak s
 
 ## G2 (S0+S1) — role matrix + same engine
 
-G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow. Product-wide G2 (report / export / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
+G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio. Product-wide G2 (report / export / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).
 
 ## Versions
 
@@ -75,7 +75,7 @@ mvn -pl nexus-permission-core -am test
 | `JdbcDualTenantPermissionTest` | Flyway V200+V300 on **PostgreSQL 15.19**; `perm_grant` for B stays empty |
 | `RedisInvalidationTest` | Redis 3.2.13 PING / SET EX / GET / DEL / PUBLISH when present; publish failure is not truth; Redis-down still loads durable version; DB version failure still fail-closed |
 | `PermissionApiTest` | Boot 4.1.1 MockMvc; `X-Tenant-Id` → `P2.PERM.0013`; check after grant allows `ledger.read` |
-| `G2SameEngineTest` | Role-matrix cells (SELF + hidden salary, DEPT + masked salary, approver). List/detail share WHERE; flow `no_grant` denied by `SurfaceGuard` |
+| `G2SameEngineTest` | Role-matrix cells (SELF + hidden salary, DEPT + masked salary, approver, form designer). List/detail share WHERE; flow / form.write `no_grant` denied by `SurfaceGuard` |
 | `G2RoleMatrixApiTest` | `GET /matrix` notes tenant_member is not complete; example install is differentiated; check uses `engine=PermissionEngine` |
 | `SchemaContractTest` | V300 lives in schema `iam`; tenant tables have `tenant_id NOT NULL` |
 

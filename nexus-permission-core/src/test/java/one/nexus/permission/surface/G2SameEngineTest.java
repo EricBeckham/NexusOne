@@ -26,8 +26,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * G2: role matrix + DataScope + field policy produce one {@link Decision}
- * that list, detail, and flow must honor. This is not the {@code tenant_member}
- * ALL-scope seed.
+ * that list, detail, flow, and form studio must honor. This is not the
+ * {@code tenant_member} ALL-scope seed.
  */
 class G2SameEngineTest {
     private static final String TENANT = "t-g2";
@@ -46,6 +46,8 @@ class G2SameEngineTest {
                 SELF_READER, TENANT, "ledger", "read", snapshot, List.of(), Predicate.TRUE, DepartmentCatalog.EMPTY);
         Decision flowStart = PermissionEngine.evaluate(
                 SELF_READER, TENANT, "process.instance", "start", snapshot);
+        Decision formRead = PermissionEngine.evaluate(SELF_READER, TENANT, "form", "read", snapshot);
+        Decision formWrite = PermissionEngine.evaluate(SELF_READER, TENANT, "form", "write", snapshot);
 
         assertEquals(listRead.allowed(), detailRead.allowed());
         assertEquals(listRead.reason(), detailRead.reason());
@@ -60,6 +62,12 @@ class G2SameEngineTest {
         PermissionException denied = assertThrows(
                 PermissionException.class, () -> SurfaceGuard.requireAllowed(flowStart));
         assertEquals("P2.PERM.0003", denied.errorCode().code());
+        assertTrue(formRead.allowed());
+        assertFalse(formWrite.allowed());
+        assertEquals("no_grant", formWrite.reason());
+        PermissionException formDenied = assertThrows(
+                PermissionException.class, () -> SurfaceGuard.requireAllowed(formWrite));
+        assertEquals("P2.PERM.0003", formDenied.errorCode().code());
 
         ScopedQuery scoped = PermissionQueryBinder.bind(TENANT, listRead);
         BoundSql count = scoped.count("ledger_row");
@@ -89,6 +97,11 @@ class G2SameEngineTest {
         Decision write = PermissionEngine.evaluate(manager, TENANT, "ledger", "write", snapshot);
         Decision approveDenied = PermissionEngine.evaluate(manager, TENANT, "process.task", "approve", snapshot);
         Decision approve = PermissionEngine.evaluate(APPROVER, TENANT, "process.task", "approve", snapshot);
+        Subject designer = new Subject(
+                TENANT, "person-3", Set.of(RoleMatrixCatalog.FORM_DESIGNER), Set.of(), Set.of("d1"));
+        Decision designerRead = PermissionEngine.evaluate(designer, TENANT, "form", "read", snapshot);
+        Decision designerWrite = PermissionEngine.evaluate(designer, TENANT, "form", "write", snapshot);
+        Decision designerLedger = PermissionEngine.evaluate(designer, TENANT, "ledger", "read", snapshot);
 
         assertTrue(read.allowed());
         assertTrue(write.allowed());
@@ -110,6 +123,11 @@ class G2SameEngineTest {
         assertTrue(approve.allowed());
         SurfaceGuard.requireAllowed(approve);
         assertEquals("PermissionEngine", SurfaceGuard.asApi(approve).get("engine"));
+        assertTrue(designerRead.allowed());
+        assertTrue(designerWrite.allowed());
+        SurfaceGuard.requireAllowed(designerWrite);
+        assertFalse(designerLedger.allowed());
+        assertEquals("no_grant", designerLedger.reason());
     }
 
     private static PolicySnapshot snapshotFromCatalog() {

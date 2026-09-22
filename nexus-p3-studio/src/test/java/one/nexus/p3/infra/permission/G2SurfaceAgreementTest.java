@@ -30,8 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * List/detail hook and flow {@link SurfaceGuard} must agree on the same
- * {@code PermissionService} Decision. {@code tenant_member} is not installed.
+ * List/detail hook, form studio, and flow {@link SurfaceGuard} must agree on
+ * the same {@code PermissionService} Decision. {@code tenant_member} is not installed.
  */
 class G2SurfaceAgreementTest {
     @AfterEach
@@ -45,11 +45,15 @@ class G2SurfaceAgreementTest {
         PermissionException list = assertThrows(
                 PermissionException.class, () -> harness.hook.bind(harness.tenantId, "ledger", "read"));
         assertEquals("P2.PERM.0003", list.errorCode().code());
+        PermissionException form = assertThrows(
+                PermissionException.class, () -> harness.forms.requireRead());
         PermissionException flow = assertThrows(
                 PermissionException.class,
                 () -> SurfaceGuard.require(harness.module.service(), "process.instance", "start"));
         assertEquals("no_grant", flow.getMessage());
         assertEquals(list.getMessage(), flow.getMessage());
+        assertEquals(list.getMessage(), form.getMessage());
+        assertEquals("P2.PERM.0003", form.errorCode().code());
     }
 
     @Test
@@ -63,6 +67,10 @@ class G2SurfaceAgreementTest {
         assertEquals(list.decision().scope(), detail.decision().scope());
         assertTrue(list.query().whereSql().contains("owner_id"));
         assertEquals(list.query().whereSql(), detail.query().whereSql());
+        harness.forms.requireRead();
+        PermissionException formWrite = assertThrows(
+                PermissionException.class, () -> harness.forms.requireWrite());
+        assertEquals("no_grant", formWrite.getMessage());
         PermissionException start = assertThrows(
                 PermissionException.class,
                 () -> SurfaceGuard.require(harness.module.service(), "process.instance", "start"));
@@ -88,9 +96,41 @@ class G2SurfaceAgreementTest {
         PermissionException read = assertThrows(
                 PermissionException.class, () -> harness.hook.bind(harness.tenantId, "ledger", "read"));
         assertEquals("no_grant", read.getMessage());
+        PermissionException form = assertThrows(
+                PermissionException.class, () -> harness.forms.requireWrite());
+        assertEquals("no_grant", form.getMessage());
+        assertEquals(read.getMessage(), form.getMessage());
     }
 
-    private record Harness(PermissionModule module, PermissionDataScopeHook hook, String tenantId) {
+    @Test
+    void formDesignerAllowsFormStudioAndStillDeniesLedgerAndFlow() {
+        Harness harness = Harness.open(Set.of(RoleMatrixCatalog.FORM_DESIGNER));
+        harness.module.matrix().installExample();
+        harness.forms.requireRead();
+        harness.forms.requireWrite();
+        PermissionException ledger = assertThrows(
+                PermissionException.class, () -> harness.hook.bind(harness.tenantId, "ledger", "read"));
+        assertEquals("P2.PERM.0003", ledger.errorCode().code());
+        PermissionException start = assertThrows(
+                PermissionException.class,
+                () -> SurfaceGuard.require(harness.module.service(), "process.instance", "start"));
+        assertEquals("no_grant", start.getMessage());
+        assertEquals(ledger.getMessage(), start.getMessage());
+    }
+
+    @Test
+    void selfReaderAllowsFormReadAndDeniesFormWriteLikeLedgerWrite() {
+        Harness harness = Harness.open(Set.of(RoleMatrixCatalog.SELF_READER));
+        harness.module.matrix().installExample();
+        harness.forms.requireRead();
+        PermissionException write = assertThrows(
+                PermissionException.class, () -> harness.forms.requireWrite());
+        assertEquals("P2.PERM.0003", write.errorCode().code());
+        assertEquals("no_grant", write.getMessage());
+    }
+
+    private record Harness(
+            PermissionModule module, PermissionDataScopeHook hook, FormSurfaceGuard forms, String tenantId) {
         static Harness open(Set<String> roles) {
             UUID id = UUID.fromString("33333333-3333-4333-8333-333333333333");
             TenantContextHolder.set(new TenantContext(
@@ -121,7 +161,11 @@ class G2SurfaceAgreementTest {
             @SuppressWarnings("unchecked")
             ObjectProvider<one.nexus.permission.admin.TenantMemberGrantSeeder> provider = mock(ObjectProvider.class);
             when(provider.getIfAvailable()).thenReturn(null);
-            return new Harness(module, new PermissionDataScopeHook(module, provider), id.toString());
+            return new Harness(
+                    module,
+                    new PermissionDataScopeHook(module, provider),
+                    new FormSurfaceGuard(module, provider),
+                    id.toString());
         }
     }
 }

@@ -19,7 +19,7 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | Redis 3.2 PUBLISH/SUBSCRIBE invalidate-only (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |
 | Role / assignment / grant writes | `PolicyAdminService` + `/api/v1/permission/*` |
 | G2 role matrix (not `tenant_member` seed) | `RoleMatrixService` + `GET /matrix` + `POST /matrix/example` |
-| Same Decision for list / detail / flow | `SurfaceGuard` |
+| Same Decision for list / detail / flow / form studio | `SurfaceGuard` |
 
 `tenant_id` on the wire is **rejected** (`P2.PERM.0013`). Use `X-Nexus-Context-Id` from M0-04.
 
