@@ -1,0 +1,58 @@
+package one.nexus.p1.api;
+
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import jakarta.servlet.http.HttpServletRequest;
+import one.nexus.p1.api.ApiModels.ErrorBody;
+import one.nexus.p1.domain.DomainException;
+import one.nexus.p1.domain.ErrorCode;
+
+@RestControllerAdvice
+public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<ErrorBody> domain(DomainException ex, HttpServletRequest request) {
+        HttpStatus status = switch (ex.errorCode()) {
+            case TENANT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case TENANT_CODE_CONFLICT -> HttpStatus.CONFLICT;
+            case CONTEXT_PLATFORM_REQUIRED, CONTEXT_TENANT_MISMATCH, DUTY_DENIED -> HttpStatus.FORBIDDEN;
+            case QUOTA_EXCEEDED -> HttpStatus.UNPROCESSABLE_ENTITY;
+            default -> HttpStatus.BAD_REQUEST;
+        };
+        return ResponseEntity.status(status).body(body(ex.errorCode().code(), ex.getMessage(), request, ex.details()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorBody> validation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(err -> err.getField() + " " + err.getDefaultMessage())
+                .orElse("validation failed");
+        return ResponseEntity.badRequest()
+                .body(body(ErrorCode.TENANT_INVALID_CODE.code(), message, request, Map.of()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorBody> other(Exception ex, HttpServletRequest request) {
+        log.error("unhandled error", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(body("P1.INTERNAL.001", "internal error", request, Map.of()));
+    }
+
+    private static ErrorBody body(String code, String message, HttpServletRequest request, Map<String, Object> details) {
+        String trace = (String) request.getAttribute("trace_id");
+        if (trace == null) {
+            trace = MDC.get("trace_id");
+        }
+        return new ErrorBody(code, message, trace, details);
+    }
+}

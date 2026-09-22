@@ -1,0 +1,51 @@
+[
+  {
+    "table_name": "p1.tenant",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  },
+  {
+    "table_name": "p1.tenant_config",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  },
+  {
+    "table_name": "p1.entitlement_projection",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  },
+  {
+    "table_name": "p1.quota",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  },
+  {
+    "table_name": "p1.quota_idempotency",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  },
+  {
+    "table_name": "p1.admin_init_request",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  },
+  {
+    "table_name": "p1.audit_event",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  }
+]

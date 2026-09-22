@@ -1,0 +1,13 @@
+nexus:
+  p1:
+    demo-context:
+      enabled: true
+    quota:
+      app-limit: 2
+      custom-ledger-limit: 2
+
+spring:
+  datasource:
+    url: ${NEXUS_TEST_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/nexus_p1_test}
+    username: ${NEXUS_DATASOURCE_USERNAME:nexus_p1}
+    password: ${NEXUS_DATASOURCE_PASSWORD:}
