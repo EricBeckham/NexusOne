@@ -104,6 +104,7 @@ class S0SecretGetenvSnapshotHonestyTest {
         String readme = readExisting(repoFile("docs/README.md"));
         assertTrue(readme.contains("[s0-secret-rotate-without-restart](./s0-secret-rotate-without-restart.md)"));
         assertTrue(readme.contains("[s0-secret-getenv-snapshot-honesty](./s0-secret-getenv-snapshot-honesty.md)"));
+        assertTrue(readme.contains("g5-browser-failed-publish"));
         assertTrue(readme.contains("g7-withdraw-browser-honesty"));
         assertTrue(readme.contains("g9-redis-down-invalidate-honesty"));
         assertTrue(readme.contains("g17-mfa-recovery-email-honesty"));
