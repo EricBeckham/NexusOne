@@ -36,6 +36,8 @@ mvn -pl nexus-p3-studio -am test \
 
 Recorded on this agent VM after the change (OpenJDK / Maven / Boot versions filled from the test run). Isolation-only `FormApiTest` stays green so fill without P2 is still tenant-only.
 
+Honesty leftover (in-process FormSurfaceGuard PASS + live JAR/issued-context SKIP; does **not** claim product G2 close): [g2-form-write-honesty.md](./g2-form-write-honesty.md). Keep both leftover rows in `docs/README.md`.
+
 Failing-before / passing-after is `FormSubmissionWriteApiTest`:
 
 1. `no_grant` on POST `/submissions` → `403 P2.PERM.0003`; GET submissions empty.

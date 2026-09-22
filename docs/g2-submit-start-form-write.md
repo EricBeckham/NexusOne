@@ -48,6 +48,8 @@ Recorded on this agent VM after rebase onto `main@440a504` (**#113**). `./script
 | `FormSurfaceGuardTest` | **6/6** |
 | `G18BusinessPathIT` | **4/4** — leave seed path still works |
 
+Honesty leftover (in-process dual-check PASS + live JAR/issued-context SKIP; does **not** claim product G2 close; does **not** redo this #112 IT): [g2-form-write-honesty.md](./g2-form-write-honesty.md). Keep both leftover rows in `docs/README.md`.
+
 Failing-before / passing-after is `G2SubmitStartFormWriteIT`:
 
 1. GRANT `process.instance`/`start` only → POST submit-start `403 P2.PERM.0003`; `form_submission` / `process_instance` / physical `l_*` stay 0.
