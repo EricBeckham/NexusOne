@@ -39,6 +39,8 @@ management:
     env:
       enabled: true
 
+# Single nexus map: M0-09 execution, M0-12 P1/P2 bindings, M0-11 crypto/audit.
+# Library application.yml files are not the monolith’s config source.
 nexus:
   execution:
     dispatcher-enabled: true
@@ -50,6 +52,21 @@ nexus:
     lag-warn-after: 30s
     batch-size: 16
     max-attempts: 5
+  p1:
+    demo-context:
+      enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
+  iam:
+    persistence: ${NEXUS_IAM_PERSISTENCE:memory}
+    idp: ${NEXUS_IAM_IDP:stub}
+    platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:${NEXUS_IAM_PLATFORM_BOOTSTRAP_TOKEN:}}
+  crypto:
+    suite: ${NEXUS_CRYPTO_SUITE:INTERNATIONAL}
+    key-source: ${NEXUS_CRYPTO_KEY_SOURCE:ephemeral}
+    key-id: ${NEXUS_CRYPTO_KEY_ID:local}
+    key-version: ${NEXUS_CRYPTO_KEY_VERSION:1}
+    master-key: ${NEXUS_CRYPTO_MASTER_KEY:}
+  audit:
+    persistence: ${NEXUS_AUDIT_PERSISTENCE:memory}
 
 info:
   app:
@@ -58,17 +75,6 @@ info:
     spring-boot: "4.1.1"
     java: "21"
     flyway-pin: "13.7.0"
-
-# Library application.yml files are not the monolith’s config source.
-# Bind P1/P2 env vars here so M0-12 scripts and the Vue shell can call merged APIs.
-nexus:
-  p1:
-    demo-context:
-      enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
-  iam:
-    persistence: ${NEXUS_IAM_PERSISTENCE:memory}
-    idp: ${NEXUS_IAM_IDP:stub}
-    platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:${NEXUS_IAM_PLATFORM_BOOTSTRAP_TOKEN:}}
 
 logging:
   structured:

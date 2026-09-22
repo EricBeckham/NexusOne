@@ -1,0 +1,16 @@
+[
+  {
+    "table_name": "platform.audit_chain_meta",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-audit-core"
+  },
+  {
+    "table_name": "platform.audit_record",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-audit-core"
+  }
+]

@@ -10,11 +10,40 @@
   </parent>
   <artifactId>nexus-audit-core</artifactId>
   <name>NexusOne Audit Core</name>
-  <description>Append-only audit. Owned by M0-11.</description>
+  <description>Append-only audit and hash chain. Owned by M0-11.</description>
   <dependencies>
     <dependency>
       <groupId>one.nexus</groupId>
       <artifactId>nexus-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
+      <artifactId>nexus-crypto-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

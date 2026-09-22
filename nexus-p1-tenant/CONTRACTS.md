@@ -94,6 +94,8 @@ Reject-path writes use a new transaction so they survive the business rollback.
 
 M0-11 should implement `AuditPort` (hash chain, retention, CryptoPort) and take over `GET /tenants/{id}/audit-events`.
 
+Current contracts live in `nexus-audit-core` (`AuditPort`, `AuditCaptures`, in-memory + JDBC hash chain) and `nexus-common` `AuditEvent`. **P1 staging `platform.audit_event` is still the live writer.** Switching this GET and the P1 `AuditPort` adapter is deferred until a dedicated wiring PR so M0-03 behavior does not change in the crypto/audit contracts drop. See [docs/engineering/m0-11-crypto-audit-recovery.md](../docs/engineering/m0-11-crypto-audit-recovery.md).
+
 Notable event types:
 
 - `p1.tenant.created` / `enabled` / `disabled`

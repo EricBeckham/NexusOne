@@ -67,4 +67,40 @@ public final class TraceIds {
         String id = MDC.get(MDC_KEY);
         return (id == null || id.isBlank()) ? "missing" : id;
     }
+
+    public static Optional<String> current() {
+        String id = MDC.get(MDC_KEY);
+        if (id == null || id.isBlank() || "missing".equals(id)) {
+            return Optional.empty();
+        }
+        return Optional.of(id);
+    }
+
+    /**
+     * Fields safe for ECS/JSON logs. Matches M0-01 {@code TraceIdFilter} keys
+     * ({@code traceId} / {@code trace_id}) plus an optional correlation id.
+     * Never include secrets, tokens, or audit detail maps.
+     */
+    public static java.util.Map<String, String> logFields() {
+        return logFields(currentOrUnknown(), null);
+    }
+
+    public static java.util.Map<String, String> logFields(String traceId, String correlationId) {
+        java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+        String id = (traceId == null || traceId.isBlank()) ? "missing" : traceId;
+        fields.put(MDC_KEY, id);
+        fields.put("trace_id", id);
+        if (correlationId != null && !correlationId.isBlank()) {
+            fields.put("correlation_id", correlationId);
+        }
+        return java.util.Map.copyOf(fields);
+    }
+
+    /** HTTP requests use the trace id as the correlation id unless a caller supplies one. */
+    public static String correlationOrTrace(String correlationId) {
+        if (correlationId != null && !correlationId.isBlank()) {
+            return correlationId;
+        }
+        return currentOrUnknown();
+    }
 }

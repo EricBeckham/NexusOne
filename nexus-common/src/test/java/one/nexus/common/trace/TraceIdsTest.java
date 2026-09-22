@@ -35,7 +35,12 @@ class TraceIdsTest {
     void mdcRoundTrip() {
         TraceIds.putMdc("abc");
         assertEquals("abc", TraceIds.currentOrUnknown());
+        assertEquals("abc", TraceIds.current().orElseThrow());
+        assertEquals("abc", TraceIds.logFields().get("trace_id"));
+        assertEquals("abc", TraceIds.logFields().get("traceId"));
+        assertEquals("corr-1", TraceIds.logFields("abc", "corr-1").get("correlation_id"));
         TraceIds.clearMdc();
         assertEquals("missing", TraceIds.currentOrUnknown());
+        assertTrue(TraceIds.current().isEmpty());
     }
 }
