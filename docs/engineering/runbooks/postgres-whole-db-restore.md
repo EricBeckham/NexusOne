@@ -40,4 +40,4 @@ sha256sum "$WORK/backup/nexusone_g6_src.dump"
 
 ## 本仓库接口
 
-`one.nexus.audit.recovery.RecoveryPort.dryRunPostgres()` 只探测 `pg_dump --version`，**不会**执行 dump 或 restore。`profileAccepted` 恒为 false。G6 演练走本 runbook / `scripts/g6-recovery/`，不改产品代码。
+`one.nexus.audit.recovery.RecoveryPort.dryRunPostgres()` 只探测 `pg_dump --version`，**不会**执行 dump 或 restore。`profileAccepted` 恒为 false。G6 演练走本 runbook / `scripts/g6-recovery/`，不改产品代码。dry-run 契约 leftover 见 [g6-recovery-port-dry-run.md](../../g6-recovery-port-dry-run.md)。

@@ -7,8 +7,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Dry-run only. Does not invoke {@code pg_restore}, does not copy objects, and
- * never sets {@code profileAccepted=true}.
+ * Product {@link RecoveryPort}. Dry-run only.
+ *
+ * <p>Probes {@code pg_dump --version} and describes runbooks. Does not invoke
+ * {@code pg_dump} without {@code --version}, does not invoke a restore binary,
+ * does not open JDBC, does not copy objects, and never sets
+ * {@code profileAccepted=true} or {@code executed=true}. This is not
+ * minute-level RPO and not product HA. It must not target a named
+ * product database or a live product listener on port {@code 5432}.
  */
 public final class DryRunRecoveryPort implements RecoveryPort {
     public static final String POSTGRES_RUNBOOK = "docs/engineering/runbooks/postgres-whole-db-restore.md";

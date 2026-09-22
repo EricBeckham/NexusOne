@@ -18,6 +18,7 @@ M0-07（基础表单与发布）见 [docs/m0-07-form-publish.md](./docs/m0-07-fo
 G3（submit-start 幂等键与记录乐观锁）见 [docs/g3-data-consistency.md](./docs/g3-data-consistency.md)。 Outbox 消费幂等沿用 [docs/m0-09-outbox-api.md](./docs/m0-09-outbox-api.md)。
 G15 H5 人机 PKCE leftover（`/m/*` Authorization Code + PKCE，Playwright/stub；不宣称产品 G15 关闭）见 [docs/g15-h5-pkce-browser.md](./docs/g15-h5-pkce-browser.md)。G15 微信 / 钉钉生产宿主契约桩（不是生产验收）见 [docs/g15-wx-dt-prod-host.md](./docs/g15-wx-dt-prod-host.md)。
 G2 leftover：报表 query/export 走同一 `SurfaceGuard` 见 [docs/g2-report-surface-guard.md](./docs/g2-report-surface-guard.md)（不宣称产品 G2 关闭；物理 dump 仍开放）。
+G6 leftover：`RecoveryPort` dry-run 契约（不宣称分钟级 RPO / 产品 HA / 产品 RecoveryPort 关闭；不碰 `haopan_platform`）见 [docs/g6-recovery-port-dry-run.md](./docs/g6-recovery-port-dry-run.md)。
 
 ## 应用骨架（M0-01）
 
