@@ -320,7 +320,7 @@ Recorded on this agent **2026-09-22T15:31:06Z** (G3/G18) and **2026-09-22T15:31:
 
 # G7 withdraw / reject walkthrough (evidence, not a new class)
 
-See [docs/g7-business-types.md](../docs/g7-business-types.md). This is dual-tenant HTTP evidence for **withdraw** (travel-shaped) and **reject** on the existing G18 path. It does not add a catalog. `AuditPort` is unchanged. Coordinates with PR #69.
+See [docs/g7-business-types.md](../docs/g7-business-types.md). This is dual-tenant HTTP evidence for **withdraw** (travel-shaped) and **reject** on the existing G18 path. It does not add a catalog. `AuditPort` is unchanged. The leave/expense/travel catalog landed on `main` via **#69**.
 
 Agent VM **2026-09-22T15:40:16Z**. OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Zonky PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432`.
 
