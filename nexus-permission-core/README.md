@@ -15,7 +15,8 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | list / detail / total / pagination share one WHERE (`tenant_id` first) | `PermissionQueryBinder` / `ScopedQuery` |
 | Isolation kernel seam: AND extra filters, never strip `tenant_id` | `IsolationDataScopeInjector` |
 | PolicySnapshot version + LRU + fail-closed | `SnapshotManager` |
-| Redis 3.2 PUBLISH invalidation (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |
+| Short-cycle version poll (between requests) | `PolicySnapshotPoller` |
+| Redis 3.2 PUBLISH/SUBSCRIBE invalidate-only (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |
 | Role / assignment / grant writes | `PolicyAdminService` + `/api/v1/permission/*` |
 | G2 role matrix (not `tenant_member` seed) | `RoleMatrixService` + `GET /matrix` + `POST /matrix/example` |
 | Same Decision for list / detail / flow | `SurfaceGuard` |
@@ -53,13 +54,17 @@ and reused for `COUNT(*)`, `SELECT … LIMIT/OFFSET`, and detail-by-id. That hap
 ## PolicySnapshot + Redis 3.2
 
 - Authoritative clock: `iam.perm_policy_version` (PostgreSQL).
-- `SnapshotManager.get` always re-reads that version. Notify (Redis `PUBLISH nexus:v1:permission:invalidate`) only asks for an early reload.
-- Lost pub/sub messages cannot leave a process on a stale snapshot.
-- Redis GET/SET/PUBLISH failure is logged; evaluation continues from the database. Redis is not a truth source.
-- Version read or snapshot load failure is **fail-closed** (`SnapshotUnavailable` / `P2.PERM.0005`).
+- `SnapshotManager.get` always re-reads that version. Notify (Redis `PUBLISH nexus:v1:permission:invalidate`) only asks for an early reload of the LRU entry.
+- `PolicySnapshotPoller` (default `nexus.permission.snapshot-poll-interval=2s`) re-reads versions for cached tenants between requests. Interval `0` disables the scheduler; request-path `get` still polls.
+- Lost pub/sub messages cannot leave a process on a stale snapshot — the next `get` or poll tick reloads from the database.
+- Redis is **invalidate-only**: PUBLISH + optional SUBSCRIBE + a short-lived version hint key. The snapshot body is never written to Redis.
+- Redis GET/SET/PUBLISH/SUBSCRIBE failure is logged; evaluation continues from the database. Redis is not a truth source.
+- Version read or snapshot load failure on the request path is **fail-closed** (`SnapshotUnavailable` / `P2.PERM.0005`). Background poll failures are skipped.
 - High-risk writes fail closed if the loaded version is not current.
-- Key shape (P0-05): `nexus:v1:{tenant-id}:cache:permission:snapshot`.
-- **Not claimed:** Redis Sentinel/Cluster failover, replica promotion, or multi-node partition tests.
+- Key shape (P0-05): `nexus:v1:{tenant-id}:cache:permission:snapshot` (reserved; unused as a payload).
+- Channel: `nexus:v1:permission:invalidate`.
+- **Not claimed:** Redis Sentinel/Cluster failover, replica promotion, P2-down bounded timeout, or multi-node partition tests. That leftover is full G9 failover, not this remainder.
+- Demo `tenant_member` ALL-scope seed is **not** treated as permission-complete. Propagation tests write a real `g9_self_reader` SELF grant.
 
 ## Run
 

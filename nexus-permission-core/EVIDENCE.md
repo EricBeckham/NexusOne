@@ -78,11 +78,27 @@ Flyway history on `nexus_p2_perm_test` (schema `iam`):
 
 Redis `INFO server`: `redis_version:3.2.13`, `redis_mode:standalone`. No Sentinel/replica was started.
 
+## G9 remainder (this PR)
+
+PolicySnapshot version polling + Redis invalidate-only wiring. **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. Orthogonal to G2 PR #73.
+
+| Class | What it proved |
+|---|---|
+| `SnapshotManagerTest` | Existing poll-on-get + `pollCached` reloads LRU without a caller `get`; background poll swallows load failure |
+| `G9PolicySnapshotPropagationTest` | Two instances, shared repo: lost channel still converges on next `get`; shared invalidate marks the reader; poller tick reloads; role is `g9_self_reader` not `tenant_member` |
+| `G9PolicySnapshotApiTest` | MockMvc: grant bumps snapshot `version`; next `/check` allows `ledger/read` |
+| `JdbcPolicySnapshotPollIT` | Zonky PostgreSQL **15.x**: `iam.perm_policy_version` is the clock; reader without the channel reloads on poll tick |
+| `RedisInvalidationTest` | Invalidate-only (snapshot key stays empty); listener wiring; live SUBSCRIBE skipped when Redis is down |
+
+Run results are recorded after the first `mvn` pass on this branch.
+
 ## Honest leftover
 
 - Product-wide G2 (report / export / H5 / form-definition list)
 - Simulation / time-IP ABAC admin
 - Redis Sentinel/Cluster failover (explicitly not this round)
+- G9 bounded timeout when P2 is down (ordinary query still fail-closes; no retry-deadline)
 - Time/IP context evaluation (upstream Predicate only)
 - Isolation-kernel QueryAst still cannot encode OR trees; product path uses `PermissionQueryBinder` AND-ed onto TenantInjector SQL
 - Live Keycloak is M0-04; this module consumes issued `TenantContext`
+- Demo `tenant_member` ALL-scope seed remains for the closed G18 walk and is not permission-complete

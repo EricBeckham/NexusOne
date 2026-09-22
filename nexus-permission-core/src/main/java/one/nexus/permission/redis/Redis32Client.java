@@ -56,8 +56,9 @@ public final class Redis32Client implements AutoCloseable {
     }
 
     /**
-     * Blocking SUBSCRIBE until one message or timeout. Used by tests; product
-     * invalidation is fire-and-forget PUBLISH plus DB version polling.
+     * Blocking SUBSCRIBE until one message or timeout. Product invalidation is
+     * fire-and-forget PUBLISH plus DB version polling; this is the test / loop
+     * primitive, not a Sentinel failover client.
      */
     public Optional<String> subscribeOnce(String channel, Duration wait) {
         try (Socket socket = open()) {
@@ -72,6 +73,30 @@ public final class Redis32Client implements AutoCloseable {
             return Optional.empty();
         } catch (IOException ex) {
             return Optional.empty();
+        }
+    }
+
+    /**
+     * RESP2 SUBSCRIBE loop used by the invalidate-only listener. Timeouts are
+     * empty polls; failures retry while {@code running} stays true.
+     */
+    public void subscribeLoop(String channel, Consumer<String> onMessage, java.util.concurrent.atomic.AtomicBoolean running) {
+        while (running != null && running.get()) {
+            try {
+                Optional<String> payload = subscribeOnce(channel, Duration.ofSeconds(2));
+                if (payload.isPresent() && running.get() && onMessage != null) {
+                    onMessage.accept(payload.get());
+                }
+            } catch (RuntimeException ex) {
+                if (running.get()) {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
+            }
         }
     }
 
