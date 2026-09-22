@@ -1,0 +1,1 @@
+<mapper namespace="business.Mapper"><select id="find">SELECT * FROM t WHERE id = ${id}</select></mapper>

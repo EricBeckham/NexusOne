@@ -1,0 +1,41 @@
+# M0-02 isolation kernel
+
+Focused Java 21 module for NexusOne tenant isolation. It is not the M0-01 application skeleton. M0-01 should depend on this artifact (or copy the package) and bind `RequestIsolationPolicy` in a servlet/Spring filter after P2 membership is known.
+
+## What other modules call
+
+| Module | API |
+|---|---|
+| M0-01 | `RequestIsolationPolicy.bindTenant`, `AccessContextHolder`, `GuardedJdbc`, `SqlBypassScanner` CI |
+| M0-03 | Do not issue context from tenant admin UI; platform tenant still uses `TenantContextIssuer` / `PlatformContextIssuer` |
+| M0-04 | Build `AuthenticatedMembership` from session + P2 membership, then call `bindTenant` |
+| M0-05 | Implement `DataScopeInjector` and pass it to `IsolationKernel.create` — it cannot strip `tenant_id` |
+| M0-09 | `IsolatedExecutor`, `IsolatedEnvelope`, `ContextSnapshot` |
+| M0-10 | `CacheKeyGuard`, `FileObjectKeyGuard` |
+| M0-11 | `IsolationAuditSink` / `IsolationAuditEvent` |
+
+Tenant predicate injection has no disable flag. The only audited cross-tenant path is a whitelist `PlatformContext`.
+
+## Run
+
+```bash
+mvn -f modules/isolation-kernel/pom.xml test
+```
+
+PostgreSQL 15.18 is started in-process (zonky embedded binaries). No Docker. Pointing at a local `PG*` server is unnecessary for this kernel.
+
+Static bypass demo (same fixtures the PoC used):
+
+```bash
+# positive: must pass
+mvn -f modules/isolation-kernel/pom.xml -q exec:java \
+  -Dexec.args="--source modules/isolation-kernel/src/test/resources/sql-bypass-fixtures/positive --infra modules/isolation-kernel/src/test/resources/sql-bypass-fixtures/positive/infrastructure"
+
+# negative jdbc fixture: must fail
+mvn -f modules/isolation-kernel/pom.xml -q exec:java \
+  -Dexec.args="--source modules/isolation-kernel/src/test/resources/sql-bypass-fixtures/negative/jdbc"
+```
+
+## Contracts
+
+See [docs/CONTEXT_PROPAGATION.md](docs/CONTEXT_PROPAGATION.md).
