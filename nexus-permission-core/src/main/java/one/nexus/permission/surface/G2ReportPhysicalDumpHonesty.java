@@ -69,6 +69,7 @@ public final class G2ReportPhysicalDumpHonesty {
             "g15-native-bridge-honesty.md",
             "g15-wx-dt-prod-gap-honesty.md",
             "g15-wx-dt-native-bridge-honesty.md",
+            "g15-wx-dt-native-bridge-remainder.md",
             "g7-withdraw-browser-honesty.md",
             "g7-query-expense-travel-honesty.md",
             "g4-hot-purge-90d.md",
@@ -80,10 +81,13 @@ public final class G2ReportPhysicalDumpHonesty {
             "g4-guard-deny-audit.md",
             "g4-pkce-spa-verifier.md",
             "g4-pkce-spa-verifier-honesty.md",
+            "g4-pkce-spa-verifier-remainder-honesty.md",
+            "s0-secret-rotate-getenv-remainder-honesty.md",
             "linux-arm-profile-honesty.md",
             "linux-arm-profile-leftover-honesty.md",
             "g17-separation-of-duties.md",
             "g17-separation-honesty.md",
+            "g17-separation-leftover-honesty.md",
             "g17-mfa-recovery-email-honesty.md",
             "g17-vue-otp-writeback.md",
             "g17-mfa-recovery-vue-otp-honesty.md",
@@ -101,6 +105,8 @@ public final class G2ReportPhysicalDumpHonesty {
             "g1-fieldpolicy-mask-second-auth-honesty.md",
             "g1-queryast-boundsql-honesty.md",
             "g1-queryast-boundsql-guard.md",
+            "g1-queryast-export-honesty.md",
+            "g1-export-fieldpolicy-drop.md",
             "g5-browser-failed-publish.md",
             "g5-mid-publish-failure-honesty.md",
             "g5-publishhook-ddl-honesty.md",
@@ -228,6 +234,11 @@ public final class G2ReportPhysicalDumpHonesty {
         return readme.contains("[g2-report-surface-guard](./g2-report-surface-guard.md)")
                 && readme.contains("[g2-physical-dump-surface](./g2-physical-dump-surface.md)")
                 && readme.contains("[g2-report-physical-dump-honesty](./g2-report-physical-dump-honesty.md)")
+                && readme.contains("[g1-queryast-export-honesty](./g1-queryast-export-honesty.md)")
+                && readme.contains("[g15-wx-dt-native-bridge-remainder](./g15-wx-dt-native-bridge-remainder.md)")
+                && readme.contains("[g17-separation-leftover-honesty](./g17-separation-leftover-honesty.md)")
+                && readme.contains("[g4-pkce-spa-verifier-remainder-honesty](./g4-pkce-spa-verifier-remainder-honesty.md)")
+                && readme.contains("[s0-secret-rotate-getenv-remainder-honesty](./s0-secret-rotate-getenv-remainder-honesty.md)")
                 && !readme.toLowerCase(Locale.ROOT).contains("product g2 closed")
                 && !readme.contains("产品级 G2 已关闭");
     }
@@ -322,7 +333,12 @@ public final class G2ReportPhysicalDumpHonesty {
                 "g2-ops-pg-dump-honesty",
                 "g9-sentinel-cluster-remainder-honesty",
                 "g5-publishhook-ddl-honesty",
-                "g17-gm-tls-nginx-handshake-honesty")) {
+                "g17-gm-tls-nginx-handshake-honesty",
+                "g1-queryast-export-honesty",
+                "g15-wx-dt-native-bridge-remainder",
+                "g17-separation-leftover-honesty",
+                "g4-pkce-spa-verifier-remainder-honesty",
+                "s0-secret-rotate-getenv-remainder-honesty")) {
             if (!rows.contains(row)) {
                 errors.add("leftover_rows_kept must keep " + row);
             }
@@ -415,7 +431,10 @@ public final class G2ReportPhysicalDumpHonesty {
                 "g2-report-surface-guard,g2-physical-dump-surface,g2-surfaceguard-bypass-ci,"
                         + "g2-h5-every-page-form-write-honesty,g2-ops-pg-dump-honesty,"
                         + "g9-sentinel-cluster-remainder-honesty,g5-publishhook-ddl-honesty,"
-                        + "g17-gm-tls-nginx-handshake-honesty");
+                        + "g17-gm-tls-nginx-handshake-honesty,g1-queryast-export-honesty,"
+                        + "g15-wx-dt-native-bridge-remainder,g17-separation-leftover-honesty,"
+                        + "g4-pkce-spa-verifier-remainder-honesty,"
+                        + "s0-secret-rotate-getenv-remainder-honesty");
         report.put("leftover_rows_all", "true");
         report.put("live_jar_endpoint_set", Boolean.toString(inventory.endpointSet()));
         report.put("live_jar_context_set", Boolean.toString(inventory.issuedContextSet()));

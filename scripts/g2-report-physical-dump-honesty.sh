@@ -118,7 +118,7 @@ verify_report_inner() {
 
   local rows
   rows="$(report_get "$file" leftover_rows_kept)"
-  for row in g2-report-surface-guard g2-physical-dump-surface g2-surfaceguard-bypass-ci g2-h5-every-page-form-write-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty g5-publishhook-ddl-honesty g17-gm-tls-nginx-handshake-honesty; do
+  for row in g2-report-surface-guard g2-physical-dump-surface g2-surfaceguard-bypass-ci g2-h5-every-page-form-write-honesty g2-ops-pg-dump-honesty g9-sentinel-cluster-remainder-honesty g5-publishhook-ddl-honesty g17-gm-tls-nginx-handshake-honesty g1-queryast-export-honesty g15-wx-dt-native-bridge-remainder g17-separation-leftover-honesty g4-pkce-spa-verifier-remainder-honesty s0-secret-rotate-getenv-remainder-honesty; do
     echo "$rows" | grep -Fq "$row" || { echo "FAIL: leftover_rows_kept must keep $row" >&2; return 1; }
   done
 
@@ -307,6 +307,7 @@ g5-mid-publish-failure-honesty
 g5-mid-publish-failure
 g5-browser-failed-publish
 g15-wx-dt-native-bridge-honesty
+g15-wx-dt-native-bridge-remainder
 g15-wx-dt-prod-gap-honesty
 g15-native-bridge-honesty
 g15-native-bridge-stub
@@ -318,11 +319,15 @@ g4-guard-deny-audit
 g4-p1-staging-audit-events-honesty
 g4-hot-purge-90d-honesty
 g4-pkce-spa-verifier-honesty
+g4-pkce-spa-verifier-remainder-honesty
+s0-secret-rotate-getenv-remainder-honesty
 g10-leftover-honesty
 g10-file-reconcile-honesty
 g10-identity-drift-honesty
 g1-queryast-boundsql-honesty
 g1-queryast-boundsql-guard
+g1-queryast-export-honesty
+g1-export-fieldpolicy-drop
 g1-fieldpolicy-mask-second-auth-honesty
 g3-outbox-consume-crash-honesty
 g3-claim-crash-window
@@ -334,6 +339,7 @@ s0-secret-rotate-without-restart
 g6-recovery-port-dry-run-honesty
 s0s1-live-redis-minio-isolation-honesty
 g17-separation-honesty
+g17-separation-leftover-honesty
 g17-mfa-recovery-vue-otp-honesty
 g17-gm-tls-nginx-handshake-honesty
 g17-gm-tls-nginx-handshake
@@ -439,7 +445,7 @@ REPORT="$OUT/report.env"
   kv dump_uses_write_projected "$DUMP_USES_PROJECTED"
   kv report_is_physical_dump false
   kv dump_is_report_task_submit false
-  kv leftover_rows_kept "g2-report-surface-guard,g2-physical-dump-surface,g2-surfaceguard-bypass-ci,g2-h5-every-page-form-write-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty,g5-publishhook-ddl-honesty,g17-gm-tls-nginx-handshake-honesty"
+  kv leftover_rows_kept "g2-report-surface-guard,g2-physical-dump-surface,g2-surfaceguard-bypass-ci,g2-h5-every-page-form-write-honesty,g2-ops-pg-dump-honesty,g9-sentinel-cluster-remainder-honesty,g5-publishhook-ddl-honesty,g17-gm-tls-nginx-handshake-honesty,g1-queryast-export-honesty,g15-wx-dt-native-bridge-remainder,g17-separation-leftover-honesty,g4-pkce-spa-verifier-remainder-honesty,s0-secret-rotate-getenv-remainder-honesty"
   kv leftover_rows_all "$LEFTOVER_ROWS_ALL"
   kv live_jar_endpoint_set "$LIVE_ENDPOINT_SET"
   kv live_jar_context_set "$LIVE_CONTEXT_SET"
@@ -475,7 +481,7 @@ MATRIX="$OUT/matrix.md"
   echo "| #137 dump SurfaceGuard harness | $DUMP_SURFACE_HARNESS | ledger/read + ledger.export.csv/submit; AuthorizedExport.writeProjected |"
   echo "| report is physical dump | false | report stays Task submit |"
   echo "| dump is report Task submit | false | dump stays writeProjected |"
-  echo "| leftover rows kept | true | #124/#137 + #122 + H5 form.write + #217 PublishHook leftover + all sibling leftover rows |"
+  echo "| leftover rows kept | true | #124/#137 + #122 + H5 form.write + #217 + #222 + #223 + all sibling leftover rows |"
   echo "| Live JAR / issued context | $LIVE_WALK | ${LIVE_REASON} |"
   echo "| live report walk | $LIVE_REPORT_WALK | observed=$LIVE_REPORT |"
   echo "| live dump walk | $LIVE_DUMP_WALK | observed=$LIVE_DUMP |"
@@ -503,7 +509,7 @@ log "DONE report=$REPORT live_jar=$LIVE_WALK live_report=$LIVE_REPORT_WALK live_
 echo
 echo "PASS: honesty leftover recorded (#124/#137 harness PASS; live JAR / issued-context $LIVE_WALK)"
 echo "See docs/g2-report-physical-dump-honesty.md"
-echo "Keep sibling leftover rows including g2-report-surface-guard / g2-physical-dump-surface / g5-publishhook-ddl-honesty"
+echo "Keep sibling leftover rows including g2-report-surface-guard / g4-pkce-spa-verifier-remainder-honesty / s0-secret-rotate-getenv-remainder-honesty"
 echo "Not claimed: product G2 close / #122/#124/#137 product redo / live JAR walk unless observed"
 echo "out=$OUT"
 echo "SANITIZED=$SANITIZED"
