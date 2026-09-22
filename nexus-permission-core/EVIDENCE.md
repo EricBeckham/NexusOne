@@ -50,6 +50,8 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 # p3-studio: PermissionDataScopeHook 4, G2SurfaceAgreement 3
 ```
 
+G9 targeted script on this agent VM (**2026-09-22T15:40:18Z**): **19 / 0 / 2** (`./scripts/g9-policysnapshot-invalidate.sh`). Pre-rebase permission-core was **35 / 0 / 4** (2026-09-22T15:40:35Z, before G2 #73). Post-rebase counts are re-recorded after the suite on `main@5359e84`.
+
 | Class | What it proved |
 |---|---|
 | `PermissionEngineTest` | P0-02 decision table: tenant boundary, explicit deny, user/role/position/department + inherited role union, scope OR share AND context, share without grant, field union + strictest mask, empty context |

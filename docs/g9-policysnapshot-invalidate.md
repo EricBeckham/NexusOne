@@ -34,19 +34,22 @@ Live Redis 3.2 on `127.0.0.1:6379` is optional. `RedisInvalidationTest` skips th
 
 ## Evidence
 
-Recorded on this agent VM after the suite below. Java **21**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. No local Redis 3.2 / PostgreSQL listener required for the G9 Redis-down path.
+Recorded **2026-09-22T15:40:18Z** on this agent VM. Java **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. No local Redis 3.2 / PostgreSQL listener (Redis-down uses a dead client on port `1`).
 
 ```
 ./scripts/g9-policysnapshot-invalidate.sh
-# result filled after the pre-testing revision is pushed
+# Tests run: 19, Failures: 0, Errors: 0, Skipped: 2  BUILD SUCCESS  2026-09-22T15:40:18Z
+
+mvn -pl nexus-permission-core -am test
+# Tests run: 35, Failures: 0, Errors: 0, Skipped: 4  BUILD SUCCESS  2026-09-22T15:40:35Z
 ```
 
-| Suite | What it proves |
-|---|---|
-| `G9PolicySnapshotFailoverTest` | Redis-down grant → `decide` matches durable `PermissionEngine`; lost channel still reloads; Redis snapshot key is not truth; durable failure stays `P2.PERM.0005`; missing issued context is `P2.PERM.0009` (no invented holder) |
-| `RedisInvalidationTest` | P0-05 key contract; publish failure is observed; Redis-down still loads durable version; DB version failure fail-closed; live PING/PUBLISH/SUBSCRIBE skip if Redis 3.2 is absent |
-| `SnapshotManagerTest` | Version poll without notify; stale / missing / regression fail-closed |
-| `PermissionEngineTest` | P0-02 truth table unchanged (G2 coordination) |
+| Suite | Count | What it proves |
+|---|---|---|
+| `G9PolicySnapshotFailoverTest` | **5/5** | Redis-down grant → `decide` matches durable `PermissionEngine`; lost channel still reloads; Redis snapshot key is not truth; durable failure stays `P2.PERM.0005`; missing issued context is `P2.PERM.0009` (no invented holder) |
+| `RedisInvalidationTest` | **2/4** (2 skip) | P0-05 key contract; publish failure is observed; Redis-down still loads durable version; DB version failure fail-closed; live PING/PUBLISH/SUBSCRIBE skip — no Redis 3.2 on this VM |
+| `SnapshotManagerTest` | **3/3** | Version poll without notify; stale / missing / regression fail-closed |
+| `PermissionEngineTest` | **7/7** | P0-02 truth table unchanged (G2 coordination) |
 
 ## Honest leftovers
 
