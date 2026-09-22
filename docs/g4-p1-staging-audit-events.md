@@ -4,7 +4,7 @@ S0+S1 PostgreSQL slice. Not an M0 redo. **Product G18 stays closed.** This packa
 
 HTTP export wizard begin/complete is already on `main` via #152 ([g4-export-wizard.md](./g4-export-wizard.md)). This leftover is **orthogonal**: it documents and harnesses the existing P1 staging read, it does **not** redo the wizard, and it does **not** switch `GET /tenants/{id}/audit-events` onto M0-11.
 
-Keep both leftover rows in [docs/README.md](./README.md): `g4-export-wizard` and this file.
+Keep leftover rows in [docs/README.md](./README.md): `g4-export-wizard`, this file, and the PASS/SKIP honesty leftover ([g4-p1-staging-audit-events-honesty.md](./g4-p1-staging-audit-events-honesty.md)).
 
 ## What this slice covers
 
@@ -58,4 +58,4 @@ This is **not** a product-wide G4 close.
 | Live `:5432` staging when credentials / table are missing | Honest SKIP |
 | G6 `RecoveryPort` / G17 classified | Not this package |
 
-G18 remains closed. Same-TX `append` joining is unchanged. HTTP export wizard leftover (#152) stays documented.
+G18 remains closed. Same-TX `append` joining is unchanged. HTTP export wizard leftover (#152) stays documented. PASS/SKIP honesty leftover beyond this file is [g4-p1-staging-audit-events-honesty.md](./g4-p1-staging-audit-events-honesty.md).
