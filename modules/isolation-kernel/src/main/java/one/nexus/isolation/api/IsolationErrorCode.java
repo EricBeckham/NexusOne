@@ -25,7 +25,11 @@ public enum IsolationErrorCode {
     PLATFORM_PATH_REVOKED("P1.M02.018", "platform path is not currently allowed"),
     CROSS_TENANT_EXPORT("P1.M02.019", "cross-tenant export rejected"),
     CROSS_TENANT_JOIN("P1.M02.020", "cross-tenant query join rejected"),
-    FIELD_POLICY_EXPORT("P1.M02.021", "export FieldPolicy rejected");
+    FIELD_POLICY_EXPORT("P1.M02.021", "export FieldPolicy rejected"),
+    CROSS_TENANT_SUBQUERY("P1.M02.022", "cross-tenant query subquery rejected"),
+    CROSS_TENANT_BATCH("P1.M02.023", "cross-tenant batch write rejected"),
+    INVALID_SORT("P1.M02.024", "query sort rejected"),
+    UNBOUNDED_PAGE("P1.M02.025", "unbounded query page rejected");
 
     private final String code;
     private final String defaultMessage;

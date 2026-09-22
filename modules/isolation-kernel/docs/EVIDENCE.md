@@ -4,24 +4,24 @@ Recorded 2026-09-22 on this agent VM. Java 21.0.10, Maven 3.9.16, in-process Pos
 
 ## `mvn test`
 
-G1 join + export FieldPolicy re-run **2026-09-22T15:41:22Z**:
+G1 join + export FieldPolicy re-run **2026-09-22T15:41:22Z**. Subquery / batch / sort / page remainder **2026-09-22T16:45:38Z**:
 
 ```
-Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
 | Class | Tests |
 |---|---|
 | `SqlBypassScannerTest` | 2 |
-| `QueryCompilerTest` | 7 (includes INNER JOIN tenant inject + `P1.M02.020` reject + DataScope cannot strip join tenant) |
-| `PostgresIsolationIT` | 2 (dual-tenant CRUD; same-tenant join; stolen join never reaches JDBC) |
+| `QueryCompilerTest` | 14 (INNER JOIN + IN/EXISTS subquery + batch INSERT + sort/page inject/reject; DataScope cannot strip join/subquery/batch tenant) |
+| `PostgresIsolationIT` | 3 (dual-tenant CRUD; same-tenant join; same-tenant subquery/batch/sort/page; stolen plans never reach JDBC) |
 | `PropagationContractTest` | 5 (cache / file / async rejects now assert `IsolationAuditEvent`) |
 | `RequestIsolationPolicyTest` | 5 |
-| `IsolatedExportTest` | 4 (export/file/cache/task + `EXPORT_ACCEPTED`; FieldPolicy `P1.M02.021` reject-before-compile/file) |
+| `IsolatedExportTest` | 5 (export/file/cache/task + `EXPORT_ACCEPTED`; FieldPolicy `P1.M02.021`; stolen subquery `P1.M02.022` reject-before-compile) |
 | `TableRegistryReplaceTest` | 3 |
 
-S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md). INNER JOIN + export FieldPolicy (`P1.M02.020` / `P1.M02.021`) are recorded in [docs/g1-query-join-field-policy.md](../../../docs/g1-query-join-field-policy.md).
+S0+S1 G1 remaining surfaces (export / file / cache / Job / Task + `AuditPort` `GUARD_REJECT`) are recorded in [docs/g1-isolation-surfaces.md](../../../docs/g1-isolation-surfaces.md). INNER JOIN + export FieldPolicy (`P1.M02.020` / `P1.M02.021`) are recorded in [docs/g1-query-join-field-policy.md](../../../docs/g1-query-join-field-policy.md). Subquery / batch / sort / page (`P1.M02.022`–`025`) are recorded in [docs/g1-query-ast-remainder.md](../../../docs/g1-query-ast-remainder.md).
 
 ## Static SQL-bypass gate
 

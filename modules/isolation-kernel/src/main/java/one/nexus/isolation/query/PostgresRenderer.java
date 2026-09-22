@@ -7,6 +7,9 @@ import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
+import one.nexus.isolation.api.QueryPage;
+import one.nexus.isolation.api.QuerySort;
+import one.nexus.isolation.api.QuerySubquery;
 import one.nexus.isolation.api.RenderedSql;
 import one.nexus.isolation.api.TableAccessPlan;
 import one.nexus.isolation.api.TableDescriptor;
@@ -19,10 +22,10 @@ public final class PostgresRenderer {
         StringBuilder sql = new StringBuilder();
         if (query.kind() == QueryKind.SELECT) {
             sql.append("SELECT ");
+            String primaryAlias = query.joins().isEmpty() ? null : table.name();
             if (query.joins().isEmpty()) {
                 appendNames(sql, query.projection());
                 sql.append(" FROM ").append(Identifiers.quote(table.name()));
-                where(sql, query.filters(), args);
             } else {
                 appendQualifiedProjection(sql, query.projection(), table.name());
                 sql.append(" FROM ").append(Identifiers.quote(table.name()))
@@ -30,14 +33,20 @@ public final class PostgresRenderer {
                 for (QueryJoin join : query.joins()) {
                     appendInnerJoin(sql, join, args);
                 }
-                whereQualified(sql, table.name(), query.filters(), args);
             }
+            appendPredicates(sql, primaryAlias, query.filters(), query.subqueries(), args);
+            appendOrderBy(sql, primaryAlias, query.sorts());
+            appendPage(sql, query.page(), args);
         } else if (query.kind() == QueryKind.INSERT) {
-            sql.append("INSERT INTO ").append(Identifiers.quote(table.name())).append(" (");
-            appendNames(sql, query.values().keySet());
-            sql.append(") VALUES (");
-            placeholders(sql, query.values().values(), args);
-            sql.append(')');
+            if (!query.batchRows().isEmpty()) {
+                appendBatchInsert(sql, table, query.batchRows(), args);
+            } else {
+                sql.append("INSERT INTO ").append(Identifiers.quote(table.name())).append(" (");
+                appendNames(sql, query.values().keySet());
+                sql.append(") VALUES (");
+                placeholders(sql, query.values().values(), args);
+                sql.append(')');
+            }
         } else if (query.kind() == QueryKind.UPDATE) {
             sql.append("UPDATE ").append(Identifiers.quote(table.name())).append(" SET ");
             int i = 0;
@@ -48,12 +57,32 @@ public final class PostgresRenderer {
                 sql.append(Identifiers.quote(entry.getKey())).append(" = ?");
                 args.add(entry.getValue());
             }
-            where(sql, query.filters(), args);
+            appendPredicates(sql, null, query.filters(), query.subqueries(), args);
         } else {
             sql.append("DELETE FROM ").append(Identifiers.quote(table.name()));
-            where(sql, query.filters(), args);
+            appendPredicates(sql, null, query.filters(), query.subqueries(), args);
         }
         return new RenderedSql(sql.toString(), args, plan);
+    }
+
+    private static void appendBatchInsert(
+            StringBuilder sql,
+            TableDescriptor table,
+            List<Map<String, Object>> rows,
+            List<Object> args
+    ) {
+        Map<String, Object> first = rows.getFirst();
+        sql.append("INSERT INTO ").append(Identifiers.quote(table.name())).append(" (");
+        appendNames(sql, first.keySet());
+        sql.append(") VALUES ");
+        for (int r = 0; r < rows.size(); r++) {
+            if (r > 0) {
+                sql.append(", ");
+            }
+            sql.append('(');
+            placeholders(sql, rows.get(r).values(), args);
+            sql.append(')');
+        }
     }
 
     private static void appendInnerJoin(StringBuilder sql, QueryJoin join, List<Object> args) {
@@ -86,23 +115,18 @@ public final class PostgresRenderer {
             if (i++ > 0) {
                 sql.append(", ");
             }
-            int dot = column.indexOf('.');
-            String alias = dot < 0 ? primaryAlias : column.substring(0, dot);
-            String name = dot < 0 ? column : column.substring(dot + 1);
-            sql.append(Identifiers.quote(alias)).append('.').append(Identifiers.quote(name));
+            appendColumn(sql, primaryAlias, column);
         }
     }
 
-    private static void where(StringBuilder sql, Map<String, Object> filters, List<Object> args) {
-        appendWhere(sql, null, filters, args);
-    }
-
-    private static void whereQualified(StringBuilder sql, String alias, Map<String, Object> filters, List<Object> args) {
-        appendWhere(sql, alias, filters, args);
-    }
-
-    private static void appendWhere(StringBuilder sql, String alias, Map<String, Object> filters, List<Object> args) {
-        if (filters.isEmpty()) {
+    private static void appendPredicates(
+            StringBuilder sql,
+            String alias,
+            Map<String, Object> filters,
+            List<QuerySubquery> subqueries,
+            List<Object> args
+    ) {
+        if (filters.isEmpty() && subqueries.isEmpty()) {
             return;
         }
         sql.append(" WHERE ");
@@ -122,6 +146,117 @@ public final class PostgresRenderer {
                 args.add(entry.getValue());
             }
         }
+        for (QuerySubquery subquery : subqueries) {
+            if (i++ > 0) {
+                sql.append(" AND ");
+            }
+            appendSubquery(sql, alias, subquery, args);
+        }
+    }
+
+    private static void appendSubquery(StringBuilder sql, String outerAlias, QuerySubquery subquery, List<Object> args) {
+        if (subquery.kind() == QuerySubquery.Kind.IN) {
+            appendColumn(sql, outerAlias, subquery.outerColumn());
+            sql.append(" IN (SELECT ").append(Identifiers.quote(subquery.projection()))
+                    .append(" FROM ").append(Identifiers.quote(subquery.table()));
+            if (!subquery.alias().equals(subquery.table())) {
+                sql.append(' ').append(Identifiers.quote(subquery.alias()));
+            }
+            appendInnerFilters(sql, subquery, args);
+            sql.append(')');
+            return;
+        }
+        sql.append("EXISTS (SELECT 1 FROM ").append(Identifiers.quote(subquery.table()));
+        boolean aliased = !subquery.correlated().isEmpty() || !subquery.alias().equals(subquery.table());
+        if (aliased) {
+            sql.append(' ').append(Identifiers.quote(subquery.alias()));
+        }
+        boolean started = false;
+        for (JoinOn on : subquery.correlated()) {
+            sql.append(started ? " AND " : " WHERE ");
+            started = true;
+            sql.append(Identifiers.quote(on.leftAlias())).append('.').append(Identifiers.quote(on.leftColumn()))
+                    .append(" = ")
+                    .append(Identifiers.quote(on.rightAlias())).append('.').append(Identifiers.quote(on.rightColumn()));
+        }
+        String filterAlias = aliased ? subquery.alias() : null;
+        for (Map.Entry<String, Object> entry : subquery.filters().entrySet()) {
+            sql.append(started ? " AND " : " WHERE ");
+            started = true;
+            if (filterAlias != null) {
+                sql.append(Identifiers.quote(filterAlias)).append('.');
+            }
+            sql.append(Identifiers.quote(entry.getKey()));
+            if (entry.getValue() == null) {
+                sql.append(" IS NULL");
+            } else {
+                sql.append(" = ?");
+                args.add(entry.getValue());
+            }
+        }
+        sql.append(')');
+    }
+
+    private static void appendInnerFilters(StringBuilder sql, QuerySubquery subquery, List<Object> args) {
+        if (subquery.filters().isEmpty()) {
+            return;
+        }
+        boolean aliased = !subquery.alias().equals(subquery.table());
+        sql.append(" WHERE ");
+        int i = 0;
+        for (Map.Entry<String, Object> entry : subquery.filters().entrySet()) {
+            if (i++ > 0) {
+                sql.append(" AND ");
+            }
+            if (aliased) {
+                sql.append(Identifiers.quote(subquery.alias())).append('.');
+            }
+            sql.append(Identifiers.quote(entry.getKey()));
+            if (entry.getValue() == null) {
+                sql.append(" IS NULL");
+            } else {
+                sql.append(" = ?");
+                args.add(entry.getValue());
+            }
+        }
+    }
+
+    private static void appendOrderBy(StringBuilder sql, String alias, List<QuerySort> sorts) {
+        if (sorts.isEmpty()) {
+            return;
+        }
+        sql.append(" ORDER BY ");
+        int i = 0;
+        for (QuerySort sort : sorts) {
+            if (i++ > 0) {
+                sql.append(", ");
+            }
+            appendColumn(sql, alias, sort.column());
+            sql.append(' ').append(sort.direction().name());
+        }
+    }
+
+    private static void appendPage(StringBuilder sql, QueryPage page, List<Object> args) {
+        if (page == null) {
+            return;
+        }
+        sql.append(" LIMIT ? OFFSET ?");
+        args.add(page.limit());
+        args.add(page.offset());
+    }
+
+    private static void appendColumn(StringBuilder sql, String alias, String column) {
+        int dot = column.indexOf('.');
+        if (dot >= 0) {
+            sql.append(Identifiers.quote(column.substring(0, dot)))
+                    .append('.')
+                    .append(Identifiers.quote(column.substring(dot + 1)));
+            return;
+        }
+        if (alias != null) {
+            sql.append(Identifiers.quote(alias)).append('.');
+        }
+        sql.append(Identifiers.quote(column));
     }
 
     private static void appendNames(StringBuilder sql, Iterable<String> names) {

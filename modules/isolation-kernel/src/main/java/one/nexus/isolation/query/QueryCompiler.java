@@ -11,6 +11,9 @@ import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryKind;
+import one.nexus.isolation.api.QueryPage;
+import one.nexus.isolation.api.QuerySort;
+import one.nexus.isolation.api.QuerySubquery;
 import one.nexus.isolation.api.RenderedSql;
 import one.nexus.isolation.api.TableAccessPlan;
 import one.nexus.isolation.api.TableDescriptor;
@@ -22,9 +25,9 @@ import one.nexus.isolation.spi.SoftDeleteInjector;
  * Compile pipeline: registry → tenant inject (cannot disable) → optional DataScope/soft-delete
  * → TableAccessPlan Guard → parameterized PostgreSQL renderer.
  *
- * <p>INNER JOIN of registered tables is compiled here. Each tenant-scoped join
- * gets its own {@code tenant_id} predicate. Subquery / batch / sort / page are
- * still out of this compiler.
+ * <p>INNER JOIN, IN/EXISTS subquery, multi-row INSERT, ORDER BY, and LIMIT/OFFSET
+ * of registered tables are compiled here. Each tenant-scoped table gets its own
+ * {@code tenant_id} predicate. OUTER JOIN / CROSS JOIN stay out of this compiler.
  */
 public final class QueryCompiler {
     private final TableRegistry registry;
@@ -56,16 +59,24 @@ public final class QueryCompiler {
         validateColumns(input, table, context);
         QueryAst injected = TenantInjector.inject(input, table, context, auditor);
         injected = injected.withJoins(injectJoins(input, context));
+        injected = injected.withSubqueries(injectSubqueries(input, context));
         Map<String, Object> tenantFiltersBeforeScope = injected.filters();
         Object tenantValueBeforeScope = injected.values().get("tenant_id");
         List<QueryJoin> joinsBeforeScope = injected.joins();
+        List<QuerySubquery> subqueriesBeforeScope = injected.subqueries();
+        List<Map<String, Object>> batchBeforeScope = injected.batchRows();
         injected = dataScopeInjector.inject(injected, table, context);
         injected = softDeleteInjector.inject(injected, table, context);
         assertTenantPredicatePreserved(input, injected, tenantFiltersBeforeScope, tenantValueBeforeScope, context);
         assertJoinTenantsPreserved(joinsBeforeScope, injected, context);
+        assertSubqueryTenantsPreserved(subqueriesBeforeScope, injected, context);
+        assertBatchTenantsPreserved(batchBeforeScope, injected, context);
         TableAccessPlan plan = guard.check(table, injected, context);
         for (QueryJoin join : injected.joins()) {
             guard.checkJoin(registry.require(join.table()), join, context);
+        }
+        for (QuerySubquery subquery : injected.subqueries()) {
+            guard.checkSubquery(registry.require(subquery.table()), subquery, context);
         }
         return PostgresRenderer.render(injected, table, plan);
     }
@@ -78,6 +89,18 @@ public final class QueryCompiler {
         for (QueryJoin join : input.joins()) {
             TableDescriptor joined = registry.require(join.table());
             injected.add(TenantInjector.injectJoin(join, joined, context, auditor));
+        }
+        return List.copyOf(injected);
+    }
+
+    private List<QuerySubquery> injectSubqueries(QueryAst input, AccessContext context) {
+        if (input.subqueries().isEmpty()) {
+            return List.of();
+        }
+        List<QuerySubquery> injected = new ArrayList<>();
+        for (QuerySubquery subquery : input.subqueries()) {
+            TableDescriptor inner = registry.require(subquery.table());
+            injected.add(TenantInjector.injectSubquery(subquery, inner, context, auditor));
         }
         return List.copyOf(injected);
     }
@@ -119,9 +142,53 @@ public final class QueryCompiler {
         }
     }
 
+    private void assertSubqueryTenantsPreserved(List<QuerySubquery> before, QueryAst after, AccessContext context) {
+        if (before.size() != after.subqueries().size()) {
+            throw auditor.reject(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "DataScope changed subqueries");
+        }
+        for (int i = 0; i < before.size(); i++) {
+            QuerySubquery left = before.get(i);
+            QuerySubquery right = after.subqueries().get(i);
+            if (!left.table().equals(right.table()) || !left.alias().equals(right.alias())) {
+                throw auditor.reject(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "DataScope replaced subquery");
+            }
+            Object tenant = left.filters().get("tenant_id");
+            if (tenant != null && !Objects.equals(tenant, right.filters().get("tenant_id"))) {
+                throw auditor.reject(
+                        IsolationErrorCode.TENANT_PREDICATE_REQUIRED,
+                        context,
+                        "DataScope removed subquery tenant predicate");
+            }
+        }
+    }
+
+    private void assertBatchTenantsPreserved(List<Map<String, Object>> before, QueryAst after, AccessContext context) {
+        if (before.size() != after.batchRows().size()) {
+            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_BATCH, context, "DataScope changed batch rows");
+        }
+        for (int i = 0; i < before.size(); i++) {
+            Object tenant = before.get(i).get("tenant_id");
+            if (tenant != null && !Objects.equals(tenant, after.batchRows().get(i).get("tenant_id"))) {
+                throw auditor.reject(IsolationErrorCode.CROSS_TENANT_BATCH, context, "DataScope changed batch tenant_id");
+            }
+        }
+    }
+
     private void validateColumns(QueryAst query, TableDescriptor table, AccessContext context) {
         if (!query.joins().isEmpty() && query.kind() != QueryKind.SELECT) {
             throw new IllegalArgumentException("joins are select-only");
+        }
+        if (!query.batchRows().isEmpty() && query.kind() != QueryKind.INSERT) {
+            throw new IllegalArgumentException("batch is insert-only");
+        }
+        if (!query.subqueries().isEmpty() && query.kind() == QueryKind.INSERT) {
+            throw new IllegalArgumentException("subqueries are not allowed on insert");
+        }
+        if ((!query.sorts().isEmpty() || query.page() != null) && query.kind() != QueryKind.SELECT) {
+            throw auditor.reject(
+                    query.page() != null ? IsolationErrorCode.UNBOUNDED_PAGE : IsolationErrorCode.INVALID_SORT,
+                    context,
+                    "sort/page are select-only");
         }
         Map<String, TableDescriptor> aliases = aliases(query, table, context);
         for (String column : query.projection()) {
@@ -136,13 +203,30 @@ public final class QueryCompiler {
         for (QueryJoin join : query.joins()) {
             validateJoin(query, table, aliases, join, context);
         }
+        for (QuerySubquery subquery : query.subqueries()) {
+            validateSubquery(query, table, aliases, subquery, context);
+        }
+        for (QuerySort sort : query.sorts()) {
+            validateSort(table, aliases, sort, context);
+        }
+        if (query.page() != null) {
+            validatePage(query.page(), context);
+        }
+        for (Map<String, Object> row : query.batchRows()) {
+            validateBatchRow(query, table, row, context);
+        }
         if (query.kind() == QueryKind.SELECT && query.projection().isEmpty()) {
             throw new IllegalArgumentException("explicit projection required");
         }
-        if ((query.kind() == QueryKind.INSERT || query.kind() == QueryKind.UPDATE) && query.values().isEmpty()) {
+        if ((query.kind() == QueryKind.INSERT || query.kind() == QueryKind.UPDATE)
+                && query.values().isEmpty()
+                && query.batchRows().isEmpty()) {
             throw new IllegalArgumentException("write values required");
         }
-        if (query.kind() != QueryKind.INSERT && query.kind() != QueryKind.SELECT && query.filters().isEmpty()) {
+        if (query.kind() != QueryKind.INSERT
+                && query.kind() != QueryKind.SELECT
+                && query.filters().isEmpty()
+                && query.subqueries().isEmpty()) {
             throw auditor.reject(IsolationErrorCode.UNBOUNDED_WRITE, context, "write requires a business key");
         }
         if (query.kind() != QueryKind.INSERT && query.values().containsKey("tenant_id")) {
@@ -186,6 +270,94 @@ public final class QueryCompiler {
         Objects.requireNonNull(primary, "primary");
     }
 
+    private void validateSubquery(
+            QueryAst query,
+            TableDescriptor primary,
+            Map<String, TableDescriptor> aliases,
+            QuerySubquery subquery,
+            AccessContext context
+    ) {
+        Identifiers.require(subquery.table());
+        Identifiers.require(subquery.alias());
+        TableDescriptor inner = registry.require(subquery.table());
+        if (subquery.kind() == QuerySubquery.Kind.IN) {
+            if (subquery.outerColumn().isBlank() || subquery.projection().isBlank()) {
+                throw new IllegalArgumentException("IN subquery requires outer and inner columns");
+            }
+            requireProjectedColumn(query, primary, aliases, subquery.outerColumn(), context);
+            requireColumn(inner, subquery.projection(), context);
+        }
+        Map<String, TableDescriptor> innerAliases = new LinkedHashMap<>(aliases);
+        innerAliases.put(subquery.alias(), inner);
+        for (JoinOn on : subquery.correlated()) {
+            requireJoinSide(innerAliases, on.leftAlias(), on.leftColumn(), context);
+            requireJoinSide(innerAliases, on.rightAlias(), on.rightColumn(), context);
+        }
+        for (String column : subquery.filters().keySet()) {
+            requireColumn(inner, column, context);
+        }
+        if (subquery.filters().containsKey("tenant_id") && subquery.filters().get("tenant_id") == null) {
+            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_SUBQUERY, context, "null subquery tenant filter");
+        }
+    }
+
+    private void validateSort(
+            TableDescriptor primary,
+            Map<String, TableDescriptor> aliases,
+            QuerySort sort,
+            AccessContext context
+    ) {
+        String column = sort.column();
+        String alias = null;
+        String name = column;
+        int dot = column.indexOf('.');
+        if (dot >= 0) {
+            alias = column.substring(0, dot);
+            name = column.substring(dot + 1);
+        }
+        try {
+            if (alias != null) {
+                Identifiers.require(alias);
+            }
+            Identifiers.require(name);
+        } catch (RuntimeException ex) {
+            throw auditor.reject(IsolationErrorCode.INVALID_SORT, context, "invalid sort identifier");
+        }
+        TableDescriptor owner = alias == null ? primary : aliases.get(alias);
+        if (owner == null || !owner.columns().contains(name)) {
+            throw auditor.reject(IsolationErrorCode.INVALID_SORT, context, "unregistered sort column");
+        }
+    }
+
+    private void validatePage(QueryPage page, AccessContext context) {
+        if (page.limit() < 1 || page.limit() > QueryPage.MAX_LIMIT || page.offset() < 0) {
+            throw auditor.reject(IsolationErrorCode.UNBOUNDED_PAGE, context, "page limit/offset out of bounds");
+        }
+    }
+
+    private void validateBatchRow(
+            QueryAst query,
+            TableDescriptor table,
+            Map<String, Object> row,
+            AccessContext context
+    ) {
+        if (row.isEmpty()) {
+            throw new IllegalArgumentException("write values required");
+        }
+        if (!query.batchRows().isEmpty()) {
+            Map<String, Object> first = query.batchRows().getFirst();
+            if (!first.keySet().equals(row.keySet())) {
+                throw new IllegalArgumentException("batch rows must share the same columns");
+            }
+        }
+        for (String column : row.keySet()) {
+            requireColumn(table, column, context);
+        }
+        if (row.containsKey("tenant_id") && row.get("tenant_id") == null) {
+            throw auditor.reject(IsolationErrorCode.CROSS_TENANT_BATCH, context, "null batch tenant_id");
+        }
+    }
+
     private Map<String, TableDescriptor> aliases(QueryAst query, TableDescriptor primary, AccessContext context) {
         Map<String, TableDescriptor> aliases = new LinkedHashMap<>();
         aliases.put(primary.name(), primary);
@@ -221,6 +393,17 @@ public final class QueryCompiler {
             AccessContext context
     ) {
         if (query.joins().isEmpty() || !column.contains(".")) {
+            if (column.contains(".")) {
+                int dot = column.indexOf('.');
+                String alias = column.substring(0, dot);
+                String name = column.substring(dot + 1);
+                TableDescriptor owner = aliases.get(alias);
+                if (owner == null) {
+                    throw auditor.reject(IsolationErrorCode.UNREGISTERED_TABLE, context, alias);
+                }
+                requireColumn(owner, name, context);
+                return;
+            }
             requireColumn(primary, column, context);
             return;
         }

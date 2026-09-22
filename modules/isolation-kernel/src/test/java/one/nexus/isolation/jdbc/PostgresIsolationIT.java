@@ -19,6 +19,9 @@ import one.nexus.isolation.api.PlatformContext;
 import one.nexus.isolation.api.JoinOn;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
+import one.nexus.isolation.api.QueryPage;
+import one.nexus.isolation.api.QuerySort;
+import one.nexus.isolation.api.QuerySubquery;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.query.NativeSqlPort;
@@ -184,6 +187,82 @@ class PostgresIsolationIT {
                         kernel.jdbc().executeQuery(unusable, stolenJoin, alpha));
                 assertEquals(before, executions.get(), "cross-tenant join must not reach JDBC");
                 assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_JOIN));
+            } finally {
+                raw.rollback();
+            }
+        }
+    }
+
+    @Test
+    void subqueryBatchSortAndPageSameTenantAndRejectBeforeJdbc() throws Exception {
+        try (Connection raw = postgres.getPostgresDatabase().getConnection()) {
+            raw.setAutoCommit(false);
+            try {
+                try (Statement fixture = raw.createStatement()) {
+                    fixture.execute("CREATE TABLE ledger_entry (id text PRIMARY KEY, tenant_id text NOT NULL, title text NOT NULL)");
+                    fixture.execute("""
+                            CREATE TABLE ledger_line (
+                                id text PRIMARY KEY,
+                                tenant_id text NOT NULL,
+                                entry_id text NOT NULL,
+                                amount text NOT NULL
+                            )
+                            """);
+                }
+                CollectingAuditSink sink = new CollectingAuditSink();
+                TableRegistry registry = new TableRegistry();
+                registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title");
+                registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
+                IsolationKernel kernel = IsolationKernel.create(registry, Set.of("ops.summary"), sink);
+                TenantContext alpha = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-a"), "alpha", "mem-a", Set.of("alpha")), "trace-a");
+                TenantContext beta = kernel.tenants().issue(new AuthenticatedMembership(
+                        Actor.person("user-b"), "beta", "mem-b", Set.of("beta")), "trace-b");
+
+                AtomicInteger executions = new AtomicInteger();
+                Connection connection = counting(raw, executions);
+                assertEquals(2, kernel.jdbc().executeUpdate(connection, QueryAst.insertBatch("ledger_entry", List.of(
+                        map("id", "a1", "title", "alpha-b"),
+                        map("id", "a2", "title", "alpha-a"))), alpha));
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_line", map("id", "al1", "entry_id", "a1", "amount", "10")), alpha);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_entry", map("id", "b1", "title", "beta-z")), beta);
+                kernel.jdbc().executeUpdate(connection, QueryAst.insert("ledger_line", map("id", "bl1", "entry_id", "b1", "amount", "99")), beta);
+
+                QueryAst paged = QueryAst.select("ledger_entry", List.of("id", "title"), Map.of())
+                        .withSubqueries(List.of(QuerySubquery.in("id", "ledger_line", "entry_id", Map.of())))
+                        .withSorts(List.of(QuerySort.asc("title")))
+                        .withPage(QueryPage.of(10, 0));
+                List<Map<String, Object>> rows = kernel.jdbc().executeQuery(connection, paged, alpha);
+                assertEquals(1, rows.size());
+                assertEquals("a1", String.valueOf(rows.getFirst().get("id")));
+                assertEquals("alpha-b", String.valueOf(rows.getFirst().get("title")));
+
+                QueryAst sorted = QueryAst.select("ledger_entry", List.of("title"), Map.of())
+                        .withSorts(List.of(QuerySort.asc("title")))
+                        .withPage(QueryPage.of(1, 0));
+                List<Map<String, Object>> page = kernel.jdbc().executeQuery(connection, sorted, alpha);
+                assertEquals(List.of("alpha-a"), page.stream().map(row -> String.valueOf(row.get("title"))).toList());
+
+                int before = executions.get();
+                Connection unusable = unusable();
+                deny(IsolationErrorCode.CROSS_TENANT_SUBQUERY, () ->
+                        kernel.jdbc().executeQuery(unusable, QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                                .withSubqueries(List.of(
+                                        QuerySubquery.in("id", "ledger_line", "entry_id", map("tenant_id", "beta")))), alpha));
+                deny(IsolationErrorCode.CROSS_TENANT_BATCH, () ->
+                        kernel.jdbc().executeUpdate(unusable, QueryAst.insertBatch("ledger_entry", List.of(
+                                map("id", "x", "title", "bad", "tenant_id", "beta"))), alpha));
+                deny(IsolationErrorCode.INVALID_SORT, () ->
+                        kernel.jdbc().executeQuery(unusable, QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                                .withSorts(List.of(QuerySort.asc("missing"))), alpha));
+                deny(IsolationErrorCode.UNBOUNDED_PAGE, () ->
+                        kernel.jdbc().executeQuery(unusable, QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                                .withPage(QueryPage.of(QueryPage.MAX_LIMIT + 1, 0)), alpha));
+                assertEquals(before, executions.get(), "denied remainder AST must not reach JDBC");
+                assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_SUBQUERY));
+                assertTrue(sink.rejected(IsolationErrorCode.CROSS_TENANT_BATCH));
+                assertTrue(sink.rejected(IsolationErrorCode.INVALID_SORT));
+                assertTrue(sink.rejected(IsolationErrorCode.UNBOUNDED_PAGE));
             } finally {
                 raw.rollback();
             }
