@@ -79,7 +79,7 @@ verify_report() {
   for key in $required; do
     [ -n "$(report_get "$file" "$key")" ] || {
       case "$key" in
-        redis_role) ;;
+        redis_role|live_redis_down_skip_reason|live_invalidate_skip_reason) ;;
         *) fail "missing key $key in $file" ;;
       esac
     }
