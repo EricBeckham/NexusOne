@@ -24,6 +24,7 @@
     "assert:h5-wx-dt": "node scripts/assert-h5-wx-dt.mjs",
     "assert:h5-native-bridge": "node scripts/assert-h5-native-bridge.mjs",
     "assert:h5-pkce": "node scripts/assert-h5-pkce.mjs",
+    "assert:g4-spa-verifier": "node scripts/assert-g4-spa-verifier.mjs",
     "assert:g2-report-surface": "node scripts/assert-g2-report-surface.mjs",
     "assert:g2-physical-dump": "node scripts/assert-g2-physical-dump.mjs",
     "assert:g4-export-wizard": "node scripts/assert-g4-export-wizard.mjs",

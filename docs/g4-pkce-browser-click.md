@@ -110,7 +110,7 @@ This is **not** a product-wide G4 close and **not** a human laptop + live Keyclo
 | Still open | Why |
 |---|---|
 | Human laptop + live Keycloak | Operator must trust `.local/g4-https/server.crt` (or insecure-origin). This package is stub IdP + Playwright, same pattern as [g7-withdraw-browser.md](./g7-withdraw-browser.md). |
-| SPA-generated verifier | BFF still mints `code_verifier` on `authorize-url?pkce=s256`. A production public-client page should generate it in the browser. |
+| SPA-generated verifier | Evidence path leftover is [g4-pkce-spa-verifier.md](./g4-pkce-spa-verifier.md). This #125 walk stays BFF-shaped / stub IdP. |
 | `GET /api/v1/auth/callback` | Still does not carry the verifier. Desktop leftover uses Vue `/callback` POST. |
 | H5 `/m/*` PKCE | Leftover walk is on `main` via #126 ([g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md)). This walk is desktop only. Product G15 stays open. |
 | Full G4 product close | HTTP export wizard, switching P1 tenant audit-events off staging. 90-day hot purge leftover is on `main` via #123 ([g4-hot-purge-90d.md](./g4-hot-purge-90d.md)). |
