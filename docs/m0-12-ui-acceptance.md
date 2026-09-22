@@ -76,7 +76,7 @@ TenantContext for `/api/v1/notifications`, `/api/v1/audit`, `/api/v1/files`, and
 | G1 | Two P1 tenants independent; quota on A does not bump B | **PASS** | P1 consume/list |
 | G1 | Platform tenant cannot be disabled | **PASS** | `P1.TENANT.0004` |
 | G1 | In-app notifications do not leak across tenants | **PASS** | enqueue in A, list in B empty |
-| G1 | Query AST / export / file / cache / Job / Task full path | **PARTIAL** | Query AST + INNER JOIN + subquery/batch/sort/page + export/file/cache/Job/Task + export FieldPolicy reject-before-execute: [g1-isolation-surfaces.md](./g1-isolation-surfaces.md), [g1-query-join-field-policy.md](./g1-query-join-field-policy.md), [g1-query-ast-remainder.md](./g1-query-ast-remainder.md). Optional live Redis / MinIO cache+file drills: [g1-live-redis-minio.md](./g1-live-redis-minio.md). Not a product-wide zero-leak close. |
+| G1 | Query AST / export / file / cache / Job / Task full path | **PARTIAL** | Query AST + INNER JOIN + subquery/batch/sort/page + nested subquery-in-subquery + export/file/cache/Job/Task + export FieldPolicy reject-before-execute: [g1-isolation-surfaces.md](./g1-isolation-surfaces.md), [g1-query-join-field-policy.md](./g1-query-join-field-policy.md), [g1-query-ast-remainder.md](./g1-query-ast-remainder.md), [g1-query-nested-subquery.md](./g1-query-nested-subquery.md). Optional live Redis / MinIO cache+file drills: [g1-live-redis-minio.md](./g1-live-redis-minio.md). Not a product-wide zero-leak close. |
 | G1 | Guard-reject logs “zero leak” product claim | **PARTIAL** | Those surfaces emit `ISOLATION_REJECT` + `AuditPort` `GUARD_REJECT`. UI/H5/OUTER JOIN/report UI remain open. |
 | G2 | Permission health + check via `/api/v1/permission` | **LIVE API** | `38f1a73` health UP, `grant_count=7`, `ledger`/`read` allowed. G2 list/detail/flow/form-studio + export Task type / Job/Task submit share `SurfaceGuard` + role matrix (`docs/g2-permission.md`). Report / H5 stay open. Not a product-wide G2 close |
 | G5 | Draft/Validate/Publish (forms) | **IT / script** | Success path is live HTTP + Vue. Failed paths: [g5-form-publish-rollback.md](./g5-form-publish-rollback.md). Not a full G5 product close |
@@ -100,7 +100,7 @@ Script status values: `PASS` (asserted), `SKIP` (honestly deferred), `FAIL` (reg
 
 ## Out of scope (explicit)
 
-- Claiming G1 product-wide closed (export / file / cache / Job / Task / INNER JOIN / subquery / batch / sort / page / export FieldPolicy guards are evidenced; UI/H5/OUTER JOIN/report UI are not)
+- Claiming G1 product-wide closed (export / file / cache / Job / Task / INNER JOIN / subquery / nested subquery / batch / sort / page / export FieldPolicy guards are evidenced; UI/H5/OUTER JOIN/report UI are not)
 - Reimplementing backend modules or inventing MOCK fixtures again
 - Docker / Compose
 - Browser Authorization Code + PKCE as accepted login

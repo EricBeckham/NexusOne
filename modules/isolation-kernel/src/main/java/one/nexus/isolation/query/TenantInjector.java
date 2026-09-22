@@ -86,9 +86,10 @@ public final class TenantInjector {
     }
 
     /**
-     * Same mandatory tenant predicate on an IN / EXISTS subquery. A foreign
-     * {@code tenant_id} is {@code CROSS_TENANT_SUBQUERY} and never reaches
-     * the renderer.
+     * Same mandatory tenant predicate on one IN / EXISTS subquery level. A
+     * foreign {@code tenant_id} is {@code CROSS_TENANT_SUBQUERY} and never
+     * reaches the renderer. Nested children are injected by the compiler
+     * through this method at every depth.
      */
     public static QuerySubquery injectSubquery(
             QuerySubquery subquery,

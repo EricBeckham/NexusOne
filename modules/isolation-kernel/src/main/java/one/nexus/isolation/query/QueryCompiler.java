@@ -25,9 +25,11 @@ import one.nexus.isolation.spi.SoftDeleteInjector;
  * Compile pipeline: registry → tenant inject (cannot disable) → optional DataScope/soft-delete
  * → TableAccessPlan Guard → parameterized PostgreSQL renderer.
  *
- * <p>INNER JOIN, IN/EXISTS subquery, multi-row INSERT, ORDER BY, and LIMIT/OFFSET
- * of registered tables are compiled here. Each tenant-scoped table gets its own
- * {@code tenant_id} predicate. OUTER JOIN / CROSS JOIN stay out of this compiler.
+ * <p>INNER JOIN, IN/EXISTS subquery (including nested subquery-in-subquery),
+ * multi-row INSERT, ORDER BY, and LIMIT/OFFSET of registered tables are compiled
+ * here. Each tenant-scoped table, including every nested subquery level, gets
+ * its own {@code tenant_id} predicate. OUTER JOIN / CROSS JOIN stay out of this
+ * compiler.
  */
 public final class QueryCompiler {
     private final TableRegistry registry;
@@ -76,9 +78,16 @@ public final class QueryCompiler {
             guard.checkJoin(registry.require(join.table()), join, context);
         }
         for (QuerySubquery subquery : injected.subqueries()) {
-            guard.checkSubquery(registry.require(subquery.table()), subquery, context);
+            checkSubqueryTree(subquery, context);
         }
         return PostgresRenderer.render(injected, table, plan);
+    }
+
+    private void checkSubqueryTree(QuerySubquery subquery, AccessContext context) {
+        guard.checkSubquery(registry.require(subquery.table()), subquery, context);
+        for (QuerySubquery nested : subquery.nested()) {
+            checkSubqueryTree(nested, context);
+        }
     }
 
     private List<QueryJoin> injectJoins(QueryAst input, AccessContext context) {
@@ -94,13 +103,18 @@ public final class QueryCompiler {
     }
 
     private List<QuerySubquery> injectSubqueries(QueryAst input, AccessContext context) {
-        if (input.subqueries().isEmpty()) {
+        return injectSubqueryTree(input.subqueries(), context);
+    }
+
+    private List<QuerySubquery> injectSubqueryTree(List<QuerySubquery> subqueries, AccessContext context) {
+        if (subqueries.isEmpty()) {
             return List.of();
         }
         List<QuerySubquery> injected = new ArrayList<>();
-        for (QuerySubquery subquery : input.subqueries()) {
+        for (QuerySubquery subquery : subqueries) {
             TableDescriptor inner = registry.require(subquery.table());
-            injected.add(TenantInjector.injectSubquery(subquery, inner, context, auditor));
+            QuerySubquery withTenant = TenantInjector.injectSubquery(subquery, inner, context, auditor);
+            injected.add(withTenant.withNested(injectSubqueryTree(subquery.nested(), context)));
         }
         return List.copyOf(injected);
     }
@@ -143,12 +157,20 @@ public final class QueryCompiler {
     }
 
     private void assertSubqueryTenantsPreserved(List<QuerySubquery> before, QueryAst after, AccessContext context) {
-        if (before.size() != after.subqueries().size()) {
+        assertSubqueryTenantsPreserved(before, after.subqueries(), context);
+    }
+
+    private void assertSubqueryTenantsPreserved(
+            List<QuerySubquery> before,
+            List<QuerySubquery> after,
+            AccessContext context
+    ) {
+        if (before.size() != after.size()) {
             throw auditor.reject(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "DataScope changed subqueries");
         }
         for (int i = 0; i < before.size(); i++) {
             QuerySubquery left = before.get(i);
-            QuerySubquery right = after.subqueries().get(i);
+            QuerySubquery right = after.get(i);
             if (!left.table().equals(right.table()) || !left.alias().equals(right.alias())) {
                 throw auditor.reject(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "DataScope replaced subquery");
             }
@@ -159,6 +181,7 @@ public final class QueryCompiler {
                         context,
                         "DataScope removed subquery tenant predicate");
             }
+            assertSubqueryTenantsPreserved(left.nested(), right.nested(), context);
         }
     }
 
@@ -204,7 +227,7 @@ public final class QueryCompiler {
             validateJoin(query, table, aliases, join, context);
         }
         for (QuerySubquery subquery : query.subqueries()) {
-            validateSubquery(query, table, aliases, subquery, context);
+            validateSubqueryTree(query, table, aliases, subquery, table, aliases, 1, context);
         }
         for (QuerySort sort : query.sorts()) {
             validateSort(table, aliases, sort, context);
@@ -270,28 +293,42 @@ public final class QueryCompiler {
         Objects.requireNonNull(primary, "primary");
     }
 
-    private void validateSubquery(
+    private void validateSubqueryTree(
             QueryAst query,
             TableDescriptor primary,
-            Map<String, TableDescriptor> aliases,
+            Map<String, TableDescriptor> outerAliases,
             QuerySubquery subquery,
+            TableDescriptor parent,
+            Map<String, TableDescriptor> scope,
+            int depth,
             AccessContext context
     ) {
+        if (depth > QuerySubquery.MAX_NESTING) {
+            throw new IllegalArgumentException("subquery nesting exceeds max depth");
+        }
         Identifiers.require(subquery.table());
         Identifiers.require(subquery.alias());
+        TableDescriptor existing = scope.get(subquery.alias());
+        if (existing != null && !subquery.alias().equals(subquery.table()) && !existing.name().equals(subquery.table())) {
+            throw auditor.reject(IsolationErrorCode.INVALID_IDENTIFIER, context, "duplicate subquery alias");
+        }
         TableDescriptor inner = registry.require(subquery.table());
         if (subquery.kind() == QuerySubquery.Kind.IN) {
             if (subquery.outerColumn().isBlank() || subquery.projection().isBlank()) {
                 throw new IllegalArgumentException("IN subquery requires outer and inner columns");
             }
-            requireProjectedColumn(query, primary, aliases, subquery.outerColumn(), context);
+            if (depth == 1) {
+                requireProjectedColumn(query, primary, outerAliases, subquery.outerColumn(), context);
+            } else {
+                requireOuterColumn(parent, scope, subquery.outerColumn(), context);
+            }
             requireColumn(inner, subquery.projection(), context);
         }
-        Map<String, TableDescriptor> innerAliases = new LinkedHashMap<>(aliases);
-        innerAliases.put(subquery.alias(), inner);
+        Map<String, TableDescriptor> innerScope = new LinkedHashMap<>(scope);
+        innerScope.put(subquery.alias(), inner);
         for (JoinOn on : subquery.correlated()) {
-            requireJoinSide(innerAliases, on.leftAlias(), on.leftColumn(), context);
-            requireJoinSide(innerAliases, on.rightAlias(), on.rightColumn(), context);
+            requireJoinSide(innerScope, on.leftAlias(), on.leftColumn(), context);
+            requireJoinSide(innerScope, on.rightAlias(), on.rightColumn(), context);
         }
         for (String column : subquery.filters().keySet()) {
             requireColumn(inner, column, context);
@@ -299,6 +336,23 @@ public final class QueryCompiler {
         if (subquery.filters().containsKey("tenant_id") && subquery.filters().get("tenant_id") == null) {
             throw auditor.reject(IsolationErrorCode.CROSS_TENANT_SUBQUERY, context, "null subquery tenant filter");
         }
+        for (QuerySubquery nested : subquery.nested()) {
+            validateSubqueryTree(query, primary, outerAliases, nested, inner, innerScope, depth + 1, context);
+        }
+    }
+
+    private void requireOuterColumn(
+            TableDescriptor parent,
+            Map<String, TableDescriptor> scope,
+            String column,
+            AccessContext context
+    ) {
+        if (!column.contains(".")) {
+            requireColumn(parent, column, context);
+            return;
+        }
+        int dot = column.indexOf('.');
+        requireJoinSide(scope, column.substring(0, dot), column.substring(dot + 1), context);
     }
 
     private void validateSort(
