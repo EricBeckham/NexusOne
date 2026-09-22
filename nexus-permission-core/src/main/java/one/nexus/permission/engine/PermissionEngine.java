@@ -7,10 +7,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import one.nexus.permission.admin.PlatformDutyCatalog;
 
 /**
- * P0-02 evaluate() port. Order is TenantBoundary → Explicit Deny → grant union
- * → DataScope OR record-share, AND context → FieldPolicy merge.
+ * P0-02 evaluate() port. Order is TenantBoundary → duty-conflict (ARCH-CMP-002)
+ * → Explicit Deny → grant union → DataScope OR record-share, AND context →
+ * FieldPolicy merge.
  */
 public final class PermissionEngine {
     private PermissionEngine() {}
@@ -57,6 +59,9 @@ public final class PermissionEngine {
             return new Decision(false, "tenant_boundary");
         }
         Set<Principal> principals = principals(subject, snapshot);
+        if (PlatformDutyCatalog.conflicting(roleCodes(principals))) {
+            return new Decision(false, "duty_conflict", Predicate.FALSE, Map.of(), snapshot.version());
+        }
         List<Rule> denies = snapshot.denies().stream()
                 .filter(rule -> matches(rule, resource, action, principals))
                 .toList();
@@ -99,6 +104,10 @@ public final class PermissionEngine {
         return new Decision(true, "allowed", scope, fields, snapshot.version());
     }
 
+    public static Set<String> expandedRoleCodes(Subject subject, PolicySnapshot snapshot) {
+        return roleCodes(principals(subject, snapshot));
+    }
+
     static Set<Principal> principals(Subject subject, PolicySnapshot snapshot) {
         Set<String> roles = new HashSet<>(subject.roles());
         List<String> pending = new ArrayList<>(roles);
@@ -116,6 +125,16 @@ public final class PermissionEngine {
         subject.positions().forEach(position -> out.add(new Principal("position", position)));
         subject.departments().forEach(department -> out.add(new Principal("department", department)));
         return out;
+    }
+
+    private static Set<String> roleCodes(Set<Principal> principals) {
+        Set<String> codes = new LinkedHashSet<>();
+        for (Principal principal : principals) {
+            if ("role".equals(principal.type())) {
+                codes.add(principal.id());
+            }
+        }
+        return codes;
     }
 
     private static boolean matches(Rule rule, String resource, String action, Set<Principal> principals) {

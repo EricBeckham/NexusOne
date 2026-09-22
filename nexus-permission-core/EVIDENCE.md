@@ -2,6 +2,12 @@
 
 Recorded on the agent VM against latest `main` (includes M0-01～04 + Keycloak smoke). **Full admin UI was not built.** **Redis Sentinel/Cluster failover is still not claimed.** G9 Redis-down / invalidate-only evidence is in [docs/g9-policysnapshot-invalidate.md](../docs/g9-policysnapshot-invalidate.md).
 
+## G17 slice (S0+S1) — 三权分立
+
+Platform duty catalog + assign reject + evaluate deny + audit-admin cannot mutate the hash chain. See [docs/g17-separation-of-duties.md](../docs/g17-separation-of-duties.md) and [docs/engineering/g17-separation-EVIDENCE.md](../docs/engineering/g17-separation-EVIDENCE.md). Not a full G17 close. G18 stays closed. Admin MFA is a separate slice on main.
+
+Recorded **2026-09-22T16:55:50Z** (permission-core G17 suite **6/0/0**), **2026-09-22T17:00:18Z** (`G17AuditAdminIT` **1/0/0** on Zonky PG **15.18**), **2026-09-22T16:57:50Z** (`G18BusinessPathIT` **4/0/0**), **2026-09-22T17:01:01Z** (`G4AuditCoverageIT` **1/0/0**). OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1**. No Docker.
+
 ## G2 (S0+S1) — role matrix + same engine
 
 G2 adds a role matrix, DataScope/field cells that are **not** the `tenant_member` ALL-scope seed, and one `SurfaceGuard` for list / detail / flow / form studio / export Task type / Job / Task submit. Product-wide G2 (report / H5) stays open. See [docs/g2-permission.md](../docs/g2-permission.md).

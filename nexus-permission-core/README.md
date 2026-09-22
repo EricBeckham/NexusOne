@@ -19,6 +19,7 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 | Redis 3.2 PUBLISH/SUBSCRIBE invalidate-only (P0-05 key contract) | `Redis32Client` / `RedisPolicyInvalidation` |
 | Role / assignment / grant writes | `PolicyAdminService` + `/api/v1/permission/*` |
 | G2 role matrix (not `tenant_member` seed) | `RoleMatrixService` + `GET /matrix` + `POST /matrix/example` |
+| G17 three-power duties (system / security / audit) | `PlatformDutyCatalog` + `GET /duties` + `POST /duties/example` |
 | Same Decision for list / detail / flow / form studio / export / Job / Task | `SurfaceGuard` / `AuthorizedExport` / `AuthorizedSubmit` |
 
 `tenant_id` on the wire is **rejected** (`P2.PERM.0013`). Use `X-Nexus-Context-Id` from M0-04.
@@ -27,10 +28,11 @@ Spring Boot parent: **4.1.1**. Flyway: **13.7.0**, window **V300–V399**, schem
 
 ```
 1. TenantBoundary      mismatch → deny (before Deny/grant)
-2. Explicit Deny       any matching deny wins
-3. ResourceActionGrant union of user/role/position/department (+ inherited roles)
-4. DataScope           OR of grant scopes OR record shares; AND limited context
-5. FieldPolicy         visible/editable union; mask + second-auth take strictest
+2. Duty conflict       two+ platform admin duties in one tenant → deny
+3. Explicit Deny       any matching deny wins
+4. ResourceActionGrant union of user/role/position/department (+ inherited roles)
+5. DataScope           OR of grant scopes OR record shares; AND limited context
+6. FieldPolicy         visible/editable union; mask + second-auth take strictest
 ```
 
 Record share cannot grant access when there is no resource-action grant.
@@ -100,6 +102,7 @@ export NEXUS_REDIS_PORT=6379
 
 ## Explicitly out of scope
 
+- Full G17 (GM TLS / classified / 密码机). Duty catalog is one slice; admin MFA is a separate slice on main ([docs/g17-admin-mfa.md](../docs/g17-admin-mfa.md))
 - Product-wide G2 (report / H5). Form studio + export Task type + Job/Task submit + export cacheStatus are on SurfaceGuard; general cache and report UI are not.
 - Generic ABAC / policy DSL
 - Time/IP condition evaluation beyond an upstream-supplied context Predicate

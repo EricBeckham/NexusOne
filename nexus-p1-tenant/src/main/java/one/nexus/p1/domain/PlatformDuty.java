@@ -9,5 +9,15 @@ public enum PlatformDuty {
     SECURITY_ADMIN,
     AUDIT_ADMIN,
     /** Test/demo only — never assigned by M0-04. */
-    ALL_DEMO
+    ALL_DEMO;
+
+    /** P2 role code owned by {@code PlatformDutyCatalog}. {@code ALL_DEMO} has none. */
+    public String roleCode() {
+        return switch (this) {
+            case SYSTEM_ADMIN -> "platform_system_admin";
+            case SECURITY_ADMIN -> "platform_security_admin";
+            case AUDIT_ADMIN -> "platform_audit_admin";
+            case ALL_DEMO -> null;
+        };
+    }
 }

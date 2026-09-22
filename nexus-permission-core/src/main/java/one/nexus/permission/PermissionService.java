@@ -8,6 +8,7 @@ import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.DepartmentCatalog;
+import one.nexus.permission.admin.PlatformDutyCatalog;
 import one.nexus.permission.engine.PermissionEngine;
 import one.nexus.permission.engine.PolicySnapshot;
 import one.nexus.permission.engine.Predicate;
@@ -66,6 +67,24 @@ public final class PermissionService {
     public ScopedQuery scopedQuery(String resource, String action) {
         Decision decision = check(resource, action);
         return PermissionQueryBinder.bind(TenantContextHolder.require().tenantId().toString(), decision);
+    }
+
+    public Subject currentSubject() {
+        return subjects.resolve(TenantContextHolder.require());
+    }
+
+    public boolean holdsPlatformDuty() {
+        TenantContext tenant = TenantContextHolder.get();
+        if (tenant == null) {
+            return false;
+        }
+        try {
+            Subject subject = subjects.resolve(tenant);
+            PolicySnapshot snapshot = snapshots.get(tenant.tenantId().toString());
+            return !PlatformDutyCatalog.heldDuties(PermissionEngine.expandedRoleCodes(subject, snapshot)).isEmpty();
+        } catch (SnapshotUnavailableException | PermissionException ex) {
+            return false;
+        }
     }
 
     public PolicySnapshot snapshot() {

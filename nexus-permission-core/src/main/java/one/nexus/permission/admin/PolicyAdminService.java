@@ -1,7 +1,10 @@
 package one.nexus.permission.admin;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import one.nexus.audit.AuditCaptures;
 import one.nexus.audit.AuditPort;
@@ -11,6 +14,7 @@ import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.engine.DataScopeKind;
 import one.nexus.permission.engine.FieldRule;
+import one.nexus.permission.engine.PolicySnapshot;
 import one.nexus.permission.engine.Rule;
 import one.nexus.permission.persist.PolicyRepository;
 import one.nexus.permission.redis.PolicyInvalidationPort;
@@ -46,6 +50,18 @@ public final class PolicyAdminService {
 
     public void inherit(UUID childRoleId, UUID parentRoleId) {
         TenantContext context = TenantContextHolder.require();
+        PolicyRepository.RoleRecord child = repository.findRole(context.tenantId(), childRoleId)
+                .orElseThrow(() -> PermissionException.notFound("child role not found in current tenant"));
+        PolicyRepository.RoleRecord parent = repository.findRole(context.tenantId(), parentRoleId)
+                .orElseThrow(() -> PermissionException.notFound("parent role not found in current tenant"));
+        Set<String> next = new HashSet<>();
+        next.add(child.code());
+        next.add(parent.code());
+        expandInherited(context.tenantId(), next);
+        if (PlatformDutyCatalog.conflicting(next)) {
+            throw PermissionException.dutyConflict(
+                    "platform duty roles cannot inherit another platform duty role");
+        }
         repository.addRoleParent(context.tenantId(), childRoleId, parentRoleId);
         bump(context.tenantId());
     }
@@ -54,6 +70,24 @@ public final class PolicyAdminService {
         TenantContext context = TenantContextHolder.require();
         PolicyRepository.RoleRecord role = repository.findRole(context.tenantId(), roleId)
                 .orElseThrow(() -> PermissionException.notFound("role not found in current tenant"));
+        Set<String> next = assignedRoleCodes(context.tenantId(), principalType, principalId);
+        next.add(role.code());
+        expandInherited(context.tenantId(), next);
+        if (PlatformDutyCatalog.conflicting(next)) {
+            appendPermissionDenied(
+                    context,
+                    "role_assignment",
+                    role.code(),
+                    "duty_conflict",
+                    Map.of(
+                            "principal_type", principalType,
+                            "principal_id", principalId,
+                            "role_id", role.id().toString(),
+                            "role_code", role.code(),
+                            "held_duties", PlatformDutyCatalog.heldDuties(next).toString()));
+            throw PermissionException.dutyConflict(
+                    "principal cannot hold conflicting platform admin duties in this tenant");
+        }
         PolicyRepository.AssignmentRecord saved = repository.saveAssignment(new PolicyRepository.AssignmentRecord(
                 UuidV7.generate(), context.tenantId(), principalType, principalId, role.id(), role.code()));
         bump(context.tenantId());
@@ -109,6 +143,29 @@ public final class PolicyAdminService {
         return saved;
     }
 
+    private Set<String> assignedRoleCodes(UUID tenantId, String principalType, String principalId) {
+        Set<String> codes = new HashSet<>();
+        for (PolicyRepository.AssignmentRecord item : repository.listAssignments(tenantId)) {
+            if (principalType.equals(item.principalType()) && principalId.equals(item.principalId())) {
+                codes.add(item.roleCode());
+            }
+        }
+        return codes;
+    }
+
+    private void expandInherited(UUID tenantId, Set<String> roles) {
+        PolicySnapshot snapshot = repository.loadSnapshot(tenantId);
+        List<String> pending = new ArrayList<>(roles);
+        while (!pending.isEmpty()) {
+            String role = pending.removeLast();
+            for (String parent : snapshot.roleParents().getOrDefault(role, Set.of())) {
+                if (roles.add(parent)) {
+                    pending.add(parent);
+                }
+            }
+        }
+    }
+
     private void bump(UUID tenantId) {
         repository.bumpVersion(tenantId);
         invalidation.notifyTenant(tenantId.toString());
@@ -126,6 +183,26 @@ public final class PolicyAdminService {
         }
         audits.append(AuditCaptures.permission(
                 granted,
+                context.tenantId(),
+                context.personId(),
+                resourceType,
+                resourceId,
+                reason,
+                TraceIds.currentOrUnknown(),
+                details));
+    }
+
+    private void appendPermissionDenied(
+            TenantContext context,
+            String resourceType,
+            String resourceId,
+            String reason,
+            Map<String, ?> details) {
+        if (audits == null) {
+            return;
+        }
+        audits.appendNewTransaction(AuditCaptures.permission(
+                false,
                 context.tenantId(),
                 context.personId(),
                 resourceType,
