@@ -13,7 +13,7 @@
 | 运行方式 | 本机 JAR/进程 | **不使用 Docker / Compose** |
 | 凭据 | 环境变量 | `NEXUS_DB_URL` / `NEXUS_DB_USER` / `NEXUS_DB_PASSWORD`，仓库不提交密码 |
 
-未宣称：目标 Linux/ARM Profile、安装/升级/回滚/离线包、SBOM、GaussDB、容量阈值、1000 租户上限。S0+S1 采集脚本与本机 x86_64 / aarch64 SKIP 矩阵见 [linux-arm-profile-EVIDENCE.md](./linux-arm-profile-EVIDENCE.md)；安装/升级/回滚/离线/SBOM leftover 见 [linux-arm-profile-lifecycle-EVIDENCE.md](./linux-arm-profile-lifecycle-EVIDENCE.md)；**不得把该证据包当作 Profile 验收关闭。**
+未宣称：目标 Linux/ARM Profile、安装/升级/回滚/离线包、SBOM、GaussDB、容量阈值、1000 租户上限。S0+S1 采集脚本与本机 x86_64 / aarch64 SKIP 矩阵见 [linux-arm-profile-EVIDENCE.md](./linux-arm-profile-EVIDENCE.md)；安装/升级/回滚/离线/SBOM leftover 见 [linux-arm-profile-lifecycle-EVIDENCE.md](./linux-arm-profile-lifecycle-EVIDENCE.md)；`TARGET-ARM-01` / `supply-chain-evidence.csv` 诚实 leftover 见 [linux-arm-profile-honesty.md](../linux-arm-profile-honesty.md)（仍 `not-tested` / `not-collected`）；**不得把该证据包当作 Profile 验收关闭。**
 
 Flowable 7.1.0 在 P0 与 Spring Boot 3.3 PoC 组合验证。M0-08 在 `nexus-p3-studio` 以 `flowable-spring` `SpringProcessEngineConfiguration` 证明 **7.1.0 可与 Boot 4.1.1 同 JVM 进程内运行**；产品不使用 7.1.0 Boot starter（仍引用 Boot 3 Kafka auto-config）。官方 Boot 4 线为 Flowable 8.0.x，本工作包不改 P0 钉扎。
 

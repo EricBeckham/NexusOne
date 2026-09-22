@@ -4,7 +4,7 @@ Recorded on this agent VM against `origin/main` `3be6d11` (Merge #126). Operator
 
 **Product target Linux/ARM Profile is NOT accepted.** This is the leftover called out after the #105 collect/verify package in [linux-arm-profile-EVIDENCE.md](./linux-arm-profile-EVIDENCE.md), [团队领取任务清单](../planning/团队领取任务清单_V1.1.md), and [M0-01](./m0-01-engineering-foundation.md). It adds a reproducible install / upgrade / rollback / offline-bundle / SBOM drill that this host can actually run. It is **not** P0-10 / M0-01 redone, **not** GaussDB, **not** a G18 reopen, **does not** change `AuditPort`, and is orthogonal to #114 / #115 / #119 / #121 / #122 / #123 / #126.
 
-G18 stays closed (`docs/g18-business-path.md`). `TARGET-ARM-01` in `poc/p0-10/deployment-matrix.csv` stays `not-tested`. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`.
+G18 stays closed (`docs/g18-business-path.md`). `TARGET-ARM-01` in `poc/p0-10/deployment-matrix.csv` stays `not-tested`. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`. A this-host x86 leftover note is **not** an aarch64 PASS. The honesty leftover that locks those two cells (without re-running this lifecycle package) is [linux-arm-profile-honesty.md](../linux-arm-profile-honesty.md).
 
 ## Verdict
 

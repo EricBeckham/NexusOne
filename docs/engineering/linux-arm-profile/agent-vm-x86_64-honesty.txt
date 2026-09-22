@@ -1,0 +1,38 @@
+# Sanitized agent-VM TARGET-ARM-01 / supply-chain honesty leftover output
+# Host: Ubuntu x86_64 (not ARM). Docker not used.
+# Rebased onto origin/main 5496a6c / #163.
+# profile_acceptance=NOT_CLAIMED
+# TARGET-ARM-01 stays not-tested. supply-chain-evidence.csv stays not-collected.
+# This leftover does not re-run #105 collect or #127 lifecycle.
+
+schema_version=1
+timestamp_utc=2026-09-22T19:05:27Z
+host_uname_m=x86_64
+host_arch_family=x86_64
+java_feature=21
+boot_parent_version=4.1.1
+boot_parent_match=PASS
+docker_used=false
+collect_rerun=false
+lifecycle_rerun=false
+target_arm_01_status=not-tested
+target_arm_01_install=not-tested
+target_arm_01_upgrade=not-tested
+target_arm_01_rollback=not-tested
+target_arm_01_offline=not-tested
+target_arm_01_crypto_international=not-tested
+target_arm_01_crypto_gm=not-tested
+supply_chain_rows=11
+supply_chain_status=not-collected
+supply_chain_any_collected=false
+committed_collect_aarch64_build=SKIP
+committed_collect_profile_acceptance=NOT_CLAIMED
+committed_lifecycle_aarch64_install=SKIP
+committed_lifecycle_profile_acceptance=NOT_CLAIMED
+committed_lifecycle_x86_64_install=pending-first-run
+x86_lifecycle_note=committed #127 artifact host_uname_m=x86_64 x86_64_install=pending-first-run; aarch64_install/upgrade/rollback/offline/sbom=SKIP; this leftover does not re-run lifecycle.sh; x86 leftover cells are this-host only and are not an aarch64 PASS
+aarch64_pass_claimed=false
+profile_acceptance=NOT_CLAIMED
+g18_status=closed_unchanged
+audit_port_changed=false
+p0_m0_redone=false

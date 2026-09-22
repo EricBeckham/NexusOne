@@ -4,7 +4,7 @@ Recorded **2026-09-22T17:11:54Z** on this agent VM after rebase onto `origin/mai
 
 **Product target Linux/ARM Profile is NOT accepted.** This package is the leftover called out in [团队领取任务清单](../planning/团队领取任务清单_V1.1.md) and [M0-01](./m0-01-engineering-foundation.md): a reproducible collect/verify script, a PASS/SKIP matrix, and what this agent VM can actually run. It is **not** P0-10 / M0-01 redone, **not** GaussDB, **not** a G18 reopen, and **does not** change `AuditPort`. Install / upgrade / rollback / offline / SBOM leftover (still **not** Profile close) is [linux-arm-profile-lifecycle-EVIDENCE.md](./linux-arm-profile-lifecycle-EVIDENCE.md).
 
-G18 stays closed (`docs/g18-business-path.md`). `TARGET-ARM-01` in `poc/p0-10/deployment-matrix.csv` stays `not-tested`.
+G18 stays closed (`docs/g18-business-path.md`). `TARGET-ARM-01` in `poc/p0-10/deployment-matrix.csv` stays `not-tested`. `poc/p0-10/supply-chain-evidence.csv` stays `not-collected`. The honesty leftover that locks those two cells (without re-running this collect package) is [linux-arm-profile-honesty.md](../linux-arm-profile-honesty.md).
 
 ## Verdict
 
