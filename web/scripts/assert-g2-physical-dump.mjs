@@ -73,7 +73,7 @@ requireIncludes("Java catalog", files.javaCatalog, [
   "DUMP_RESOURCE = SurfaceCatalog.EXPORT_RESOURCE",
 ]);
 requireIncludes("Java DumpSurfaceGuard", files.javaGuard, [
-  "SurfaceGuard.requireAllowed",
+  "SurfaceGuard.require(permission",
   "requireRead",
   "requireDump",
 ]);

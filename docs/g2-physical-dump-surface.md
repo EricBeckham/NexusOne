@@ -2,7 +2,7 @@
 
 S0+S1 leftover from [g2-permission.md](./g2-permission.md): physical dump / raw export were not on this engine. Report query/export is already on `main` via #124 ([g2-report-surface-guard.md](./g2-report-surface-guard.md)). This package wires the leftover dump HTTP through the **same** `PermissionService.decide` `Decision` as desktop list / AuthorizedExport (`SurfaceGuard` / `POST /api/v1/permission/check`). **This is not a product-wide G2 close.** Desktop ledger / form / todo / report pages are unchanged. **G18 stays closed.** AuditPort is unchanged.
 
-Reuse only: M0-05 `PermissionEngine` and the existing list (`ledger` / `read`) plus AuthorizedExport (`ledger.export.csv` / `submit`) cells. Dump uses `AuthorizedExport.writeProjected` (raw CSV). Report export stays Task `AuthorizedExport.submit`. Java 21 / Boot **4.1.1**. No Docker. Orthogonal to G15 WeChat/DingTalk stub (#132), G4 PKCE click (#125), G4 SurfaceGuard deny audit (#136), G6 RecoveryPort dry-run (#135), G1 QueryAst product opt-in (#130), S0+S1 claim-list tip align (#138), and G7 expense/travel query (#140). Dump `require` reuses the #136 `SurfaceGuard.require(PermissionModule)` path; AuditPort same-TX is unchanged.
+Reuse only: M0-05 `PermissionEngine` and the existing list (`ledger` / `read`) plus AuthorizedExport (`ledger.export.csv` / `submit`) cells. Dump uses `AuthorizedExport.writeProjected` (raw CSV). Report export stays Task `AuthorizedExport.submit`. Java 21 / Boot **4.1.1**. No Docker. Orthogonal to G15 WeChat/DingTalk stub (#132), G4 PKCE click (#125), G4 SurfaceGuard deny audit (#136), G6 RecoveryPort dry-run (#135), G1 QueryAst product opt-in (#130), G1 export FieldPolicy drop (#134), S0+S1 claim-list tip align (#138), and G7 expense/travel query (#140). Dump `require` reuses the #136 `SurfaceGuard.require(PermissionModule)` path; AuditPort same-TX is unchanged.
 
 ## What this package adds
 
@@ -48,4 +48,4 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 ./scripts/g2-physical-dump-surface.sh
 ```
 
-Recorded on this agent VM after the change (OpenJDK / Maven / Boot / Node versions filled from the test run). Isolation-only hosts without P2 stay tenant-only. Desktop P3 ledger / form / todo / report views still do not import the dump helper. No live JAR + issued-context browser walk on this VM.
+Recorded on this agent VM after rebase onto `origin/main` `6fce50d` (Merge #134). OpenJDK **21.0.10**, Maven **3.8.7**, Boot **4.1.1**, Node **v22.14.0**, npm **10.9.7**, Vitest **3.2.7**. JS: `dumpGuard.test.js` 5/5 PASS; `assert:g2-physical-dump` PASS; `assert:g2-report-surface` PASS. `mvn -pl … -am` is blocked by pre-existing G17 `DualStackTlsProbe` (`SignatureAndHashAlgorithm.ecdsa_secp256r1_sha256`) — not this leftover. Isolation-only hosts without P2 stay tenant-only. Desktop P3 ledger / form / todo / report views still do not import the dump helper. No live JAR + issued-context browser walk on this VM.
