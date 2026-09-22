@@ -3,7 +3,7 @@
 Work package: **mobile** pages. First acceptance host is a **mobile browser**.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledger / form / todo pages are not part of this change.
 
-**This does not close product G15.** 需求规格 V1.1 §12 still requires other hosts (APP WebView native binary / WeChat/DingTalk production) on the same contract. A **simulated** 小程序 web-view parent is in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). The APP WebView *envelope* is walked by a web harness in [g15-app-webview-host.md](./g15-app-webview-host.md); the native package stays open. A WeChat / DingTalk **production-host contract stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md); production is not accepted. An APP WebView **native-bridge stub** is [g15-native-bridge-stub.md](./g15-native-bridge-stub.md); it is not a store-ready package. Native-bridge **honesty leftover** is [g15-native-bridge-honesty.md](./g15-native-bridge-honesty.md); it is not IPA/APK production accept. Production mini-program **acceptance-gap honesty** is [g15-wx-dt-prod-gap-honesty.md](./g15-wx-dt-prod-gap-honesty.md); it is not production验收. P0 / M0 / G18 are not redone.
+**This does not close product G15.** 需求规格 V1.1 §12 still requires other hosts (APP WebView native binary / WeChat/DingTalk production) on the same contract. A **simulated** 小程序 web-view parent is in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). The APP WebView *envelope* is walked by a web harness in [g15-app-webview-host.md](./g15-app-webview-host.md); the native package stays open. A WeChat / DingTalk **production-host contract stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md); production is not accepted. An APP WebView **native-bridge stub** is [g15-native-bridge-stub.md](./g15-native-bridge-stub.md); it is not a store-ready package. Native-bridge **honesty leftover** is [g15-native-bridge-honesty.md](./g15-native-bridge-honesty.md); it is not IPA/APK production accept. Production mini-program **acceptance-gap honesty** is [g15-wx-dt-prod-gap-honesty.md](./g15-wx-dt-prod-gap-honesty.md); it is not production验收. Combined WeChat / DingTalk prod-gap + native-bridge **PASS/SKIP leftover** is [g15-wx-dt-native-bridge-honesty.md](./g15-wx-dt-native-bridge-honesty.md); it does not redo #151/#167/#181. P0 / M0 / G18 are not redone.
 
 ## What is closed on the mobile browser
 
@@ -51,8 +51,9 @@ Business pages do not branch on WeChat / DingTalk (H5 规范 §80.2). All host d
 | APP WebView web harness | Same F014 envelope walked in [g15-app-webview-host.md](./g15-app-webview-host.md). |
 | APP WebView native-bridge stub | Same F014 envelope walked in [g15-native-bridge-stub.md](./g15-native-bridge-stub.md). Not store-ready. |
 | APP WebView native-bridge honesty | Honest PASS/SKIP beyond #151 in [g15-native-bridge-honesty.md](./g15-native-bridge-honesty.md). Not IPA/APK production accept. |
+| WeChat / DingTalk + native-bridge honesty | Honest PASS/SKIP beyond #167/#181 in [g15-wx-dt-native-bridge-honesty.md](./g15-wx-dt-native-bridge-honesty.md). Harness PASS; live host SKIP. Not IPA/APK. |
 | APP WebView native binary | **Not accepted.** No iOS / Android store package. Native-bridge stub / honesty leftover are not that leftover. |
-| 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). Production-host **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). Production-gap **honesty stub** is [g15-wx-dt-prod-gap-honesty.md](./g15-wx-dt-prod-gap-honesty.md). **WeChat / DingTalk production not accepted.** |
+| 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). Production-host **stub** is [g15-wx-dt-prod-host.md](./g15-wx-dt-prod-host.md). Production-gap **honesty stub** is [g15-wx-dt-prod-gap-honesty.md](./g15-wx-dt-prod-gap-honesty.md). Combined leftover is [g15-wx-dt-native-bridge-honesty.md](./g15-wx-dt-native-bridge-honesty.md). **WeChat / DingTalk production not accepted.** |
 | Keycloak Authorization Code + PKCE | Mobile-browser leftover is [g15-h5-pkce-browser.md](./g15-h5-pkce-browser.md) (Playwright/stub). Live Keycloak laptop click / other hosts stay open. |
 | F010 full H5 runtime | Mobile-browser pages now in [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). Other hosts / PKCE still open. |
 | Live S3 / MinIO download | Product default `nexus.files.storage=memory`. Signed URL against real S3 is M0-10, not re-run here. |
@@ -72,6 +73,7 @@ npm run assert:h5-app-webview
 npm run assert:h5-wx-dt
 npm run assert:h5-native-bridge
 npm run assert:h5-native-bridge-honesty
+npm run assert:h5-wx-dt-native-bridge-honesty
 npm run assert:h5-pkce
 npm run assert:isolation
 npm run assert:p3-live
@@ -101,6 +103,8 @@ Live upload needs the JAR + issued `X-Nexus-Context-Id` (tenant membership). Mis
 `npm run assert:h5-native-bridge` — native-bridge stub (iOS WK / Android JS shapes). Not a store-ready APP. Contrasts #114/#117/#132.
 
 `npm run assert:h5-native-bridge-honesty` — native-bridge honesty leftover beyond #151. Stub contract PASS; IPA/APK SKIP. Not product G15 close.
+
+`npm run assert:h5-wx-dt-native-bridge-honesty` — WeChat / DingTalk prod-gap + native-bridge honesty leftover beyond #167/#181. Harness PASS; live host SKIP. Not product G15 close.
 
 ## Browser walk (F011 / F012 / F013 — #75, 2026-09-22)
 
