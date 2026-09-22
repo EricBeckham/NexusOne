@@ -43,7 +43,7 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 | Still open | Why |
 |---|---|
 | OR / multi-value IN DataScope | Query AST filters are single-value equality. `DEPT_AND_CHILDREN`, SPECIFIED lists, and SELF∨DEPT stay on `PermissionQueryBinder`. |
-| FieldPolicy mask / second-auth | AST / export can drop hidden columns. Mask merge and second-auth still run in `FieldPolicyProjector`. Export still rejects second-auth without grant. |
+| FieldPolicy mask / second-auth | Honesty leftover: [g1-fieldpolicy-mask-second-auth.md](./g1-fieldpolicy-mask-second-auth.md). AST / export can drop hidden columns. Mask merge and second-auth still run in `FieldPolicyProjector`. Export still rejects second-auth without grant. |
 | Product list / detail SQL | Ledger list/detail now opt in ([g1-queryast-product-optin.md](./g1-queryast-product-optin.md), #130). `PermissionDataScopeHook` / `PermissionService.scopedQuery` still bind `ScopedQuery` strings. Not this leftover. |
 | Report UI / physical ledger dump | Unchanged. `ledger.export.csv` is still the Task type. |
 | Silent drop on API reads | Unchanged for callers that still project rows after fetch. AST / export drop is opt-in (`IsolatedExport.compile` / `encode`). |

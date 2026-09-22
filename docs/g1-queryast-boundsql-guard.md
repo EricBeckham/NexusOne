@@ -41,7 +41,7 @@ This is **not** a product-wide “zero leak” close and **not** a full G1 close
 | Still open | Why |
 |---|---|
 | Mixed-column OR (SELF∨DEPT) | Query AST filters stay AND of column atoms. Leftover is guarded, not encoded. |
-| FieldPolicy mask / second-auth | AST / export drop hidden columns. Mask merge and second-auth still run in `FieldPolicyProjector`. |
+| FieldPolicy mask / second-auth | Honesty leftover: [g1-fieldpolicy-mask-second-auth.md](./g1-fieldpolicy-mask-second-auth.md). AST / export drop hidden columns. Mask merge and second-auth still run in `FieldPolicyProjector`. |
 | `COUNT(*)` wrap | Totals still wrap compiled SELECT text. Not a Query AST node. |
 | Callers that still skip | `PermissionService.scopedQuery`, hook `.query()` strings, and any adapter that still builds `BoundSql` without `QueryAstScopedQuery`. |
 | Report UI / physical ledger dump | Unchanged. |
