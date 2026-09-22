@@ -81,8 +81,9 @@ npm run assert:h5-app-webview
 ```
 
 ```text
-Recorded 2026-09-22T17:35:24Z  Node 22.14.0  Vitest 3.2.7  Vite 6.4.3
-vitest run  28 passed (28)  hostBridge 15  appWebViewHost 5
+Re-run after rebase onto origin/main 440a504 (#113 G7 browser withdraw).
+Recorded 2026-09-22T17:41:44Z  Node 22.14.0  Vitest 3.2.7
+vitest run  29 passed (29)  hostBridge 15  appWebViewHost 5  todo-withdraw 1
 assert:h5              PASS  desktop P3 untouched; native APP leftover
 assert:h5-host         PASS  mobile-browser F014; native APP leftover
 assert:h5-app-webview  PASS  same envelope login/route/file/close; native APP leftover
@@ -92,4 +93,6 @@ assert:p3-live         PASS
 vite build             95 modules, AppWebViewHarnessPage emitted
 ```
 
-Browser walk of `/m/app-webview-harness` is recorded after the first push. Product G15 remains **open**.
+Conflict resolution was docs index only: keep [g15-app-webview-host.md](./g15-app-webview-host.md) and main's G7 browser-withdraw leftover row. No TenantContext / AuditPort / G18 / P0 / M0 edits.
+
+Product G15 remains **open**. Native APP binary is not claimed.
