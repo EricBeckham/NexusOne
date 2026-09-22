@@ -33,7 +33,7 @@ DOC_184="$ROOT/docs/g1-fieldpolicy-mask-second-auth-honesty.md"
 DOC_215="$ROOT/docs/g1-queryast-export-honesty.md"
 DOC_238="$ROOT/docs/g1-fieldpolicy-mask-second-auth-remainder-honesty.md"
 
-REQUIRED_LEFTOVER_ROWS="g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g1-fieldpolicy-mask-second-auth-remainder-honesty g1-fieldpolicy-mask-boundsql-export-remainder-honesty g1-queryast-export-honesty g1-queryast-boundsql-guard g1-queryast-boundsql-honesty g1-export-fieldpolicy-drop g1-datascope-or-in-ast linux-arm-profile-remainder-honesty linux-arm-profile-honesty linux-arm-profile-leftover-honesty g2-h5-every-page-form-write-report-remainder-honesty g15-h5-pkce-miniprogram-remainder-honesty g17-separation-leftover-honesty-remainder g4-hot-purge-staging-pkce-remainder-honesty g4-hot-purge-staging-leftover-honesty g4-pkce-spa-verifier-remainder-honesty g10-file-object-reconcile-remainder-honesty g10-leftover-honesty-remainder g10-leftover-honesty g10-file-reconcile-honesty g2-h5-every-page-form-write-remainder-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder-honesty g9-redis-down-invalidate-remainder g7-query-expense-travel-honesty-remainder g17-mfa-recovery-vue-otp-remainder-honesty g5-publishhook-ddl-remainder-honesty s0-secret-rotate-getenv-leftover-honesty g7-withdraw-browser-evidence-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder g17-gm-tls-nginx-handshake-honesty g5-publishhook-ddl-honesty g9-sentinel-cluster-remainder-honesty g2-ops-pg-dump-honesty"
+REQUIRED_LEFTOVER_ROWS="g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g1-fieldpolicy-mask-second-auth-remainder-honesty g1-fieldpolicy-mask-boundsql-export-remainder-honesty g1-queryast-export-honesty g1-queryast-boundsql-guard g1-queryast-boundsql-honesty g1-export-fieldpolicy-drop g1-datascope-or-in-ast linux-arm-profile-remainder-honesty linux-arm-profile-honesty linux-arm-profile-leftover-honesty g2-h5-every-page-form-write-report-remainder-honesty g15-h5-pkce-miniprogram-remainder-honesty g17-separation-leftover-honesty-remainder g9-leftover-honesty-remainder g4-hot-purge-staging-pkce-remainder-honesty g4-hot-purge-staging-leftover-honesty g4-pkce-spa-verifier-remainder-honesty g10-file-object-reconcile-remainder-honesty g10-leftover-honesty-remainder g10-leftover-honesty g10-file-reconcile-honesty g2-h5-every-page-form-write-remainder-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder-honesty g9-redis-down-invalidate-remainder g7-query-expense-travel-honesty-remainder g17-mfa-recovery-vue-otp-remainder-honesty g5-publishhook-ddl-remainder-honesty s0-secret-rotate-getenv-leftover-honesty g7-withdraw-browser-evidence-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder g17-gm-tls-nginx-handshake-honesty g5-publishhook-ddl-honesty g9-sentinel-cluster-remainder-honesty g2-ops-pg-dump-honesty"
 
 SIBLING_ROWS="
 g1-fieldpolicy-mask-second-auth
@@ -51,6 +51,7 @@ g2-h5-every-page-form-write-report-remainder-honesty
 g15-h5-pkce-miniprogram-remainder-honesty
 g17-separation-leftover-honesty-remainder
 g17-separation-leftover-honesty
+g9-leftover-honesty-remainder
 g4-hot-purge-staging-pkce-remainder-honesty
 g4-hot-purge-staging-leftover-honesty
 g4-hot-purge-90d-honesty
@@ -166,7 +167,7 @@ verify_report() {
 
 verify_report_inner() {
   local file="$1"
-  local required="schema_version timestamp_utc java_feature boot_parent_version boot_parent_match docker_used leftover_162_cells_honest leftover_184_cells_honest leftover_215_cells_honest leftover_238_cells_honest leftover_184_honesty_gate leftover_215_honesty_gate leftover_238_honesty_gate leftover_beside_ast leftover_boundsql_guard leftover_count_guard leftover_export_hidden_drop mask_on_ast second_auth_on_ast isolated_export_applies_mask count_is_ast_node raw_boundsql_rejected leftover_surface leftover_rows_kept leftover_rows leftover_rows_all leftover_184_kept leftover_215_kept leftover_238_kept leftover_249_kept leftover_240_kept leftover_254_kept leftover_236_kept leftover_251_kept leftover_243_kept leftover_228_kept leftover_232_kept leftover_237_kept leftover_239_kept harness_238_is_not_live_jar harness_238_is_not_live_export_mask harness_238_is_not_product_g1 harness_215_is_not_live_jar live_jar_endpoint_set live_jar_context_set live_jar_listener live_jar_present live_api_mask live_api_mask_observed live_api_mask_skip_reason live_export_mask live_export_mask_observed live_export_mask_skip_reason live_second_auth live_second_auth_observed live_second_auth_skip_reason live_boundsql_count live_boundsql_list_observed live_boundsql_count_observed live_boundsql_skip_reason live_export_fieldpolicy_drop live_export_drop_observed live_export_drop_skip_reason ui_h5_report ui_h5_report_skip_reason honesty_184_rerun honesty_215_rerun honesty_238_rerun redone_184 redone_215 redone_238 g1_close g18_status audit_port_changed p0_m0_redone"
+  local required="schema_version timestamp_utc java_feature boot_parent_version boot_parent_match docker_used leftover_162_cells_honest leftover_184_cells_honest leftover_215_cells_honest leftover_238_cells_honest leftover_184_honesty_gate leftover_215_honesty_gate leftover_238_honesty_gate leftover_beside_ast leftover_boundsql_guard leftover_count_guard leftover_export_hidden_drop mask_on_ast second_auth_on_ast isolated_export_applies_mask count_is_ast_node raw_boundsql_rejected leftover_surface leftover_rows_kept leftover_rows leftover_rows_all leftover_184_kept leftover_215_kept leftover_238_kept leftover_259_kept leftover_249_kept leftover_240_kept leftover_254_kept leftover_236_kept leftover_251_kept leftover_243_kept leftover_228_kept leftover_232_kept leftover_237_kept leftover_239_kept harness_238_is_not_live_jar harness_238_is_not_live_export_mask harness_238_is_not_product_g1 harness_215_is_not_live_jar live_jar_endpoint_set live_jar_context_set live_jar_listener live_jar_present live_api_mask live_api_mask_observed live_api_mask_skip_reason live_export_mask live_export_mask_observed live_export_mask_skip_reason live_second_auth live_second_auth_observed live_second_auth_skip_reason live_boundsql_count live_boundsql_list_observed live_boundsql_count_observed live_boundsql_skip_reason live_export_fieldpolicy_drop live_export_drop_observed live_export_drop_skip_reason ui_h5_report ui_h5_report_skip_reason honesty_184_rerun honesty_215_rerun honesty_238_rerun redone_184 redone_215 redone_238 g1_close g18_status audit_port_changed p0_m0_redone"
   local key
   for key in $required; do
     [ -n "$(report_get "$file" "$key")" ] || { echo "FAIL: missing key $key in $file" >&2; return 1; }
@@ -208,6 +209,7 @@ verify_report_inner() {
   [ "$(report_get "$file" leftover_184_kept)" = "true" ] || { echo "FAIL: leftover_184_kept must stay true" >&2; return 1; }
   [ "$(report_get "$file" leftover_215_kept)" = "true" ] || { echo "FAIL: leftover_215_kept must stay true" >&2; return 1; }
   [ "$(report_get "$file" leftover_238_kept)" = "true" ] || { echo "FAIL: leftover_238_kept must stay true" >&2; return 1; }
+  [ "$(report_get "$file" leftover_259_kept)" = "true" ] || { echo "FAIL: leftover_259_kept must stay true (keep g9-leftover-honesty-remainder)" >&2; return 1; }
   [ "$(report_get "$file" leftover_249_kept)" = "true" ] || { echo "FAIL: leftover_249_kept must stay true (keep g17-separation-leftover-honesty-remainder)" >&2; return 1; }
   [ "$(report_get "$file" leftover_240_kept)" = "true" ] || { echo "FAIL: leftover_240_kept must stay true (keep g15-h5-pkce-miniprogram-remainder-honesty)" >&2; return 1; }
   [ "$(report_get "$file" leftover_254_kept)" = "true" ] || { echo "FAIL: leftover_254_kept must stay true (keep g2-h5-every-page-form-write-report-remainder-honesty)" >&2; return 1; }
@@ -420,6 +422,8 @@ for row in $SIBLING_ROWS; do
 done
 grep -q '\[g1-fieldpolicy-mask-boundsql-export-remainder-honesty\](\./g1-fieldpolicy-mask-boundsql-export-remainder-honesty.md)' "$README" \
   || fail "docs/README.md must list this leftover row"
+grep -q '\[g9-leftover-honesty-remainder\](\./g9-leftover-honesty-remainder.md)' "$README" \
+  || fail "docs/README.md must keep sibling leftover g9-leftover-honesty-remainder (#259)"
 grep -q '\[g17-separation-leftover-honesty-remainder\](\./g17-separation-leftover-honesty-remainder.md)' "$README" \
   || fail "docs/README.md must keep sibling leftover g17-separation-leftover-honesty-remainder (#249)"
 grep -q '\[g15-h5-pkce-miniprogram-remainder-honesty\](\./g15-h5-pkce-miniprogram-remainder-honesty.md)' "$README" \
@@ -520,6 +524,7 @@ LEFTOVER_ROWS_KEPT=true
 LEFTOVER_184_KEPT=false
 LEFTOVER_215_KEPT=false
 LEFTOVER_238_KEPT=false
+LEFTOVER_259_KEPT=false
 LEFTOVER_249_KEPT=false
 LEFTOVER_240_KEPT=false
 LEFTOVER_254_KEPT=false
@@ -536,6 +541,7 @@ for required_row in $REQUIRED_LEFTOVER_ROWS; do
       g1-fieldpolicy-mask-second-auth-honesty) LEFTOVER_184_KEPT=true ;;
       g1-queryast-export-honesty) LEFTOVER_215_KEPT=true ;;
       g1-fieldpolicy-mask-second-auth-remainder-honesty) LEFTOVER_238_KEPT=true ;;
+      g9-leftover-honesty-remainder) LEFTOVER_259_KEPT=true ;;
       g17-separation-leftover-honesty-remainder) LEFTOVER_249_KEPT=true ;;
       g15-h5-pkce-miniprogram-remainder-honesty) LEFTOVER_240_KEPT=true ;;
       g2-h5-every-page-form-write-report-remainder-honesty) LEFTOVER_254_KEPT=true ;;
@@ -556,6 +562,7 @@ done
 [ "$LEFTOVER_184_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g1-fieldpolicy-mask-second-auth-honesty (#184)"
 [ "$LEFTOVER_215_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g1-queryast-export-honesty (#215)"
 [ "$LEFTOVER_238_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g1-fieldpolicy-mask-second-auth-remainder-honesty (#238)"
+[ "$LEFTOVER_259_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g9-leftover-honesty-remainder (#259)"
 [ "$LEFTOVER_249_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g17-separation-leftover-honesty-remainder (#249)"
 [ "$LEFTOVER_240_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g15-h5-pkce-miniprogram-remainder-honesty (#240)"
 [ "$LEFTOVER_254_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g2-h5-every-page-form-write-report-remainder-honesty (#254)"
@@ -639,6 +646,7 @@ REPORT="$OUT/report.env"
   kv leftover_184_kept "$LEFTOVER_184_KEPT"
   kv leftover_215_kept "$LEFTOVER_215_KEPT"
   kv leftover_238_kept "$LEFTOVER_238_KEPT"
+  kv leftover_259_kept "$LEFTOVER_259_KEPT"
   kv leftover_249_kept "$LEFTOVER_249_KEPT"
   kv leftover_240_kept "$LEFTOVER_240_KEPT"
   kv leftover_254_kept "$LEFTOVER_254_KEPT"
