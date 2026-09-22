@@ -80,7 +80,7 @@ Redis `INFO server`: `redis_version:3.2.13`, `redis_mode:standalone`. No Sentine
 
 ## G9 remainder (this PR)
 
-PolicySnapshot version polling + Redis invalidate-only wiring. **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. Orthogonal to G2 PR #73.
+PolicySnapshot version polling + Redis invalidate-only wiring. **Not** a full G9 failover close. **Not** a `tenant_member` completeness close. G2 matrix is on `main` (#73). Redis-down / decide==durable evidence stays on open [#83](https://github.com/EricBeckham/NexusOne/pull/83) (`docs/g9-policysnapshot-invalidate.md`).
 
 Recorded **2026-09-22T15:42:29Z** on this agent VM. OpenJDK **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. Zonky in-process PostgreSQL **15.18**. No Docker. No live `127.0.0.1:5432` / Redis 3.2 listener.
 

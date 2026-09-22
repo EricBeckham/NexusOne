@@ -1,6 +1,8 @@
 # G9 remainder: PolicySnapshot version poll + Redis invalidate-only
 
-S0+S1 PostgreSQL slice. Orthogonal to G2 PR #73 (role matrix / same-engine surfaces). G18 stays closed. This does **not** treat `tenant_member` as permission-complete and does **not** claim full G9 failover.
+S0+S1 PostgreSQL slice. G2 role matrix is already on `main` (#73). G18 stays closed. This does **not** treat `tenant_member` as permission-complete and does **not** claim full G9 failover.
+
+Open sibling [#83](https://github.com/EricBeckham/NexusOne/pull/83) records Redis-down / `decide == durable PermissionEngine` failover evidence in `docs/g9-policysnapshot-invalidate.md`. This PR owns version poll, `PolicySnapshotPoller`, and the `PermissionModule` listener. Indexes list both.
 
 ## What this close covers
 
