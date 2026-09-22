@@ -1,0 +1,40 @@
+name: isolation-kernel
+
+on:
+  push:
+    paths:
+      - "modules/isolation-kernel/**"
+      - ".github/workflows/isolation-kernel.yml"
+  pull_request:
+    paths:
+      - "modules/isolation-kernel/**"
+      - ".github/workflows/isolation-kernel.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Isolation kernel tests (Java 21 + embedded PostgreSQL 15)
+        run: mvn -B -f modules/isolation-kernel/pom.xml test
+      - name: Static SQL-bypass gate (positive fixtures must pass)
+        run: >
+          mvn -B -f modules/isolation-kernel/pom.xml -q exec:java
+          -Dexec.args="--source modules/isolation-kernel/src/test/resources/sql-bypass-fixtures/positive --infra modules/isolation-kernel/src/test/resources/sql-bypass-fixtures/positive/infrastructure"
+      - name: Static SQL-bypass gate (jdbc fixture must fail)
+        run: |
+          set +e
+          mvn -B -f modules/isolation-kernel/pom.xml -q exec:java \
+            -Dexec.args="--source modules/isolation-kernel/src/test/resources/sql-bypass-fixtures/negative/jdbc"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "expected jdbc fixture to fail the static gate"
+            exit 1
+          fi
+          echo "PASS static rejection: jdbc"
