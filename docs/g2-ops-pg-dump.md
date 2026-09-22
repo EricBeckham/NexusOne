@@ -1,6 +1,6 @@
 # G2 leftover — ops-level `pg_dump` honesty (out of SurfaceGuard)
 
-S0+S1 leftover from [g2-permission.md](./g2-permission.md) and [g2-physical-dump-surface.md](./g2-physical-dump-surface.md): product physical dump HTTP is already on `SurfaceGuard` via #137 (`AuthorizedExport.writeProjected`). Ops-level `pg_dump` is **not** that surface. This package **documents and statically guards** that boundary. **This is not a product-wide G2 close.**
+S0+S1 leftover from [g2-permission.md](./g2-permission.md) and [g2-physical-dump-surface.md](./g2-physical-dump-surface.md): product physical dump HTTP is already on `SurfaceGuard` via #137 (`AuthorizedExport.writeProjected`). Ops-level `pg_dump` is **not** that surface. This package **documents and statically guards** that boundary. **This is not a product-wide G2 close.** Honesty leftover beyond this page (ops `pg_dump` stays outside SurfaceGuard; live product-database dump is honest SKIP) is [g2-ops-pg-dump-honesty.md](./g2-ops-pg-dump-honesty.md). This #155 leftover is not rewritten.
 
 It does **not** redo #137 dump HTTP, #144 isolation-only `tenant_only` / catalog, or #150 todo HTTP. It does **not** put G6 runbooks through `SurfaceGuard`. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. **G18 stays closed.**
 
