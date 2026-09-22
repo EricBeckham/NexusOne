@@ -825,3 +825,97 @@
   font-size: 12px;
   color: #f6e05e;
 }
+
+.wx-dt-prod-gap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #1b2430;
+  color: #f4f7fb;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+}
+
+.wx-dt-prod-gap.wx-dt-prod-gap-wechat {
+  background: #1a261d;
+}
+
+.wx-dt-prod-gap.wx-dt-prod-gap-dingtalk {
+  background: #162433;
+}
+
+.wx-dt-prod-gap-banner,
+.wx-dt-prod-gap-console {
+  padding: 12px 16px;
+}
+
+.wx-dt-prod-gap-banner h1,
+.wx-dt-prod-gap-console h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.wx-dt-prod-gap-banner p,
+.wx-dt-prod-gap-console p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.wx-dt-prod-gap-badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #b45309;
+  color: #fff7ed;
+  font-size: 11px;
+}
+
+.wx-dt-prod-gap-vendor-switch,
+.wx-dt-prod-gap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.wx-dt-prod-gap-vendor-switch button,
+.wx-dt-prod-gap-actions button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #b45309;
+  color: #fff7ed;
+  font-size: 13px;
+}
+
+.wx-dt-prod-gap-dingtalk .wx-dt-prod-gap-actions button,
+.wx-dt-prod-gap-dingtalk .wx-dt-prod-gap-vendor-switch button {
+  background: #1d4ed8;
+}
+
+.wx-dt-prod-gap-console ul {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.wx-dt-prod-gap-console ol {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.wx-dt-prod-gap-leftover {
+  margin: 12px 0 8px;
+  font-size: 12px;
+  color: #f6e05e;
+}
+
+.wx-dt-prod-gap-link {
+  display: inline-block;
+  color: #93c5fd;
+  font-size: 13px;
+}
