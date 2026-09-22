@@ -363,7 +363,7 @@ export async function fillForm(id, body) {
   return wrap({
     record: submission,
     todo: null,
-    note: "POST /submissions 写入 form_submission（可带 ledger_record_id）。G18 顺序审批请走 submitStart。",
+    note: "POST /submissions 写入 form_submission（可带 ledger_record_id）。绑定 P2 时按 form.write 鉴权。G18 顺序审批请走 submitStart。",
   });
 }
 

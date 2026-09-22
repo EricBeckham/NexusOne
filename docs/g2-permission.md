@@ -4,7 +4,7 @@ S0+S1 PostgreSQL release work on M0-05 `PermissionEngine` / `PolicySnapshot`. **
 
 ## What closed on this slice
 
-List, detail, flow, form studio, export, Job, and Task interpret the **same** `PermissionService.decide` `Decision` through `SurfaceGuard`:
+List, detail, flow, form studio, form fill, export, Job, and Task interpret the **same** `PermissionService.decide` `Decision` through `SurfaceGuard`:
 
 | Surface | Entry | `no_grant` / `explicit_deny` / `tenant_boundary` |
 |---|---|---|
@@ -14,6 +14,8 @@ List, detail, flow, form studio, export, Job, and Task interpret the **same** `P
 | Flow start / approve / reject / withdraw | `SequentialApprovalService.guard` → `SurfaceGuard.require` | 403 (`P3.FLOW.0004`, same reason string) |
 | Form definition list / detail | `FormSurfaceGuard.requireRead` → `form` / `read` | 403 (`P2.PERM.0003` / `0002` / `0001`) |
 | Form create / update / validate / publish | `FormSurfaceGuard.requireWrite` → `form` / `write` | 403 (same codes) |
+| Form fill / `POST …/submissions` | `FormSurfaceGuard.requireFill` → `form` / `write` | 403 (same codes) **before** `form_submission` insert. Path `submit-start` stays the G18 walk. |
+| Form submission list | `FormSurfaceGuard.requireRead` → `form` / `read` | 403 (same codes) |
 | Export Task type `ledger.export.csv` | `AuthorizedExport` → `SurfaceGuard` then `IsolatedExport` | 403 (`P2.PERM.0003`) **before** file / cache / dispatch sinks. Cross-tenant remains `P1.M02.019`. |
 | Job / Task submit | `TaskSubmitGuard` → `AuthorizedSubmit` then enqueue | 403 **before** `ExecutionIsolation` / JDBC / Quartz. Isolation-only (no P2 context) still skips this engine. |
 | Export cache status | same export Task grant via `AuthorizedExport.cacheStatus` | cheap ride on `ledger.export.csv` / `submit`. General cache keys stay isolation-only. |
@@ -39,8 +41,7 @@ Turn the seed off with `NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS=false`. Permi
 This remainder does **not** close product-wide G2.
 
 - Report UI / physical ledger dump / H5 permission surfaces are **not** on this engine.
-- Form fill / `POST …/submissions` is still not claimed as `form.write` (path submit-start owns the runtime walk).
-- Isolation-only jobs with no P2 `TenantContext` still skip `AuthorizedSubmit` / list-detail tenant-only fallback (including studio-only form hosts that never bind P2).
+- Isolation-only jobs with no P2 `TenantContext` still skip `AuthorizedSubmit` / list-detail tenant-only fallback (including studio-only form hosts that never bind P2). Form fill HTTP without P2 still stays tenant-only (`FormApiTest`).
 - General cache (`CacheKeyGuard` / Redis) is still isolation-only; only IsolatedExport `cacheStatus` rides the export Task grant.
 - Direct `IsolatedExport` / `JdbcTaskQueue` callers that skip `AuthorizedExport` / `TaskSubmitGuard` are not a platform-wide “every API” close.
 - Isolation Query AST still cannot encode OR trees; OR DataScope stays on `PermissionQueryBinder`.
@@ -53,7 +54,7 @@ This remainder does **not** close product-wide G2.
 
 ```bash
 mvn -pl nexus-permission-core,nexus-p3-studio -am test \
-  -Dtest=G2SameEngineTest,G2ExportJobTaskEngineTest,G2AuthorizedExportTest,G2AuthorizedSubmitTest,G2RoleMatrixApiTest,G2SurfaceAgreementTest,PermissionDataScopeHookTest,FormSurfaceGuardTest,FormStudioPermissionApiTest,FieldPolicyProjectorTest,PermissionApiTest,TenantMemberGrantSeedApiTest \
+  -Dtest=G2SameEngineTest,G2ExportJobTaskEngineTest,G2AuthorizedExportTest,G2AuthorizedSubmitTest,G2RoleMatrixApiTest,G2SurfaceAgreementTest,PermissionDataScopeHookTest,FormSurfaceGuardTest,FormStudioPermissionApiTest,FormSubmissionWriteApiTest,FieldPolicyProjectorTest,PermissionApiTest,TenantMemberGrantSeedApiTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
@@ -69,4 +70,4 @@ Export / Job / Task remainder on this branch (Boot **4.1.1** / OpenJDK **21.0.10
 # p3-studio: 8 tests (PermissionDataScopeHook 4, G2SurfaceAgreement 4)
 ```
 
-See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.
+Form fill / POST submissions remainder: [g2-form-submission-write.md](./g2-form-submission-write.md). See `nexus-permission-core/EVIDENCE.md`. This is **not** a product-wide G2 close. G18 stays closed.

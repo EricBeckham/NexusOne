@@ -11,11 +11,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
 
 /**
- * Form definition list / detail / create / update / publish use the same
- * {@link SurfaceGuard} as ledger and flow. {@code no_grant},
+ * Form definition list / detail / create / update / publish / fill use the
+ * same {@link SurfaceGuard} as ledger and flow. Fill and
+ * {@code POST …/submissions} are {@code form.write}. {@code no_grant},
  * {@code explicit_deny}, and {@code tenant_boundary} are deny. Isolation-only
  * jobs with no P2 {@code TenantContext} stay tenant-only, like
- * {@link PermissionDataScopeHook}.
+ * {@link PermissionDataScopeHook}. Path {@code submit-start} stays the
+ * runtime walk and is not claimed here.
  */
 @Component
 @ConditionalOnClass(PermissionModule.class)
@@ -40,6 +42,11 @@ public class FormSurfaceGuard {
 
     public Decision requireWrite() {
         return require(WRITE);
+    }
+
+    /** Form fill / POST submissions decide the same {@code form.write} cell. */
+    public Decision requireFill() {
+        return requireWrite();
     }
 
     public Decision require(String action) {

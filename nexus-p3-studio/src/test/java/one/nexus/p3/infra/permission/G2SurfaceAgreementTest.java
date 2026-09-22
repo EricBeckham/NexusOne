@@ -49,13 +49,17 @@ class G2SurfaceAgreementTest {
         assertEquals("P2.PERM.0003", list.errorCode().code());
         PermissionException form = assertThrows(
                 PermissionException.class, () -> harness.forms.requireRead());
+        PermissionException fill = assertThrows(
+                PermissionException.class, () -> harness.forms.requireFill());
         PermissionException flow = assertThrows(
                 PermissionException.class,
                 () -> SurfaceGuard.require(harness.module.service(), "process.instance", "start"));
         assertEquals("no_grant", flow.getMessage());
         assertEquals(list.getMessage(), flow.getMessage());
         assertEquals(list.getMessage(), form.getMessage());
+        assertEquals(list.getMessage(), fill.getMessage());
         assertEquals("P2.PERM.0003", form.errorCode().code());
+        assertEquals("P2.PERM.0003", fill.errorCode().code());
         PermissionException export = assertThrows(
                 PermissionException.class,
                 () -> SurfaceGuard.require(harness.module.service(),
@@ -135,6 +139,7 @@ class G2SurfaceAgreementTest {
         harness.module.matrix().installExample();
         harness.forms.requireRead();
         harness.forms.requireWrite();
+        harness.forms.requireFill();
         PermissionException ledger = assertThrows(
                 PermissionException.class, () -> harness.hook.bind(harness.tenantId, "ledger", "read"));
         assertEquals("P2.PERM.0003", ledger.errorCode().code());
@@ -152,8 +157,12 @@ class G2SurfaceAgreementTest {
         harness.forms.requireRead();
         PermissionException write = assertThrows(
                 PermissionException.class, () -> harness.forms.requireWrite());
+        PermissionException fill = assertThrows(
+                PermissionException.class, () -> harness.forms.requireFill());
         assertEquals("P2.PERM.0003", write.errorCode().code());
         assertEquals("no_grant", write.getMessage());
+        assertEquals(write.getMessage(), fill.getMessage());
+        assertEquals(write.errorCode().code(), fill.errorCode().code());
     }
 
     private record Harness(

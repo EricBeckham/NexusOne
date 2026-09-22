@@ -97,12 +97,14 @@ public class FormController {
     @PostMapping("/{id}/submissions")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> submit(@PathVariable UUID id, @RequestBody(required = false) SubmitRequest request) {
+        requireFill();
         Map<String, Object> values = request == null || request.values() == null ? Map.of() : request.values();
         return submissionJson(forms.submit(id, values));
     }
 
     @GetMapping("/{id}/submissions")
     public List<Map<String, Object>> submissions(@PathVariable UUID id) {
+        requireRead();
         return forms.submissions(id).stream().map(FormController::submissionJson).toList();
     }
 
@@ -117,6 +119,14 @@ public class FormController {
         FormSurfaceGuard guard = surfaces.getIfAvailable();
         if (guard != null) {
             guard.requireWrite();
+        }
+    }
+
+    /** Fill / POST submissions are {@code form.write}. Path submit-start stays the G18 walk. */
+    private void requireFill() {
+        FormSurfaceGuard guard = surfaces.getIfAvailable();
+        if (guard != null) {
+            guard.requireFill();
         }
     }
 

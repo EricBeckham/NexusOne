@@ -40,7 +40,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Form definition HTTP surfaces interpret {@code form.read} / {@code form.write}
- * through {@link FormSurfaceGuard}. Isolation-only {@link FormApiTest} stays
+ * through {@link FormSurfaceGuard}. Fill / POST submissions are covered by
+ * {@link FormSubmissionWriteApiTest}. Isolation-only {@link FormApiTest} stays
  * tenant-only because it does not bind P2 TenantContext.
  */
 @SpringBootTest(classes = FormStudioPermissionApiTest.TestApp.class)

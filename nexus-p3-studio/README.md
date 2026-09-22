@@ -32,7 +32,7 @@ UI is **not** in this module (M0-12).
 | POST | `/api/v1/p3/forms/{id}/validate` |
 | POST | `/api/v1/p3/forms/{id}/publish` |
 | GET | `/api/v1/p3/forms/{id}/running` |
-| POST/GET | `/api/v1/p3/forms/{id}/submissions` |
+| POST/GET | `/api/v1/p3/forms/{id}/submissions` | POST is `form.write` via `FormSurfaceGuard` when P2 context is bound; GET is `form.read`. Path `submit-start` remains the G18 walk |
 | GET | `/api/v1/process/health` |
 | POST | `/api/v1/process/instances` |
 | POST | `/api/v1/process/tasks/{todoId}/approve` |

@@ -23,8 +23,9 @@ public final class RoleMatrixCatalog {
     public static final String COMPLETENESS_NOTE =
             "tenant_member ALL-scope seed is demo bootstrap only. G2 requires a role "
                     + "matrix with DataScope and field policy, evaluated by PermissionEngine "
-                    + "for list, detail, flow, form studio, export Task type, Job/Task submit, "
-                    + "and export cache. Report / H5 remain open. Not full product G2.";
+                    + "for list, detail, flow, form studio, form fill / POST submissions, "
+                    + "export Task type, Job/Task submit, and export cache. Report / H5 remain "
+                    + "open. Not full product G2.";
 
     private RoleMatrixCatalog() {}
 
