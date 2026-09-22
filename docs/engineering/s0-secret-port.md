@@ -64,4 +64,4 @@ mvn -pl nexus-bootstrap -am -DskipTests install
 mvn -pl nexus-bootstrap test
 ```
 
-`-am test` on bootstrap also runs `nexus-p1-tenant` `TenantModuleIT`, which requires `NEXUS_DB_PASSWORD` and a live PostgreSQL 15. That IT is M0-03, not this package. Evidence: [s0-secret-port-EVIDENCE.md](./s0-secret-port-EVIDENCE.md). Env/process rotate-without-restart leftover: [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md).
+`-am test` on bootstrap also runs `nexus-p1-tenant` `TenantModuleIT`, which requires `NEXUS_DB_PASSWORD` and a live PostgreSQL 15. That IT is M0-03, not this package. Evidence: [s0-secret-port-EVIDENCE.md](./s0-secret-port-EVIDENCE.md). Env/process rotate-without-restart leftover: [s0-secret-rotate-without-restart.md](../s0-secret-rotate-without-restart.md). SecretPort rotate / getenv / LocalThenEnv leftover honesty beyond #223: [s0-secret-rotate-getenv-leftover-honesty.md](../s0-secret-rotate-getenv-leftover-honesty.md).
