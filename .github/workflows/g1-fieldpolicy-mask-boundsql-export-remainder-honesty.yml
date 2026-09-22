@@ -100,6 +100,7 @@ jobs:
           grep -E '^leftover_184_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-boundsql-export-remainder-honesty/report.env"
           grep -E '^leftover_215_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-boundsql-export-remainder-honesty/report.env"
           grep -E '^leftover_238_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-boundsql-export-remainder-honesty/report.env"
+          grep -E '^leftover_262_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-boundsql-export-remainder-honesty/report.env"
           grep -E '^leftover_259_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-boundsql-export-remainder-honesty/report.env"
           grep -E '^leftover_249_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-boundsql-export-remainder-honesty/report.env"
           grep -E '^leftover_240_kept=true$' "$RUNNER_TEMP/g1-fieldpolicy-mask-boundsql-export-remainder-honesty/report.env"
@@ -117,6 +118,7 @@ jobs:
           grep -F 'g1-queryast-export-honesty' docs/README.md
           grep -F 'g1-fieldpolicy-mask-second-auth-honesty' docs/README.md
           grep -F 'g15-h5-pkce-miniprogram-remainder-honesty' docs/README.md
+          grep -F 'g10-file-object-reconcile-leftover-honesty' docs/README.md
           grep -F 'g9-leftover-honesty-remainder' docs/README.md
           grep -F 'g17-separation-leftover-honesty-remainder' docs/README.md
           grep -F 'g2-h5-every-page-form-write-report-remainder-honesty' docs/README.md
