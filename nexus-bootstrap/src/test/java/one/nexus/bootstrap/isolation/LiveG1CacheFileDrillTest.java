@@ -295,6 +295,16 @@ class LiveG1CacheFileDrillTest {
             deletes.incrementAndGet();
             delegate.delete(bucket, objectKey);
         }
+
+        @Override
+        public boolean exists(String bucket, String objectKey) {
+            return delegate.exists(bucket, objectKey);
+        }
+
+        @Override
+        public java.util.List<String> listKeys(String bucket, String prefix) {
+            return delegate.listKeys(bucket, prefix);
+        }
     }
 
     private static final class RecordingAuditPort implements AuditPort {

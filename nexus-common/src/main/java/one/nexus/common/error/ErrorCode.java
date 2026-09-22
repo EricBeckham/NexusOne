@@ -28,6 +28,7 @@ public record ErrorCode(String product, String module, int number) {
     public static final ErrorCode FILE_DENIED = of("CORE", "FILE", 2);
     public static final ErrorCode FILE_INVALID = of("CORE", "FILE", 3);
     public static final ErrorCode FILE_DELETED = of("CORE", "FILE", 4);
+    public static final ErrorCode FILE_MISSING = of("CORE", "FILE", 5);
     public static final ErrorCode NOTIFY_TEMPLATE_MISSING = of("CORE", "NOTIFY", 1);
     public static final ErrorCode NOTIFY_CHANNEL_UNSUPPORTED = of("CORE", "NOTIFY", 2);
     public static final ErrorCode NOTIFY_NOT_FOUND = of("CORE", "NOTIFY", 3);

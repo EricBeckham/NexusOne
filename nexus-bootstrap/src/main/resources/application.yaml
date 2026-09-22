@@ -97,6 +97,7 @@ nexus:
     storage: ${NEXUS_FILE_STORAGE:memory}
     bucket-alias: nexus-files
     demo-context: false
+    platform-bootstrap-token: ${NEXUS_FILE_BOOTSTRAP_TOKEN:}
     s3:
       endpoint: ${S3_ENDPOINT:}
       bucket: ${S3_TEST_BUCKET:nexus-files}

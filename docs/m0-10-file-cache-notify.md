@@ -51,7 +51,8 @@ Redis **不是**业务真相、审计或关键幂等键存储。
 - 跨租户签名：`P1.M02.015`，`ObjectStoragePort.presignGet` 次数不变，守卫拒绝落 `IsolationAuditEvent`。
 - 本机无 S3 时 `nexus.files.storage=memory`。设置 `S3_ENDPOINT` 后可切 `s3`。`S3_ACCESS_KEY` / `S3_SECRET_KEY` 只经 `SecretPort`（local+env）读取，不进 `FileProperties`。不引入 OpenBao / KMS。见 [engineering/s0-secret-port.md](./engineering/s0-secret-port.md)。
 
-API：`POST/GET/DELETE /api/v1/files`，`POST /api/v1/files/{id}/signed-url`。
+API：`POST/GET/DELETE /api/v1/files`，`POST /api/v1/files/{id}/signed-url`。  
+G10 file half (metadata ↔ object keys, optional safe repair): [g10-file-reconcile.md](./g10-file-reconcile.md).
 
 ## 站内通知与 Outbox（M0-09 已合并）
 

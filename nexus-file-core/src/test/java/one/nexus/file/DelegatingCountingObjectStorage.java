@@ -1,6 +1,7 @@
 package one.nexus.file;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,6 +41,16 @@ final class DelegatingCountingObjectStorage implements ObjectStoragePort {
     public void delete(String bucket, String objectKey) {
         deletes.incrementAndGet();
         delegate.delete(bucket, objectKey);
+    }
+
+    @Override
+    public boolean exists(String bucket, String objectKey) {
+        return delegate.exists(bucket, objectKey);
+    }
+
+    @Override
+    public List<String> listKeys(String bucket, String prefix) {
+        return delegate.listKeys(bucket, prefix);
     }
 
     int puts() {

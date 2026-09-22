@@ -19,6 +19,7 @@ public class FileProperties {
             "text/plain",
             "text/csv");
     private boolean demoContext = false;
+    private String platformBootstrapToken = "";
     private S3 s3 = new S3();
 
     public String getPersistence() {
@@ -75,6 +76,14 @@ public class FileProperties {
 
     public void setDemoContext(boolean demoContext) {
         this.demoContext = demoContext;
+    }
+
+    public String getPlatformBootstrapToken() {
+        return platformBootstrapToken;
+    }
+
+    public void setPlatformBootstrapToken(String platformBootstrapToken) {
+        this.platformBootstrapToken = platformBootstrapToken == null ? "" : platformBootstrapToken;
     }
 
     public S3 getS3() {

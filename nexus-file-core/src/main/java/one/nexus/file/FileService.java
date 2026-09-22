@@ -152,6 +152,9 @@ public final class FileService {
         if (file.status() == FileStatus.DELETED) {
             throw new NexusException(ErrorCode.FILE_DELETED, 404, "file deleted");
         }
+        if (file.status() == FileStatus.MISSING) {
+            throw new NexusException(ErrorCode.FILE_MISSING, 404, "file object missing from store");
+        }
         return file;
     }
 

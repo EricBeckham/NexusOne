@@ -3,13 +3,20 @@ package one.nexus.file.infra;
 import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.Http;
+import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.Result;
+import io.minio.StatObjectArgs;
+import io.minio.errors.ErrorResponseException;
+import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import one.nexus.crypto.SecretNames;
 import one.nexus.crypto.SecretPort;
@@ -85,5 +92,62 @@ public final class MinioObjectStorage implements ObjectStoragePort {
         } catch (Exception ex) {
             throw new IllegalStateException("S3 delete failed", ex);
         }
+    }
+
+    @Override
+    public boolean exists(String bucket, String objectKey) {
+        try {
+            client.statObject(StatObjectArgs.builder().bucket(bucket).object(objectKey).build());
+            return true;
+        } catch (ErrorResponseException ex) {
+            if (missing(ex)) {
+                return false;
+            }
+            throw new IllegalStateException("S3 stat failed", ex);
+        } catch (Exception ex) {
+            if (missing(ex)) {
+                return false;
+            }
+            throw new IllegalStateException("S3 stat failed", ex);
+        }
+    }
+
+    @Override
+    public List<String> listKeys(String bucket, String prefix) {
+        try {
+            List<String> keys = new ArrayList<>();
+            for (Result<Item> result : client.listObjects(ListObjectsArgs.builder()
+                    .bucket(bucket)
+                    .prefix(prefix == null ? "" : prefix)
+                    .recursive(true)
+                    .build())) {
+                Item item = result.get();
+                if (item == null || item.isDir()) {
+                    continue;
+                }
+                String name = item.objectName();
+                if (name != null && !name.isBlank() && !name.endsWith("/")) {
+                    keys.add(name);
+                }
+            }
+            return List.copyOf(keys);
+        } catch (Exception ex) {
+            throw new IllegalStateException("S3 list failed", ex);
+        }
+    }
+
+    private static boolean missing(Exception ex) {
+        String code = "";
+        if (ex instanceof ErrorResponseException error) {
+            code = error.errorResponse() == null || error.errorResponse().code() == null
+                    ? ""
+                    : error.errorResponse().code();
+        }
+        String text = (code + " " + (ex.getMessage() == null ? "" : ex.getMessage())).toLowerCase();
+        return text.contains("nosuchkey")
+                || text.contains("notfound")
+                || text.contains("no such key")
+                || text.contains("not found")
+                || text.contains("does not exist");
     }
 }
