@@ -67,10 +67,30 @@ Open `http://127.0.0.1:5173/m/mp-webview-harness`. The phone chrome is a **simul
 
 ## Evidence
 
-Recorded on this agent VM after the change (Node / Vitest versions filled from the test run). No Docker. No WeChat / DingTalk SDK.
+Recorded on this agent VM **2026-09-22T17:42:13Z**, then rebased onto `main` `860f5e5` (#111 claim-list remainder, which already includes #113). Node **v22.14.0**, Vitest **3.2.7**, Vite **6.4.3**. No Docker. No Playwright. No WeChat / DingTalk SDK. No JAR / PostgreSQL required for this contract. G18 stays closed. AuditPort / TenantContext untouched.
 
 ```bash
 cd web
 npm test
+npm run assert:h5
+npm run assert:h5-host
 npm run assert:h5-mp-webview
+npm run assert:h5-runtime
+npm run assert:isolation
+npm run assert:p3-live
+npm run build
 ```
+
+```text
+vitest run  30 passed (30)  hostBridge 15 + miniprogramWebView 6 + runtime 8 + G7 leftover 1 (from #113)
+assert:h5            PASS  F014 wired; desktop P3 untouched; APP WebView / WeChat/DingTalk leftover
+assert:h5-host       PASS  handshake + 4 channels; production leftover
+assert:h5-mp-webview PASS  origin/channel allowlist under simulated web-view parent
+assert:h5-runtime    PASS
+assert:isolation     PASS
+assert:p3-live       PASS
+test:g7-withdraw     PASS  (main leftover; not re-walked as a G7 close)
+vite build           MiniProgramWebViewHarnessPage emitted
+```
+
+Browser walk of `/m/mp-webview-harness` is recorded after this assert. Product G15 remains **open**. WeChat / DingTalk production remains **not accepted**.
