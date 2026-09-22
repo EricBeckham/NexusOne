@@ -30,6 +30,7 @@ import { useRoute, useRouter } from "vue-router";
 import { files } from "../../../../api/files";
 import { session } from "../../../../api/session";
 import { formatSize } from "../../../file/constraints";
+import { postHost } from "../../../host/hostBridge";
 
 const route = useRoute();
 const router = useRouter();
@@ -63,6 +64,7 @@ async function onDownload() {
     const body = await files.signDownload(fileId.value, session.personId || session.accountId || undefined);
     signed.value = body.url;
     previewUrl.value = body.url;
+    postHost("file", { action: "download", fileId: fileId.value });
     if (body.url) {
       window.open(body.url, "_blank", "noopener");
     }

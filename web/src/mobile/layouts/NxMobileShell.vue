@@ -1,15 +1,15 @@
 <template>
-  <div class="nx-mobile" data-product="p3" data-testid="mobile-shell">
+  <div class="nx-mobile" data-product="p3" data-testid="mobile-shell" :data-embedded="embedded ? 'true' : 'false'">
     <header class="m-appbar">
       <button
         v-if="showBack"
         class="m-back"
         type="button"
         data-testid="mobile-back"
-        aria-label="返回"
+        :aria-label="embedded ? '关闭' : '返回'"
         @click="goBack"
       >
-        返回
+        {{ embedded ? "关闭" : "返回" }}
       </button>
       <h1>{{ title }}</h1>
       <span v-if="session.tenantId" class="m-tenant" data-testid="mobile-tenant">
@@ -32,20 +32,28 @@ import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { session } from "../../api/session";
 import { DEFAULT_MOBILE_HOME } from "../auth/safeReturn";
+import { isEmbedded, postHost } from "../host/hostBridge";
+import { useHostPort } from "../host/useHostPort";
 import "../styles/mobile.css";
 
 const route = useRoute();
 const router = useRouter();
+useHostPort();
 
 const title = computed(() => route.meta.title || "星构");
-const showTabs = computed(() => route.meta.tabs !== false);
-const showBack = computed(() => route.meta.back === true);
+const showTabs = computed(() => route.meta.tabs !== false && !isEmbedded());
+const showBack = computed(() => route.meta.back === true || isEmbedded());
+const embedded = computed(() => isEmbedded());
 const tenantLabel = computed(() => {
   const id = session.tenantId || "";
   return id.length > 12 ? `${id.slice(0, 8)}…` : id || "未签发";
 });
 
 function goBack() {
+  const posted = postHost("close", { action: "close" });
+  if (posted.ok) {
+    return;
+  }
   if (window.history.length > 1) {
     router.back();
     return;

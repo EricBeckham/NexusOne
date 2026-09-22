@@ -1,7 +1,7 @@
 # NexusOne Web (M0-12 + G15 H5 mobile)
 
 Vue 3 shell for tenant admin, org/identity, permission snapshot, and **P3 台账 / 表单 / 待办 / 通知 / 审计**.
-G15 adds a **separate** mobile tree under `src/mobile/` (`/m/login`, `/m/callback`, `/m/p3/home`, `/m/p3/files`). Desktop ledger / form / todo pages are unchanged. This is **not** a full G15 close — see [docs/g15-h5-mobile.md](../docs/g15-h5-mobile.md).
+G15 adds a **separate** mobile tree under `src/mobile/` (`/m/login`, `/m/callback`, `/m/p3/home`, `/m/p3/files`, `/m/host`, `/m/host-harness`). Desktop ledger / form / todo pages are unchanged. F014 host messages are accepted on the **mobile browser** (postMessage + iframe harness). This is **not** a full G15 close — APP WebView / 小程序 stay open. See [docs/g15-h5-mobile.md](../docs/g15-h5-mobile.md).
 
 - Tenant / org pages talk to merged **M0-03** and **M0-04** HTTP APIs.
 - Permission pages talk to **M0-05** `/api/v1/permission` (health / snapshot / check).
@@ -46,6 +46,8 @@ cd web
 npm run assert:isolation
 npm run assert:p3-live
 npm run assert:h5
+npm run assert:h5-host
+npm test
 npm run build
 ```
 
@@ -78,5 +80,7 @@ Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`
 | `/m/p3/home` | session in `sessionStorage` | F013 refresh / back |
 | `/m/p3/files` | `POST/GET /api/v1/files` | F012 size + MIME + signed download |
 | `/m/p3/files/:id` | metadata + signed-url | Deep link; tenant stays in issued context |
+| `/m/host` | HostBridgePort | F014 login/route/file/close; web fallback when not embedded |
+| `/m/host-harness` | iframe parent | Mobile-browser acceptance host (`nexus-host` postMessage) |
 
-Do not treat this shell as a Keycloak Authorization Code + PKCE acceptance. Product login remains M0-04’s confidential client. G15 host messages (F014) are not accepted.
+Do not treat this shell as a Keycloak Authorization Code + PKCE acceptance. Product login remains M0-04’s confidential client. G15 F014 is accepted on the mobile-browser postMessage contract only. APP WebView / 小程序 are not accepted.

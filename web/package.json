@@ -3,14 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "NexusOne Vue 3 shell: desktop M0-12 plus G15 H5 mobile login-redirect / files / routing.",
+  "description": "NexusOne Vue 3 shell: desktop M0-12 plus G15 H5 mobile login-redirect / files / routing / host-message.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
+    "test": "vitest run",
     "assert:isolation": "node scripts/assert-client-isolation.mjs",
     "assert:p3-live": "node scripts/assert-p3-live.mjs",
-    "assert:h5": "node scripts/assert-h5-mobile.mjs"
+    "assert:h5": "node scripts/assert-h5-mobile.mjs",
+    "assert:h5-host": "node scripts/assert-h5-host.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13",
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^3.2.4"
   }
 }

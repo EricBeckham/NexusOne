@@ -1,5 +1,5 @@
 <template>
-  <router-view v-if="route.path === '/login'" />
+  <router-view v-if="route.path === '/login' || route.meta.harness" />
   <NxMobileShell v-else-if="route.meta.mobile" />
   <AppShell v-else />
 </template>
