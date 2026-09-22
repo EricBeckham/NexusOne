@@ -75,6 +75,8 @@ Honesty fixtures (must reject fakes):
 
 Java **21** / Boot **4.1.1**. No Docker. No live PostgreSQL required. No product JAR boot.
 
+Sibling leftover remainder honesty beyond this #236 contract (do **not** redo this leftover): [linux-arm-profile-leftover-remainder-honesty.md](./linux-arm-profile-leftover-remainder-honesty.md). Keep leftover rows in [docs/README.md](./README.md).
+
 See [engineering/linux-arm-profile-remainder-honesty-EVIDENCE.md](./engineering/linux-arm-profile-remainder-honesty-EVIDENCE.md). Live `report.env` is gitignored under `.local/linux-arm-profile-remainder-honesty/`.
 
 ## Honest leftovers (not claimed)
