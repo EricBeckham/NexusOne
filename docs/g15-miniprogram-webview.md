@@ -67,7 +67,7 @@ Open `http://127.0.0.1:5173/m/mp-webview-harness`. The phone chrome is a **simul
 
 ## Evidence
 
-Recorded on this agent VM **2026-09-22T17:42:13Z**, then rebased onto `main` `860f5e5` (#111 claim-list remainder, which already includes #113). Node **v22.14.0**, Vitest **3.2.7**, Vite **6.4.3**. No Docker. No Playwright. No WeChat / DingTalk SDK. No JAR / PostgreSQL required for this contract. G18 stays closed. AuditPort / TenantContext untouched.
+Recorded on this agent VM **2026-09-22T17:42:13Z**, then rebased onto `main` `48d3e65` (#112 submit-start form.write leftover; includes #111 / #113). Node **v22.14.0**, Vitest **3.2.7**, Vite **6.4.3**. No Docker. No Playwright. No WeChat / DingTalk SDK. No JAR / PostgreSQL required for this contract. G18 stays closed. AuditPort / TenantContext untouched.
 
 ```bash
 cd web
