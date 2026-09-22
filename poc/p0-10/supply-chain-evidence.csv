@@ -1,0 +1,12 @@
+component,selected_version,source_url,artifact_name,sha256,image_digest,license_id,license_file_path,sbom_path,cve_scan_path,offline_bundle_path,architecture,verification_status,owner,reviewer,notes
+NexusOne application,,,,,,,,,,,,not-collected,,,
+PostgreSQL,,,,,,,,,,,,not-collected,,,
+Redis,,,,,,,,,,,,not-collected,,,
+MinIO or AIStor,,,,,,,,,,,,not-collected,,,
+Keycloak,,,,,,,,,,,,not-collected,,,
+Flowable OSS,,,,,,,,,,,,not-collected,,,
+Quartz,,,,,,,,,,,,not-collected,,,
+Flyway,,,,,,,,,,,,not-collected,,,
+Bouncy Castle or approved GM provider,,,,,,,,,,,,not-collected,,,
+OpenJDK 21 distribution,,,,,,,,,,,,not-collected,,,
+Nginx or approved GM TLS distribution,,,,,,,,,,,,not-collected,,,

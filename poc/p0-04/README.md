@@ -19,11 +19,12 @@ mvn -q -Dtest=FlowablePostgresIT test
 ## 当前实测
 
 - `mvn -q -DskipTests package`：通过（包括测试源码编译）。
-- `mvn -q -Dtest=FlowablePostgresIT test`：启动时失败；本机 PostgreSQL 要求 SCRAM 密码，运行环境未提供 `POC_DB_PASSWORD`。因此尚无数据库集成测试通过的证据。
+- 原有 PostgreSQL 服务要求 SCRAM 密码，首次尝试因未提供 `POC_DB_PASSWORD` 而失败。
+- 后续在独立本地 PostgreSQL 15.18 测试实例 `127.0.0.1:55438/nexus_p0_04` 运行 `mvn -q -Dtest=FlowablePostgresIT test`：**2 个测试通过，0 失败**。覆盖同 DataSource/事务管理器、独立 `flowable` Schema、人工任务及业务写入与流程实例共同回滚。该临时实例仅绑定回环地址，使用本地 host trust；结果不代表目标交付环境。
 - 本机 Maven 使用 JDK 17；PostgreSQL 15 Windows 服务运行中；未检测到 Docker。
 
 ## 后续门禁
 
-配置测试库凭据后运行集成测试，并补测 DMN、异步作业、引擎 Schema 升级及应用回滚后的数据库兼容性。当前没有这些结果，也没有发布结论。生产环境应将 `flowable.database-schema-update` 改为受控升级策略，不在应用启动时自动修改引擎 Schema。
+仍须在 Java 21/目标 PostgreSQL Profile 补测 DMN、异步作业、引擎 Schema 升级及应用回滚后的数据库兼容性；当前没有这些结果，也没有发布结论。生产环境应将 `flowable.database-schema-update` 改为受控升级策略，不在应用启动时自动修改引擎 Schema。
 
 参考：[Flowable 7.1.0 Spring Boot 文档](https://github.com/flowable/flowable-engine/blob/flowable-7.1.0/docs/docusaurus/docs/bpmn/ch05a-Spring-Boot.md)、[Flowable Spring 事务文档](https://github.com/flowable/flowable-engine/blob/flowable-7.1.0/docs/docusaurus/docs/bpmn/ch05-Spring.md)。

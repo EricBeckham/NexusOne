@@ -22,9 +22,9 @@ mvn -q -DskipTests compile
 依次运行，每条输出必须有 `PASS`：
 
 ```powershell
-mvn -q exec:java -Dexec.args=flyway-base
-mvn -q exec:java -Dexec.args=flyway-fail
-mvn -q exec:java -Dexec.args=flyway-recover
+mvn -q exec:java '-Dexec.args=flyway-base'
+mvn -q exec:java '-Dexec.args=flyway-fail'
+mvn -q exec:java '-Dexec.args=flyway-recover'
 ```
 
 V1 创建静态配置表，V2 扩列。故障路径 V3 在建表后执行除零，预期 PostgreSQL 的事务 DDL 回滚，脚本校验半成品表不存在。随后以修正后的 V3 重新迁移并 `validate`，检查历史表有三条成功迁移。**失败迁移的修正文件只适用于本 PoC 的预发布演练**；实际发布后不能随意改动已应用的版本迁移文件，需新增前向修复迁移或恢复数据库备份。Flyway 只管理平台静态表，不管理 P3 动态台账物理表。
@@ -34,20 +34,20 @@ V1 创建静态配置表，V2 扩列。故障路径 V3 在建表后执行除零�
 先执行调度（此时尚无运行节点）：
 
 ```powershell
-mvn -q exec:java -Dexec.args=quartz-schedule
+mvn -q exec:java '-Dexec.args=quartz-schedule'
 ```
 
 在 **两个独立终端**中同时执行下列命令；每个节点运行 30 秒。调度命令预置 20 个未来触发器及 1 个已经过期的触发器，后者指定 `FireNow` Misfire 指令。若距离调度已超过 12 秒，普通触发器也可能被视为 Misfire，但仍应各执行一次。
 
 ```powershell
 $env:P0_07_DB_PASSWORD = '<与 .env 一致>'
-mvn -q exec:java -Dexec.args=quartz-node
+mvn -q exec:java '-Dexec.args=quartz-node'
 ```
 
 两个节点都退出后：
 
 ```powershell
-mvn -q exec:java -Dexec.args=quartz-check
+mvn -q exec:java '-Dexec.args=quartz-check'
 docker compose --env-file .env exec -T postgres psql -U poc -d nexus_p0_07 -c 'select scheduler_instance, count(*) from quartz.poc_fire_log group by scheduler_instance;'
 ```
 
@@ -63,7 +63,7 @@ docker compose --env-file .env exec -T postgres psql -U poc -d nexus_p0_07 -c 's
 | 生产隔离 | 使用最小权限数据库账号；本 PoC 的镜像初始化账号 `poc` 是超级用户 | 未运行 |
 | 交付矩阵 | Java 21、目标 Linux/CPU、PostgreSQL 版本、许可证、SBOM/CVE、离线源 | 未运行 |
 
-本机没有 Docker CLI、`psql` 或可用的隔离 PostgreSQL 测试库及凭据；数据库测试尚未运行。已在本机以 Maven 3.9.15 / Java 17 执行 `mvn -q -DskipTests compile`，退出码为 0；Compose YAML 静态解析通过。这些静态结果不代表 PostgreSQL 契约通过。
+本机没有 Docker CLI；Compose YAML 静态解析通过。已在独立本地 PostgreSQL 15.18 测试实例 `127.0.0.1:55438/nexus_p0_07` 执行数据库验证：Flyway V1/V2、故意失败的 V3 事务回滚、修复 V3 与历史校验均通过；Quartz 两个节点共执行 20 个唯一任务及 1 个 Misfire，分别记录 10 和 11 次。运行期间补充了 Quartz 声明为 provided 的 `c3p0:0.10.1` 依赖，并使 JDBC URL、用户、密码可通过 `P0_07_JDBC_URL`、`P0_07_DB_USER`、`P0_07_DB_PASSWORD` 覆盖。该实例仅绑定回环地址并使用本地 host trust；它不是目标 Linux/Java 21 Profile，也尚未验证真正节点故障转移、长期压力或升级兼容性。
 
 ## 来源
 

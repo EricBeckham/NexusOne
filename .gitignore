@@ -21,3 +21,6 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Isolated local integration environment
+.local/

@@ -18,21 +18,19 @@ import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 
 public final class Main {
-    private static final String URL = "jdbc:postgresql://127.0.0.1:55437/nexus_p0_07";
+    private static final String URL = System.getenv().getOrDefault(
+            "P0_07_JDBC_URL", "jdbc:postgresql://127.0.0.1:55437/nexus_p0_07");
+    private static final String USER = System.getenv().getOrDefault("P0_07_DB_USER", "poc");
 
     private Main() { }
 
     private static String password() {
-        String value = System.getenv("P0_07_DB_PASSWORD");
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException("P0_07_DB_PASSWORD must be set in this process");
-        }
-        return value;
+        return System.getenv().getOrDefault("P0_07_DB_PASSWORD", "");
     }
 
     private static Flyway flyway(String... locations) {
         return Flyway.configure()
-                .dataSource(URL, "poc", password())
+                .dataSource(URL, USER, password())
                 .schemas("platform_static")
                 .defaultSchema("platform_static")
                 .locations(locations)
@@ -40,7 +38,7 @@ public final class Main {
     }
 
     private static void assertSql(String sql, long expected) throws Exception {
-        try (Connection c = DriverManager.getConnection(URL, "poc", password());
+        try (Connection c = DriverManager.getConnection(URL, USER, password());
              Statement s = c.createStatement();
              ResultSet r = s.executeQuery(sql)) {
             if (!r.next() || r.getLong(1) != expected) {
@@ -64,7 +62,7 @@ public final class Main {
         p.setProperty("org.quartz.jobStore.misfireThreshold", "1000");
         p.setProperty("org.quartz.dataSource.poc.driver", "org.postgresql.Driver");
         p.setProperty("org.quartz.dataSource.poc.URL", URL + "?currentSchema=quartz");
-        p.setProperty("org.quartz.dataSource.poc.user", "poc");
+        p.setProperty("org.quartz.dataSource.poc.user", USER);
         p.setProperty("org.quartz.dataSource.poc.password", password());
         p.setProperty("org.quartz.dataSource.poc.maxConnections", "8");
         return new StdSchedulerFactory(p).getScheduler();
@@ -73,7 +71,7 @@ public final class Main {
     public static final class LogJob implements Job {
         @Override public void execute(JobExecutionContext context) throws JobExecutionException {
             String key = context.getJobDetail().getKey().getName();
-            try (Connection c = DriverManager.getConnection(URL, "poc", password());
+            try (Connection c = DriverManager.getConnection(URL, USER, password());
                  var ps = c.prepareStatement("INSERT INTO quartz.poc_fire_log (job_key, scheduler_instance) VALUES (?, ?)")) {
                 ps.setString(1, key);
                 ps.setString(2, context.getScheduler().getSchedulerInstanceId());
