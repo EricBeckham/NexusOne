@@ -4,10 +4,10 @@
 
 目录说明见 [docs/README.md](./docs/README.md)。
 
-- [团队领取任务清单 V1.1](./docs/planning/团队领取任务清单_V1.1.md)：23 张可独立分配的 P0 叶子任务、M0 分工建议、前置依赖与完成判定。
+- [团队领取任务清单 V1.1](./docs/planning/团队领取任务清单_V1.1.md)：P0+M0+G18 已在 `main`；S0+S1 切片已大量落地。只领取清单里「仍开放」的产品余量，不要重做 P0 叶子或 M0 实现，不要重开 G18，不要宣称完整 S0/S1 通过。
 - [实施任务拆解 V1.1](./docs/planning/实施任务拆解_V1.1.md)：阶段、父任务、历史 PoC 证据与验收门禁。
-- [P0 叶子 Issues](https://github.com/EricBeckham/NexusOne/issues?q=is%3Aissue+label%3Atype%3Aleaf)：待团队成员领取并填写负责人、评审人、交付位置和证据。
-- [M0 父 Issues](https://github.com/EricBeckham/NexusOne/issues?q=is%3Aissue+label%3Aphase%3AM0)：P0 门禁完成后推进实现。
+- [P0 叶子 Issues](https://github.com/EricBeckham/NexusOne/issues?q=is%3Aissue+label%3Atype%3Aleaf)：历史追溯，勿再领实现。
+- [M0 父 Issues](https://github.com/EricBeckham/NexusOne/issues?q=is%3Aissue+label%3Aphase%3AM0)：历史追溯，勿再领实现。
 
 需求基准：[需求规格 V1.1](./docs/requirements/星枢企业业务平台_需求规格_V1.1.md)；技术基准：[技术框架 V1.1](./docs/architecture/星枢企业业务平台_技术框架_V1.1.md)。
 
