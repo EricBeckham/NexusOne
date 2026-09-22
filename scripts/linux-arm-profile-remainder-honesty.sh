@@ -29,7 +29,7 @@ LIFECYCLE_ARTIFACT="$ROOT/docs/engineering/linux-arm-profile/agent-vm-x86_64-lif
 HONESTY_ARTIFACT="$ROOT/docs/engineering/linux-arm-profile/agent-vm-x86_64-honesty.txt"
 README="$ROOT/docs/README.md"
 
-CORE_LEFTOVER_ROWS="linux-arm-profile-honesty linux-arm-profile-leftover-honesty linux-arm-profile-remainder-honesty g7-withdraw-browser-evidence-honesty g4-hot-purge-staging-leftover-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g10-leftover-honesty-remainder g10-leftover-honesty g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g4-pkce-spa-verifier-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder g1-queryast-export-honesty g17-gm-tls-nginx-handshake-honesty g5-publishhook-ddl-honesty g9-sentinel-cluster-remainder-honesty g2-ops-pg-dump-honesty g17-mfa-recovery-vue-otp-honesty g9-redis-down-invalidate-remainder g2-h5-every-page-form-write-honesty g4-export-wizard-deny-honesty g5-mid-publish-failure-honesty g3-outbox-consume-crash-honesty g1-queryast-boundsql-honesty g15-wx-dt-native-bridge-honesty s0-secret-rotate-without-restart-honesty g7-query-expense-travel-honesty g4-p1-staging-audit-events-honesty g6-recovery-port-dry-run-honesty s0s1-live-redis-minio-isolation-honesty g17-separation-honesty g4-hot-purge-90d-honesty g1-fieldpolicy-mask-second-auth-honesty g10-identity-drift-honesty g15-native-bridge-honesty g4-pkce-spa-verifier-honesty s0-secret-getenv-snapshot-honesty g5-browser-failed-publish g7-withdraw-browser-honesty g9-redis-down-invalidate-honesty g10-file-reconcile-honesty"
+CORE_LEFTOVER_ROWS="linux-arm-profile-honesty linux-arm-profile-leftover-honesty linux-arm-profile-remainder-honesty g2-h5-every-page-form-write-remainder-honesty g7-withdraw-browser-evidence-honesty g4-hot-purge-staging-leftover-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g10-leftover-honesty-remainder g10-leftover-honesty g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g4-pkce-spa-verifier-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder g1-queryast-export-honesty g17-gm-tls-nginx-handshake-honesty g5-publishhook-ddl-honesty g9-sentinel-cluster-remainder-honesty g2-ops-pg-dump-honesty g17-mfa-recovery-vue-otp-honesty g9-redis-down-invalidate-remainder g2-h5-every-page-form-write-honesty g4-export-wizard-deny-honesty g5-mid-publish-failure-honesty g3-outbox-consume-crash-honesty g1-queryast-boundsql-honesty g15-wx-dt-native-bridge-honesty s0-secret-rotate-without-restart-honesty g7-query-expense-travel-honesty g4-p1-staging-audit-events-honesty g6-recovery-port-dry-run-honesty s0s1-live-redis-minio-isolation-honesty g17-separation-honesty g4-hot-purge-90d-honesty g1-fieldpolicy-mask-second-auth-honesty g10-identity-drift-honesty g15-native-bridge-honesty g4-pkce-spa-verifier-honesty s0-secret-getenv-snapshot-honesty g5-browser-failed-publish g7-withdraw-browser-honesty g9-redis-down-invalidate-honesty g10-file-reconcile-honesty"
 
 usage() {
   cat <<'EOF'
@@ -96,7 +96,7 @@ verify_report() {
 
 verify_report_inner() {
   local file="$1"
-  local required="schema_version timestamp_utc host_uname_m host_arch_family java_feature boot_parent_version boot_parent_match docker_used qemu_used leftover_157_harness leftover_193_harness leftover_157_cells_honest leftover_193_cells_honest platform_matrix_inventory platform_matrix_rows leftover_rows_kept leftover_rows_all leftover_212_kept leftover_230_kept leftover_229_kept leftover_226_kept leftover_228_kept leftover_221_kept leftover_225_kept leftover_157_kept leftover_193_kept target_arm_01_status target_x86_01_status local_win_x64_install supply_chain_status supply_chain_any_collected x86_note_extrapolated x86_agent_vm_is_not_target_profile x86_agent_vm_is_not_arm_linux_jar qemu_is_not_arm docker_is_not_arm aarch64_pass_claimed native_aarch64_host native_non_x86_host live_arm_linux_product_jar_observed live_arm_linux_product_jar live_arm_linux_product_jar_skip_reason live_non_x86_product_jar_observed live_non_x86_product_jar live_non_x86_product_jar_skip_reason live_linux_target_x86_product_jar_observed live_linux_target_x86_product_jar live_linux_target_x86_product_jar_skip_reason redone_105 redone_127 redone_157 redone_193 collect_rerun lifecycle_rerun honesty_157_rerun leftover_193_rerun profile_acceptance g18_status audit_port_changed p0_m0_redone"
+  local required="schema_version timestamp_utc host_uname_m host_arch_family java_feature boot_parent_version boot_parent_match docker_used qemu_used leftover_157_harness leftover_193_harness leftover_157_cells_honest leftover_193_cells_honest platform_matrix_inventory platform_matrix_rows leftover_rows_kept leftover_rows_all leftover_232_kept leftover_212_kept leftover_230_kept leftover_229_kept leftover_226_kept leftover_228_kept leftover_221_kept leftover_225_kept leftover_157_kept leftover_193_kept target_arm_01_status target_x86_01_status local_win_x64_install supply_chain_status supply_chain_any_collected x86_note_extrapolated x86_agent_vm_is_not_target_profile x86_agent_vm_is_not_arm_linux_jar qemu_is_not_arm docker_is_not_arm aarch64_pass_claimed native_aarch64_host native_non_x86_host live_arm_linux_product_jar_observed live_arm_linux_product_jar live_arm_linux_product_jar_skip_reason live_non_x86_product_jar_observed live_non_x86_product_jar live_non_x86_product_jar_skip_reason live_linux_target_x86_product_jar_observed live_linux_target_x86_product_jar live_linux_target_x86_product_jar_skip_reason redone_105 redone_127 redone_157 redone_193 collect_rerun lifecycle_rerun honesty_157_rerun leftover_193_rerun profile_acceptance g18_status audit_port_changed p0_m0_redone"
   local key
   for key in $required; do
     [ -n "$(report_get "$file" "$key")" ] || { echo "FAIL: missing key $key in $file" >&2; return 1; }
@@ -129,6 +129,7 @@ verify_report_inner() {
   [ "$(report_get "$file" leftover_rows_all)" = "true" ] || { echo "FAIL: leftover_rows_all must stay true" >&2; return 1; }
   [ "$(report_get "$file" leftover_157_kept)" = "true" ] || { echo "FAIL: leftover_157_kept must stay true" >&2; return 1; }
   [ "$(report_get "$file" leftover_193_kept)" = "true" ] || { echo "FAIL: leftover_193_kept must stay true" >&2; return 1; }
+  [ "$(report_get "$file" leftover_232_kept)" = "true" ] || { echo "FAIL: leftover_232_kept must stay true (keep g2-h5-every-page-form-write-remainder-honesty)" >&2; return 1; }
   [ "$(report_get "$file" leftover_212_kept)" = "true" ] || { echo "FAIL: leftover_212_kept must stay true (keep g7-withdraw-browser-evidence-honesty)" >&2; return 1; }
   [ "$(report_get "$file" leftover_230_kept)" = "true" ] || { echo "FAIL: leftover_230_kept must stay true (keep g4-hot-purge-staging-leftover-honesty)" >&2; return 1; }
   [ "$(report_get "$file" leftover_229_kept)" = "true" ] || { echo "FAIL: leftover_229_kept must stay true (keep g9-live-multi-jvm-replica-remainder-honesty)" >&2; return 1; }
@@ -148,7 +149,7 @@ verify_report_inner() {
 
   local rows
   rows="$(report_get "$file" leftover_rows_kept)"
-  for row in linux-arm-profile-honesty linux-arm-profile-leftover-honesty linux-arm-profile-remainder-honesty g7-withdraw-browser-evidence-honesty g4-hot-purge-staging-leftover-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g10-leftover-honesty-remainder g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g4-pkce-spa-verifier-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder; do
+  for row in linux-arm-profile-honesty linux-arm-profile-leftover-honesty linux-arm-profile-remainder-honesty g2-h5-every-page-form-write-remainder-honesty g7-withdraw-browser-evidence-honesty g4-hot-purge-staging-leftover-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g10-leftover-honesty-remainder g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g4-pkce-spa-verifier-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder; do
     echo "$rows" | grep -Fq "$row" || { echo "FAIL: leftover_rows_kept must keep $row" >&2; return 1; }
   done
 
@@ -359,6 +360,7 @@ MISSING_ROWS=""
 LEFTOVER_ROWS_ALL=true
 LEFTOVER_157_KEPT=false
 LEFTOVER_193_KEPT=false
+LEFTOVER_232_KEPT=false
 LEFTOVER_212_KEPT=false
 LEFTOVER_230_KEPT=false
 LEFTOVER_229_KEPT=false
@@ -371,6 +373,7 @@ for required_row in $CORE_LEFTOVER_ROWS; do
     case "$required_row" in
       linux-arm-profile-honesty) LEFTOVER_157_KEPT=true ;;
       linux-arm-profile-leftover-honesty) LEFTOVER_193_KEPT=true ;;
+      g2-h5-every-page-form-write-remainder-honesty) LEFTOVER_232_KEPT=true ;;
       g7-withdraw-browser-evidence-honesty) LEFTOVER_212_KEPT=true ;;
       g4-hot-purge-staging-leftover-honesty) LEFTOVER_230_KEPT=true ;;
       g9-live-multi-jvm-replica-remainder-honesty) LEFTOVER_229_KEPT=true ;;
@@ -387,6 +390,7 @@ done
 [ "$LEFTOVER_ROWS_ALL" = "true" ] || fail "docs/README.md dropped leftover row(s):$MISSING_ROWS"
 [ "$LEFTOVER_157_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover linux-arm-profile-honesty (#157)"
 [ "$LEFTOVER_193_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover linux-arm-profile-leftover-honesty (#193)"
+[ "$LEFTOVER_232_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g2-h5-every-page-form-write-remainder-honesty (#232)"
 [ "$LEFTOVER_212_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g7-withdraw-browser-evidence-honesty (#212)"
 [ "$LEFTOVER_230_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g4-hot-purge-staging-leftover-honesty (#230)"
 [ "$LEFTOVER_229_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g9-live-multi-jvm-replica-remainder-honesty (#229)"
@@ -473,6 +477,7 @@ REPORT="$OUT/report.env"
   kv platform_matrix_rows "$PLATFORM_MATRIX_ROWS"
   kv leftover_rows_kept "$LEFTOVER_ROWS_CSV"
   kv leftover_rows_all "$LEFTOVER_ROWS_ALL"
+  kv leftover_232_kept "$LEFTOVER_232_KEPT"
   kv leftover_212_kept "$LEFTOVER_212_KEPT"
   kv leftover_230_kept "$LEFTOVER_230_KEPT"
   kv leftover_229_kept "$LEFTOVER_229_KEPT"
@@ -533,7 +538,7 @@ MATRIX_MD="$OUT/matrix.md"
   echo "| Live ARM/Linux product-JAR | $ARM_JAR | ${ARM_JAR_REASON} |"
   echo "| Live non-x86 product-JAR | $NON_X86_JAR | ${NON_X86_JAR_REASON} |"
   echo "| TARGET-X86-01 product-JAR | $TARGET_X86_JAR | ${TARGET_X86_JAR_REASON} |"
-  echo "| leftover rows kept | true | #157/#193 + #212 + #230 + #229 + #226 + #228 + #221 + #225 + ALL sibling leftover rows |"
+  echo "| leftover rows kept | true | #157/#193 + #232 + #212 + #230 + #229 + #226 + #228 + #221 + #225 + ALL sibling leftover rows |"
   echo "| #105/#127/#157/#193 redo | false | sibling leftovers |"
   echo "| Docker / QEMU used | $DOCKER_USED / $QEMU_USED | present=$DOCKER_PRESENT |"
   echo "| Profile close | NOT_CLAIMED | G18 closed_unchanged; AuditPort untouched |"
