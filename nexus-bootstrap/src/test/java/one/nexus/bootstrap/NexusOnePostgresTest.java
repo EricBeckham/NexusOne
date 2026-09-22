@@ -44,7 +44,17 @@ class NexusOnePostgresTest {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from platform.flyway_schema_history where success and version is not null",
                 Integer.class);
-        assertEquals(7, applied);
+        assertTrue(applied != null && applied >= 8,
+                "expected V001-V003, V100-V101, V200, V500 (M0-09), V501 (M0-11); got " + applied);
+        List<String> versions = jdbc.queryForList(
+                "select version from platform.flyway_schema_history where success and version is not null",
+                String.class);
+        assertTrue(versions.contains("500"), "M0-09 V500 execution channel must be applied, got " + versions);
+        assertTrue(versions.contains("501"), "M0-11 V501 audit hash chain must be applied, got " + versions);
+        Integer auditTables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'audit_record'",
+                Integer.class);
+        assertEquals(1, auditTables);
         Integer iamTables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'iam' and table_name = 'iam_global_account'",
                 Integer.class);
@@ -88,6 +98,7 @@ class NexusOnePostgresTest {
         assertTrue(runtime.body().contains("\"schema_manager\":\"flyway_static_only\""));
         assertTrue(runtime.body().contains("\"trace_id\":\"" + trace + "\""));
         assertTrue(runtime.body().contains("\"spring_boot\":\"4.1.1\""));
+        assertTrue(runtime.body().contains("\"crypto_suite\":\"INTERNATIONAL\""));
     }
 
     @Test

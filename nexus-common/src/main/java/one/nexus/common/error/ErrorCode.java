@@ -22,6 +22,14 @@ public record ErrorCode(String product, String module, int number) {
     public static final ErrorCode JOB_DEAD = of("CORE", "JOB", 2);
     public static final ErrorCode EVT_UNKNOWN_DESTINATION = of("CORE", "EVT", 1);
     public static final ErrorCode EVT_DISPATCH_FAILED = of("CORE", "EVT", 2);
+    public static final ErrorCode CRYPTO_SUITE_MISMATCH = of("CORE", "CRYPTO", 1);
+    public static final ErrorCode CRYPTO_KEY_UNKNOWN = of("CORE", "CRYPTO", 2);
+    public static final ErrorCode CRYPTO_INTEGRITY = of("CORE", "CRYPTO", 3);
+    public static final ErrorCode SECRET_NOT_FOUND = of("CORE", "SECRET", 1);
+    public static final ErrorCode SECRET_PLAINTEXT_FORBIDDEN = of("CORE", "SECRET", 2);
+    public static final ErrorCode AUDIT_CHAIN_BROKEN = of("CORE", "AUDIT", 1);
+    public static final ErrorCode AUDIT_APPEND_ONLY = of("CORE", "AUDIT", 2);
+    public static final ErrorCode RECOVERY_DRY_RUN_ONLY = of("CORE", "RECOVERY", 1);
 
     public ErrorCode {
         Objects.requireNonNull(product, "product");

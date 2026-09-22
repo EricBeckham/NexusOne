@@ -69,6 +69,14 @@ nexus:
     persistence: ${NEXUS_IAM_PERSISTENCE:memory}
     idp: ${NEXUS_IAM_IDP:stub}
     platform-bootstrap-token: ${NEXUS_PLATFORM_BOOTSTRAP_TOKEN:${NEXUS_IAM_PLATFORM_BOOTSTRAP_TOKEN:}}
+  crypto:
+    suite: ${NEXUS_CRYPTO_SUITE:INTERNATIONAL}
+    key-source: ${NEXUS_CRYPTO_KEY_SOURCE:ephemeral}
+    key-id: ${NEXUS_CRYPTO_KEY_ID:local}
+    key-version: ${NEXUS_CRYPTO_KEY_VERSION:1}
+    master-key: ${NEXUS_CRYPTO_MASTER_KEY:}
+  audit:
+    persistence: ${NEXUS_AUDIT_PERSISTENCE:memory}
 
 logging:
   structured:

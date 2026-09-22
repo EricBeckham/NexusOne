@@ -45,6 +45,8 @@
     <flyway.version>13.7.0</flyway.version>
     <isolation-kernel.version>0.1.0-m0</isolation-kernel.version>
     <quartz.version>2.5.2</quartz.version>
+    <!-- P0-10 / M0-11: Bouncy Castle JCA provider used by CryptoPort (not a GM/T qualified module). -->
+    <bouncycastle.version>1.85.2</bouncycastle.version>
   </properties>
 
   <dependencyManagement>
@@ -103,6 +105,11 @@
         <groupId>one.nexus</groupId>
         <artifactId>nexus-crypto-core</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
       </dependency>
       <dependency>
         <groupId>one.nexus</groupId>

@@ -26,7 +26,7 @@ Parent reactor: `one.nexus:nexusone:0.1.0-SNAPSHOT` with **Spring Boot 4.1.1** (
 - Frozen capacity maxima (P0-08 left thresholds unfrozen). Defaults below are **provisional**
 - GaussDB / G14 / target Profile install acceptance
 - Docker / Compose as a runtime dependency
-- Audit hash chain, CryptoPort, SecretPort — M0-11
+- Audit hash chain, CryptoPort, SecretPort — M0-11 (contracts in `nexus-audit-core` / `nexus-crypto-core`; P1 still writes staging `platform.audit_event`)
 - Vue UI — M0-12
 
 ## Run (local JAR, PostgreSQL 15.x)
