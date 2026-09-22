@@ -8,8 +8,8 @@ See [docs/g15-wx-dt-prod-gap-honesty.md](../g15-wx-dt-prod-gap-honesty.md). Keep
 
 | Component | Exact version | Notes |
 |---|---|---|
-| Node | pending this run | from `web/package.json` / `node -v` |
-| Vitest | pending this run | `web/package.json` |
+| Node | v22.14.0 | from `node -v` |
+| Vitest | 3.2.7 | `web/package.json` |
 | Spring Boot parent | **4.1.1** | product BOM; unused for this contract |
 | Runtime | local `npm test` + leftover script | No Docker / Playwright / vendor SDK |
 
@@ -25,11 +25,12 @@ Filled after the honesty script on this VM.
 
 | Check | Result | Notes |
 |---|---|---|
-| Honest leftover fixture | pending | `g15_close=NOT_CLAIMED` |
-| Fake `g15_close=CLOSED` | pending FAIL | honesty gate |
-| Fake WeChat production PASS | pending FAIL | no `wechat_walk_observed` |
-| `wechatDingTalkProdGapHonesty.test.js` | pending | same F014 envelope; vendor origins denied |
-| `assert:h5-wx-dt-prod-gap` | pending | #117/#132/#151 leftover; #158/#162 rows kept |
+| Honest leftover fixture | PASS | `g15_close=NOT_CLAIMED` |
+| Fake `g15_close=CLOSED` | FAIL (expected) | honesty gate |
+| Fake WeChat production PASS | FAIL (expected) | no `wechat_walk_observed` |
+| `wechatDingTalkProdGapHonesty.test.js` | PASS 4 | same F014 envelope; vendor origins denied |
+| host units | PASS 46 | includes #117/#132/#151 leftover tests |
+| `assert:h5-wx-dt-prod-gap` | PASS | #117/#132/#151 leftover; #158/#160 rows kept |
 | Product G15 close | **NOT_CLAIMED** | honesty gate enforces `NOT_CLAIMED` |
 
 ## Honest leftovers
