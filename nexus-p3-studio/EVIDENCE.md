@@ -109,6 +109,32 @@ mvn -pl nexus-p3-studio,nexus-common -am test
 
 Flyway log: `Migrating schema "platform" to version "530 - form metadata"` against `PostgreSQL 15.18`.
 
+## Post-rebase onto M0-06 (`73416a7`, 2026-09-22T11:38:03Z)
+
+```bash
+mvn -pl nexus-p3-studio -am install -DskipTests
+mvn -pl nexus-p3-studio test
+```
+
+(`-am test` would also run `nexus-p1-tenant` `TenantModuleIT`, which errors without `NEXUS_DB_PASSWORD` on this VM. That is unrelated to M0-07.)
+
+`BUILD SUCCESS` at `2026-09-22T11:38:03Z`. `nexus-p3-studio`: **Tests run: 25, Failures: 0, Errors: 0, Skipped: 4**.
+
+| Suite | Result |
+|---|---|
+| `FormApiTest` | 1/1 |
+| `FormFlywayContractTest` | 1/1 |
+| `JdbcLedgerMetadataPortTest` | 2/2 — READY ledger/field codes, no physical names; DRAFT not usable |
+| `FormPublishStateMachineTest` | 5/5 |
+| `JdbcFormPublishRollbackIT` | 1/1 — Flyway V100→V101→V200→V300→**V400**→**V530** on zonky PostgreSQL **15.18** |
+| `BindingValidationTest` | 4/4 |
+| `DdlOwnershipTest` | 1/1 (M0-06) |
+| `LedgerIdentifiersTest` | 3/3 (M0-06) |
+| `SchemaAstTest` | 2/2 (M0-06) |
+| `FlywaySqlContractTest` | 1/1 — V400–V499 or V530–V549; no `l_*` / `a_*` |
+| `SchemaServicePostgresIT` | 2 skipped (no local PG listener) |
+| `LedgerCrudPostgresIT` | 2 skipped (no local PG listener) |
+
 ## Honest deferred list
 
 | Item | Why |
