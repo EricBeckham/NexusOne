@@ -9,7 +9,7 @@
  * Not a G7 three-type product close. Does not reopen G18.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { saveSettings } from "./client";
+import { persist, session } from "./session";
 import { withdrawTodo } from "./p3-live";
 
 const CONTEXT = "01a0c98a-1f3c-7f72-b724-6ac34746e981";
@@ -39,10 +39,9 @@ function withdrawResponse(instanceId) {
 
 describe("p3-live withdraw HTTP reachability", () => {
   beforeEach(() => {
-    saveSettings({
-      accessToken: TOKEN,
-      contextId: CONTEXT,
-    });
+    session.accessToken = TOKEN;
+    session.contextId = CONTEXT;
+    persist();
     vi.stubGlobal(
       "fetch",
       vi.fn(async (path) => ({
