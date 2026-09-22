@@ -2,7 +2,7 @@
 /**
  * G15 F014: HostBridgePort protocol (no browser, no Playwright, no Docker).
  * Accepts the mobile-browser postMessage contract. Does not claim APP WebView
- * or 小程序 web-view.
+ * or WeChat/DingTalk production 小程序.
  */
 import { createFakeWindow } from "../src/mobile/host/fakeWindow.js";
 import {
@@ -35,7 +35,7 @@ const standaloneCaps = hostCapabilities(standalone);
 check(standaloneCaps.accepted === true, "F014 postMessage contract must be accepted");
 check(standaloneCaps.host === "mobile-browser", "standalone host is mobile-browser");
 check(standaloneCaps.fallback === "web", "standalone must web-fallback");
-check(standaloneCaps.otherHostsOpen.join(",") === "APP WebView,小程序 web-view", "other hosts stay open");
+check(standaloneCaps.otherHostsOpen.join(",") === "APP WebView,WeChat/DingTalk 小程序 production", "other hosts stay open");
 
 const noHost = postHost("close", { action: "close" }, standalone);
 check(noHost.ok === false && noHost.reason === "no_host", "no parent => no_host");
@@ -108,4 +108,4 @@ if (failures.length) {
   }
   process.exit(1);
 }
-console.log("PASS: F014 HostBridgePort postMessage login/route/file/close on mobile-browser; APP WebView / 小程序 still open");
+console.log("PASS: F014 HostBridgePort postMessage login/route/file/close on mobile-browser; APP WebView / WeChat/DingTalk production leftover");

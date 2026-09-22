@@ -8,11 +8,19 @@
  *
  * Mobile-browser acceptance: standalone uses the web fallback; the
  * same-origin iframe at /m/host-harness is the postMessage parent.
- * APP WebView / 小程序 web-view are not accepted in this slice.
+ * Simulated 小程序 web-view parent: /m/mp-webview-harness embeds the
+ * same H5 with ?host=mp-webview. APP WebView and WeChat/DingTalk
+ * production 小程序 are not accepted in this slice.
  */
 import { DEFAULT_MOBILE_HOME, isSafeMobileReturn, safeMobileReturn } from "../auth/safeReturn.js";
 
 export const HOST_CHANNELS = Object.freeze(["login", "route", "file", "close"]);
+export const MP_WEBVIEW_QUERY = "mp-webview";
+export const MP_WEBVIEW_HOST = "miniprogram-webview-sim";
+export const OTHER_HOSTS_OPEN = Object.freeze([
+  "APP WebView",
+  "WeChat/DingTalk 小程序 production",
+]);
 export const H5_SOURCE = "nexus-h5";
 export const HOST_SOURCE = "nexus-host";
 export const HOST_ACTIONS = Object.freeze({
@@ -85,17 +93,41 @@ export function isEmbedded(win = defaultWindow()) {
   return Boolean(win.parent && win.parent !== win);
 }
 
+export function isMiniProgramWebViewEmbed(win = defaultWindow()) {
+  if (!win || !isEmbedded(win)) {
+    return false;
+  }
+  try {
+    const params = new URLSearchParams(win.location?.search || "");
+    return params.get("host") === MP_WEBVIEW_QUERY;
+  } catch {
+    return false;
+  }
+}
+
+export function detectHostKind(win = defaultWindow()) {
+  if (isMiniProgramWebViewEmbed(win)) {
+    return MP_WEBVIEW_HOST;
+  }
+  if (isEmbedded(win)) {
+    return "embedded";
+  }
+  return "mobile-browser";
+}
+
 export function hostCapabilities(win = defaultWindow()) {
-  const embedded = isEmbedded(win);
+  const kind = detectHostKind(win);
+  const embedded = kind !== "mobile-browser";
   return {
-    host: embedded ? "embedded" : "mobile-browser",
+    host: kind,
     supported: [...HOST_CHANNELS],
     unsupported: [],
     accepted: true,
+    productionAccepted: false,
     transport: "postMessage",
     origin: allowedHostOrigin(win),
     fallback: embedded ? null : "web",
-    otherHostsOpen: ["APP WebView", "小程序 web-view"],
+    otherHostsOpen: [...OTHER_HOSTS_OPEN],
   };
 }
 
@@ -105,6 +137,9 @@ export function isSafeHostPath(path) {
   }
   const clean = String(path).trim().split("?")[0];
   if (clean === "/m/host-harness" || clean.startsWith("/m/host-harness/")) {
+    return false;
+  }
+  if (clean === "/m/mp-webview-harness" || clean.startsWith("/m/mp-webview-harness/")) {
     return false;
   }
   return true;

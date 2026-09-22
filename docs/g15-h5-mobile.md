@@ -3,7 +3,7 @@
 Work package: **mobile** pages. First acceptance host is a **mobile browser**.  
 Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledger / form / todo pages are not part of this change.
 
-**This does not close product G15.** 需求规格 V1.1 §12 still requires other hosts (APP WebView / 小程序 web-view) on the same contract. Those stay open. P0 / M0 / G18 are not redone.
+**This does not close product G15.** 需求规格 V1.1 §12 still requires other hosts (APP WebView / 小程序 web-view) on the same contract. A **simulated** 小程序 web-view parent is in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md); WeChat / DingTalk production and APP WebView stay open. P0 / M0 / G18 are not redone.
 
 ## What is closed on the mobile browser
 
@@ -12,7 +12,7 @@ Baseline: Java 21, Spring Boot **4.1.1**, PostgreSQL 15. No Docker. Desktop ledg
 | F011 login redirect | `/m/login?return=…` → `/m/callback` | Unauthenticated `/m/*` is sent to login with a **safe** Return URL. Stub login (same `stub.` token as M0-12) returns to that path. Token / `tenant_id` / off-site returns are dropped. |
 | F012 files | `/m/p3/files`, `/m/p3/files/:id` | Client size (20 MB) and MIME checks, then `POST /api/v1/files`. Download is `POST .../signed-url` after metadata. Progress + cancel. Never MinIO admin APIs, never `X-Tenant-Id`. |
 | F013 routing | `/m/p3/home`, files + query `tab`, file deep link | History mode. Refresh keeps `sessionStorage` session. Tenant stays in the issued context, not the URL. Back uses `history.back`, else mobile home. |
-| F014 host messages | `/m/host`, `/m/host-harness` | HostBridgePort exposes only `login` / `route` / `file` / `close` over same-origin `postMessage` (`nexus-h5` ↔ `nexus-host`). Standalone mobile browser uses the web fallback. The iframe parent at `/m/host-harness` is the mobile-browser acceptance host. Tokens / `tenant_id` / unknown channels / off-site routes are rejected. |
+| F014 host messages | `/m/host`, `/m/host-harness`, `/m/mp-webview-harness` | HostBridgePort exposes only `login` / `route` / `file` / `close` over same-origin `postMessage` (`nexus-h5` ↔ `nexus-host`). Standalone mobile browser uses the web fallback. The iframe parent at `/m/host-harness` is the mobile-browser acceptance host. `/m/mp-webview-harness` is the simulated 小程序 web-view parent (same channels; not WeChat / DingTalk production). Tokens / `tenant_id` / unknown channels / off-site routes are rejected. |
 | F010 runtime | `/m/p3/forms`, `/m/p3/lists`, `/m/p3/todos`, `/m/p3/query`, `/m/p3/notifications` | Published-app H5 runtime. Details and leftovers: [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). |
 
 Desktop `/p3/ledgers`, `/p3/forms`, `/p3/todos` (and their views) are unchanged.
@@ -49,7 +49,7 @@ Business pages do not branch on WeChat / DingTalk (H5 规范 §80.2). All host d
 | Item | Status |
 |---|---|
 | APP WebView | **Not accepted.** Same contract, no native host walk. |
-| 小程序 web-view | **Not accepted.** Same contract, no mini-program walk. |
+| 小程序 web-view | Simulated parent in [g15-miniprogram-webview.md](./g15-miniprogram-webview.md). **WeChat / DingTalk production not accepted.** |
 | Keycloak Authorization Code + PKCE | **Not accepted.** `/m/callback` lands code/state and POSTs `/api/v1/auth/login`; the confidential client does not write Access Token into the SPA or URL. Browser session is still stub token, same as M0-12. |
 | F010 full H5 runtime | Mobile-browser pages now in [g15-f010-h5-runtime.md](./g15-f010-h5-runtime.md). Other hosts / PKCE still open. |
 | Live S3 / MinIO download | Product default `nexus.files.storage=memory`. Signed URL against real S3 is M0-10, not re-run here. |
@@ -64,13 +64,14 @@ npm install
 npm test
 npm run assert:h5
 npm run assert:h5-host
+npm run assert:h5-mp-webview
 npm run assert:isolation
 npm run assert:p3-live
 npm run build
 npm run dev
 ```
 
-Open a mobile-width browser at `http://127.0.0.1:5173/m/host` (standalone web fallback) or `http://127.0.0.1:5173/m/host-harness` (iframe parent).  
+Open a mobile-width browser at `http://127.0.0.1:5173/m/host` (standalone web fallback), `http://127.0.0.1:5173/m/host-harness` (iframe parent), or `http://127.0.0.1:5173/m/mp-webview-harness` (simulated 小程序 web-view parent).  
 `/m/p3/files` still redirects to `/m/login?return=…` when logged out.
 
 Live upload needs the JAR + issued `X-Nexus-Context-Id` (tenant membership). Missing context is a **403**, not a fixture list.
@@ -82,6 +83,8 @@ Live upload needs the JAR + issued `X-Nexus-Context-Id` (tenant membership). Mis
 `npm run assert:h5` — safe return URL, MIME/size, host-channel denylist, `/m` + `/m/host` routes, desktop P3 views do not import the mobile shell.
 
 `npm run assert:h5-host` — fake-window protocol: handshake `login/ready`, four channels both ways, evil origin / `eval` / `access_token` rejected. No Docker, no Playwright.
+
+`npm run assert:h5-mp-webview` — simulated 小程序 web-view parent: same channels, origin/channel allowlist. Not WeChat / DingTalk production.
 
 ## Browser walk (F011 / F012 / F013 — #75, 2026-09-22)
 

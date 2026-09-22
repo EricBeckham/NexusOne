@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * G15 H5: mobile login-redirect / file / routing + F014 host-message wiring.
- * Does not claim Keycloak PKCE, APP WebView, or 小程序 acceptance.
+ * Does not claim Keycloak PKCE, APP WebView, or WeChat/DingTalk production.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -29,6 +29,7 @@ const files = {
   fileDetail: read("src/mobile/products/p3-studio/pages/FileDetailPage.vue"),
   hostPage: read("src/mobile/products/p3-studio/pages/HostMessagePage.vue"),
   harness: read("src/mobile/products/p3-studio/pages/HostHarnessPage.vue"),
+  mpHarness: read("src/mobile/products/p3-studio/pages/MiniProgramWebViewHarnessPage.vue"),
   shell: read("src/mobile/layouts/NxMobileShell.vue"),
   hostBridge: read("src/mobile/host/hostBridge.js"),
   ledger: read("src/views/studio/LedgerListView.vue"),
@@ -70,6 +71,7 @@ requireIncludes("router", files.router, [
   'path: "/m/p3/notifications"',
   'path: "/m/host"',
   'path: "/m/host-harness"',
+  'path: "/m/mp-webview-harness"',
   "beforeEach",
   'path: "/m/login"',
   'query: { return: returnTo }',
@@ -94,10 +96,12 @@ requireIncludes("file detail", files.fileDetail, ["signDownload", 'postHost("fil
 requireIncludes("shell", files.shell, ["mobile-back", "history.length", "useHostPort", 'postHost("close"']);
 requireIncludes("host page", files.hostPage, ["host-out-login", "host-out-route", "host-out-file", "host-out-close"]);
 requireIncludes("harness", files.harness, ["host-iframe", "nexus-host", "/m/host?embedded=true"]);
+requireIncludes("mp harness", files.mpHarness, ["mp-webview", "mp-capsule", "MP_WEBVIEW_CHILD_SRC"]);
 requireIncludes("hostBridge", files.hostBridge, ["HostBridgePort", "postMessage", "nexus-h5", "nexus-host"]);
 
 forbidIncludes("hostBridge", files.hostBridge, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
 forbidIncludes("host page", files.hostPage, ["isWeChat", "isDingTalk"]);
+forbidIncludes("mp harness", files.mpHarness, ["isWeChat", "isDingTalk", "wx.miniProgram"]);
 forbidIncludes("home", files.home, ["未在本切片验收"]);
 
 for (const [name, text] of Object.entries({
@@ -164,6 +168,9 @@ if (caps.accepted !== true) {
 if (!caps.otherHostsOpen?.includes("APP WebView")) {
   failures.push("must keep APP WebView listed as leftover");
 }
+if (!caps.otherHostsOpen?.includes("WeChat/DingTalk 小程序 production")) {
+  failures.push("must keep WeChat/DingTalk production listed as leftover");
+}
 if (postHost("eval", {}).ok) {
   failures.push("unknown host channel must be rejected");
 }
@@ -178,4 +185,4 @@ if (failures.length) {
   }
   process.exit(1);
 }
-console.log("PASS: H5 mobile login-redirect / file / routing / F014 host-message wired; desktop P3 pages untouched; APP WebView / 小程序 leftover");
+console.log("PASS: H5 mobile login-redirect / file / routing / F014 host-message wired; desktop P3 pages untouched; APP WebView / WeChat/DingTalk leftover");

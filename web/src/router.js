@@ -47,6 +47,12 @@ const routes = [
     meta: { harness: true, public: true, title: "宿主验收" },
   },
   {
+    path: "/m/mp-webview-harness",
+    name: "m-mp-webview-harness",
+    component: () => import("./mobile/products/p3-studio/pages/MiniProgramWebViewHarnessPage.vue"),
+    meta: { harness: true, public: true, title: "模拟小程序 web-view" },
+  },
+  {
     path: "/m/p3/home",
     name: "m-home",
     component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),

@@ -40,12 +40,22 @@ describe("F014 HostBridgePort contract", () => {
     expect(caps.transport).toBe("postMessage");
     expect(caps.host).toBe("mobile-browser");
     expect(caps.fallback).toBe("web");
-    expect(caps.otherHostsOpen).toEqual(["APP WebView", "小程序 web-view"]);
+    expect(caps.otherHostsOpen).toEqual(["APP WebView", "WeChat/DingTalk 小程序 production"]);
+    expect(caps.productionAccepted).toBe(false);
   });
 
   it("detects embedded via parent or query", () => {
     expect(hostCapabilities(createFakeWindow({ embedded: true })).host).toBe("embedded");
     expect(hostCapabilities(createFakeWindow({ embedded: true })).fallback).toBeNull();
+  });
+
+  it("names the simulated mini-program web-view host from query", () => {
+    const win = createFakeWindow({
+      embedded: true,
+      search: "?embedded=true&host=mp-webview",
+    });
+    expect(hostCapabilities(win).host).toBe("miniprogram-webview-sim");
+    expect(hostCapabilities(win).fallback).toBeNull();
   });
 });
 
@@ -71,6 +81,7 @@ describe("payload and origin guards", () => {
     expect(isSafeHostPath("https://evil.example/m/p3/home")).toBe(false);
     expect(isSafeHostPath("/m/p3/files?access_token=abc")).toBe(false);
     expect(isSafeHostPath("/m/host-harness")).toBe(false);
+    expect(isSafeHostPath("/m/mp-webview-harness")).toBe(false);
     expect(isSafeHostPath("/m/p3/files?tab=recent")).toBe(true);
     expect(encodeHostMessage({
       source: HOST_SOURCE,
