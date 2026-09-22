@@ -34,14 +34,14 @@ Live Redis 3.2 on `127.0.0.1:6379` is optional. `RedisInvalidationTest` skips th
 
 ## Evidence
 
-Recorded **2026-09-22T15:40:18Z** on this agent VM. Java **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. No local Redis 3.2 / PostgreSQL listener (Redis-down uses a dead client on port `1`).
+Recorded **2026-09-22T15:43:27Z** on this agent VM after rebase onto `main@5359e84` (G2 #73 + G4 #77). Java **21.0.10**, Maven **3.8.7**, Spring Boot **4.1.1**. No Docker. No local Redis 3.2 / PostgreSQL listener (Redis-down uses a dead client on port `1`).
 
 ```
 ./scripts/g9-policysnapshot-invalidate.sh
-# Tests run: 19, Failures: 0, Errors: 0, Skipped: 2  BUILD SUCCESS  2026-09-22T15:40:18Z
+# Tests run: 19, Failures: 0, Errors: 0, Skipped: 2  BUILD SUCCESS  2026-09-22T15:43:27Z
 
 mvn -pl nexus-permission-core -am test
-# Tests run: 35, Failures: 0, Errors: 0, Skipped: 4  BUILD SUCCESS  2026-09-22T15:40:35Z
+# Tests run: 39, Failures: 0, Errors: 0, Skipped: 4  BUILD SUCCESS  2026-09-22T15:43:38Z
 ```
 
 | Suite | Count | What it proves |

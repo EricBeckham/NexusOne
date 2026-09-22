@@ -50,7 +50,15 @@ mvn -pl nexus-permission-core,nexus-p3-studio -am test \
 # p3-studio: PermissionDataScopeHook 4, G2SurfaceAgreement 3
 ```
 
-G9 targeted script on this agent VM (**2026-09-22T15:40:18Z**): **19 / 0 / 2** (`./scripts/g9-policysnapshot-invalidate.sh`). Pre-rebase permission-core was **35 / 0 / 4** (2026-09-22T15:40:35Z, before G2 #73). Post-rebase counts are re-recorded after the suite on `main@5359e84`.
+G9 after rebase onto `main@5359e84` (this VM, OpenJDK **21.0.10** / Maven **3.8.7** / Boot **4.1.1**):
+
+```bash
+./scripts/g9-policysnapshot-invalidate.sh
+# BUILD SUCCESS 2026-09-22T15:43:27Z — Tests run: 19, Failures: 0, Errors: 0, Skipped: 2
+
+mvn -pl nexus-permission-core -am test
+# BUILD SUCCESS 2026-09-22T15:43:38Z — Tests run: 39, Failures: 0, Errors: 0, Skipped: 4
+```
 
 | Class | What it proved |
 |---|---|
