@@ -40,6 +40,6 @@ public class TenantOnlyDataScopeHook implements DataScopeHook {
         if (TenantContextHolder.get() == null) {
             return IsolationOnlyDecision.allow();
         }
-        return new Decision(true, IsolationOnlyDecision.REASON);
+        return new Decision(true, IsolationOnlyDecision.REASON, Predicate.TRUE, Map.of(), 0L);
     }
 }

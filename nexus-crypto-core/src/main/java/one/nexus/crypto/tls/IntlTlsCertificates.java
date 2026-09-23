@@ -67,7 +67,7 @@ final class IntlTlsCertificates {
             X500Name subjectName = new X500Name(distinguishedName);
             X500Name issuerName = issuerCert == null
                     ? subjectName
-                    : new X500Name(issuerCert.getSubjectX500Principal().getName());
+                    : X500Name.getInstance(issuerCert.getSubjectX500Principal().getEncoded());
             X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
                     issuerName,
                     new BigInteger(128, RANDOM),

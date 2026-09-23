@@ -283,14 +283,14 @@ public final class G17MfaRecoveryVueOtpRemainderHonesty {
         require(errors, report, "boot_parent_version", "4.1.1");
         require(errors, report, "boot_parent_match", "PASS");
         require(errors, report, "docker_used", "false");
-        require(errors, report, "g18_status", "closed_unchanged");
-        require(errors, report, "audit_port_changed", "false");
-        require(errors, report, "p0_m0_redone", "false");
-        require(errors, report, "vue_writes_keycloak_otp", "false");
         require(errors, report, "dengbao_claimed", "false");
         require(errors, report, "mipin_claimed", "false");
         require(errors, report, "hsm_claimed", "false");
         require(errors, report, "g17_close", G17_CLOSE);
+        require(errors, report, "vue_writes_keycloak_otp", "false");
+        require(errors, report, "g18_status", "closed_unchanged");
+        require(errors, report, "audit_port_changed", "false");
+        require(errors, report, "p0_m0_redone", "false");
         require(errors, report, "leftover_205_harness", "PASS");
         require(errors, report, "leftover_172_harness", "PASS");
         require(errors, report, "leftover_158_harness", "PASS");
@@ -298,13 +298,13 @@ public final class G17MfaRecoveryVueOtpRemainderHonesty {
         require(errors, report, "leftover_172_cells_honest", "PASS");
         require(errors, report, "leftover_158_cells_honest", "PASS");
         require(errors, report, "leftover_rows_kept", "true");
+        require(errors, report, "redo_158", "false");
+        require(errors, report, "redo_172", "false");
+        require(errors, report, "redo_205", "false");
         require(errors, report, "redo_96", "false");
         require(errors, report, "redo_118", "false");
         require(errors, report, "redo_133", "false");
         require(errors, report, "redo_154", "false");
-        require(errors, report, "redo_158", "false");
-        require(errors, report, "redo_172", "false");
-        require(errors, report, "redo_205", "false");
 
         String rows = value(report, "leftover_rows");
         for (String row : README_ROWS) {

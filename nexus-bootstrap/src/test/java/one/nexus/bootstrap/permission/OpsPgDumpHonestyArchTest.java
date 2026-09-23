@@ -28,7 +28,8 @@ import org.junit.jupiter.api.Test;
 class OpsPgDumpHonestyArchTest {
     static final ArchRule NO_PROCESS_ON_PRODUCT_DUMP = noClasses()
             .should()
-            .callConstructor(ProcessBuilder.class)
+            .dependOnClassesThat()
+            .haveFullyQualifiedName(ProcessBuilder.class.getName())
             .because("ops pg_dump is out of product SurfaceGuard; "
                     + "dump/export go through AuthorizedExport; see docs/g2-ops-pg-dump.md");
 

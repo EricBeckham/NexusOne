@@ -5,6 +5,7 @@ nexus:
     platform-bootstrap-token: test-bootstrap
   permission:
     persistence: memory
+    seed-tenant-member-grants: true
   flow:
     engine: flowable-7.1.0-in-process
 

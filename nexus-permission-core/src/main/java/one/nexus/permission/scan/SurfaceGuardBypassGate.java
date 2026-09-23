@@ -113,22 +113,27 @@ public final class SurfaceGuardBypassGate {
     }
 
     private void inspect(Path path, Path repoRoot, boolean applyAllowlist, List<Violation> violations) {
+        String relative = relativize(repoRoot, path);
+        if (applyAllowlist && relative.startsWith(
+                "nexus-permission-core/src/main/java/one/nexus/permission/scan/")) {
+            return;
+        }
         String content;
         try {
             content = Files.readString(path, StandardCharsets.UTF_8);
         } catch (IOException ex) {
             throw new IllegalStateException(ex);
         }
-        boolean engine = ENGINE_CALL.matcher(content).find();
-        boolean export = EXPORT_CALL.matcher(content).find();
-        boolean skip = DECISION_TRUE.matcher(content).find();
-        boolean unguardedP3 = REST_CONTROLLER.matcher(content).find()
-                && SURFACE_PATH.matcher(content).find()
-                && !GUARD_TOKEN.matcher(content).find();
+        String code = withoutComments(content);
+        boolean engine = ENGINE_CALL.matcher(code).find();
+        boolean export = EXPORT_CALL.matcher(code).find();
+        boolean skip = DECISION_TRUE.matcher(code).find();
+        boolean unguardedP3 = REST_CONTROLLER.matcher(code).find()
+                && SURFACE_PATH.matcher(code).find()
+                && !GUARD_TOKEN.matcher(code).find();
         if (!engine && !export && !skip && !unguardedP3) {
             return;
         }
-        String relative = relativize(repoRoot, path);
         if (engine && (!applyAllowlist || !pathAllowed(relative, SurfaceGuardBypassAllowlist.ENGINE_PATHS))) {
             violations.add(new Violation(path, RAW_ENGINE, "PermissionEngine.evaluate/can outside PermissionService"));
         }
@@ -153,6 +158,10 @@ public final class SurfaceGuardBypassGate {
             }
         }
         return false;
+    }
+
+    static String withoutComments(String content) {
+        return content.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("(?m)//.*$", "");
     }
 
     private static String relativize(Path root, Path file) {

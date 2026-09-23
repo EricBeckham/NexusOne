@@ -94,14 +94,18 @@ public final class OpsPgDumpHonestyGate {
     }
 
     private void inspectJava(Path path, Path repoRoot, boolean applyAllowlist, List<Violation> violations) {
-        String content = read(path);
+        String relative = relativize(repoRoot, path);
+        if (applyAllowlist && relative.startsWith(
+                "nexus-permission-core/src/main/java/one/nexus/permission/scan/")) {
+            return;
+        }
+        String content = SurfaceGuardBypassGate.withoutComments(read(path));
         boolean spawn = PROCESS_SPAWN.matcher(content).find();
         boolean dumpLiteral = PG_DUMP_LITERAL.matcher(content).find();
         boolean inline = PROCESS_PG_DUMP_INLINE.matcher(content).find();
         if (!inline && !(spawn && dumpLiteral)) {
             return;
         }
-        String relative = relativize(repoRoot, path);
         boolean versionOnly = VERSION_ONLY.matcher(content).find();
         int builders = count(content, "new ProcessBuilder");
         boolean allowedProbe = applyAllowlist

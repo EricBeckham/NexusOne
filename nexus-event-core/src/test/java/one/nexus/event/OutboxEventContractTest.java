@@ -247,9 +247,10 @@ class OutboxEventContractTest {
         for (int i = 0; i < 20; i++) {
             ids.add(h.store.append(OutboxAppendCommand.notifyInbox(
                     "notify.created", "{\"n\":" + i + "}")));
+            if ((i + 1) % 8 == 0) {
+                assertEquals(8, h.dispatcher.dispatchOnce());
+            }
         }
-        assertEquals(8, h.dispatcher.dispatchOnce());
-        assertEquals(8, h.dispatcher.dispatchOnce());
         assertEquals(4, h.dispatcher.dispatchOnce());
         assertFalse(h.dispatcher.lastCycleLagAlarm());
         long p95 = h.dispatcher.lagProbe().p95Ms().orElseThrow();

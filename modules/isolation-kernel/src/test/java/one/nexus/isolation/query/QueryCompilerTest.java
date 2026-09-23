@@ -172,7 +172,8 @@ class QueryCompilerTest {
                 alpha);
         assertTrue(encoded.sql().contains("\"id\" IN (?, ?)"));
         assertTrue(encoded.sql().contains("\"tenant_id\" = ?"));
-        assertEquals(List.of("r1", "r2", "alpha"), encoded.parameters());
+        assertTrue(encoded.sql().contains("\"department_id\" IN (?, ?)"));
+        assertEquals(List.of("r1", "r2", "alpha", "d1", "d2"), encoded.parameters());
 
         assertCode(IsolationErrorCode.INVALID_IDENTIFIER, () -> kernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id"), map("department_id", List.of())),

@@ -20,7 +20,7 @@ Reuse only: the existing #116 Vue `useH5Surface` / `H5SurfaceGuard` twin. Java 2
 | `/m/p3/files`, `/m/p3/files/:id` | **OPEN** | File Service; no `SurfaceGuard` |
 | `/m/p3/notifications` | **OPEN** | notify jump; no `SurfaceGuard` |
 
-Thin wrappers: `H5PageSurfaceCatalog` + JS `h5PageInventory.js`. The static gate parses `web/src/router.js`. A new `/m/*` route without a catalog row fails. A fake `g2_close=CLOSED` fixture fails. Covered Vue files must keep `useH5Surface`. Open Vue files must not claim it.
+Thin wrappers: `H5PageSurfaceCatalog` + JS `h5PageInventory.js`. The static gate parses `web/src/router.js`. A new `/m/*` route without a catalog row fails. A fake close-claim fixture fails. Covered Vue files must keep `useH5Surface`. Open Vue files must not claim it.
 
 ArchUnit note: `H5SurfaceGuard` must still depend on `SurfaceGuard` (#116 twin; this leftover does not rewrite it).
 

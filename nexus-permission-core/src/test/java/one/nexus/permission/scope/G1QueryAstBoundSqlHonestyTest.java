@@ -50,7 +50,7 @@ class G1QueryAstBoundSqlHonestyTest {
     }
 
     @Test
-    void leftoverBoundSqlAndCountStayGuarded() {
+    void leftoverBoundSqlAndCountStayGuarded() throws IOException {
         IsolationKernel kernel = kernel();
         AccessContextHolder.set(kernel.tenants().issue(
                 new AuthenticatedMembership(Actor.person("u1"), "alpha", "mem-a", Set.of("alpha")),

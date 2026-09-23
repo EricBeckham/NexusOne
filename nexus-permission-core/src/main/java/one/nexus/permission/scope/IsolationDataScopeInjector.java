@@ -84,7 +84,7 @@ public final class IsolationDataScopeInjector implements DataScopeInjector {
         if (!Objects.equals(tenant, next.get("tenant_id"))) {
             throw PermissionException.tenantPredicateRequired("DataScopeInjector stripped tenant_id");
         }
-        return Map.copyOf(next);
+        return Collections.unmodifiableMap(new LinkedHashMap<>(next));
     }
 
     private Map<String, Object> extrasFor(TableDescriptor table) {

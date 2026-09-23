@@ -1,10 +1,10 @@
 package one.nexus.permission.surface;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import one.nexus.isolation.api.ExportFieldRule;
 import one.nexus.permission.engine.Decision;
 import one.nexus.permission.engine.FieldRule;
@@ -21,7 +21,7 @@ public final class DumpFieldPolicies {
     private DumpFieldPolicies() {}
 
     public static List<String> visibleColumns(Decision read, List<Map<String, Object>> rows) {
-        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        Set<String> keys = new TreeSet<>();
         Map<String, FieldRule> fields = read == null ? Map.of() : read.fields();
         if (rows != null) {
             for (Map<String, Object> row : rows) {

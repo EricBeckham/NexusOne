@@ -1,3 +1,4 @@
+/** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_MOBILE_HOME } from "./safeReturn.js";
 import { consumePendingPkce, loadPendingPkce, PENDING_PKCE_KEY, savePendingPkce } from "./pkceSession.js";

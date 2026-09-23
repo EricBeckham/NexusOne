@@ -13,9 +13,6 @@ import one.nexus.permission.persist.PolicyRepository.AssignmentRecord;
 import one.nexus.permission.persist.PolicyRepository.GrantRecord;
 import one.nexus.permission.persist.PolicyRepository.RoleRecord;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 /**
  * Demo-path bootstrap: role {@code tenant_member} with ledger/form read+write ALL,
@@ -37,9 +34,6 @@ import org.springframework.stereotype.Component;
  * {@link RoleMatrixCatalog} / {@code POST /api/v1/permission/matrix/example}
  * for SELF / DEPT_AND_CHILDREN + field policy.
  */
-@Component
-@ConditionalOnBean(PermissionModule.class)
-@ConditionalOnProperty(name = "nexus.permission.seed-tenant-member-grants", havingValue = "true")
 public class TenantMemberGrantSeeder {
     public static final String ROLE_CODE = "tenant_member";
 
