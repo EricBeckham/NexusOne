@@ -16,20 +16,21 @@
       <div class="nx-row">
         <div class="nx-field">
           <label>绑定台账</label>
-          <select v-model="draft.ledger_id" required>
+          <select v-model="draft.ledger_id" required data-testid="form-ledger-select">
             <option value="" disabled>选择台账</option>
             <option v-for="ledger in ledgers" :key="ledger.id" :value="ledger.id">
               {{ ledger.name }} ({{ ledger.code }})
             </option>
           </select>
         </div>
-        <div class="nx-field"><label>表单编码</label><input v-model="draft.form_code" placeholder="leave_form" required /></div>
-        <div class="nx-field"><label>表单名称</label><input v-model="draft.name" placeholder="请假单" required /></div>
+        <div class="nx-field"><label>表单编码</label><input v-model="draft.form_code" placeholder="leave_form" required data-testid="form-code" /></div>
+        <div class="nx-field"><label>表单名称</label><input v-model="draft.name" placeholder="请假单" required data-testid="form-name" /></div>
       </div>
       <p v-if="!ledgers.length" class="nx-error">当前租户没有台账，请先去台账页创建。</p>
       <button class="primary" type="submit" data-testid="form-create-submit" :disabled="!ledgers.length">创建 DRAFT</button>
     </form>
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
+    <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <table class="nx-table" data-testid="form-table">
       <thead>
@@ -49,9 +50,16 @@
           <td><router-link :to="`/p3/forms/${row.id}`">{{ row.name }}</router-link></td>
           <td class="nx-code">{{ row.ledger_name || "—" }}</td>
           <td><NxStatus :label="row.draft_status" :tone="row.draft_status === 'VALIDATED' ? 'success' : 'warning'" /></td>
-          <td>v{{ row.running_version || 0 }}</td>
+          <td><NxStatus :label="row.running_version ? `RUNNING v${row.running_version}` : '未发布'" :tone="row.running_version ? 'success' : 'warning'" /></td>
           <td class="nx-row">
             <router-link class="ghost" :to="`/p3/forms/${row.id}?tab=publish`">Validate / Publish</router-link>
+            <button
+              v-if="!row.running_version"
+              class="primary"
+              type="button"
+              data-testid="form-quick-publish"
+              @click="validateAndPublish(row)"
+            >校验并发布</button>
             <router-link class="ghost" :to="`/p3/forms/${row.id}?tab=fill`">填报</router-link>
           </td>
         </tr>
@@ -73,6 +81,7 @@ const rows = ref([]);
 const ledgers = ref([]);
 const apps = ref([]);
 const error = ref("");
+const notice = ref("");
 const showCreate = ref(false);
 const draft = reactive({
   ledger_id: "",
@@ -90,19 +99,23 @@ function widgetType(field) {
   return "TEXT";
 }
 
+async function reload() {
+  const [forms, ledgerBody, appBody] = await Promise.all([
+    p3.listForms(),
+    p3.listLedgers(),
+    p3.listApplications(),
+  ]);
+  rows.value = forms.items || [];
+  ledgers.value = ledgerBody.items || [];
+  apps.value = appBody.items || [];
+  if (ledgers.value.length && !draft.ledger_id) {
+    draft.ledger_id = ledgers.value[0].id;
+  }
+}
+
 onMounted(async () => {
   try {
-    const [forms, ledgerBody, appBody] = await Promise.all([
-      p3.listForms(),
-      p3.listLedgers(),
-      p3.listApplications(),
-    ]);
-    rows.value = forms.items || [];
-    ledgers.value = ledgerBody.items || [];
-    apps.value = appBody.items || [];
-    if (ledgers.value.length && !draft.ledger_id) {
-      draft.ledger_id = ledgers.value[0].id;
-    }
+    await reload();
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
   }
@@ -136,6 +149,23 @@ async function onCreate() {
       bindings,
     });
     router.push(`/p3/forms/${created.id}?tab=publish`);
+  } catch (err) {
+    error.value = `${err.code || ""} ${err.message}`;
+  }
+}
+
+async function validateAndPublish(row) {
+  error.value = "";
+  notice.value = "";
+  try {
+    const validation = await p3.validateForm(row.id);
+    if (!validation.ok) {
+      const message = (validation.issues || []).map((item) => item.message).join("；") || "校验失败";
+      throw new Error(message);
+    }
+    const published = await p3.publishForm(row.id);
+    await reload();
+    notice.value = `${row.name} 已发布为 Running v${published.running_version || 1}，列表已刷新。`;
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
   }

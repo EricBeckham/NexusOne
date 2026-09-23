@@ -19,6 +19,7 @@ const routes = [
   { path: "/p2/permissions/:kind?", name: "permissions", component: () => import("./views/permission/PermissionStubView.vue"), meta: { title: "权限", product: "p2" } },
   { path: "/p3/ledgers", name: "ledgers", component: () => import("./views/studio/LedgerListView.vue"), meta: { title: "台账", product: "p3" } },
   { path: "/p3/ledgers/:id", name: "ledger-detail", component: () => import("./views/studio/LedgerDetailView.vue"), meta: { title: "台账详情", product: "p3" } },
+  { path: "/p3/ledgers/:id/records/:recordId", name: "ledger-record-detail", component: () => import("./views/studio/LedgerRecordDetailView.vue"), meta: { title: "记录详情", product: "p3" } },
   { path: "/p3/forms", name: "forms", component: () => import("./views/studio/FormListView.vue"), meta: { title: "表单", product: "p3" } },
   { path: "/p3/forms/:id", name: "form-studio", component: () => import("./views/studio/FormStudioView.vue"), meta: { title: "表单填报/发布", product: "p3" } },
   { path: "/p3/todos", name: "todos", component: () => import("./views/studio/TodoInboxView.vue"), meta: { title: "待办", product: "p3" } },

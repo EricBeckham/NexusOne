@@ -176,7 +176,7 @@ class CatalogSurfaceApiTest {
 
         @Bean
         ApplicationController applicationController(ApplicationService applications, CatalogSurfaceGuard guard) {
-            return new ApplicationController(provider(applications), provider(guard));
+            return new ApplicationController(applications, provider(guard));
         }
 
         @Bean
