@@ -149,7 +149,9 @@ public final class H5PageSurfaceHonestyGate {
             if (page.vueFile().isEmpty()) {
                 continue;
             }
-            Path vue = root.resolve(H5PageSurfaceCatalog.VUE_DIR).resolve(page.vueFile());
+            Path vue = page.path().startsWith("/m/p4/")
+                    ? root.resolve("web/src/mobile/products/p4-market/pages").resolve(page.vueFile())
+                    : root.resolve(H5PageSurfaceCatalog.VUE_DIR).resolve(page.vueFile());
             if (!Files.isRegularFile(vue)) {
                 violations.add(new Violation(vue, CATALOG_ROUTE_MISSING, "Vue page missing for " + page.path()));
                 continue;

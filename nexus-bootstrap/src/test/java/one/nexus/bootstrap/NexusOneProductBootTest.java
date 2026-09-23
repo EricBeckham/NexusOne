@@ -89,10 +89,15 @@ class NexusOneProductBootTest {
                 String.class);
         assertTrue(versions.contains("531"), "G18 V531 missing, got " + versions);
         assertTrue(versions.contains("550"), "Flyway head V550 missing, got " + versions);
+        assertTrue(versions.contains("600"), "P4 market V600 missing, got " + versions);
         Integer outboxTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'exec_outbox'",
                 Integer.class);
         assertEquals(1, outboxTable);
+        Integer marketTable = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'market' and table_name = 'app_package'",
+                Integer.class);
+        assertEquals(1, marketTable);
     }
 
     @Test

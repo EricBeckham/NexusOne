@@ -19,6 +19,7 @@ Reuse only: the existing #116 Vue `useH5Surface` / `H5SurfaceGuard` twin. Java 2
 | `/m/p3/home` | **OPEN** | session home; no `SurfaceGuard` |
 | `/m/p3/files`, `/m/p3/files/:id` | **OPEN** | File Service; no `SurfaceGuard` |
 | `/m/p3/notifications` | **OPEN** | notify jump; no `SurfaceGuard` |
+| `/m/p4/market` | **OPEN** | P4 星市目录壳；目录权限 cell 尚未冻结，不虚构 G2 覆盖 |
 
 Thin wrappers: `H5PageSurfaceCatalog` + JS `h5PageInventory.js`. The static gate parses `web/src/router.js`. A new `/m/*` route without a catalog row fails. A fake close-claim fixture fails. Covered Vue files must keep `useH5Surface`. Open Vue files must not claim it.
 

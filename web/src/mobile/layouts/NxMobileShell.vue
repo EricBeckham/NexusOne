@@ -1,5 +1,5 @@
 <template>
-  <div class="nx-mobile" data-product="p3" data-testid="mobile-shell" :data-embedded="embedded ? 'true' : 'false'">
+  <div class="nx-mobile" :data-product="product" data-testid="mobile-shell" :data-embedded="embedded ? 'true' : 'false'">
     <header class="m-appbar">
       <button
         v-if="showBack"
@@ -43,6 +43,7 @@ const router = useRouter();
 useHostPort();
 
 const title = computed(() => route.meta.title || "星构");
+const product = computed(() => route.meta.product || "p3");
 const showTabs = computed(() => route.meta.tabs !== false && !isEmbedded());
 const showBack = computed(() => route.meta.back === true || isEmbedded());
 const embedded = computed(() => isEmbedded());

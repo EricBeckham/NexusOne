@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
             "one.nexus.p3.domain",
             "one.nexus.p3.path",
             "one.nexus.p3.studio.api",
-            "one.nexus.p4",
+            "one.nexus.p4.market",
             "one.nexus.p5",
             "one.nexus.cache",
             "one.nexus.crypto",
@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
         importOptions = ImportOption.DoNotIncludeTests.class)
 class QueryCompilerBypassArchTest {
     static final ArchRule NO_JDBC = noClasses()
+            .that().resideOutsideOfPackage("one.nexus.p4.market.infra.jdbc..")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("java.sql..", "javax.sql..", "jakarta.sql..", "org.springframework.jdbc..")

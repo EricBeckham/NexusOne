@@ -39,4 +39,15 @@ public record EntitlementProjection(
                 now,
                 1);
     }
+
+    public static EntitlementProjection fromSubscription(
+            UUID tenantId, String skuCode, UUID subscriptionId,
+            EntitlementPayload payload, Instant now, long version) {
+        if (skuCode == null || skuCode.isBlank()) {
+            throw new DomainException(ErrorCode.QUOTA_INVALID, "subscription projection requires sku_code");
+        }
+        return new EntitlementProjection(
+                tenantId, ProjectionSource.SUBSCRIPTION, null, null,
+                skuCode, subscriptionId, now, payload, now, version);
+    }
 }

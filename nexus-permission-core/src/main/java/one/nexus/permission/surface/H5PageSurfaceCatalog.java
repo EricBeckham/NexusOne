@@ -137,7 +137,13 @@ public final class H5PageSurfaceCatalog {
                     Coverage.OPEN,
                     "NotifyPage.vue",
                     "",
-                    "notify jump; no SurfaceGuard"));
+                    "notify jump; no SurfaceGuard"),
+            page(
+                    "/m/p4/market",
+                    Coverage.OPEN,
+                    "MarketPage.vue",
+                    "",
+                    "P4 catalog shell; catalog permission cell is not defined yet"));
 
     private H5PageSurfaceCatalog() {}
 

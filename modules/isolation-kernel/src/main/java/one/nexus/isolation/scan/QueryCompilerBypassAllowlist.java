@@ -80,6 +80,10 @@ public final class QueryCompilerBypassAllowlist {
                             "nexus-p3-studio/src/main/java/one/nexus/p3/flow/FlowConfiguration.java",
                             "nexus-p3-studio/src/main/java/one/nexus/p3/studio/StudioConfiguration.java")),
             new Module(
+                    "nexus-p4-market",
+                    "market.* application catalog / version / SKU / subscription / installation metadata",
+                    List.of("nexus-p4-market/src/main/java/one/nexus/p4/market/infra/jdbc/")),
+            new Module(
                     "nexus-bootstrap",
                     "platform.runtime_meta health only; not tenant data",
                     List.of("nexus-bootstrap/src/main/java/one/nexus/bootstrap/web/RuntimeMetaController.java")));
