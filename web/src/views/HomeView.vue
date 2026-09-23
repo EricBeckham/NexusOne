@@ -1,59 +1,56 @@
 <template>
-  <div>
-    <div class="nx-page-header">
-      <h1>工作台</h1>
-        <p>P0+M0+G18 已在 main 关闭。当前 S0+S1 PG 门禁：台账页可开通请假 / 报销 / 出差三类业务，待办「我发起」可撤回。</p>
+  <div class="product-home" data-testid="product-home">
+    <div class="nx-page-header hero">
+      <p class="eyebrow">NEXUSONE</p>
+      <h1>{{ greeting }}</h1>
+      <p>选择要进入的产品。会话与租户上下文会在产品之间保持。</p>
     </div>
-    <NxTodo body="G18 请假切片已关闭。G7 三类（请假/报销/出差）走同一套 ledger/form/path。G4 / G2 / G1 余量仍单独验收，不在本页宣称 S0+S1 整包通过。" />
-    <div class="nx-row" style="margin-bottom:16px;">
-      <router-link class="primary" to="/p3/ledgers">台账</router-link>
-      <router-link class="ghost" to="/p3/forms">表单</router-link>
-      <router-link class="ghost" to="/p3/todos">待办</router-link>
-      <router-link class="ghost" to="/p3/notifications">通知</router-link>
-      <router-link class="ghost" to="/p3/audit">审计</router-link>
-      <router-link class="ghost" to="/p3/reports">报表</router-link>
-      <router-link class="ghost" to="/p3/dumps">物理 dump</router-link>
-      <router-link class="ghost" to="/p3/exports/wizard">导出向导</router-link>
-      <router-link class="ghost" to="/p2/permissions/roles">权限</router-link>
+    <div class="product-grid" aria-label="产品入口">
+      <router-link
+        v-for="item in products"
+        :key="item.id"
+        class="product-card"
+        :to="item.path"
+        :data-testid="`${item.id}-entry`"
+        :style="{ '--card-color': item.color }"
+      >
+        <span class="product-mark">{{ item.name.slice(0, 1) }}</span>
+        <span class="product-copy">
+          <strong>{{ item.name }}</strong>
+          <small>{{ item.summary }}</small>
+        </span>
+        <span class="arrow" aria-hidden="true">→</span>
+      </router-link>
     </div>
-    <div class="nx-grid kpi">
-      <div class="nx-card">
-        <div class="nx-muted">当前租户上下文</div>
-        <strong>{{ session.tenantId || "未签发" }}</strong>
-      </div>
-      <div class="nx-card">
-        <div class="nx-muted">会话账号</div>
-        <strong>{{ session.email || "—" }}</strong>
-      </div>
-      <div class="nx-card">
-        <div class="nx-muted">平台操作</div>
-        <strong>{{ session.platformMode ? "开启" : "关闭" }}</strong>
-      </div>
-      <div class="nx-card">
-        <div class="nx-muted">隔离规则</div>
-        <strong>不发送 X-Tenant-Id</strong>
-      </div>
+    <div class="session-line">
+      <span>{{ session.email || "已建立的会话" }}</span>
+      <span aria-hidden="true">·</span>
+      <span>{{ session.tenantId ? `租户 ${session.tenantId}` : "租户上下文待签发" }}</span>
     </div>
-    <p v-if="health" class="nx-muted" style="margin-top:16px;">IAM health: {{ health }}</p>
-    <p v-if="error" class="nx-error">{{ error }}</p>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
-import NxTodo from "../components/NxTodo.vue";
-import { p2 } from "../api/client";
+import { computed } from "vue";
 import { session } from "../api/session";
+import { products } from "../products/catalog";
 
-const health = ref("");
-const error = ref("");
-
-onMounted(async () => {
-  try {
-    const body = await p2.health();
-    health.value = body.status || JSON.stringify(body);
-  } catch (err) {
-    error.value = err.message;
-  }
-});
+const greeting = computed(() => session.displayName ? `你好，${session.displayName}` : "选择产品");
 </script>
+
+<style scoped>
+.product-home { max-width: 1040px; margin: 36px auto; }
+.hero { margin-bottom: 28px; }
+.hero h1 { margin-bottom: 8px; font-size: 30px; }
+.eyebrow { margin-bottom: 8px !important; color: var(--nx-primary) !important; font-size: 12px; font-weight: 700; letter-spacing: .14em; }
+.product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.product-card { min-height: 168px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; padding: 24px; border: 1px solid var(--nx-border); border-top: 4px solid var(--card-color); border-radius: 16px; background: var(--nx-surface); box-shadow: var(--nx-shadow-card); color: var(--nx-text-primary); transition: transform .16s ease, box-shadow .16s ease; }
+.product-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(31, 56, 88, .12); }
+.product-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--card-color); color: #fff; font-size: 20px; font-weight: 700; }
+.product-copy { display: flex; flex-direction: column; gap: 5px; }
+.product-copy strong { font-size: 20px; }
+.product-copy small { color: var(--nx-text-secondary); }
+.arrow { color: var(--card-color); font-size: 24px; }
+.session-line { display: flex; justify-content: center; gap: 8px; margin-top: 28px; color: var(--nx-text-secondary); font-size: 12px; }
+@media (max-width: 900px) { .product-grid { grid-template-columns: 1fr; } .product-card { min-height: 120px; } }
+</style>

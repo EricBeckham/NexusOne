@@ -5,15 +5,30 @@
         <span class="mark" />
         <div>
           <strong>NexusOne</strong>
-          <div class="nx-muted">M0-12 壳</div>
+          <div class="nx-muted">产品工作台</div>
         </div>
       </div>
-      <nav>
-        <p class="group">星域 · 租户</p>
-        <router-link to="/">工作台</router-link>
+      <nav aria-label="主导航">
+        <router-link class="product-home-link" to="/">产品选择</router-link>
+        <div class="product-switcher" aria-label="切换产品">
+          <router-link
+            v-for="item in products"
+            :key="item.id"
+            :to="item.path"
+            :class="{ selected: product === item.id }"
+            :data-testid="`${item.id}-shell-nav`"
+          >
+            <span class="mini-mark" :style="{ background: item.color }">{{ item.name.slice(0, 1) }}</span>
+            {{ item.name }}
+          </router-link>
+        </div>
+        <template v-if="product === 'p1'">
+        <p class="group">现有验证页 · 非正式 IA</p>
         <router-link to="/p1/tenants">租户目录</router-link>
         <router-link to="/p1/tenants/new">创建租户</router-link>
-        <p class="group">星权 · 身份</p>
+        </template>
+        <template v-if="product === 'p2'">
+        <p class="group">现有验证页 · 非正式 IA</p>
         <router-link to="/p2/persons">用户目录</router-link>
         <router-link to="/p2/org">组织架构</router-link>
         <router-link to="/p2/positions">岗位任职</router-link>
@@ -24,16 +39,18 @@
         <router-link to="/p2/permissions/roles">角色授权</router-link>
         <router-link to="/p2/permissions/datascope">数据范围</router-link>
         <router-link to="/p2/permissions/fields">字段权限</router-link>
-        <p class="group">星构 · 台账/表单/待办</p>
+        </template>
+        <template v-if="product === 'p3'">
+        <p class="group">现有验证页 · 非正式 IA</p>
         <router-link to="/p3/ledgers">台账</router-link>
         <router-link to="/p3/forms">表单</router-link>
         <router-link to="/p3/todos">待办</router-link>
         <router-link to="/p3/reports">报表</router-link>
         <router-link to="/p3/dumps">物理 dump</router-link>
         <router-link to="/p3/exports/wizard">导出向导</router-link>
-        <p class="group">通知 / 审计</p>
         <router-link to="/p3/notifications">站内通知</router-link>
         <router-link to="/p3/audit">审计哈希链</router-link>
+        </template>
       </nav>
     </aside>
     <div class="main">
@@ -70,9 +87,10 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { persist, session, switchTenant, ensureContext } from "../api/session";
+import { products } from "../products/catalog";
 
 const route = useRoute();
-const product = computed(() => route.meta.product || "p1");
+const product = computed(() => route.meta.product || "");
 
 function itemKey(item) {
   return item.tenant_id || item.tenantId || "";
@@ -121,6 +139,11 @@ nav a {
   border-radius: 8px;
   color: var(--nx-text-regular);
 }
+.product-home-link { margin-bottom: 10px; }
+.product-switcher { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--nx-divider); }
+.product-switcher a { display: flex; align-items: center; gap: 9px; border: 1px solid transparent; }
+.product-switcher a.selected { border-color: var(--nx-border); background: var(--nx-surface); color: var(--nx-product); font-weight: 650; }
+.mini-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; color: #fff; font-size: 12px; font-weight: 700; }
 nav a.router-link-active {
   background: var(--nx-primary-light);
   color: var(--nx-product);

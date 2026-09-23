@@ -6,7 +6,10 @@ import { postHost } from "./mobile/host/hostBridge";
 const routes = [
   { path: "/login", name: "login", component: () => import("./views/LoginView.vue"), meta: { public: true, title: "登录" } },
   { path: "/callback", name: "callback", component: () => import("./views/CallbackView.vue"), meta: { public: true, title: "授权码回跳" } },
-  { path: "/", name: "home", component: () => import("./views/HomeView.vue"), meta: { title: "工作台", product: "p1" } },
+  { path: "/", name: "home", component: () => import("./views/HomeView.vue"), meta: { title: "选择产品" } },
+  { path: "/p1", name: "p1-shell", component: () => import("./views/ProductShellView.vue"), meta: { title: "星域", product: "p1" } },
+  { path: "/p2", name: "p2-shell", component: () => import("./views/ProductShellView.vue"), meta: { title: "星权", product: "p2" } },
+  { path: "/p3", name: "p3-shell", component: () => import("./views/ProductShellView.vue"), meta: { title: "星构", product: "p3" } },
   { path: "/p1/tenants", name: "tenants", component: () => import("./views/tenants/TenantListView.vue"), meta: { title: "租户目录", product: "p1" } },
   { path: "/p1/tenants/new", name: "tenant-create", component: () => import("./views/tenants/TenantCreateView.vue"), meta: { title: "创建租户", product: "p1" } },
   { path: "/p1/tenants/:id", name: "tenant-detail", component: () => import("./views/tenants/TenantDetailView.vue"), meta: { title: "租户详情", product: "p1" } },
