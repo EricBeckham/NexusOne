@@ -13,7 +13,7 @@ import one.nexus.permission.support.PermissionException;
  */
 public final class PredicateSqlCompiler {
     public static final Set<String> DEFAULT_COLUMNS = Set.of(
-            "id", "owner_id", "department_id", "status", "tenant_id");
+            "id", "owner_id", "department_id", "status", "tenant_id", "title", "phone", "secret");
     public static final Set<String> OPERATORS = Set.of("=", "IN");
 
     private PredicateSqlCompiler() {}

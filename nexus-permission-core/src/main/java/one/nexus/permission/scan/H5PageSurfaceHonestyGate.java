@@ -106,10 +106,12 @@ public final class H5PageSurfaceHonestyGate {
         Matcher matcher = ROUTE_PATH.matcher(text);
         while (matcher.find()) {
             String path = matcher.group(1);
-            int end = Math.min(text.length(), matcher.end() + 500);
+            Matcher nextRoute = ROUTE_PATH.matcher(text);
+            nextRoute.region(matcher.end(), text.length());
+            int end = nextRoute.find() ? nextRoute.start() : text.length();
             String window = text.substring(matcher.start(), end);
             Matcher vue = VUE_IMPORT.matcher(window);
-            routes.put(path, vue.find() ? vue.group(1) : "");
+            routes.putIfAbsent(path, vue.find() ? vue.group(1) : "");
         }
         return routes;
     }

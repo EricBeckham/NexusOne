@@ -69,6 +69,18 @@ public final class H5PageSurfaceCatalog {
                     "NativeBridgeHarnessPage.vue",
                     "",
                     "native-bridge stub; G15 leftover"),
+            page(
+                    "/m/wx-dt-prod-gap-harness",
+                    Coverage.OPEN,
+                    "WeChatDingTalkProdGapHonestyPage.vue",
+                    "",
+                    "WeChat/DingTalk production-gap honesty harness; G15 leftover"),
+            page(
+                    "/m/native-bridge-honesty-harness",
+                    Coverage.OPEN,
+                    "NativeBridgeHonestyPage.vue",
+                    "",
+                    "native-bridge honesty harness; G15 leftover"),
             page("/m/p3/home", Coverage.OPEN, "HomePage.vue", "", "session home; no SurfaceGuard"),
             page("/m/p3/files", Coverage.OPEN, "FilesPage.vue", "", "file service; no SurfaceGuard"),
             page("/m/p3/files/:id", Coverage.OPEN, "FileDetailPage.vue", "", "file detail; no SurfaceGuard"),

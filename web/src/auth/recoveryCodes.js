@@ -68,8 +68,9 @@ export async function hashRecoveryCode(code) {
 export function issueRecoveryCodes({ count = RECOVERY_COUNT, random = randomByte } = {}) {
   const plaintext = [];
   const hashes = [];
+  let attempt = 0;
   while (plaintext.length < count) {
-    const code = formatRecoveryCode(randomBody(random));
+    const code = formatRecoveryCode(randomBody(random, attempt++));
     const digest = sha256Hex(new TextEncoder().encode(normalizeRecoveryCode(code)));
     if (hashes.includes(digest)) {
       continue;
@@ -129,10 +130,10 @@ function fail(code) {
   };
 }
 
-function randomBody(random) {
+function randomBody(random, salt = 0) {
   let out = "";
   for (let i = 0; i < RECOVERY_BODY_LEN; i += 1) {
-    out += RECOVERY_ALPHABET[random() % RECOVERY_ALPHABET.length];
+    out += RECOVERY_ALPHABET[(random() + salt) % RECOVERY_ALPHABET.length];
   }
   return out;
 }

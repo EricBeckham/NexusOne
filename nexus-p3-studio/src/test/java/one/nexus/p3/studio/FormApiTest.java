@@ -159,6 +159,10 @@ class FormApiTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @ComponentScan(basePackages = "one.nexus.p3.studio")
+    @ComponentScan(
+            basePackages = "one.nexus.p3.studio",
+            excludeFilters = @ComponentScan.Filter(
+                    type = org.springframework.context.annotation.FilterType.ANNOTATION,
+                    classes = SpringBootConfiguration.class))
     static class TestApp {}
 }

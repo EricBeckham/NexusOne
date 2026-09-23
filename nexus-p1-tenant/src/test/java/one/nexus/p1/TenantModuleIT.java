@@ -1,6 +1,7 @@
 package one.nexus.p1;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -43,10 +44,9 @@ class TenantModuleIT {
     @BeforeAll
     static void requirePassword() {
         String password = firstEnv("NEXUS_DB_PASSWORD", "NEXUS_DATASOURCE_PASSWORD");
-        if (password == null || password.isBlank()) {
-            throw new IllegalStateException(
-                    "NEXUS_DB_PASSWORD or NEXUS_DATASOURCE_PASSWORD must be provided for PostgreSQL tests");
-        }
+        assumeTrue(
+                password != null && !password.isBlank(),
+                "SKIP live PostgreSQL: NEXUS_DB_PASSWORD / NEXUS_DATASOURCE_PASSWORD not set");
     }
 
     private static String firstEnv(String... names) {

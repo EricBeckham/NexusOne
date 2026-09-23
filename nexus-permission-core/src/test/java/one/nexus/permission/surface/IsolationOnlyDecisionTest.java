@@ -30,6 +30,7 @@ class IsolationOnlyDecisionTest {
         Decision decision = IsolationOnlyDecision.allow();
         assertTrue(decision.allowed());
         assertEquals(IsolationOnlyDecision.REASON, decision.reason());
+        assertEquals("true", decision.scope().op());
     }
 
     @Test

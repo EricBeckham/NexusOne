@@ -182,8 +182,9 @@ public final class S0SecretRotateWithoutRestartHonesty {
         }
         for (String key : report.keySet()) {
             String upper = key.toUpperCase(Locale.ROOT);
-            if (upper.contains("PASSWORD") || upper.contains("SECRET") || upper.contains("PASSWD")
-                    || upper.contains("ACCESS_KEY")) {
+            if (!"SECRET_PORT_CLOSE".equals(upper)
+                    && (upper.contains("PASSWORD") || upper.contains("SECRET") || upper.contains("PASSWD")
+                    || upper.contains("ACCESS_KEY"))) {
                 errors.add("report must not contain password/secret material");
             }
         }

@@ -1,7 +1,9 @@
 package one.nexus.permission.surface;
 
+import java.util.Map;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.engine.Decision;
+import one.nexus.permission.engine.Predicate;
 import one.nexus.permission.support.PermissionException;
 
 /**
@@ -34,6 +36,6 @@ public final class IsolationOnlyDecision {
         if (!isolationOnly()) {
             throw PermissionException.denied(FORBIDDEN);
         }
-        return new Decision(true, REASON);
+        return new Decision(true, REASON, Predicate.TRUE, Map.of(), 0L);
     }
 }

@@ -244,7 +244,11 @@ class FormSubmissionWriteApiTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @ComponentScan(basePackages = "one.nexus.p3.studio")
+    @ComponentScan(
+            basePackages = "one.nexus.p3.studio",
+            excludeFilters = @ComponentScan.Filter(
+                    type = org.springframework.context.annotation.FilterType.ANNOTATION,
+                    classes = SpringBootConfiguration.class))
     static class TestApp {
         private final AtomicReference<Set<String>> roles = new AtomicReference<>(Set.of());
         private final AtomicReference<String> subjectTenant = new AtomicReference<>();

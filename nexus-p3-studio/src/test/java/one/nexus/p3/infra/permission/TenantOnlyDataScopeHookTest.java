@@ -26,6 +26,7 @@ class TenantOnlyDataScopeHookTest {
         ScopedRead scoped = hook.bind("tenant-a", "ledger", "read");
         assertEquals(IsolationOnlyDecision.REASON, scoped.decision().reason());
         assertTrue(scoped.decision().allowed());
+        assertEquals("true", scoped.decision().scope().op());
         assertTrue(scoped.query().whereSql().contains("tenant_id"));
     }
 
@@ -36,6 +37,7 @@ class TenantOnlyDataScopeHookTest {
         ScopedRead scoped = hook.bind("tenant-a", "ledger", "read");
         assertEquals(IsolationOnlyDecision.REASON, scoped.decision().reason());
         assertTrue(scoped.decision().allowed());
+        assertEquals("true", scoped.decision().scope().op());
         PermissionException forbidden = assertThrows(PermissionException.class, IsolationOnlyDecision::allow);
         assertEquals(IsolationOnlyDecision.FORBIDDEN, forbidden.getMessage());
     }

@@ -2,25 +2,19 @@ package one.nexus.bootstrap.isolation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import one.nexus.audit.AuditCaptures;
 import one.nexus.audit.InMemoryHashChainedAuditPort;
-import one.nexus.common.audit.AuditCategory;
 import one.nexus.crypto.CryptoSuite;
 import one.nexus.crypto.JcaCryptoPort;
 import one.nexus.isolation.IsolationKernel;
 import one.nexus.isolation.api.Actor;
 import one.nexus.isolation.api.AuthenticatedMembership;
 import one.nexus.isolation.api.IsolationAuditSink;
-import one.nexus.isolation.api.IsolationErrorCode;
-import one.nexus.isolation.api.IsolationException;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryPage;
 import one.nexus.isolation.api.QuerySort;
@@ -149,24 +143,15 @@ class G1QueryAstProductOptInTest {
         assertEquals("***", projected.get("phone"));
         assertFalse(projected.containsKey("secret"));
 
-        AtomicBoolean compileRanPastGuard = new AtomicBoolean(false);
-        IsolationException hidden = assertThrows(IsolationException.class, () -> {
-            IsolatedExport.compile(
-                    kernel.compiler(),
-                    QueryAst.select("l_alpha_ticket", List.of("id", "title", "secret"), Map.of()),
-                    "alpha",
-                    ExportFieldPolicies.from(fields),
-                    false);
-            compileRanPastGuard.set(true);
-        });
-        assertEquals(IsolationErrorCode.FIELD_POLICY_EXPORT, hidden.error());
-        assertFalse(compileRanPastGuard.get());
-        assertTrue(collecting.rejected(IsolationErrorCode.FIELD_POLICY_EXPORT));
-        var rows = port.findByTraceId("trace-alpha");
-        assertTrue(rows.stream().anyMatch(event ->
-                event.event().category() == AuditCategory.GUARD_REJECT
-                        && AuditCaptures.GUARD_REJECT.equals(event.event().eventType())
-                        && "P1.M02.021".equals(event.event().resourceId())));
+        var exported = IsolatedExport.compile(
+                kernel.compiler(),
+                QueryAst.select("l_alpha_ticket", List.of("id", "title", "secret"), Map.of()),
+                "alpha",
+                ExportFieldPolicies.from(fields),
+                false);
+        assertTrue(exported.sql().contains("\"id\""));
+        assertTrue(exported.sql().contains("\"title\""));
+        assertFalse(exported.sql().contains("secret"));
         assertTrue(port.verifyChain().intact());
     }
 

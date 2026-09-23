@@ -35,6 +35,8 @@ export const OPEN_PAGES = Object.freeze([
   Object.freeze({ path: "/m/app-webview-harness", vue: "AppWebViewHarnessPage.vue", reason: "harness" }),
   Object.freeze({ path: "/m/wx-dt-harness", vue: "WeChatDingTalkHarnessPage.vue", reason: "harness" }),
   Object.freeze({ path: "/m/native-bridge-harness", vue: "NativeBridgeHarnessPage.vue", reason: "harness" }),
+  Object.freeze({ path: "/m/wx-dt-prod-gap-harness", vue: "WeChatDingTalkProdGapHonestyPage.vue", reason: "honesty harness" }),
+  Object.freeze({ path: "/m/native-bridge-honesty-harness", vue: "NativeBridgeHonestyPage.vue", reason: "honesty harness" }),
   Object.freeze({ path: "/m/p3/home", vue: "HomePage.vue", reason: "session home" }),
   Object.freeze({ path: "/m/p3/files", vue: "FilesPage.vue", reason: "file service" }),
   Object.freeze({ path: "/m/p3/files/:id", vue: "FileDetailPage.vue", reason: "file detail" }),

@@ -21,10 +21,10 @@
     <p v-if="error" class="nx-error" data-testid="g4-export-wizard-error">{{ error }}</p>
     <div class="nx-card" style="margin-bottom:16px;max-width:720px;">
       <div class="nx-row">
-        <button class="primary" type="button" :disabled="busy" data-testid="g4-export-wizard-begin" @click="onBegin">
+        <button class="primary" type="button" :disabled="Boolean(busy)" data-testid="g4-export-wizard-begin" @click="onBegin">
           {{ busy === "begin" ? "开始中…" : "开始导出" }}
         </button>
-        <button class="ghost" type="button" :disabled="!wizardId || busy" data-testid="g4-export-wizard-complete" @click="onComplete">
+        <button class="ghost" type="button" :disabled="!wizardId || Boolean(busy)" data-testid="g4-export-wizard-complete" @click="onComplete">
           {{ busy === "complete" ? "完成中…" : "完成导出" }}
         </button>
       </div>

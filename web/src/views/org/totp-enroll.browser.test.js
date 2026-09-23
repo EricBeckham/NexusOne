@@ -4,10 +4,21 @@
  * G17 leftover: in-app TOTP enrollment UI / copy / error paths.
  * Not a Keycloak write, not a second MFA stack, not a G17 close.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { generate } from "../../auth/totp";
+
+vi.mock("../../auth/totpWriteback", () => ({
+  attemptVueOtpWriteback: vi.fn().mockResolvedValue({
+    result: "SKIP",
+    reason: "keycloak_issuer_unreachable",
+    vueConfirmWritesKeycloak: false,
+    otpCredentialStored: false,
+  }),
+  formatWritebackStatus: (row) => `Keycloak otp 写回 ${row.result}：${row.reason}`,
+}));
+
 import TotpEnrollView from "./TotpEnrollView.vue";
 
 const SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";

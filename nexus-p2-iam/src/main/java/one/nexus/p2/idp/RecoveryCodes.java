@@ -55,7 +55,11 @@ public final class RecoveryCodes {
     }
 
     public static boolean looksLikeCode(String code) {
-        return normalize(code).matches("[A-Z2-9]{" + BODY_LEN + "}");
+        if (code == null) {
+            return false;
+        }
+        String candidate = code.trim().toUpperCase(Locale.ROOT);
+        return candidate.matches("(?:[A-Z2-9]{8}|[A-Z2-9]{4}-[A-Z2-9]{4})");
     }
 
     public static String format(String body) {

@@ -23,7 +23,7 @@ import one.nexus.permission.support.PermissionException;
  * Mask / second-auth stay on {@code FieldPolicyProjector}.
  */
 public final class QueryAstScopedQuery {
-    static final String COMPILER_TENANT = "\"tenant_id\"";
+    public static final String COMPILER_TENANT = "\"tenant_id\"";
 
     private QueryAstScopedQuery() {}
 

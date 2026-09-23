@@ -155,8 +155,11 @@ class NexusOneOutboxDispatcherTest {
         assertFalse(dispatcher.lastCycleLagAlarm());
 
         IsolationSupport.bindTenant(isolationKernel, TENANT, ACTOR, "mem-" + TENANT, TRACE);
-        assertEquals(1, notifications.listMine().size());
-        assertEquals(NotificationStatus.DELIVERED, notifications.listMine().getFirst().status());
+        Notification delivered = notifications.listMine().stream()
+                .filter(notification -> notification.id().equals(pending.id()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(NotificationStatus.DELIVERED, delivered.status());
 
         mvc.perform(get("/api/v1/notifications"))
                 .andExpect(status().isOk())

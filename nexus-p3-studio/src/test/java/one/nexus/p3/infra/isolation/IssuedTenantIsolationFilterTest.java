@@ -91,7 +91,7 @@ class IssuedTenantIsolationFilterTest {
         AuthenticatedIdentity auth = new AuthenticatedIdentity(
                 null, new IdentityProviderPort.IdentityClaims("sub-a", "a@example.com", "a", "A", null));
         when(sessions.authenticate("stub.token")).thenReturn(auth);
-        when(sessions.loadContext(eq(contextId), eq("sub-a"))).thenReturn(new TenantContext(
+        when(sessions.loadContext(eq(contextId), eq(auth))).thenReturn(new TenantContext(
                 contextId, tenantId, accountId, personId, "sub-a", Instant.now(), Instant.now().plusSeconds(3600)));
         TenantRepository repository = mock(TenantRepository.class);
         when(repository.findById(tenantId)).thenReturn(Optional.of(new Tenant(
@@ -122,7 +122,7 @@ class IssuedTenantIsolationFilterTest {
         AuthenticatedIdentity auth = new AuthenticatedIdentity(
                 null, new IdentityProviderPort.IdentityClaims("sub-a", "a@example.com", "a", "A", null));
         when(sessions.authenticate("stub.token")).thenReturn(auth);
-        when(sessions.loadContext(eq(contextId), eq("sub-a"))).thenReturn(new TenantContext(
+        when(sessions.loadContext(eq(contextId), eq(auth))).thenReturn(new TenantContext(
                 contextId, tenantId, accountId, personId, "sub-a", Instant.now(), Instant.now().plusSeconds(3600)));
         LedgerRepository ledgerRepository = mock(LedgerRepository.class);
         when(ledgerRepository.list(tenantId)).thenReturn(List.of(new LedgerDefinition(

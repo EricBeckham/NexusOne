@@ -5,6 +5,7 @@ import one.nexus.audit.AuditPort;
 import one.nexus.p2.IdentityModule;
 import one.nexus.permission.engine.PolicySnapshotPoller;
 import one.nexus.permission.engine.SnapshotManager;
+import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.persist.JdbcPolicyRepository;
 import one.nexus.permission.persist.PolicyRepository;
@@ -16,6 +17,7 @@ import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -74,6 +76,12 @@ public class PermissionConfiguration {
                 properties.snapshotLoadTimeout());
         invalidation.startListening();
         return module;
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "nexus.permission.seed-tenant-member-grants", havingValue = "true")
+    TenantMemberGrantSeeder tenantMemberGrantSeeder(PermissionModule module) {
+        return new TenantMemberGrantSeeder(module);
     }
 
     @Bean(destroyMethod = "close")

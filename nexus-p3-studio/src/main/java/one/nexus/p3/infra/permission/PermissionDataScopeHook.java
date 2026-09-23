@@ -11,8 +11,8 @@ import one.nexus.permission.scope.PermissionQueryBinder;
 import one.nexus.permission.surface.IsolationOnlyDecision;
 import one.nexus.permission.surface.SurfaceGuard;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -25,10 +25,15 @@ import org.springframework.stereotype.Component;
 @Component
 @Primary
 @ConditionalOnClass(PermissionModule.class)
-@ConditionalOnBean(PermissionModule.class)
 public class PermissionDataScopeHook implements DataScopeHook {
     private final PermissionModule permission;
     private final ObjectProvider<TenantMemberGrantSeeder> grantSeeder;
+
+    @Autowired
+    public PermissionDataScopeHook(
+            ObjectProvider<PermissionModule> permission, ObjectProvider<TenantMemberGrantSeeder> grantSeeder) {
+        this(permission.getIfAvailable(), grantSeeder);
+    }
 
     public PermissionDataScopeHook(
             PermissionModule permission, ObjectProvider<TenantMemberGrantSeeder> grantSeeder) {
@@ -38,7 +43,7 @@ public class PermissionDataScopeHook implements DataScopeHook {
 
     @Override
     public ScopedRead bind(String tenantId, String resource, String action) {
-        if (IsolationOnlyDecision.isolationOnly()) {
+        if (IsolationOnlyDecision.isolationOnly() || permission == null) {
             return tenantOnly(tenantId);
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);

@@ -158,4 +158,34 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <profiles>
+    <profile>
+      <id>windows-unix-domain-socket-path</id>
+      <activation>
+        <os>
+          <family>Windows</family>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!--
+                JDK selectors use an AF_UNIX wakeup socket on Windows. Some
+                shells expose TEMP as an 8.3 path, which can bind but then fail
+                to connect with EINVAL. user.home is existing, absolute, and
+                stable, so forked tests do not inherit that broken socket path.
+              -->
+              <systemPropertyVariables>
+                <jdk.net.unixdomain.tmpdir>${user.home}</jdk.net.unixdomain.tmpdir>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

@@ -37,7 +37,7 @@ import one.nexus.permission.scope.QueryAstScopedQuery;
  * multi-value {@code IN} + mixed-column OR (SELF∨DEPT) + FieldPolicy visibility
  * compile through {@code QueryCompiler}. Unencodable leftovers still bind
  * beside the AST, then execute as leftover-bound {@link RenderedSql} through
- * {@code kernel.jdbc()} — raw {@code BoundSql} cannot bypass DataScope.
+ * {@code kernel.jdbc()} — precompiled SQL cannot bypass DataScope.
  * Mask / second-auth stay on {@code FieldPolicyProjector}.
  */
 @Component
