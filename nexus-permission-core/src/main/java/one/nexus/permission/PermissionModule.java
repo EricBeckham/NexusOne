@@ -5,6 +5,7 @@ import java.util.UUID;
 import one.nexus.audit.AuditPort;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.permission.admin.PlatformDutyService;
+import one.nexus.permission.admin.PermissionPrincipalCatalog;
 import one.nexus.permission.admin.PolicyAdminService;
 import one.nexus.permission.admin.RoleMatrixService;
 import one.nexus.permission.engine.SnapshotManager;
@@ -22,6 +23,7 @@ public final class PermissionModule {
     private final PermissionService service;
     private final RoleMatrixService matrix;
     private final PlatformDutyService duties;
+    private final PermissionPrincipalCatalog principals;
     private final PolicyInvalidationPort invalidation;
     private final AuditPort audits;
 
@@ -31,7 +33,7 @@ public final class PermissionModule {
             SnapshotManager snapshots,
             PolicyInvalidationPort invalidation
     ) {
-        this(repository, subjects, snapshots, invalidation, null);
+        this(repository, subjects, snapshots, invalidation, null, new PermissionPrincipalCatalog(null));
     }
 
     public PermissionModule(
@@ -40,6 +42,17 @@ public final class PermissionModule {
             SnapshotManager snapshots,
             PolicyInvalidationPort invalidation,
             AuditPort audits
+    ) {
+        this(repository, subjects, snapshots, invalidation, audits, new PermissionPrincipalCatalog(null));
+    }
+
+    private PermissionModule(
+            PolicyRepository repository,
+            SubjectDirectory subjects,
+            SnapshotManager snapshots,
+            PolicyInvalidationPort invalidation,
+            AuditPort audits,
+            PermissionPrincipalCatalog principals
     ) {
         this.repository = repository;
         this.subjects = subjects;
@@ -50,6 +63,7 @@ public final class PermissionModule {
         this.service = new PermissionService(repository, subjects, snapshots);
         this.matrix = new RoleMatrixService(repository, admin, service);
         this.duties = new PlatformDutyService(repository, admin, service);
+        this.principals = principals;
     }
 
     public static PermissionModule create(
@@ -84,7 +98,9 @@ public final class PermissionModule {
         if (invalidation != null) {
             invalidation.addListener(manager::notifyInvalidated);
         }
-        return new PermissionModule(repository, directory, manager, invalidation, audits);
+        return new PermissionModule(
+                repository, directory, manager, invalidation, audits,
+                new PermissionPrincipalCatalog(identity));
     }
 
     public PolicyRepository repository() {
@@ -113,6 +129,10 @@ public final class PermissionModule {
 
     public PlatformDutyService duties() {
         return duties;
+    }
+
+    public PermissionPrincipalCatalog principals() {
+        return principals;
     }
 
     public PolicyInvalidationPort invalidation() {

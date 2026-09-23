@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import one.nexus.permission.PermissionModule;
 import one.nexus.permission.admin.PlatformDutyService;
+import one.nexus.permission.admin.PermissionPrincipalCatalog;
 import one.nexus.permission.admin.RoleMatrixService;
 import one.nexus.permission.engine.DataScopeKind;
 import one.nexus.permission.engine.Decision;
@@ -56,6 +57,11 @@ public class PermissionController {
     @GetMapping("/matrix")
     public RoleMatrixService.MatrixView matrix() {
         return module.matrix().view();
+    }
+
+    @GetMapping("/principals")
+    public PermissionPrincipalCatalog.PrincipalView principals() {
+        return module.principals().view();
     }
 
     @PostMapping("/matrix/example")

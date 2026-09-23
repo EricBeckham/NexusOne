@@ -56,6 +56,13 @@ class G9PolicySnapshotApiTest {
             contextId = extract(switched.getResponse().getContentAsString(), "contextId");
         }
 
+        mvc.perform(get("/api/v1/permission/principals")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.users[0].id").value(admin.id().toString()))
+                .andExpect(jsonPath("$.users[0].label").value("G9 Api"));
+
         mvc.perform(get("/api/v1/permission/snapshot")
                         .header("Authorization", "Bearer " + token)
                         .header("X-Nexus-Context-Id", contextId))

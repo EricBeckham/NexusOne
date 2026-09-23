@@ -163,6 +163,7 @@ export const perm = {
   snapshot: () => api("/api/v1/permission/snapshot"),
   check: (body) => api("/api/v1/permission/check", { method: "POST", body }),
   matrix: () => api("/api/v1/permission/matrix"),
+  principals: () => api("/api/v1/permission/principals"),
   roles: () => api("/api/v1/permission/roles"),
   assignments: () => api("/api/v1/permission/assignments"),
   grants: () => api("/api/v1/permission/grants"),

@@ -2,7 +2,7 @@
   <div>
     <div class="nx-page-header">
       <h1>{{ title }}</h1>
-      <p>同源 PermissionEngine：list / detail / flow / form / export / Job / Task / 报表 query+export / H5 与本页 check 共用判定。禁止前端自行拼权限码或实现 DataScope。物理 dump 与产品 G2 仍未宣称。</p>
+      <p>统一维护角色、主体分配与 DataScope；写入后 PolicySnapshot 立即失效并重载，受保护查询继续由服务端 PermissionEngine 绑定租户与数据范围。</p>
     </div>
     <NxSourceBanner :body="banner" />
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。矩阵 / snapshot / check 需要服务端签发的上下文。</p>
@@ -47,9 +47,9 @@
 
     <div v-if="kind === 'roles'" class="nx-card" style="margin-bottom:16px;">
       <h3>角色</h3>
-      <form class="nx-row" @submit.prevent="onCreateRole">
-        <div class="nx-field"><label>code</label><input v-model="roleForm.code" required /></div>
-        <div class="nx-field"><label>name</label><input v-model="roleForm.name" required /></div>
+      <form class="nx-row" data-testid="permission-role-form" @submit.prevent="onCreateRole">
+        <div class="nx-field"><label>code</label><input v-model="roleForm.code" required data-testid="permission-role-code" /></div>
+        <div class="nx-field"><label>name</label><input v-model="roleForm.name" required data-testid="permission-role-name" /></div>
         <button class="primary" type="submit">新建角色</button>
       </form>
       <table class="nx-table" data-testid="g2-role-table">
@@ -64,11 +64,30 @@
         </tbody>
       </table>
       <h3 style="margin-top:16px;">分配</h3>
-      <form class="nx-row" @submit.prevent="onAssign">
-        <div class="nx-field"><label>principal_type</label><input v-model="assignForm.principal_type" required /></div>
-        <div class="nx-field"><label>principal_id</label><input v-model="assignForm.principal_id" required /></div>
-        <div class="nx-field"><label>role_id</label><input v-model="assignForm.role_id" required /></div>
-        <button class="primary" type="submit">分配</button>
+      <form class="nx-row" data-testid="permission-assignment-form" @submit.prevent="onAssign">
+        <div class="nx-field">
+          <label>主体类型</label>
+          <select v-model="assignForm.principalType" required @change="assignForm.principalId = ''">
+            <option value="user">人员</option>
+            <option value="position">岗位</option>
+            <option value="department">部门</option>
+          </select>
+        </div>
+        <div class="nx-field">
+          <label>主体</label>
+          <select v-model="assignForm.principalId" required data-testid="permission-assignment-principal">
+            <option value="" disabled>请选择</option>
+            <option v-for="item in assignmentPrincipals" :key="item.id" :value="item.id">{{ item.label }}（{{ item.code }}）</option>
+          </select>
+        </div>
+        <div class="nx-field">
+          <label>角色</label>
+          <select v-model="assignForm.roleId" required data-testid="permission-assignment-role">
+            <option value="" disabled>请选择</option>
+            <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}（{{ role.code }}）</option>
+          </select>
+        </div>
+        <button class="primary" type="submit" data-testid="permission-assignment-submit">分配</button>
       </form>
       <table class="nx-table">
         <thead><tr><th>principal</th><th>role</th></tr></thead>
@@ -83,18 +102,36 @@
 
     <div v-if="kind === 'datascope'" class="nx-card" style="margin-bottom:16px;">
       <h3>DataScope 单元格</h3>
-      <form class="nx-row" @submit.prevent="onGrant">
-        <div class="nx-field"><label>role code</label><input v-model="grantForm.principal_id" required /></div>
+      <form class="nx-row" data-testid="permission-grant-form" @submit.prevent="onGrant">
+        <div class="nx-field">
+          <label>角色</label>
+          <select v-model="grantForm.principalId" required data-testid="permission-grant-role">
+            <option value="" disabled>请选择</option>
+            <option v-for="role in roles" :key="role.id" :value="role.code">{{ role.name }}（{{ role.code }}）</option>
+          </select>
+        </div>
+        <div class="nx-field">
+          <label>效果</label>
+          <select v-model="grantForm.effect"><option>GRANT</option><option>DENY</option></select>
+        </div>
         <div class="nx-field"><label>resource</label><input v-model="grantForm.resource" required /></div>
         <div class="nx-field"><label>action</label><input v-model="grantForm.action" required /></div>
         <div class="nx-field">
           <label>scope</label>
-          <select v-model="grantForm.scope_kind">
+          <select v-model="grantForm.scopeKind" data-testid="permission-grant-scope">
             <option>SELF</option>
             <option>DEPT</option>
             <option>DEPT_AND_CHILDREN</option>
             <option>SPECIFIED</option>
             <option>ALL</option>
+          </select>
+        </div>
+        <div v-if="grantForm.scopeKind === 'SPECIFIED'" class="nx-field">
+          <label>指定部门（可多选）</label>
+          <select v-model="grantForm.specifiedDepartments" multiple required data-testid="permission-grant-departments">
+            <option v-for="department in principals.departments" :key="department.id" :value="department.id">
+              {{ department.label }}（{{ department.code }}）
+            </option>
           </select>
         </div>
         <button class="primary" type="submit" data-testid="permission-grant">写入授权</button>
@@ -156,20 +193,30 @@ const banner = computed(() =>
 const health = ref(null);
 const snapshot = ref(null);
 const matrix = ref(null);
+const principals = ref({ users: [], positions: [], departments: [] });
 const decision = ref(null);
 const error = ref("");
 const checkForm = reactive({ resource: "ledger", action: "read" });
 const roleForm = reactive({ code: "", name: "" });
-const assignForm = reactive({ principal_type: "user", principal_id: "", role_id: "" });
+const assignForm = reactive({ principalType: "user", principalId: "", roleId: "" });
 const grantForm = reactive({
-  principal_id: "g2_self_reader",
+  effect: "GRANT",
+  principalType: "role",
+  principalId: "",
   resource: "ledger",
   action: "read",
-  scope_kind: "SELF",
+  scopeKind: "SELF",
+  specifiedDepartments: [],
 });
 
 const roles = computed(() => matrix.value?.roles || []);
 const assignments = computed(() => matrix.value?.assignments || []);
+const assignmentPrincipals = computed(() => {
+  const key = assignForm.principalType === "position"
+    ? "positions"
+    : assignForm.principalType === "department" ? "departments" : "users";
+  return principals.value[key] || [];
+});
 const cells = computed(() => matrix.value?.cells || []);
 const scopeCells = computed(() => cells.value);
 const fieldRows = computed(() => {
@@ -196,8 +243,11 @@ async function reloadMatrix() {
   if (!session.contextId) {
     return;
   }
-  snapshot.value = await perm.snapshot();
-  matrix.value = await perm.matrix();
+  [snapshot.value, matrix.value, principals.value] = await Promise.all([
+    perm.snapshot(),
+    perm.matrix(),
+    perm.principals(),
+  ]);
 }
 
 onMounted(async () => {
@@ -250,7 +300,7 @@ async function onInstall() {
 
 async function onCreateRole() {
   try {
-    await perm.createRole({ code: roleForm.code, name: roleForm.name, system_role: false });
+    await perm.createRole({ code: roleForm.code, name: roleForm.name, systemRole: false });
     roleForm.code = "";
     roleForm.name = "";
     await reloadMatrix();
@@ -262,10 +312,13 @@ async function onCreateRole() {
 async function onAssign() {
   try {
     await perm.assign({
-      principal_type: assignForm.principal_type,
-      principal_id: assignForm.principal_id,
-      role_id: assignForm.role_id,
+      principalType: assignForm.principalType,
+      principalId: assignForm.principalId,
+      roleId: assignForm.roleId,
     });
+    assignForm.principalId = "";
+    assignForm.roleId = "";
+    error.value = "";
     await reloadMatrix();
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
@@ -275,14 +328,16 @@ async function onAssign() {
 async function onGrant() {
   try {
     await perm.grant({
-      effect: "GRANT",
-      principal_type: "role",
-      principal_id: grantForm.principal_id,
+      effect: grantForm.effect,
+      principalType: grantForm.principalType,
+      principalId: grantForm.principalId,
       resource: grantForm.resource,
       action: grantForm.action,
-      scope_kind: grantForm.scope_kind,
+      scopeKind: grantForm.scopeKind,
+      specifiedDepartments: grantForm.scopeKind === "SPECIFIED" ? grantForm.specifiedDepartments : [],
       fields: {},
     });
+    error.value = "";
     await reloadMatrix();
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
