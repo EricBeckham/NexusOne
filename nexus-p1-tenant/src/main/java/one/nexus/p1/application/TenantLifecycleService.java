@@ -30,6 +30,13 @@ import one.nexus.p1.port.TenantAdminInitializer.AdminInitCommand;
 import one.nexus.p1.port.TenantAdminInitializer.AdminInitResult;
 import one.nexus.p1.port.TenantRepository;
 
+/**
+ * Platform-admin tenant lifecycle (T2-D minimal surface).
+ * Critical writes ({@code create}/{@code enable}/{@code disable}) require
+ * {@link PlatformDuty#SYSTEM_ADMIN} and append durable {@link AuditEvent} rows
+ * (action, tenant, actor/platform context, outcome) via {@link AuditPort}.
+ * Create still projects the T2-A default entitlement pack before admin init.
+ */
 @Service
 public class TenantLifecycleService {
 
