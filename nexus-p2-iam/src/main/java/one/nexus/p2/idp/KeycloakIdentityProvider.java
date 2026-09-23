@@ -159,6 +159,50 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
     }
 
     @Override
+    public void setPassword(String subject, String password) {
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("subject is required");
+        }
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("password is required");
+        }
+        String adminToken = clientCredentialsToken();
+        String userUrl = issuer.replace("/realms/", "/admin/realms/") + "/users/" + enc(subject);
+        http.put()
+                .uri(userUrl + "/reset-password")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "type", "password",
+                        "temporary", false,
+                        "value", password))
+                .retrieve()
+                .toBodilessEntity();
+                // Clear required actions so own-user can password-login without SMTP.
+        Map<?, ?> rawUser = http.get()
+                .uri(userUrl)
+                .header("Authorization", "Bearer " + adminToken)
+                .retrieve()
+                .body(Map.class);
+        if (rawUser != null) {
+            Map<String, Object> user = new java.util.LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : rawUser.entrySet()) {
+                if (entry.getKey() != null) {
+                    user.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
+            }
+            user.put("requiredActions", List.of());
+            http.put()
+                    .uri(userUrl)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(user)
+                    .retrieve()
+                    .toBodilessEntity();
+        }
+    }
+
+    @Override
     public ProvisionedUser ensureUser(String email, String username, String displayName) {
         String adminToken = clientCredentialsToken();
         String adminUsers = issuer.replace("/realms/", "/admin/realms/") + "/users";

@@ -14,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class StubIdentityProvider implements IdentityProviderPort {
     private final java.util.Map<String, IdentityClaims> users = new ConcurrentHashMap<>();
+    private final java.util.Map<String, String> passwords = new ConcurrentHashMap<>();
+    private volatile String lastEnsuredSubject;
     private final List<EmailAction> sent = new ArrayList<>();
 
     @Override
@@ -42,8 +44,17 @@ public final class StubIdentityProvider implements IdentityProviderPort {
 
     @Override
     public TokenSet exchangeAuthorizationCode(String code, String redirectUri) {
-        IdentityClaims claims = users.values().stream().findFirst()
-                .orElse(new IdentityClaims("stub-user", "stub@example.com", "stub", "Stub User", null));
+        // T1-L2: prefer the last ensureUser subject so auth-code login binds the own-user
+        // that AccountPersonMaster just provisioned (browser password form completed).
+        IdentityClaims claims = null;
+        String preferred = lastEnsuredSubject;
+        if (preferred != null) {
+            claims = users.get(preferred);
+        }
+        if (claims == null) {
+            claims = users.values().stream().findFirst()
+                    .orElse(new IdentityClaims("stub-user", "stub@example.com", "stub", "Stub User", null));
+        }
         String token = encode(claims);
         return new TokenSet(token, "stub-refresh", token, "Bearer", 3600);
     }
@@ -89,7 +100,23 @@ public final class StubIdentityProvider implements IdentityProviderPort {
                 .orElse("kc-" + UUID.randomUUID());
         IdentityClaims claims = new IdentityClaims(subject, email, username, displayName, null);
         users.put(subject, claims);
+        lastEnsuredSubject = subject;
         return new ProvisionedUser(subject, email, username);
+    }
+
+    @Override
+    public void setPassword(String subject, String password) {
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("subject is required");
+        }
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("password is required");
+        }
+        if (!users.containsKey(subject)) {
+            throw new IllegalArgumentException("unknown stub subject");
+        }
+        passwords.put(subject, password);
+        lastEnsuredSubject = subject;
     }
 
     @Override
