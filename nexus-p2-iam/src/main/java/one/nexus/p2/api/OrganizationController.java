@@ -1,6 +1,7 @@
 package one.nexus.p2.api;
 
 import one.nexus.p2.IdentityModule;
+import one.nexus.p2.account.AccountPersonMaster;
 import one.nexus.p2.admin.TenantAdminInitializer;
 import one.nexus.p2.domain.Model;
 import one.nexus.p2.org.OrganizationService;
@@ -115,6 +116,17 @@ public class OrganizationController {
         return module.memberships().add(body.accountId());
     }
 
+
+    /**
+     * T1-L1: ensure a loginable person/account master for a tenant (no org tree).
+     * Bootstrap-token gated; uses existing tenant id conventions (T1-L0 owned elsewhere).
+     */
+    @PostMapping("/internal/tenants/{tenantId}/loginable-persons")
+    public AccountPersonMaster.Result ensureLoginablePerson(@PathVariable UUID tenantId, @RequestBody LoginablePersonBody body) {
+        return module.accountPersonMaster().ensure(new AccountPersonMaster.Command(
+                tenantId, body.displayName(), body.email(), body.username(), body.employeeNo()));
+    }
+
     @PostMapping("/internal/tenants/{tenantId}/admin-users")
     public TenantAdminInitializer.Result bootstrapAdmin(@PathVariable UUID tenantId, @RequestBody AdminBody body) {
         return module.adminInitializer().initialize(new TenantAdminInitializer.Command(
@@ -126,5 +138,6 @@ public class OrganizationController {
     public record PositionBody(String code, String name, String category, String duties) {}
     public record EmploymentBody(UUID personId, UUID departmentId, UUID positionId, Model.EmploymentKind kind, LocalDate validFrom, LocalDate validTo) {}
     public record MembershipBody(UUID accountId) {}
+    public record LoginablePersonBody(String displayName, String email, String username, String employeeNo) {}
     public record AdminBody(String displayName, String email, String username) {}
 }
