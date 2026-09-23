@@ -1,0 +1,33 @@
+{
+  "leftover": "g7-query-withdraw-leftover-honesty",
+  "siblings": [
+    "g7-query-expense-travel",
+    "g7-query-expense-travel-honesty",
+    "g7-query-expense-travel-honesty-remainder",
+    "g7-withdraw-browser",
+    "g7-withdraw-browser-honesty",
+    "g7-withdraw-browser-evidence-honesty",
+    "g7-withdraw-expense-travel",
+    "g15-h5-pkce-miniprogram-remainder-honesty",
+    "g17-separation-leftover-honesty-remainder",
+    "g9-leftover-honesty-remainder",
+    "g10-file-object-reconcile-leftover-honesty",
+    "linux-arm-profile-leftover-remainder-honesty",
+    "g2-h5-every-page-form-write-report-remainder-honesty",
+    "linux-arm-profile-remainder-honesty",
+    "g4-hot-purge-staging-pkce-remainder-honesty",
+    "g10-file-object-reconcile-remainder-honesty",
+    "s0-secret-rotate-getenv-leftover-honesty",
+    "g2-h5-every-page-form-write-remainder-honesty",
+    "g9-redis-down-invalidate-remainder-honesty",
+    "g4-hot-purge-staging-leftover-honesty"
+  ],
+  "query_surface": "PASS",
+  "live_jar_idp_query": "SKIP",
+  "live_browser_query_click": "SKIP",
+  "live_jar_idp_browser_withdraw": "SKIP",
+  "g7Close": "NOT_CLAIMED",
+  "g18": "closed_unchanged",
+  "timestampUtc": "2026-09-22T22:55:47Z",
+  "evidence": "scripts/g7-query-withdraw-leftover-honesty.sh"
+}
