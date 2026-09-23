@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * T1-L1 minimal account/person master for phase-1 own-user login.
+ * T1-L1/L2 minimal account/person master for phase-1 own-user login.
  * Ensures IdP subject <-> GlobalAccount <-> TenantMembership <-> Person so
  * {@link one.nexus.p2.session.SessionService} can issue a tenant context.
  * Does not create org tree (dept/position/employment); that stays with
@@ -23,8 +23,14 @@ public final class AccountPersonMaster {
             String displayName,
             String email,
             String username,
-            String employeeNo
-    ) {}
+            String employeeNo,
+            String password
+    ) {
+        /** T1-L1 callers that do not set a password. */
+        public Command(UUID tenantId, String displayName, String email, String username, String employeeNo) {
+            this(tenantId, displayName, email, username, employeeNo, null);
+        }
+    }
 
     public record Result(
             UUID tenantId,
@@ -66,6 +72,9 @@ public final class AccountPersonMaster {
 
         boolean createdAccount = repository.findAccountByEmail(command.email()).isEmpty();
         IdentityProviderPort.ProvisionedUser provisioned = idp.ensureUser(command.email(), username, displayName);
+        if (command.password() != null && !command.password().isBlank()) {
+            idp.setPassword(provisioned.subject(), command.password());
+        }
         Model.GlobalAccount account = accounts.reconcile(new IdentityProviderPort.IdentityClaims(
                 provisioned.subject(), command.email(), username, displayName, null));
         if (account.status() != Model.AccountStatus.ACTIVE) {

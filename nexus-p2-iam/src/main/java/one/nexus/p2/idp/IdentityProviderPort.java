@@ -65,6 +65,15 @@ public interface IdentityProviderPort {
 
     ProvisionedUser ensureUser(String email, String username, String displayName);
 
+    /**
+     * Set a permanent (non-temporary) password for an own-user IdP subject.
+     * Used by T1-L2 bootstrap without SMTP execute-actions email.
+     * Default is unsupported.
+     */
+    default void setPassword(String subject, String password) {
+        throw new UnsupportedOperationException("setPassword is not supported by this IdP");
+    }
+
     EmailAction sendExecuteActionsEmail(String subject, List<String> actions, String kind);
 
     List<DirectoryUser> listUsers();

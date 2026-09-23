@@ -124,7 +124,7 @@ public class OrganizationController {
     @PostMapping("/internal/tenants/{tenantId}/loginable-persons")
     public AccountPersonMaster.Result ensureLoginablePerson(@PathVariable UUID tenantId, @RequestBody LoginablePersonBody body) {
         return module.accountPersonMaster().ensure(new AccountPersonMaster.Command(
-                tenantId, body.displayName(), body.email(), body.username(), body.employeeNo()));
+                tenantId, body.displayName(), body.email(), body.username(), body.employeeNo(), body.password()));
     }
 
     @PostMapping("/internal/tenants/{tenantId}/admin-users")
@@ -138,6 +138,6 @@ public class OrganizationController {
     public record PositionBody(String code, String name, String category, String duties) {}
     public record EmploymentBody(UUID personId, UUID departmentId, UUID positionId, Model.EmploymentKind kind, LocalDate validFrom, LocalDate validTo) {}
     public record MembershipBody(UUID accountId) {}
-    public record LoginablePersonBody(String displayName, String email, String username, String employeeNo) {}
+    public record LoginablePersonBody(String displayName, String email, String username, String employeeNo, String password) {}
     public record AdminBody(String displayName, String email, String username) {}
 }
