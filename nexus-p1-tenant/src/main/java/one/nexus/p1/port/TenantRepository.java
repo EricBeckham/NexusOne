@@ -28,6 +28,8 @@ public interface TenantRepository {
 
     Optional<EntitlementProjection> findProjection(UUID tenantId);
 
+    void updateProjection(EntitlementProjection projection);
+
     void insertAdminInit(UUID requestId, UUID tenantId, String displayName, String email,
                          AdminInitResult.Status status, String message, UUID actorId, String traceId);
 }

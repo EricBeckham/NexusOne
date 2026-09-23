@@ -157,6 +157,17 @@ export const p2 = {
     api(`/api/v1/internal/tenants/${tenantId}/admin-users`, { method: "POST", body, auth: false }),
 };
 
+export const p4 = {
+  catalog: () => api("/api/v1/p4/catalog", { auth: false }),
+  createApp: (body) => api("/api/v1/p4/apps", { method: "POST", body, platform: true, auth: false }),
+  createVersion: (appId, body) => api(`/api/v1/p4/apps/${appId}/versions`, { method: "POST", body, platform: true, auth: false }),
+  transition: (versionId, action) => api(`/api/v1/p4/versions/${versionId}/${action}`, { method: "POST", body: {}, platform: true, auth: false }),
+  createSku: (body) => api("/api/v1/p4/skus", { method: "POST", body, platform: true, auth: false }),
+  install: (tenantId, body) => api(`/api/v1/p4/tenants/${tenantId}/installations`, { method: "POST", body }),
+  upgrade: (installationId, versionId) => api(`/api/v1/p4/installations/${installationId}/upgrade`, { method: "POST", body: { versionId } }),
+  uninstall: (installationId) => api(`/api/v1/p4/installations/${installationId}/uninstall`, { method: "POST", body: {} }),
+};
+
 /** M0-05 / G2 permission engine. Role matrix lives here; no /api/v1/p2/roles. */
 export const perm = {
   health: () => api("/api/v1/permission/health", { auth: false }),

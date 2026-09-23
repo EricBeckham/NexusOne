@@ -34,6 +34,8 @@
         <p class="group">通知 / 审计</p>
         <router-link to="/p3/notifications">站内通知</router-link>
         <router-link to="/p3/audit">审计哈希链</router-link>
+        <p class="group">星市 · 应用市场</p>
+        <router-link to="/p4/market">应用目录</router-link>
       </nav>
     </aside>
     <div class="main">

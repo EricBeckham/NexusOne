@@ -205,6 +205,33 @@ public class JdbcTenantRepository implements TenantRepository {
     }
 
     @Override
+    public void updateProjection(EntitlementProjection projection) {
+        int updated = jdbc.sql("""
+                        UPDATE platform.entitlement_projection
+                        SET source = :source, pack_code = :pack_code, pack_version = :pack_version,
+                            sku_code = :sku_code, subscription_id = :subscription_id,
+                            projected_at = :projected_at, payload = CAST(:payload AS jsonb),
+                            updated_at = :updated_at, version = :version
+                        WHERE tenant_id = :tenant_id AND version = :previous_version
+                        """)
+                .param("source", projection.source().name())
+                .param("pack_code", projection.packCode())
+                .param("pack_version", projection.packVersion())
+                .param("sku_code", projection.skuCode())
+                .param("subscription_id", projection.subscriptionId())
+                .param("projected_at", JdbcValues.timestamp(projection.projectedAt()))
+                .param("payload", json(projection.payload()))
+                .param("updated_at", JdbcValues.timestamp(projection.updatedAt()))
+                .param("version", projection.version())
+                .param("tenant_id", projection.tenantId())
+                .param("previous_version", projection.version() - 1)
+                .update();
+        if (updated != 1) {
+            throw new IllegalStateException("optimistic lock failed for entitlement projection " + projection.tenantId());
+        }
+    }
+
+    @Override
     public void insertAdminInit(
             UUID requestId,
             UUID tenantId,

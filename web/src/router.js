@@ -29,6 +29,7 @@ const routes = [
   { path: "/p3/reports", name: "reports", component: () => import("./views/studio/ReportView.vue"), meta: { title: "报表表面", product: "p3" } },
   { path: "/p3/dumps", name: "dumps", component: () => import("./views/studio/DumpView.vue"), meta: { title: "物理 dump", product: "p3" } },
   { path: "/p3/exports/wizard", name: "export-wizard", component: () => import("./views/studio/ExportWizardView.vue"), meta: { title: "导出向导", product: "p3" } },
+  { path: "/p4/market", name: "market", component: () => import("./views/market/MarketView.vue"), meta: { title: "星市", product: "p4" } },
   { path: "/m", redirect: "/m/p3/home" },
   {
     path: "/m/login",
@@ -95,6 +96,12 @@ const routes = [
     name: "m-home",
     component: () => import("./mobile/products/p3-studio/pages/HomePage.vue"),
     meta: { mobile: true, title: "星构", product: "p3" },
+  },
+  {
+    path: "/m/p4/market",
+    name: "m-market",
+    component: () => import("./mobile/products/p4-market/pages/MarketPage.vue"),
+    meta: { mobile: true, tabs: false, title: "星市", product: "p4" },
   },
   {
     path: "/m/p3/files",
