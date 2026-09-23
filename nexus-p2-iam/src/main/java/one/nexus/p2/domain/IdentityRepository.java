@@ -61,7 +61,11 @@ public interface IdentityRepository {
 
     List<Model.Employment> listEmploymentsByPerson(UUID tenantId, UUID personId);
 
+    List<Model.Employment> listEmployments(UUID tenantId);
+
     List<Model.Employment> listEmploymentsByDepartment(UUID tenantId, UUID departmentId);
+
+    List<Model.Employment> listEmploymentsByPosition(UUID tenantId, UUID positionId);
 
     Optional<Model.Employment> findPrimaryEmployment(UUID tenantId, UUID personId);
 

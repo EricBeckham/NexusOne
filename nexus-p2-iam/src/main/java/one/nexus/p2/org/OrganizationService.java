@@ -88,7 +88,17 @@ public final class OrganizationService {
         } else {
             Model.Department parent = repository.findDepartment(tenantId, command.parentId())
                     .orElseThrow(() -> DomainException.notFound("parent department not found in current tenant"));
+            if (parent.status() != Model.OrgStatus.ACTIVE) {
+                throw DomainException.conflict("parent department is disabled");
+            }
             pathPrefix = parent.path();
+        }
+        if (command.leaderPersonId() != null) {
+            Model.Person leader = repository.findPerson(tenantId, command.leaderPersonId())
+                    .orElseThrow(() -> DomainException.notFound("leader person not found in current tenant"));
+            if (leader.status() != Model.PersonStatus.ACTIVE) {
+                throw DomainException.conflict("leader person is not active");
+            }
         }
         Instant now = clock.instant();
         UUID id = UuidV7.generate();
@@ -150,15 +160,41 @@ public final class OrganizationService {
         return repository.listPositions(TenantContextHolder.require().tenantId());
     }
 
+    public Model.Position disablePosition(UUID positionId) {
+        TenantContext context = TenantContextHolder.require();
+        Model.Position position = repository.findPosition(context.tenantId(), positionId)
+                .orElseThrow(() -> DomainException.notFound("position not found in current tenant"));
+        if (!repository.listEmploymentsByPosition(context.tenantId(), positionId).isEmpty()) {
+            throw DomainException.conflict("position still has active employments");
+        }
+        if (position.status() == Model.OrgStatus.DISABLED) {
+            return position;
+        }
+        Instant now = clock.instant();
+        return repository.savePosition(new Model.Position(
+                position.id(), position.tenantId(), position.code(), position.name(), position.category(),
+                position.duties(), Model.OrgStatus.DISABLED, position.createdAt(), now,
+                position.deletedAt(), position.version() + 1));
+    }
+
     public Model.Employment assign(EmploymentCommand command) {
         TenantContext context = TenantContextHolder.require();
         UUID tenantId = context.tenantId();
-        repository.findPerson(tenantId, command.personId())
+        Model.Person person = repository.findPerson(tenantId, command.personId())
                 .orElseThrow(() -> DomainException.notFound("person not found in current tenant"));
-        repository.findDepartment(tenantId, command.departmentId())
+        Model.Department department = repository.findDepartment(tenantId, command.departmentId())
                 .orElseThrow(() -> DomainException.notFound("department not found in current tenant"));
-        repository.findPosition(tenantId, command.positionId())
+        Model.Position position = repository.findPosition(tenantId, command.positionId())
                 .orElseThrow(() -> DomainException.notFound("position not found in current tenant"));
+        if (person.status() != Model.PersonStatus.ACTIVE) {
+            throw DomainException.conflict("person is not active");
+        }
+        if (department.status() != Model.OrgStatus.ACTIVE) {
+            throw DomainException.conflict("department is disabled");
+        }
+        if (position.status() != Model.OrgStatus.ACTIVE) {
+            throw DomainException.conflict("position is disabled");
+        }
         Model.EmploymentKind kind = command.kind() == null ? Model.EmploymentKind.PRIMARY : command.kind();
         if (kind == Model.EmploymentKind.PRIMARY) {
             repository.findPrimaryEmployment(tenantId, command.personId()).ifPresent(existing -> {
@@ -167,6 +203,9 @@ public final class OrganizationService {
         }
         Instant now = clock.instant();
         LocalDate from = command.validFrom() == null ? LocalDate.ofInstant(now, clock.getZone()) : command.validFrom();
+        if (command.validTo() != null && command.validTo().isBefore(from)) {
+            throw DomainException.badRequest("P2.IAM.EMPLOYMENT_DATES", "validTo must not be before validFrom");
+        }
         Model.Employment employment = new Model.Employment(
                 UuidV7.generate(), tenantId, command.personId(), command.departmentId(), command.positionId(),
                 kind, Model.EmploymentStatus.ACTIVE, from, command.validTo(), now, now, null, 0);
@@ -177,10 +216,17 @@ public final class OrganizationService {
         return repository.listEmploymentsByPerson(TenantContextHolder.require().tenantId(), personId);
     }
 
+    public List<Model.Employment> listEmployments() {
+        return repository.listEmployments(TenantContextHolder.require().tenantId());
+    }
+
     public Model.Employment endEmployment(UUID employmentId) {
         TenantContext context = TenantContextHolder.require();
         Model.Employment employment = repository.findEmployment(context.tenantId(), employmentId)
                 .orElseThrow(() -> DomainException.notFound("employment not found in current tenant"));
+        if (employment.status() == Model.EmploymentStatus.ENDED) {
+            return employment;
+        }
         Instant now = clock.instant();
         return repository.saveEmployment(new Model.Employment(
                 employment.id(), employment.tenantId(), employment.personId(), employment.departmentId(),

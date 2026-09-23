@@ -214,11 +214,28 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
     }
 
     @Override
+    public List<Model.Employment> listEmployments(UUID tenantId) {
+        return employments.values().stream()
+                .filter(item -> item.deletedAt() == null && item.tenantId().equals(tenantId))
+                .toList();
+    }
+
+    @Override
     public List<Model.Employment> listEmploymentsByDepartment(UUID tenantId, UUID departmentId) {
         return employments.values().stream()
                 .filter(item -> item.deletedAt() == null
                         && item.tenantId().equals(tenantId)
                         && item.departmentId().equals(departmentId)
+                        && item.status() == Model.EmploymentStatus.ACTIVE)
+                .toList();
+    }
+
+    @Override
+    public List<Model.Employment> listEmploymentsByPosition(UUID tenantId, UUID positionId) {
+        return employments.values().stream()
+                .filter(item -> item.deletedAt() == null
+                        && item.tenantId().equals(tenantId)
+                        && item.positionId().equals(positionId)
                         && item.status() == Model.EmploymentStatus.ACTIVE)
                 .toList();
     }

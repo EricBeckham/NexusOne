@@ -88,12 +88,22 @@ public class OrganizationController {
         return module.organization().listPositions();
     }
 
+    @PostMapping("/positions/{id}/disable")
+    public Model.Position disablePosition(@PathVariable UUID id) {
+        return module.organization().disablePosition(id);
+    }
+
     @PostMapping("/employments")
     public Model.Employment assign(@RequestBody EmploymentBody body) {
         return module.organization().assign(new OrganizationService.EmploymentCommand(
                 body.personId(), body.departmentId(), body.positionId(),
                 body.kind() == null ? Model.EmploymentKind.PRIMARY : body.kind(),
                 body.validFrom(), body.validTo()));
+    }
+
+    @GetMapping("/employments")
+    public List<Model.Employment> employments() {
+        return module.organization().listEmployments();
     }
 
     @GetMapping("/persons/{id}/employments")

@@ -282,11 +282,28 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     }
 
     @Override
+    public List<Model.Employment> listEmployments(UUID tenantId) {
+        return jdbc.query("""
+                SELECT * FROM iam.iam_employment
+                WHERE tenant_id = ? AND deleted_at IS NULL
+                ORDER BY status, valid_from DESC, created_at DESC
+                """, EMPLOYMENT, tenantId);
+    }
+
+    @Override
     public List<Model.Employment> listEmploymentsByDepartment(UUID tenantId, UUID departmentId) {
         return jdbc.query("""
                 SELECT * FROM iam.iam_employment
                 WHERE tenant_id = ? AND department_id = ? AND status = 'ACTIVE' AND deleted_at IS NULL
                 """, EMPLOYMENT, tenantId, departmentId);
+    }
+
+    @Override
+    public List<Model.Employment> listEmploymentsByPosition(UUID tenantId, UUID positionId) {
+        return jdbc.query("""
+                SELECT * FROM iam.iam_employment
+                WHERE tenant_id = ? AND position_id = ? AND status = 'ACTIVE' AND deleted_at IS NULL
+                """, EMPLOYMENT, tenantId, positionId);
     }
 
     @Override
