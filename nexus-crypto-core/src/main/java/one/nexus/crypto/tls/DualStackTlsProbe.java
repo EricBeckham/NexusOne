@@ -20,6 +20,8 @@ import org.bouncycastle.tls.DefaultTlsServer;
 import org.bouncycastle.tls.NamedGroup;
 import org.bouncycastle.tls.ProtocolVersion;
 import org.bouncycastle.tls.SignatureAndHashAlgorithm;
+import org.bouncycastle.tls.HashAlgorithm;
+import org.bouncycastle.tls.SignatureAlgorithm;
 import org.bouncycastle.tls.TlsAuthentication;
 import org.bouncycastle.tls.TlsClientProtocol;
 import org.bouncycastle.tls.TlsCredentials;
@@ -352,7 +354,7 @@ public final class DualStackTlsProbe {
                     context,
                     material.intlServer().privateKey(),
                     material.intlServer().chain(),
-                    SignatureAndHashAlgorithm.ecdsa_secp256r1_sha256);
+                    SignatureAndHashAlgorithm.getInstance(HashAlgorithm.sha256, SignatureAlgorithm.ecdsa));
         }
     }
 
@@ -383,7 +385,7 @@ public final class DualStackTlsProbe {
         @SuppressWarnings("unchecked")
         protected Vector getSupportedSignatureAlgorithms() {
             Vector algs = new Vector();
-            algs.add(SignatureAndHashAlgorithm.ecdsa_secp256r1_sha256);
+            algs.add(SignatureAndHashAlgorithm.getInstance(HashAlgorithm.sha256, SignatureAlgorithm.ecdsa));
             return algs;
         }
 
