@@ -304,13 +304,31 @@ export async function getRecord(ledgerId, recordId) {
   return wrap(await api(`/api/v1/p3/ledgers/${ledgerId}/records/${recordId}`));
 }
 
+export async function createRecord(ledgerId, values) {
+  return wrap(await api(`/api/v1/p3/ledgers/${ledgerId}/records`, {
+    method: "POST",
+    body: values || {},
+  }));
+}
+
+export async function updateRecord(ledgerId, recordId, values, version) {
+  return wrap(await api(`/api/v1/p3/ledgers/${ledgerId}/records/${recordId}`, {
+    method: "PATCH",
+    body: { values: values || {}, version },
+  }));
+}
+
+export async function deleteRecord(ledgerId, recordId) {
+  await api(`/api/v1/p3/ledgers/${ledgerId}/records/${recordId}`, { method: "DELETE" });
+}
+
 export async function listForms() {
   return wrap({ items: asList(await api("/api/v1/p3/forms")).map(mapForm) });
 }
 
 export async function getForm(id) {
   const form = mapForm(await api(`/api/v1/p3/forms/${id}`));
-  let runningFields = form.draft_fields || [];
+  let runningFields = [];
   if (form.running_version) {
     try {
       const running = await api(`/api/v1/p3/forms/${id}/running`);

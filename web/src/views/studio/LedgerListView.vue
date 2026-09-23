@@ -3,21 +3,47 @@
     <div class="nx-page-header nx-row" style="justify-content:space-between;">
       <div>
         <h1>台账</h1>
-        <p>P3 一台账一物理表。G7 三类业务走 <code>POST /api/v1/p3/business-types/{code}/provision</code>，列表走 <code>GET /api/v1/p3/ledgers</code>。</p>
+        <p>创建一个租户应用及其首条台账；每条台账仍是一张由 SchemaService 管理的物理表。</p>
       </div>
       <button class="primary" type="button" data-testid="ledger-create-toggle" @click="showCreate = !showCreate">
         {{ showCreate ? "收起创建" : "创建台账" }}
       </button>
     </div>
-    <NxSourceBanner body="Live M0-06 + G7 catalog。空列表表示当前租户还没有台账，不是 MOCK。开通请假 / 报销 / 出差会同时建台账和表单。" />
+    <NxSourceBanner body="T3-E 使用 Live M0-06：POST applications → POST applications/{id}/ledgers。业务模板入口继续保留，但不是本任务验收路径。" />
     <div class="nx-card" style="margin-bottom:16px;">
       <div class="nx-muted">自建台账 Quota（P1 /api/v1/p1/tenants/{id}/quotas，非 ledger payload）</div>
       <strong>{{ quotaLabel }}</strong>
     </div>
     <form v-if="showCreate" class="nx-card" style="margin-bottom:16px;" data-testid="ledger-create-form" @submit.prevent="onCreate">
       <h3>创建台账</h3>
-      <p class="nx-muted">G7 三类真实业务（请假 / 报销 / 出差）走 catalog provision：台账 + 表单 + 可选 Publish。也可继续手建应用与台账。</p>
-      <div class="nx-row">
+      <div class="nx-field" style="max-width:240px;">
+        <label>创建方式</label>
+        <select v-model="creationMode" data-testid="ledger-create-mode">
+          <option value="custom">自建应用 + 一条台账</option>
+          <option value="template">请假 / 报销 / 出差模板</option>
+        </select>
+      </div>
+      <div v-if="creationMode === 'custom'" data-testid="custom-ledger-fields">
+        <div class="nx-row">
+          <div class="nx-field"><label>应用代码</label><input v-model="custom.appCode" required data-testid="application-code" placeholder="crm" /></div>
+          <div class="nx-field"><label>应用名称</label><input v-model="custom.appName" required data-testid="application-name" placeholder="客户管理" /></div>
+          <div class="nx-field"><label>台账代码</label><input v-model="custom.ledgerCode" required data-testid="ledger-code" placeholder="customers" /></div>
+          <div class="nx-field"><label>台账名称</label><input v-model="custom.ledgerName" required data-testid="ledger-name" placeholder="客户台账" /></div>
+        </div>
+        <h4>首个字段</h4>
+        <div class="nx-row">
+          <div class="nx-field"><label>字段代码</label><input v-model="custom.fieldCode" required data-testid="ledger-field-code" /></div>
+          <div class="nx-field"><label>字段名称</label><input v-model="custom.fieldName" required data-testid="ledger-field-name" /></div>
+          <div class="nx-field">
+            <label>字段类型</label>
+            <select v-model="custom.fieldType" data-testid="ledger-field-type">
+              <option value="text">文本</option><option value="number">数字</option><option value="boolean">布尔</option><option value="date">日期时间</option>
+            </select>
+          </div>
+          <label class="nx-field check"><input v-model="custom.required" type="checkbox" />必填</label>
+        </div>
+      </div>
+      <div v-else class="nx-row">
         <div class="nx-field">
           <label>业务类型</label>
           <select v-model="draft.type_code" data-testid="business-type-select">
@@ -31,8 +57,10 @@
           Validate + Publish
         </label>
       </div>
-      <p v-if="selectedType" class="nx-muted">{{ selectedType.description }} 字段：{{ fieldSummary }}</p>
-      <button class="primary" type="submit" data-testid="ledger-create-submit">开通此类业务</button>
+      <p v-if="creationMode === 'template' && selectedType" class="nx-muted">{{ selectedType.description }} 字段：{{ fieldSummary }}</p>
+      <button class="primary" type="submit" data-testid="ledger-create-submit">
+        {{ creationMode === "custom" ? "创建应用和台账" : "开通此类业务" }}
+      </button>
     </form>
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
@@ -42,6 +70,7 @@
         <tr>
           <th>台账名</th>
           <th>代码</th>
+          <th>应用</th>
           <th>来源</th>
           <th>字段数</th>
           <th>Schema Version</th>
@@ -50,11 +79,12 @@
       </thead>
       <tbody>
         <tr v-if="!rows.length">
-          <td colspan="6" class="nx-empty">{{ empty }}</td>
+          <td colspan="7" class="nx-empty">{{ empty }}</td>
         </tr>
         <tr v-for="row in rows" :key="row.id">
           <td><router-link :to="`/p3/ledgers/${row.id}`">{{ row.name }}</router-link></td>
           <td class="nx-code">{{ row.code }}</td>
+          <td>{{ applicationName(row.application_id) }}</td>
           <td>{{ row.source }}</td>
           <td>{{ row.field_count }}</td>
           <td>v{{ row.running_schema_version }}</td>
@@ -76,14 +106,26 @@ import { session } from "../../api/session";
 
 const router = useRouter();
 const rows = ref([]);
+const applications = ref([]);
 const quota = ref(null);
 const error = ref("");
 const notice = ref("");
 const showCreate = ref(false);
+const creationMode = ref("custom");
 const types = ref([]);
 const draft = reactive({
   type_code: "leave",
   publish: true,
+});
+const custom = reactive({
+  appCode: "",
+  appName: "",
+  ledgerCode: "",
+  ledgerName: "",
+  fieldCode: "title",
+  fieldName: "标题",
+  fieldType: "text",
+  required: true,
 });
 
 const selectedType = computed(() => types.value.find((item) => item.code === draft.type_code));
@@ -118,16 +160,23 @@ async function loadQuota() {
 }
 
 async function reload() {
-  const [ledgerBody, typeBody] = await Promise.all([
+  const [ledgerBody, applicationBody, typeBody] = await Promise.all([
     p3.listLedgers(),
+    p3.listApplications(),
     p3.listBusinessTypes().catch(() => ({ items: [] })),
   ]);
   rows.value = ledgerBody.items || [];
+  applications.value = applicationBody.items || [];
   types.value = typeBody.items || [];
   if (types.value.length && !types.value.some((item) => item.code === draft.type_code)) {
     draft.type_code = types.value[0].code;
   }
   await loadQuota();
+}
+
+function applicationName(id) {
+  const application = applications.value.find((item) => item.id === id);
+  return application?.display_name || application?.app_code || "—";
 }
 
 onMounted(async () => {
@@ -141,6 +190,30 @@ onMounted(async () => {
 async function onCreate() {
   error.value = "";
   try {
+    if (creationMode.value === "custom") {
+      const application = await p3.createApplication({
+        app_code: custom.appCode,
+        display_name: custom.appName,
+        kind: "CUSTOM",
+      });
+      const ledger = await p3.createLedger({
+        application_id: application.id,
+        ledger_code: custom.ledgerCode,
+        display_name: custom.ledgerName,
+        scope: "TENANT",
+        fields: [{
+          code: custom.fieldCode,
+          name: custom.fieldName,
+          type: custom.fieldType,
+          required: custom.required,
+        }],
+      });
+      notice.value = `已创建应用 ${application.display_name} 和台账 ${ledger.name}。`;
+      showCreate.value = false;
+      await reload();
+      await router.push(`/p3/ledgers/${ledger.id}`);
+      return;
+    }
     const created = await p3.provisionBusinessType(draft.type_code, { publish: Boolean(draft.publish) });
     showCreate.value = false;
     notice.value = `已开通 ${created.display_name || draft.type_code}。台账 ${created.ledger_code || "?"} · 表单 ${created.form_code || "?"}。`;
@@ -153,3 +226,7 @@ async function onCreate() {
   }
 }
 </script>
+
+<style scoped>
+.check { flex-direction: row; align-items: center; gap: 8px; margin-top: 22px; }
+</style>
