@@ -33,7 +33,7 @@ DOC_184="$ROOT/docs/g1-fieldpolicy-mask-second-auth-honesty.md"
 DOC_215="$ROOT/docs/g1-queryast-export-honesty.md"
 DOC_238="$ROOT/docs/g1-fieldpolicy-mask-second-auth-remainder-honesty.md"
 
-REQUIRED_LEFTOVER_ROWS="g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g1-fieldpolicy-mask-second-auth-remainder-honesty g1-fieldpolicy-mask-boundsql-export-remainder-honesty g1-queryast-export-honesty g1-queryast-boundsql-guard g1-queryast-boundsql-honesty g1-export-fieldpolicy-drop g1-datascope-or-in-ast linux-arm-profile-remainder-honesty linux-arm-profile-honesty linux-arm-profile-leftover-honesty g2-h5-every-page-form-write-report-remainder-honesty g15-h5-pkce-miniprogram-remainder-honesty g17-separation-leftover-honesty-remainder g9-leftover-honesty-remainder g10-file-object-reconcile-leftover-honesty g4-hot-purge-staging-pkce-remainder-honesty g4-hot-purge-staging-leftover-honesty g4-pkce-spa-verifier-remainder-honesty g10-file-object-reconcile-remainder-honesty g10-leftover-honesty-remainder g10-leftover-honesty g10-file-reconcile-honesty g2-h5-every-page-form-write-remainder-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder-honesty g9-redis-down-invalidate-remainder g7-query-expense-travel-honesty-remainder g17-mfa-recovery-vue-otp-remainder-honesty g5-publishhook-ddl-remainder-honesty s0-secret-rotate-getenv-leftover-honesty g7-withdraw-browser-evidence-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder g17-gm-tls-nginx-handshake-honesty g5-publishhook-ddl-honesty g9-sentinel-cluster-remainder-honesty g2-ops-pg-dump-honesty"
+REQUIRED_LEFTOVER_ROWS="g1-fieldpolicy-mask-second-auth g1-fieldpolicy-mask-second-auth-honesty g1-fieldpolicy-mask-second-auth-remainder-honesty g1-fieldpolicy-mask-boundsql-export-remainder-honesty g1-queryast-export-honesty g1-queryast-boundsql-guard g1-queryast-boundsql-honesty g1-export-fieldpolicy-drop g1-datascope-or-in-ast linux-arm-profile-remainder-honesty linux-arm-profile-honesty linux-arm-profile-leftover-honesty linux-arm-profile-leftover-remainder-honesty g2-h5-every-page-form-write-report-remainder-honesty g15-h5-pkce-miniprogram-remainder-honesty g17-separation-leftover-honesty-remainder g9-leftover-honesty-remainder g10-file-object-reconcile-leftover-honesty g4-hot-purge-staging-pkce-leftover-honesty g4-hot-purge-staging-pkce-remainder-honesty g4-hot-purge-staging-leftover-honesty g4-pkce-spa-verifier-remainder-honesty g10-file-object-reconcile-remainder-honesty g10-leftover-honesty-remainder g10-leftover-honesty g10-file-reconcile-honesty g2-h5-every-page-form-write-remainder-honesty g2-h5-every-page-form-write-honesty g9-redis-down-invalidate-remainder-honesty g9-redis-down-invalidate-remainder g7-query-withdraw-leftover-honesty g7-query-expense-travel-honesty-remainder g17-mfa-recovery-vue-otp-remainder-honesty g5-publishhook-ddl-leftover-honesty g5-publishhook-ddl-remainder-honesty s0-secret-rotate-getenv-leftover-honesty g7-withdraw-browser-evidence-honesty g9-live-multi-jvm-replica-remainder-honesty g3-outbox-consume-idempotent-honesty g2-report-physical-dump-honesty g6-recovery-port-dry-run-remainder-honesty s0-secret-rotate-getenv-remainder-honesty g17-separation-leftover-honesty g15-wx-dt-native-bridge-remainder g17-gm-tls-nginx-handshake-honesty g5-publishhook-ddl-honesty g9-sentinel-cluster-remainder-honesty g2-ops-pg-dump-honesty"
 
 SIBLING_ROWS="
 g1-fieldpolicy-mask-second-auth
@@ -47,12 +47,14 @@ g1-datascope-or-in-ast
 linux-arm-profile-remainder-honesty
 linux-arm-profile-honesty
 linux-arm-profile-leftover-honesty
+linux-arm-profile-leftover-remainder-honesty
 g2-h5-every-page-form-write-report-remainder-honesty
 g15-h5-pkce-miniprogram-remainder-honesty
 g17-separation-leftover-honesty-remainder
 g17-separation-leftover-honesty
 g9-leftover-honesty-remainder
 g10-file-object-reconcile-leftover-honesty
+g4-hot-purge-staging-pkce-leftover-honesty
 g4-hot-purge-staging-pkce-remainder-honesty
 g4-hot-purge-staging-leftover-honesty
 g4-hot-purge-90d-honesty
@@ -71,12 +73,14 @@ g2-form-write-honesty
 g2-h5-every-page
 g2-report-physical-dump-honesty
 g2-ops-pg-dump-honesty
+g7-query-withdraw-leftover-honesty
 g7-query-expense-travel-honesty-remainder
 g7-query-expense-travel-honesty
 g7-withdraw-browser-evidence-honesty
 g7-withdraw-browser-honesty
 g17-mfa-recovery-vue-otp-remainder-honesty
 g17-mfa-recovery-vue-otp-honesty
+g5-publishhook-ddl-leftover-honesty
 g5-publishhook-ddl-remainder-honesty
 g5-publishhook-ddl-honesty
 s0-secret-rotate-getenv-leftover-honesty
@@ -211,6 +215,10 @@ verify_report_inner() {
   [ "$(report_get "$file" leftover_215_kept)" = "true" ] || { echo "FAIL: leftover_215_kept must stay true" >&2; return 1; }
   [ "$(report_get "$file" leftover_238_kept)" = "true" ] || { echo "FAIL: leftover_238_kept must stay true" >&2; return 1; }
   [ "$(report_get "$file" leftover_262_kept)" = "true" ] || { echo "FAIL: leftover_262_kept must stay true (keep g10-file-object-reconcile-leftover-honesty)" >&2; return 1; }
+  [ "$(report_get "$file" leftover_263_kept)" = "true" ] || { echo "FAIL: leftover_263_kept must stay true (keep linux-arm-profile-leftover-remainder-honesty)" >&2; return 1; }
+  [ "$(report_get "$file" leftover_265_kept)" = "true" ] || { echo "FAIL: leftover_265_kept must stay true (keep g4-hot-purge-staging-pkce-leftover-honesty)" >&2; return 1; }
+  [ "$(report_get "$file" leftover_256_kept)" = "true" ] || { echo "FAIL: leftover_256_kept must stay true (keep g7-query-withdraw-leftover-honesty)" >&2; return 1; }
+  [ "$(report_get "$file" leftover_260_kept)" = "true" ] || { echo "FAIL: leftover_260_kept must stay true (keep g5-publishhook-ddl-leftover-honesty)" >&2; return 1; }
   [ "$(report_get "$file" leftover_259_kept)" = "true" ] || { echo "FAIL: leftover_259_kept must stay true (keep g9-leftover-honesty-remainder)" >&2; return 1; }
   [ "$(report_get "$file" leftover_249_kept)" = "true" ] || { echo "FAIL: leftover_249_kept must stay true (keep g17-separation-leftover-honesty-remainder)" >&2; return 1; }
   [ "$(report_get "$file" leftover_240_kept)" = "true" ] || { echo "FAIL: leftover_240_kept must stay true (keep g15-h5-pkce-miniprogram-remainder-honesty)" >&2; return 1; }
@@ -426,6 +434,14 @@ grep -q '\[g1-fieldpolicy-mask-boundsql-export-remainder-honesty\](\./g1-fieldpo
   || fail "docs/README.md must list this leftover row"
 grep -q '\[g10-file-object-reconcile-leftover-honesty\](\./g10-file-object-reconcile-leftover-honesty.md)' "$README" \
   || fail "docs/README.md must keep sibling leftover g10-file-object-reconcile-leftover-honesty (#262)"
+grep -q '\[linux-arm-profile-leftover-remainder-honesty\](\./linux-arm-profile-leftover-remainder-honesty.md)' "$README" \
+  || fail "docs/README.md must keep sibling leftover linux-arm-profile-leftover-remainder-honesty (#263)"
+grep -q '\[g4-hot-purge-staging-pkce-leftover-honesty\](\./g4-hot-purge-staging-pkce-leftover-honesty.md)' "$README" \
+  || fail "docs/README.md must keep sibling leftover g4-hot-purge-staging-pkce-leftover-honesty (#265)"
+grep -q '\[g7-query-withdraw-leftover-honesty\](\./g7-query-withdraw-leftover-honesty.md)' "$README" \
+  || fail "docs/README.md must keep sibling leftover g7-query-withdraw-leftover-honesty (#256)"
+grep -q '\[g5-publishhook-ddl-leftover-honesty\](\./g5-publishhook-ddl-leftover-honesty.md)' "$README" \
+  || fail "docs/README.md must keep sibling leftover g5-publishhook-ddl-leftover-honesty (#260)"
 grep -q '\[g9-leftover-honesty-remainder\](\./g9-leftover-honesty-remainder.md)' "$README" \
   || fail "docs/README.md must keep sibling leftover g9-leftover-honesty-remainder (#259)"
 grep -q '\[g17-separation-leftover-honesty-remainder\](\./g17-separation-leftover-honesty-remainder.md)' "$README" \
@@ -529,6 +545,10 @@ LEFTOVER_184_KEPT=false
 LEFTOVER_215_KEPT=false
 LEFTOVER_238_KEPT=false
 LEFTOVER_262_KEPT=false
+LEFTOVER_263_KEPT=false
+LEFTOVER_265_KEPT=false
+LEFTOVER_256_KEPT=false
+LEFTOVER_260_KEPT=false
 LEFTOVER_259_KEPT=false
 LEFTOVER_249_KEPT=false
 LEFTOVER_240_KEPT=false
@@ -547,6 +567,10 @@ for required_row in $REQUIRED_LEFTOVER_ROWS; do
       g1-queryast-export-honesty) LEFTOVER_215_KEPT=true ;;
       g1-fieldpolicy-mask-second-auth-remainder-honesty) LEFTOVER_238_KEPT=true ;;
       g10-file-object-reconcile-leftover-honesty) LEFTOVER_262_KEPT=true ;;
+      linux-arm-profile-leftover-remainder-honesty) LEFTOVER_263_KEPT=true ;;
+      g4-hot-purge-staging-pkce-leftover-honesty) LEFTOVER_265_KEPT=true ;;
+      g7-query-withdraw-leftover-honesty) LEFTOVER_256_KEPT=true ;;
+      g5-publishhook-ddl-leftover-honesty) LEFTOVER_260_KEPT=true ;;
       g9-leftover-honesty-remainder) LEFTOVER_259_KEPT=true ;;
       g17-separation-leftover-honesty-remainder) LEFTOVER_249_KEPT=true ;;
       g15-h5-pkce-miniprogram-remainder-honesty) LEFTOVER_240_KEPT=true ;;
@@ -569,6 +593,10 @@ done
 [ "$LEFTOVER_215_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g1-queryast-export-honesty (#215)"
 [ "$LEFTOVER_238_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g1-fieldpolicy-mask-second-auth-remainder-honesty (#238)"
 [ "$LEFTOVER_262_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g10-file-object-reconcile-leftover-honesty (#262)"
+[ "$LEFTOVER_263_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover linux-arm-profile-leftover-remainder-honesty (#263)"
+[ "$LEFTOVER_265_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g4-hot-purge-staging-pkce-leftover-honesty (#265)"
+[ "$LEFTOVER_256_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g7-query-withdraw-leftover-honesty (#256)"
+[ "$LEFTOVER_260_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g5-publishhook-ddl-leftover-honesty (#260)"
 [ "$LEFTOVER_259_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g9-leftover-honesty-remainder (#259)"
 [ "$LEFTOVER_249_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g17-separation-leftover-honesty-remainder (#249)"
 [ "$LEFTOVER_240_KEPT" = "true" ] || fail "docs/README.md must keep sibling leftover g15-h5-pkce-miniprogram-remainder-honesty (#240)"
@@ -654,6 +682,10 @@ REPORT="$OUT/report.env"
   kv leftover_215_kept "$LEFTOVER_215_KEPT"
   kv leftover_238_kept "$LEFTOVER_238_KEPT"
   kv leftover_262_kept "$LEFTOVER_262_KEPT"
+  kv leftover_263_kept "$LEFTOVER_263_KEPT"
+  kv leftover_265_kept "$LEFTOVER_265_KEPT"
+  kv leftover_256_kept "$LEFTOVER_256_KEPT"
+  kv leftover_260_kept "$LEFTOVER_260_KEPT"
   kv leftover_259_kept "$LEFTOVER_259_KEPT"
   kv leftover_249_kept "$LEFTOVER_249_KEPT"
   kv leftover_240_kept "$LEFTOVER_240_KEPT"
@@ -740,7 +772,7 @@ cp "$REPORT" "$SANITIZED"
 echo
 echo "PASS: leftover honesty remainder recorded (#238/#215 harness PASS and not live JAR; live FieldPolicy / BoundSql $LIVE_API / $LIVE_BOUNDSQL)"
 echo "See docs/g1-fieldpolicy-mask-boundsql-export-remainder-honesty.md"
-echo "Keep sibling leftovers including g1-fieldpolicy-mask-second-auth-remainder-honesty / g1-queryast-export-honesty / g15-h5-pkce-miniprogram-remainder-honesty / g2-h5-every-page-form-write-report-remainder-honesty / linux-arm-profile-remainder-honesty / g4-hot-purge-staging-pkce-remainder-honesty / g10-file-object-reconcile-remainder-honesty"
+echo "Keep sibling leftovers including g1-fieldpolicy-mask-second-auth-remainder-honesty / g1-queryast-export-honesty / g5-publishhook-ddl-leftover-honesty / g7-query-withdraw-leftover-honesty / g4-hot-purge-staging-pkce-leftover-honesty / linux-arm-profile-leftover-remainder-honesty / g15-h5-pkce-miniprogram-remainder-honesty / g2-h5-every-page-form-write-report-remainder-honesty / linux-arm-profile-remainder-honesty / g4-hot-purge-staging-pkce-remainder-honesty / g10-file-object-reconcile-remainder-honesty"
 echo "Not claimed: product G1 close / mask on Query AST / IsolatedExport mask / live JAR walk / #184/#215/#238 redo"
 echo "out=$OUT"
 echo "SANITIZED=$SANITIZED"
