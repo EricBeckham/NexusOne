@@ -7,16 +7,13 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import one.nexus.p1.config.P1Properties;
 import one.nexus.p1.domain.Actor;
 import one.nexus.p1.domain.AuditEvent;
 import one.nexus.p1.domain.DomainException;
-import one.nexus.p1.domain.EntitlementPayload;
 import one.nexus.p1.domain.EntitlementProjection;
 import one.nexus.p1.domain.ErrorCode;
 import one.nexus.p1.domain.PlatformDuty;
 import one.nexus.p1.domain.Quota;
-import one.nexus.p1.domain.QuotaMetric;
 import one.nexus.p1.domain.Tenant;
 import one.nexus.p1.domain.TenantCode;
 import one.nexus.p1.domain.TenantConfig;
@@ -38,30 +35,29 @@ public class TenantLifecycleService {
 
     private final TenantRepository tenants;
     private final QuotaRepository quotas;
+    private final DefaultEntitlementPackProjector packProjector;
     private final TenantAdminInitializer adminInitializer;
     private final IsolationGuard isolation;
     private final AuditPort audit;
     private final IdGenerator ids;
     private final ClockPort clock;
-    private final P1Properties properties;
-
     public TenantLifecycleService(
             TenantRepository tenants,
             QuotaRepository quotas,
+            DefaultEntitlementPackProjector packProjector,
             TenantAdminInitializer adminInitializer,
             IsolationGuard isolation,
             AuditPort audit,
             IdGenerator ids,
-            ClockPort clock,
-            P1Properties properties) {
+            ClockPort clock) {
         this.tenants = tenants;
         this.quotas = quotas;
+        this.packProjector = packProjector;
         this.adminInitializer = adminInitializer;
         this.isolation = isolation;
         this.audit = audit;
         this.ids = ids;
         this.clock = clock;
-        this.properties = properties;
     }
 
     @Transactional
@@ -87,21 +83,12 @@ public class TenantLifecycleService {
         TenantConfig config = command.config() == null
                 ? TenantConfig.defaults(id, tenant.name(), now, actor.subjectId())
                 : command.config().toConfig(id, tenant.name(), now, actor.subjectId());
-        EntitlementPayload payload = EntitlementPayload.defaultPack(
-                properties.getQuota().getAppLimit(), properties.getQuota().getCustomLedgerLimit());
-        EntitlementProjection projection = EntitlementProjection.fromDefaultPack(
-                id,
-                properties.getDefaultPack().getCode(),
-                properties.getDefaultPack().getVersion(),
-                payload,
-                now);
+        DefaultEntitlementPackProjector.AppliedPack applied = packProjector.project(id, now);
+        EntitlementProjection projection = applied.projection();
         tenants.insert(tenant, config, projection);
-        quotas.insert(new Quota(
-                id, QuotaMetric.APP, properties.getQuota().getAppLimit(), 0,
-                properties.getQuota().getWarnPercent(), Quota.POLICY_REJECT, now, 1));
-        quotas.insert(new Quota(
-                id, QuotaMetric.CUSTOM_LEDGER, properties.getQuota().getCustomLedgerLimit(), 0,
-                properties.getQuota().getWarnPercent(), Quota.POLICY_REJECT, now, 1));
+        for (Quota quota : applied.quotas()) {
+            quotas.insert(quota);
+        }
 
         AdminInitResult init = adminInitializer.initialize(new AdminInitCommand(
                 id, code, command.adminDisplayName(), command.adminEmail(),
