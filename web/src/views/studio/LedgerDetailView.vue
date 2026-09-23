@@ -23,6 +23,25 @@
     </div>
 
     <div v-if="tab === 'records'">
+      <form class="nx-card" style="margin-bottom:16px;" data-testid="record-query" @submit.prevent="queryRecords">
+        <h3>字段查询</h3>
+        <p class="nx-muted">最小查询面：业务字段等值查询，仍走记录列表 API、TenantContext 与 DataScope。</p>
+        <div class="nx-row">
+          <div v-for="field in fields" :key="field.code" class="nx-field">
+            <label>{{ field.name }}（{{ field.code }}）</label>
+            <input
+              v-model="recordFilters[field.code]"
+              :type="field.type === 'number' || field.type === 'numeric' || field.type === 'integer' ? 'number' : 'text'"
+              :data-testid="`record-query-${field.code}`"
+            />
+          </div>
+        </div>
+        <div class="nx-row">
+          <button class="primary" type="submit" data-testid="record-query-submit">查询</button>
+          <button class="ghost" type="button" data-testid="record-query-reset" @click="resetQuery">清空</button>
+          <span class="nx-muted" data-testid="record-query-total">共 {{ recordTotal }} 条</span>
+        </div>
+      </form>
       <div class="nx-row" style="justify-content:flex-end;margin-bottom:12px;">
         <button class="primary" type="button" data-testid="record-create-toggle" @click="beginCreate">新增记录</button>
       </div>
@@ -145,6 +164,8 @@ const editingRecordId = ref("");
 const editingVersion = ref(null);
 const recordDraft = ref({});
 const notice = ref("");
+const recordFilters = ref({});
+const recordTotal = ref(0);
 
 const palette = [
   { type: "text", label: "文本 → TEXT" },
@@ -216,6 +237,35 @@ function cancelRecord() {
   recordDraft.value = {};
 }
 
+function queryValues() {
+  return Object.fromEntries(
+    Object.entries(recordFilters.value).filter(([, value]) => value !== "" && value != null),
+  );
+}
+
+async function loadRecords(query) {
+  const body = query === undefined
+    ? await p3.listRecords(route.params.id)
+    : await p3.listRecords(route.params.id, query);
+  records.value = body.items || [];
+  recordTotal.value = body.total ?? records.value.length;
+}
+
+async function queryRecords() {
+  error.value = "";
+  try {
+    await loadRecords(queryValues());
+    notice.value = "查询已刷新。";
+  } catch (err) {
+    error.value = `${err.code || ""} ${err.message}`;
+  }
+}
+
+async function resetQuery() {
+  recordFilters.value = Object.fromEntries(fields.value.map((field) => [field.code, ""]));
+  await queryRecords();
+}
+
 async function saveRecord() {
   error.value = "";
   try {
@@ -227,8 +277,7 @@ async function saveRecord() {
       notice.value = "记录已创建。";
     }
     cancelRecord();
-    const recBody = await p3.listRecords(route.params.id);
-    records.value = recBody.items || [];
+    await loadRecords(queryValues());
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
   }
@@ -242,8 +291,7 @@ async function removeRecord(row) {
   try {
     await p3.deleteRecord(route.params.id, row.id);
     notice.value = "记录已删除。";
-    const recBody = await p3.listRecords(route.params.id);
-    records.value = recBody.items || [];
+    await loadRecords(queryValues());
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
   }
@@ -255,8 +303,8 @@ async function reload() {
   const fieldBody = await p3.listFields(id);
   fields.value = fieldBody.items || [];
   system.value = fieldBody.system || [];
-  const recBody = await p3.listRecords(id);
-  records.value = recBody.items || [];
+  recordFilters.value = Object.fromEntries(fields.value.map((field) => [field.code, ""]));
+  await loadRecords();
   try {
     readDecision.value = await perm.check({ resource: "ledger", action: "read" });
   } catch (err) {
