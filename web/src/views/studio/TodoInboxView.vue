@@ -55,11 +55,16 @@
           <p class="nx-muted">{{ selected.process }} · {{ selected.biz_no }}</p>
           <p class="nx-muted">instance {{ selected.instance_id }}</p>
           <p v-if="selected.approval_status" class="nx-muted">approval_status {{ selected.approval_status }}</p>
+          <router-link
+            v-if="selected.ledger_id && selected.record_id"
+            :to="`/p3/ledgers/${selected.ledger_id}/records/${selected.record_id}`"
+            data-testid="todo-record-link"
+          >查看业务记录</router-link>
           <div class="nx-field"><label>意见（仅本页，API 无 comment 字段）</label><textarea v-model="comment" rows="3" /></div>
           <div class="nx-row">
-            <button v-if="box === 'inbox'" class="primary" type="button" data-testid="todo-approve" @click="act('approve')">同意</button>
-            <button v-if="box === 'inbox'" class="danger" type="button" data-testid="todo-reject" @click="act('reject')">驳回</button>
-            <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" data-testid="todo-withdraw" @click="act('withdraw')">撤回</button>
+            <button v-if="box === 'inbox'" class="primary" type="button" data-testid="todo-approve" :disabled="busy" @click="act('approve')">同意</button>
+            <button v-if="box === 'inbox'" class="danger" type="button" data-testid="todo-reject" :disabled="busy" @click="act('reject')">驳回</button>
+            <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" data-testid="todo-withdraw" :disabled="busy" @click="act('withdraw')">撤回</button>
           </div>
           <p v-if="session.lastTraceId" class="nx-muted" style="margin-top:8px;">
             最近 trace
@@ -94,6 +99,7 @@ const comment = ref("");
 const query = ref("");
 const error = ref("");
 const notice = ref("");
+const busy = ref(false);
 
 const filtered = computed(() => {
   const q = query.value.trim();
@@ -150,17 +156,23 @@ async function open(id) {
 }
 
 async function act(kind) {
+  if (busy.value || !selected.value) return;
+  busy.value = true;
   try {
     if (kind === "approve") selected.value = await p3.approveTodo(selected.value.id, comment.value);
     if (kind === "reject") selected.value = await p3.rejectTodo(selected.value.id, comment.value);
     if (kind === "withdraw") {
       selected.value = await p3.withdrawTodo(selected.value.id, comment.value, selected.value.instance_id);
     }
-    notice.value = `已 ${kind}。approval_status=${selected.value?.approval_status || "—"}`;
+    const labels = { approve: "同意", reject: "驳回", withdraw: "撤回" };
+    const actionLabel = kind === "withdraw" ? "已 withdraw（撤回）并办结" : `已${labels[kind]}并办结`;
+    notice.value = `${actionLabel}。approval_status=${selected.value?.approval_status || "—"}`;
     await reload();
     error.value = "";
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
+  } finally {
+    busy.value = false;
   }
 }
 </script>

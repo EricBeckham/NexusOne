@@ -54,6 +54,20 @@
       <button class="primary" type="submit" data-testid="form-fill-submit" :disabled="!runningFields.length">
         提交并启动审批
       </button>
+      <div v-if="pathResult" class="nx-row" style="margin-top:12px;" data-testid="approval-start-links">
+        <router-link
+          v-if="pathResult.todo?.id"
+          class="primary"
+          :to="`/p3/todos/${pathResult.todo.id}?box=inbox`"
+          data-testid="approval-open-todo"
+        >打开待办</router-link>
+        <router-link
+          v-if="pathResult.ledger_id && pathResult.record_id"
+          class="ghost"
+          :to="`/p3/ledgers/${pathResult.ledger_id}/records/${pathResult.record_id}`"
+          data-testid="approval-open-record"
+        >查看业务记录</router-link>
+      </div>
       <pre v-if="pathResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(pathResult, null, 2) }}</pre>
     </form>
 

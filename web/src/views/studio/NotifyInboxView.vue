@@ -33,10 +33,18 @@
           <td><NxStatus :label="row.status" :tone="row.status === 'DELIVERED' || row.status === 'READ' ? 'success' : 'warning'" /></td>
           <td>{{ row.created_at }}</td>
           <td>
+            <router-link
+              v-if="notificationTarget(row)"
+              class="ghost"
+              :to="notificationTarget(row).to"
+              :data-testid="`notify-open-${row.notification_id || row.id}`"
+              @click="markRead(row.notification_id || row.id, false)"
+            >{{ notificationTarget(row).label }}</router-link>
             <button
               v-if="row.status !== 'READ'"
               class="ghost"
               type="button"
+              :data-testid="`notify-read-${row.notification_id || row.id}`"
               @click="markRead(row.notification_id || row.id)"
             >已读</button>
           </td>
@@ -52,6 +60,7 @@ import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { notify } from "../../api/client";
 import { session } from "../../api/session";
+import { notificationTarget } from "./notification-target";
 
 const rows = ref([]);
 const error = ref("");
@@ -70,10 +79,10 @@ onMounted(async () => {
   }
 });
 
-async function markRead(id) {
+async function markRead(id, refresh = true) {
   try {
     await notify.read(id);
-    await reload();
+    if (refresh) await reload();
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
   }
