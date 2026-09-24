@@ -36,7 +36,7 @@
 | V2 | 壳层 Icon 与顶栏视觉 | `ui/v2-shell-icons-header` | V0 | 空闲者 | | 待领取 |
 | V3 | P1 星域首页四层骨架 | `ui/v3-p1-home` | V0、V1a、V1b | 空闲者 | Cursor | 已合并（PR #306） |
 | V4 | P1 租户目录 Filter + 列 + Drawer 壳 | `ui/v4-p1-tenant-list` | V0 | 空闲者 | | 待领取 |
-| V5 | P1 权益配额页视觉（进度条/卡片） | `ui/v5-p1-entitlement-visual` | V0、V1a | 空闲者 | | 待领取 |
+| V5 | P1 权益配额页视觉（进度条/卡片） | `ui/v5-p1-entitlement-visual` | V0、V1a | 空闲者 | Cursor | 已合并（PR #312） |
 | V6 | P2 星权首页四层骨架 | `ui/v6-p2-home` | V0、V1a、V1b | 空闲者 | Cursor | 已合并（PR #308） |
 | V7 | P2 用户目录 Drawer 摘要 | `ui/v7-p2-person-drawer` | V0 | 空闲者 | | 待领取 |
 | V8 | P2 权限 Matrix 视觉增强 | `ui/v8-p2-permission-matrix` | V0 | 空闲者 | | 待领取 |
@@ -362,3 +362,4 @@ V-SEED-* 与 UI 卡可全程并行；有种子时首页验收可对照效果图�
 - 2026-09-24：V9 已合并（PR #309）。P3 首页去掉工程黄条，会话信息降为次级，只保留应用数量。
 - 2026-09-24：V10 已合并（PR #310）。P4 首页四层骨架，目录摘要与近期上架进面板。
 - 2026-09-24：V12 已合并（PR #311）。P5 首页四层骨架，连接器与运行摘要进面板。
+- 2026-09-24：V5 已合并（PR #312）。P1 权益配额页卡片化，进度条只绑定已用和上限，无 SKU 编辑入口。
