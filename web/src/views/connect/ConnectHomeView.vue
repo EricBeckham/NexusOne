@@ -18,38 +18,92 @@
     </nav>
 
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
-    <section v-else class="stats" aria-label="星联运行摘要">
-      <NxStatCard label="可用连接器" :value="loading ? null : enabledConnectorCount" />
-      <NxStatCard label="运行记录" :value="loading ? null : runs.length" />
-      <NxStatCard label="最近运行结果" :value="loading ? null : latestRunStatus" :tone="latestRunTone" />
-    </section>
-
-    <section class="nx-card connector-list">
-      <h2>自用连接器</h2>
-      <NxEmpty
-        v-if="!loading && !connectors.length && !error"
-        title="暂无可用连接器"
-        description="连接器启用后会显示在这里。"
-        compact
-      />
-      <ul v-else-if="connectors.length">
-        <li v-for="item in connectors" :key="item.code">
-          <div>
-            <strong>{{ item.name }}</strong>
-            <span class="code">{{ item.code }} · {{ item.type }}</span>
-          </div>
-          <NxStatusTag :status="item.active ? 'ACTIVE' : 'DISABLED'" />
-        </li>
-      </ul>
-      <p v-else-if="loading" class="nx-muted">正在加载连接器…</p>
-    </section>
+    <DashboardLayers>
+      <template #kpi>
+        <section v-if="!error" class="stats" aria-label="星联运行摘要">
+          <NxStatCard label="可用连接器" :value="loading ? null : enabledConnectorCount" />
+          <NxStatCard label="运行记录" :value="loading ? null : runs.length" />
+          <NxStatCard label="最近运行结果" :value="loading ? null : latestRunStatus" :tone="latestRunTone" />
+        </section>
+      </template>
+      <template #charts>
+        <NxPanelCard title="调用趋势" description="没有趋势聚合接口。">
+          <NxChartPlaceholder title="调用趋势" />
+        </NxPanelCard>
+        <NxPanelCard title="连接器构成" description="没有构成聚合接口。">
+          <NxChartPlaceholder title="连接器构成" />
+        </NxPanelCard>
+        <NxPanelCard title="运行状态" description="没有状态分布接口。">
+          <NxChartPlaceholder title="运行状态" />
+        </NxPanelCard>
+      </template>
+      <template #lists>
+        <NxPanelCard title="自用连接器">
+          <NxEmpty
+            v-if="!loading && !connectors.length && !error"
+            title="暂无可用连接器"
+            description="连接器启用后会显示在这里。"
+            compact
+          />
+          <ul v-else-if="connectors.length">
+            <li v-for="item in connectors" :key="item.code">
+              <div>
+                <strong>{{ item.name }}</strong>
+                <span class="code">{{ item.code }} · {{ item.type }}</span>
+              </div>
+              <NxStatusTag :status="item.active ? 'ACTIVE' : 'DISABLED'" />
+            </li>
+          </ul>
+          <p v-else-if="loading" class="nx-muted">正在加载连接器…</p>
+        </NxPanelCard>
+        <NxPanelCard title="运行摘要">
+          <p v-if="loading" class="nx-muted">正在加载运行记录…</p>
+          <NxActivityTimeline v-else-if="!error" :items="runActivity" />
+        </NxPanelCard>
+        <NxPanelCard title="运行健康">
+          <NxHealthList :items="[]" />
+        </NxPanelCard>
+      </template>
+      <template #table>
+        <NxPanelCard title="连接器" description="只展示已返回的连接器。">
+          <template #actions>
+            <router-link to="/p5/connectors">查看全部</router-link>
+          </template>
+          <NxEmpty v-if="!loading && !connectors.length && !error" title="暂无" description="当前没有可展示的连接器。" compact />
+          <table v-else-if="connectors.length" class="nx-table">
+            <thead>
+              <tr><th>名称</th><th>编码</th><th>类型</th><th>状态</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in connectors.slice(0, 8)" :key="item.code">
+                <td>{{ item.name || "暂无" }}</td>
+                <td>{{ item.code || "暂无" }}</td>
+                <td>{{ item.type || "暂无" }}</td>
+                <td>{{ item.active ? "启用" : "停用" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </NxPanelCard>
+      </template>
+    </DashboardLayers>
   </main>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { NxEmpty, NxErrorState, NxPageHeader, NxStatCard, NxStatusTag } from "../../components";
+import {
+  NxActivityTimeline,
+  NxChartPlaceholder,
+  NxEmpty,
+  NxErrorState,
+  NxHealthList,
+  NxPageHeader,
+  NxPanelCard,
+  NxStatCard,
+  NxStatusTag,
+} from "../../components";
 import { p5 } from "../../api/client";
+import DashboardLayers from "../DashboardLayers.vue";
 
 const connectors = ref([]);
 const runs = ref([]);
@@ -64,6 +118,11 @@ const latestRunTone = computed(() => {
     ? "success"
     : ["FAILED", "ERROR"].includes(String(latestRun.value.status).toUpperCase()) ? "danger" : "warning";
 });
+const runActivity = computed(() => runs.value.slice(0, 8).map((run) => ({
+  id: run.id,
+  title: run.connectorCode || run.connector_code || "运行",
+  description: run.status || "",
+})));
 
 async function load() {
   loading.value = true;
@@ -86,11 +145,16 @@ onMounted(load);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--nx-space-4);
-  margin-bottom: var(--nx-space-4);
 }
-.connector-list h2 { margin: var(--nx-space-0); font-size: var(--nx-font-size-md); }
-ul { list-style: none; margin: var(--nx-space-3) var(--nx-space-0) var(--nx-space-0); padding: var(--nx-space-0); }
-li { display: flex; align-items: center; justify-content: space-between; gap: var(--nx-space-3); padding: var(--nx-space-3) var(--nx-space-0); border-top: 1px solid var(--nx-divider); }
+ul { list-style: none; margin: 0; padding: 0; }
+li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-3) 0;
+  border-top: 1px solid var(--nx-divider);
+}
 li > div { display: flex; flex-direction: column; gap: var(--nx-space-1); }
 .code { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 </style>
