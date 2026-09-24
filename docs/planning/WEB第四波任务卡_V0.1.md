@@ -161,6 +161,7 @@
 
 ### M4 — test-connection SSRF 加固（安全）
 
+- **状态**：已合并（PR #340），负责人 Cursor
 - **类型**：安全　**分支**：`sec/m4-idp-test-connection-ssrf`　**前置**：无
 - **目标**：修复 `OidcClientCredentialsTester.safeHttpsPublicOrigin` 的 DNS TOCTOU：解析后**钉死**用于连接的地址，或 connect 后复核 peer IP 仍为公共地址；私网/回环/链路本地/组播/CGNAT 拒绝；HTTPS-only 保持。
 - **区域**：`nexus-p2-iam`…`OidcClientCredentialsTester`（及测试）；可补伪造解析/自定义 Socket 的单测。
@@ -224,6 +225,7 @@
 
 ### M12 — P1 租户改挂写 API
 
+- **状态**：已合并（PR #342），负责人 Cursor
 - **类型**：后端　**分支**：`feat/m12-tenant-reparent-api`　**前置**：无（N1–N3 已合）
 - **目标**：`PATCH/PUT` parent（含置空）；**环检测**（不能挂到自己的后代）；平台职责；写审计；跨租户否定。
 - **不做**：拖拽排序大件；跨租户业务数据下钻。
@@ -374,3 +376,5 @@ Flyway 串行合入：M1 → M5 → M16（开发可并行，合入排队）
 ## 七、修订记录
 
 - 2026-09-24：NexusOne 草稿 V0.1。对照 `main@6056705`；纳入 N10 审阅跟进为优先组 0；N 波后续业务薄切；明确排除 H5。
+- 2026-09-24：M4 已合并（PR #340）。测试连接在连上后再核对对端地址，内网地址会被拒绝。
+- 2026-09-24：M12 已合并（PR #342）。平台管理员可改挂或清空上级；成环 409；租户上下文不能改挂。
