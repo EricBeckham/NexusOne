@@ -95,12 +95,12 @@ public final class IdpConfigurationService {
         if (command.issuer() != null && !command.issuer().isBlank()) {
             try {
                 URI issuer = URI.create(command.issuer().trim());
-                if (issuer.getHost() == null || !("https".equalsIgnoreCase(issuer.getScheme())
-                        || "http".equalsIgnoreCase(issuer.getScheme()))) {
-                    throw new IllegalArgumentException("issuer must be an absolute HTTP(S) URL");
+                if (issuer.getHost() == null || !"https".equalsIgnoreCase(issuer.getScheme())
+                        || issuer.getUserInfo() != null || issuer.getQuery() != null || issuer.getFragment() != null) {
+                    throw new IllegalArgumentException("issuer must be an absolute HTTPS URL without userinfo/query/fragment");
                 }
             } catch (IllegalArgumentException ex) {
-                throw DomainException.badRequest("P2.IAM.IDP_CONFIGURATION", "issuer must be an absolute HTTP(S) URL");
+                throw DomainException.badRequest("P2.IAM.IDP_CONFIGURATION", "issuer must be an absolute HTTPS URL without userinfo/query/fragment");
             }
         }
         String status = normalizeStatus(command.status());

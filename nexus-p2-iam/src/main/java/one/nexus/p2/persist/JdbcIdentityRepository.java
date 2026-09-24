@@ -371,6 +371,17 @@ public final class JdbcIdentityRepository implements IdentityRepository {
                 """, ts(Instant.now()), ts(Instant.now()), tenantId, id) == 1;
     }
 
+    @Override
+    public boolean recordIdpConnectionTest(UUID tenantId, UUID id, boolean succeeded, Instant testedAt) {
+        return jdbc.update("""
+                UPDATE iam.iam_idp_configuration
+                SET last_sync_at = ?, last_sync_ok = ?,
+                    sync_fail_count = CASE WHEN ? THEN 0 ELSE sync_fail_count + 1 END,
+                    updated_at = ?, version = version + 1
+                WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL
+                """, ts(testedAt), succeeded, succeeded, ts(testedAt), tenantId, id) == 1;
+    }
+
     private <T> Optional<T> one(String sql, RowMapper<T> mapper, Object... args) {
         List<T> rows = jdbc.query(sql, mapper, args);
         return rows.stream().findFirst();

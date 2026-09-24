@@ -14,6 +14,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -59,6 +60,14 @@ class IdentityApiTest {
         String token = StubIdentityProvider.token("idp-api-user", "idp-api-user@example.com", "idp-api-user", "IdP API User");
         mvc.perform(get("/api/v1/identity/providers")
                         .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void idpSecretOperationsRequireAuthentication() throws Exception {
+        mvc.perform(put("/api/v1/identity/providers/11111111-1111-4111-8111-111111111111/secret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clientSecret\":\"must-not-be-stored\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
