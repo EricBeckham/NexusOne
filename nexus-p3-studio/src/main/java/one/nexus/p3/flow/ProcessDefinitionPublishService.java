@@ -110,6 +110,16 @@ public class ProcessDefinitionPublishService {
         return List.copyOf(published);
     }
 
+    /** Read-only existence check for platform product binding; caller must enforce platform duty. */
+    @Transactional(readOnly = true)
+    public boolean isPublishedVersionAvailable(String key, int version) {
+        return !repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(key)
+                .processDefinitionVersion(version)
+                .list()
+                .isEmpty();
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> definition(String key) {
         PublishedDefinition published = get(key);
