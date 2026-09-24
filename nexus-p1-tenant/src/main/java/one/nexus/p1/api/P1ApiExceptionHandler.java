@@ -27,7 +27,7 @@ public class P1ApiExceptionHandler {
     public ResponseEntity<ErrorBody> domain(DomainException ex, HttpServletRequest request) {
         HttpStatus status = switch (ex.errorCode()) {
             case TENANT_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case TENANT_CODE_CONFLICT -> HttpStatus.CONFLICT;
+            case TENANT_CODE_CONFLICT, TENANT_PARENT_CYCLE -> HttpStatus.CONFLICT;
             case CONTEXT_PLATFORM_REQUIRED, CONTEXT_TENANT_MISMATCH, DUTY_DENIED -> HttpStatus.FORBIDDEN;
             case QUOTA_EXCEEDED -> HttpStatus.UNPROCESSABLE_ENTITY;
             default -> HttpStatus.BAD_REQUEST;
