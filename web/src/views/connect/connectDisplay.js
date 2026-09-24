@@ -146,6 +146,21 @@ const DELIVERY_LABELS = {
   FAILED: "失败",
 };
 
+export function credentialFields(row) {
+  if (!row || typeof row !== "object" || Array.isArray(row)) {
+    return null;
+  }
+  return {
+    id: pick(row, ["id"]),
+    name: pick(row, ["name"]),
+    provider: pick(row, ["provider"]),
+    status: pick(row, ["status"]),
+    lastRotatedAt: pick(row, ["last_rotated_at", "lastRotatedAt"]),
+    expiresAt: pick(row, ["expires_at", "expiresAt"]),
+    secretName: pick(row, ["secret_name", "secretName"]),
+  };
+}
+
 export function deliveryLabel(status) {
   if (status == null || status === "") {
     return "";

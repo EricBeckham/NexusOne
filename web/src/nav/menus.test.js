@@ -82,16 +82,14 @@ describe("product shell menus", () => {
     const p5Links = collectLinks(p5Items);
 
     expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/packages", "/p4/skus", "/p4/subscriptions", "/p4/installations"]);
-    expect(p5Links).toEqual(["/p5", "/p5/connect", "/p5/apis", "/p5/clients", "/p5/webhooks", "/p5/connectors", "/p5/call-logs"]);
+    expect(p5Links).toEqual(["/p5", "/p5/connect", "/p5/apis", "/p5/clients", "/p5/webhooks", "/p5/connectors", "/p5/credentials", "/p5/call-logs"]);
     expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
     expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
     expect(p4Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
       "商业权益（后续）",
       "运营分析（后续）",
     ]);
-    expect(p5Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
-      "Credential（后续）",
-    ]);
+    expect(p5Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([]);
     expect(p4Items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
     expect(p5Items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
   });

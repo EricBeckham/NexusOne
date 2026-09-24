@@ -5,6 +5,6 @@ export const p5Nav = [
   { id: "api-clients", label: "API Client", to: "/p5/clients" },
   { id: "webhooks", label: "Webhook", to: "/p5/webhooks" },
   { id: "connectors", label: "Connector", to: "/p5/connectors" },
-  { id: "credentials", label: "Credential（后续）", later: true },
+  { id: "credentials", label: "Credential", to: "/p5/credentials" },
   { id: "call-logs", label: "调用日志", to: "/p5/call-logs" },
 ];
