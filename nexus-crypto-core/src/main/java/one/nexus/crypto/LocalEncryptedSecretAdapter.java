@@ -10,9 +10,9 @@ import one.nexus.common.time.Utc;
 
 /**
  * LocalEncryptedSecretAdapter: envelope-encrypts values with {@link CryptoPort}
- * and keeps ciphertext in process memory. S0 product default pairs this overlay
- * with {@link EnvSecretAdapter} via {@link LocalThenEnvSecretPort}. The product
- * does not require OpenBao/KMS. It is not a durable secret store.
+ * and keeps ciphertext in process memory. Use for temporary/test scenarios;
+ * product wiring uses {@link JdbcEncryptedSecretAdapter}. This is not a durable
+ * secret store.
  */
 public final class LocalEncryptedSecretAdapter implements SecretPort {
     private record Stored(SecretRef ref, byte[] wire) {}

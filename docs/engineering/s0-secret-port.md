@@ -2,7 +2,7 @@
 
 G18 已关闭。本包是 S0 凭据访问，**不重做** P0 / M0-11 CryptoPort 或审计哈希链。
 
-业务代码只通过 `SecretPort` 取凭据。S0 实现是进程内 overlay + 环境变量。**不引入 OpenBao，不引入云 KMS / 国密 KMS / 密码机。** 这些适配器仍是后置可选项，启动不得依赖它们。
+业务代码只通过 `SecretPort` 取凭据。产品默认先查 PostgreSQL 中由 `CryptoPort` 加密的密文，再回退到环境变量。**不引入 OpenBao，不引入云 KMS / 国密 KMS / 密码机。** 这些适配器仍是后置可选项，启动不得依赖它们。
 
 ## 运行组合
 
@@ -19,11 +19,14 @@ G18 已关闭。本包是 S0 凭据访问，**不重做** P0 / M0-11 CryptoPort 
 
 | 实现 | 角色 |
 |---|---|
-| `LocalEncryptedSecretAdapter` | 进程内 envelope（沿用 M0-11，走 CryptoPort） |
+| `JdbcEncryptedSecretAdapter` | 持久化 `CryptoPort` envelope；表中仅有密文、key id 与版本元数据 |
+| `LocalEncryptedSecretAdapter` | 进程内 envelope（测试/临时场景，走 CryptoPort） |
 | `EnvSecretAdapter` | 只读，从环境变量取值 |
-| `LocalThenEnvSecretPort` | **产品默认**：先本地 overlay，再 env |
+| `LocalThenEnvSecretPort` | **产品默认**：先 JDBC 密文存储，再 env |
 
-`put` / `delete` 只写本地 overlay。环境适配器对写入返回 `CORE.SECRET.0003`。
+`put` 加密后 upsert `platform.secret_ciphertext`，版本原子递增；轮转覆盖当前 envelope，旧密文不留版本历史。`delete` 删除 JDBC 中对应的本地密文，但只删本地项，不删除同名环境变量回退值。环境适配器对写入返回 `CORE.SECRET.0003`。
+
+跨进程重启读取需部署使用稳定且受保护的 `NEXUS_CRYPTO_MASTER_KEY`（`nexus.crypto.key-source=env`）；master key 不得写入数据库。临时/ephemeral CryptoPort key 只适用于本机开发或测试，重启后不能解密此前密文。数据库持久化的是应用层密文，不代表 OpenBao/KMS 或 HSM。
 
 逻辑名见 `SecretNames`：
 
@@ -38,7 +41,7 @@ G18 已关闭。本包是 S0 凭据访问，**不重做** P0 / M0-11 CryptoPort 
 
 也可用原始环境变量名作为别名。空白值视为不存在。
 
-明文不得进入 Git、普通 Spring 配置或业务表。`GET /api/v1/meta/runtime` 回 `secret_backend=local+env`、`secret_openbao=false`、`secret_kms=false`，**不**回密钥。
+明文不得进入 Git、普通 Spring 配置或业务表。`GET /api/v1/meta/runtime` 回 `secret_backend=jdbc+env`、`secret_openbao=false`、`secret_kms=false`，**不**回密钥。
 
 ## 业务接线
 

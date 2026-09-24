@@ -7,10 +7,11 @@ import java.util.Optional;
  * Unified credential access (CORE-SEC-001 / ARCH-007). Business code retrieves
  * credentials only through this port.
  *
- * <p>S0 implementations are in-process envelope storage
- * ({@link LocalEncryptedSecretAdapter}) and environment variables
- * ({@link EnvSecretAdapter}). The product default is
- * {@link LocalThenEnvSecretPort} (local overlay, then env). OpenBao / cloud
+ * <p>Implementations include durable JDBC envelope storage
+ * ({@link JdbcEncryptedSecretAdapter}), in-process envelope storage for
+ * temporary/test use ({@link LocalEncryptedSecretAdapter}), and environment
+ * variables ({@link EnvSecretAdapter}). The product default is
+ * {@link LocalThenEnvSecretPort} (JDBC ciphertext, then env). OpenBao / cloud
  * KMS / GM KMS adapters are out of S0 scope and must not be required to start
  * the app.
  *

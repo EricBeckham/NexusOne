@@ -32,6 +32,6 @@ mvn -pl nexus-bootstrap test
 | `nexus-file-core` | 10 | 0 | 0 |
 | `nexus-bootstrap` | 12 | 0 | 5 |
 
-Crypto suite includes `EnvSecretAdapterTest` **3/3** and `SecretPortTest` **3/3** (local envelope + local-over-env overlay). File suite includes `FileSecretPortWiringTest` **4/4** (S3 credentials from SecretPort; missing port rejected; `fromSecretPort` does not invent keys). Bootstrap `NexusOneProductBootTest` **2/2** (product `SecretPort` is `LocalThenEnvSecretPort`, `backend=local+env`, put/get overlay). `NexusOnePostgresTest` **4 skipped** (no live `127.0.0.1:5432`).
+M2 supersedes the original volatile product wiring described in the historical run above. Product bootstrap now wires `LocalThenEnvSecretPort` over `JdbcEncryptedSecretAdapter` and `EnvSecretAdapter` (`backend=jdbc+env`); PostgreSQL persists only CryptoPort envelopes. The embedded-PostgreSQL `NexusOneProductBootTest` also reconstructs the adapter and a CryptoPort from the same configured master key, reads the persisted value, and verifies rotation replaces its ciphertext and increments the secret version. Cross-process recovery requires stable injected master-key configuration; the ephemeral dev default is not restart-safe.
 
 `GET /api/v1/meta/runtime` fields `secret_backend` / `secret_openbao=false` / `secret_kms=false` are covered by `NexusOnePostgresTest` and were not re-hit on this VM without a listener.

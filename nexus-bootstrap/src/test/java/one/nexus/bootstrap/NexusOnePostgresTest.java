@@ -64,7 +64,7 @@ class NexusOnePostgresTest {
                 Integer.class);
         assertEquals(3, metaTables);
         assertTrue(versions.contains("500"), "M0-09 V500 execution channel must be applied, got " + versions);
-        assertTrue(versions.contains("4"), "M1 V004 durable secret ciphertext table must be applied, got " + versions);
+        assertTrue(versions.contains("004"), "M1 V004 durable secret ciphertext table must be applied, got " + versions);
         assertTrue(versions.contains("501"), "M0-11 V501 audit hash chain must be applied, got " + versions);
         assertTrue(versions.contains("502"), "G4 V502 audit export/archive must be applied, got " + versions);
         assertTrue(versions.contains("503"), "G4 V503 archive expiry grant must be applied, got " + versions);
@@ -146,7 +146,7 @@ class NexusOnePostgresTest {
         assertTrue(runtime.body().contains("\"trace_id\":\"" + trace + "\""));
         assertTrue(runtime.body().contains("\"spring_boot\":\"4.1.1\""));
         assertTrue(runtime.body().contains("\"crypto_suite\":\"INTERNATIONAL\""));
-        assertTrue(runtime.body().contains("\"secret_backend\":\"local+env\""));
+        assertTrue(runtime.body().contains("\"secret_backend\":\"jdbc+env\""));
         assertTrue(runtime.body().contains("\"secret_openbao\":false"));
         assertTrue(runtime.body().contains("\"secret_kms\":false"));
     }

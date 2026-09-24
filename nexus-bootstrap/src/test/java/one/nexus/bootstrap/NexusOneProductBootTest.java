@@ -1,19 +1,27 @@
 package one.nexus.bootstrap;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import one.nexus.crypto.CryptoPort;
+import one.nexus.crypto.CryptoSuite;
+import one.nexus.crypto.JcaCryptoPort;
+import one.nexus.crypto.JdbcEncryptedSecretAdapter;
 import one.nexus.crypto.LocalThenEnvSecretPort;
 import one.nexus.crypto.SecretPort;
 import one.nexus.event.OutboxPort;
@@ -117,6 +125,7 @@ class NexusOneProductBootTest {
         List<String> versions = jdbc.queryForList(
                 "select version from platform.flyway_schema_history where success and version is not null",
                 String.class);
+        assertTrue(versions.contains("004"), "M1 V004 durable secret storage missing, got " + versions);
         assertTrue(versions.contains("531"), "G18 V531 missing, got " + versions);
         assertTrue(versions.contains("550"), "Flyway head V550 missing, got " + versions);
         assertTrue(versions.contains("600"), "P4 market V600 missing, got " + versions);
@@ -136,13 +145,51 @@ class NexusOneProductBootTest {
     }
 
     @Test
-    void productBootWiresLocalThenEnvSecretPort() {
+    void productBootWiresDurableThenEnvironmentSecretPort() {
         assertTrue(secretPort instanceof LocalThenEnvSecretPort, () -> "expected LocalThenEnvSecretPort, got "
                 + (secretPort == null ? "null" : secretPort.getClass().getName()));
-        assertEquals("local+env", secretPort.backend());
+        assertEquals("jdbc+env", secretPort.backend());
+        assertTrue(((LocalThenEnvSecretPort) secretPort).local() instanceof JdbcEncryptedSecretAdapter);
         secretPort.put("s0.probe", "not-for-git".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         assertEquals("not-for-git", secretPort.getUtf8("s0.probe"));
         secretPort.delete("s0.probe");
+    }
+
+    @Test
+    void durableSecretSurvivesAdapterAndCryptoPortReconstructionAndRotationOverwritesCiphertext() {
+        byte[] masterKey = new byte[32];
+        Arrays.fill(masterKey, (byte) 0x11);
+        String name = "m2.probe." + UUID.randomUUID();
+        byte[] original = "m2-original-secret-value".getBytes(StandardCharsets.UTF_8);
+        byte[] rotated = "m2-rotated-secret-value".getBytes(StandardCharsets.UTF_8);
+        try {
+            CryptoPort firstCrypto = JcaCryptoPort.fromMasterKey(CryptoSuite.INTERNATIONAL, "m2-test", 1, masterKey);
+            JdbcEncryptedSecretAdapter first = new JdbcEncryptedSecretAdapter(jdbc.getDataSource(), firstCrypto);
+            var firstRef = first.put(name, original);
+            byte[] oldCiphertext = jdbc.queryForObject(
+                    "select ciphertext from platform.secret_ciphertext where secret_name=?", byte[].class, name);
+            assertFalse(Arrays.equals(original, oldCiphertext), "database stores an encrypted envelope, not plaintext");
+            assertFalse(new String(oldCiphertext, StandardCharsets.UTF_8).contains(new String(original, StandardCharsets.UTF_8)));
+            assertEquals(1, firstRef.secretVersion());
+            assertFalse(firstRef.toString().contains(new String(original, StandardCharsets.UTF_8)));
+
+            CryptoPort restartedCrypto = JcaCryptoPort.fromMasterKey(CryptoSuite.INTERNATIONAL, "m2-test", 1, masterKey);
+            JdbcEncryptedSecretAdapter restarted = new JdbcEncryptedSecretAdapter(jdbc.getDataSource(), restartedCrypto);
+            assertArrayEquals(original, restarted.get(name));
+            assertEquals(1, restarted.find(name).orElseThrow().secretVersion());
+
+            var rotatedRef = restarted.put(name, rotated);
+            byte[] currentCiphertext = jdbc.queryForObject(
+                    "select ciphertext from platform.secret_ciphertext where secret_name=?", byte[].class, name);
+            assertEquals(2, rotatedRef.secretVersion());
+            assertFalse(Arrays.equals(oldCiphertext, currentCiphertext), "rotation replaces the previous envelope");
+            assertArrayEquals(rotated, first.get(name));
+            assertFalse(Arrays.equals(original, first.get(name)), "the prior value is no longer readable by name");
+        } finally {
+            new JdbcEncryptedSecretAdapter(jdbc.getDataSource(),
+                    JcaCryptoPort.fromMasterKey(CryptoSuite.INTERNATIONAL, "m2-test", 1, masterKey)).delete(name);
+            Arrays.fill(masterKey, (byte) 0);
+        }
     }
 
     @Test
