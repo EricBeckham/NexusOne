@@ -12,9 +12,9 @@
 
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
     <section v-else class="stats" aria-label="星联运行摘要">
-      <NxStatCard label="可用连接器" :value="enabledConnectorCount" />
-      <NxStatCard label="运行记录" :value="runs.length" />
-      <NxStatCard label="最近运行结果" :value="latestRunStatus" :tone="latestRunTone" />
+      <NxStatCard label="可用连接器" :value="loading ? null : enabledConnectorCount" />
+      <NxStatCard label="运行记录" :value="loading ? null : runs.length" />
+      <NxStatCard label="最近运行结果" :value="loading ? null : latestRunStatus" :tone="latestRunTone" />
     </section>
 
     <section class="nx-card connector-list">
@@ -47,7 +47,7 @@ import { p5 } from "../../api/client";
 const connectors = ref([]);
 const runs = ref([]);
 const error = ref("");
-const loading = ref(false);
+const loading = ref(true);
 const enabledConnectorCount = computed(() => connectors.value.filter((item) => item.active).length);
 const latestRun = computed(() => runs.value[0] || null);
 const latestRunStatus = computed(() => latestRun.value?.status || null);

@@ -5,9 +5,10 @@ import { describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import App from "../App.vue";
+import { NAV_BY_PRODUCT, collectLinks } from "../nav";
 import AppShell from "./AppShell.vue";
 
-const routes = [
+const baseRoutes = [
   { path: "/login", component: { template: "<p>login-page</p>" }, meta: { public: true, title: "登录" } },
   { path: "/callback", component: { template: "<p>callback-page</p>" }, meta: { public: true, title: "授权码回跳" } },
   { path: "/", component: { template: "<p>picker-page</p>" }, meta: { title: "产品选择" } },
@@ -15,6 +16,13 @@ const routes = [
   { path: "/p4", component: { template: "<p>p4-page</p>" }, meta: { title: "星市", product: "p4" } },
   { path: "/p3/ledgers/:id", component: { template: "<p>ledger-page</p>" }, meta: { title: "台账详情", product: "p3" } },
   { path: "/p3/notifications", component: { template: "<p>notify-page</p>" }, meta: { title: "站内通知", product: "p3" } },
+];
+const menuPaths = [...new Set(Object.values(NAV_BY_PRODUCT).flatMap((items) => collectLinks(items)))];
+const routes = [
+  ...baseRoutes,
+  ...menuPaths
+    .filter((path) => !baseRoutes.some((route) => route.path === path))
+    .map((path) => ({ path, component: { template: "<p>menu-page</p>" } })),
 ];
 
 async function boot(path) {
@@ -25,6 +33,13 @@ async function boot(path) {
 }
 
 describe("W0 product shell", () => {
+  it("registers a route for every sidebar link", async () => {
+    const router = await boot("/");
+    for (const path of menuPaths) {
+      expect(router.resolve(path).matched, path).not.toHaveLength(0);
+    }
+  });
+
   it("switches product color, sidebar, and home", async () => {
     const router = await boot("/p1");
     const wrapper = mount(AppShell, { global: { plugins: [router] } });
