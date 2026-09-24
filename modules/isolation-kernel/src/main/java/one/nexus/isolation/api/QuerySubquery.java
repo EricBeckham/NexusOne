@@ -50,7 +50,7 @@ public final class QuerySubquery {
     }
 
     public static QuerySubquery in(String outerColumn, String table, String projection, Map<String, Object> filters) {
-        return in(outerColumn, table, table, projection, filters);
+        return in(outerColumn, table, defaultAlias(table), projection, filters);
     }
 
     public static QuerySubquery in(
@@ -65,6 +65,11 @@ public final class QuerySubquery {
 
     public static QuerySubquery exists(String table, String alias, List<JoinOn> correlated, Map<String, Object> filters) {
         return new QuerySubquery(Kind.EXISTS, "", table, alias, "id", correlated, filters, List.of());
+    }
+
+    private static String defaultAlias(String table) {
+        int dot = table.lastIndexOf('.');
+        return dot < 0 ? table : table.substring(dot + 1);
     }
 
     public Kind kind() {

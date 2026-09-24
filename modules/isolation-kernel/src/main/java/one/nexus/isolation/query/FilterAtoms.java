@@ -3,6 +3,10 @@ package one.nexus.isolation.query;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.UUID;
+import one.nexus.isolation.api.QueryRange;
 
 /**
  * Filter value shapes on {@code QueryAst.filters()} / join / subquery filters.
@@ -33,7 +37,12 @@ final class FilterAtoms {
         return List.copyOf(items);
     }
 
-    static void append(StringBuilder sql, List<Object> args, Object value) {
+    static void append(StringBuilder sql, List<Object> args, String column, Object value) {
+        if (value instanceof QueryRange range) {
+            sql.append(' ').append(range.comparison().sql()).append(" ?");
+            args.add(bind(column, range.value()));
+            return;
+        }
         if (value == null) {
             sql.append(" IS NULL");
             return;
@@ -49,12 +58,26 @@ final class FilterAtoms {
                     sql.append(", ");
                 }
                 sql.append('?');
-                args.add(items.get(i));
+                args.add(bind(column, items.get(i)));
             }
             sql.append(')');
             return;
         }
         sql.append(" = ?");
-        args.add(value);
+        args.add(bind(column, value));
+    }
+
+    static Object bind(String column, Object value) {
+        if (value instanceof Instant instant) {
+            return Timestamp.from(instant);
+        }
+        if (!"tenant_id".equals(column) || !(value instanceof String tenantId)) {
+            return value;
+        }
+        try {
+            return UUID.fromString(tenantId);
+        } catch (IllegalArgumentException ignored) {
+            return value;
+        }
     }
 }

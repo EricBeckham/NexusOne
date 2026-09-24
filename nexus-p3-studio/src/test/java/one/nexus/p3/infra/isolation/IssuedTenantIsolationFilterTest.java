@@ -55,6 +55,8 @@ class IssuedTenantIsolationFilterTest {
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/files/abc/signed-url"));
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/ledgers"));
         assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/forms"));
+        assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p4/installations"));
+        assertTrue(IssuedTenantIsolationFilter.isHandled("/api/v1/p5/clients"));
         assertFalse(IssuedTenantIsolationFilter.isHandled("/api/v1/p3/todos"));
         assertFalse(IssuedTenantIsolationFilter.isHandled("/api/v1/persons"));
     }
@@ -109,6 +111,33 @@ class IssuedTenantIsolationFilterTest {
             chain.doFilter(req, res);
         });
         assertEquals(null, AccessContextHolder.currentOrNull());
+    }
+
+    @Test
+    void issuedContextBindsP4AndP5TenantReadRoutes() throws Exception {
+        UUID tenantId = UUID.fromString("11111111-1111-4111-8111-111111111111");
+        UUID contextId = UUID.fromString("11111111-1111-4111-8111-111111111122");
+        UUID personId = UUID.fromString("11111111-1111-4111-8111-111111111133");
+        UUID accountId = UUID.fromString("11111111-1111-4111-8111-111111111144");
+        IdentityModule identity = mockIdentity();
+        SessionService sessions = identity.sessions();
+        AuthenticatedIdentity auth = new AuthenticatedIdentity(
+                null, new IdentityProviderPort.IdentityClaims("sub-a", "a@example.com", "a", "A", null));
+        when(sessions.authenticate("stub.token")).thenReturn(auth);
+        when(sessions.loadContext(eq(contextId), eq(auth))).thenReturn(new TenantContext(
+                contextId, tenantId, accountId, personId, "sub-a", Instant.now(), Instant.now().plusSeconds(3600)));
+
+        IssuedTenantIsolationFilter filter = filter(identity, tenants(null), ledgers(null));
+        for (String path : List.of("/api/v1/p4/installations", "/api/v1/p5/clients")) {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
+            request.addHeader("Authorization", "Bearer stub.token");
+            request.addHeader("X-Nexus-Context-Id", contextId.toString());
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            filter.doFilter(request, response, (req, res) -> assertEquals(
+                    tenantId.toString(), AccessContextHolder.current().boundTenantId().orElseThrow()));
+            assertEquals(200, response.getStatus());
+            assertEquals(null, AccessContextHolder.currentOrNull());
+        }
     }
 
     @Test

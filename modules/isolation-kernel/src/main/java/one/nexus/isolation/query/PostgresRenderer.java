@@ -23,14 +23,14 @@ public final class PostgresRenderer {
         StringBuilder sql = new StringBuilder();
         if (query.kind() == QueryKind.SELECT) {
             sql.append("SELECT ");
-            String primaryAlias = query.joins().isEmpty() ? null : table.name();
+            String primaryAlias = query.joins().isEmpty() ? null : Identifiers.tableAlias(table.name());
             if (query.joins().isEmpty()) {
                 appendNames(sql, query.projection());
-                sql.append(" FROM ").append(Identifiers.quote(table.name()));
+                sql.append(" FROM ").append(Identifiers.quoteTable(table.name()));
             } else {
-                appendQualifiedProjection(sql, query.projection(), table.name());
-                sql.append(" FROM ").append(Identifiers.quote(table.name()))
-                        .append(' ').append(Identifiers.quote(table.name()));
+                appendQualifiedProjection(sql, query.projection(), primaryAlias);
+                sql.append(" FROM ").append(Identifiers.quoteTable(table.name()))
+                        .append(' ').append(Identifiers.quote(primaryAlias));
                 for (QueryJoin join : query.joins()) {
                     appendJoin(sql, join, args);
                 }
@@ -42,25 +42,25 @@ public final class PostgresRenderer {
             if (!query.batchRows().isEmpty()) {
                 appendBatchInsert(sql, table, query.batchRows(), args);
             } else {
-                sql.append("INSERT INTO ").append(Identifiers.quote(table.name())).append(" (");
+                sql.append("INSERT INTO ").append(Identifiers.quoteTable(table.name())).append(" (");
                 appendNames(sql, query.values().keySet());
                 sql.append(") VALUES (");
-                placeholders(sql, query.values().values(), args);
+                placeholders(sql, query.values(), args);
                 sql.append(')');
             }
         } else if (query.kind() == QueryKind.UPDATE) {
-            sql.append("UPDATE ").append(Identifiers.quote(table.name())).append(" SET ");
+            sql.append("UPDATE ").append(Identifiers.quoteTable(table.name())).append(" SET ");
             int i = 0;
             for (Map.Entry<String, Object> entry : query.values().entrySet()) {
                 if (i++ > 0) {
                     sql.append(", ");
                 }
                 sql.append(Identifiers.quote(entry.getKey())).append(" = ?");
-                args.add(entry.getValue());
+                args.add(FilterAtoms.bind(entry.getKey(), entry.getValue()));
             }
             appendPredicates(sql, null, query.filters(), query.disjunctions(), query.subqueries(), query.joins(), args);
         } else {
-            sql.append("DELETE FROM ").append(Identifiers.quote(table.name()));
+            sql.append("DELETE FROM ").append(Identifiers.quoteTable(table.name()));
             appendPredicates(sql, null, query.filters(), query.disjunctions(), query.subqueries(), query.joins(), args);
         }
         return new RenderedSql(sql.toString(), args, plan);
@@ -73,7 +73,7 @@ public final class PostgresRenderer {
             List<Object> args
     ) {
         Map<String, Object> first = rows.getFirst();
-        sql.append("INSERT INTO ").append(Identifiers.quote(table.name())).append(" (");
+        sql.append("INSERT INTO ").append(Identifiers.quoteTable(table.name())).append(" (");
         appendNames(sql, first.keySet());
         sql.append(") VALUES ");
         for (int r = 0; r < rows.size(); r++) {
@@ -81,14 +81,14 @@ public final class PostgresRenderer {
                 sql.append(", ");
             }
             sql.append('(');
-            placeholders(sql, rows.get(r).values(), args);
+            placeholders(sql, rows.get(r), args);
             sql.append(')');
         }
     }
 
     private static void appendJoin(StringBuilder sql, QueryJoin join, List<Object> args) {
         sql.append(' ').append(join.kind().sql()).append(' ')
-                .append(Identifiers.quote(join.table()))
+                .append(Identifiers.quoteTable(join.table()))
                 .append(' ').append(Identifiers.quote(join.alias()));
         if (!join.kind().requiresOn()) {
             return;
@@ -105,7 +105,7 @@ public final class PostgresRenderer {
         }
         for (Map.Entry<String, Object> entry : join.filters().entrySet()) {
             sql.append(" AND ").append(Identifiers.quote(join.alias())).append('.').append(Identifiers.quote(entry.getKey()));
-            FilterAtoms.append(sql, args, entry.getValue());
+            FilterAtoms.append(sql, args, entry.getKey(), entry.getValue());
         }
     }
 
@@ -145,7 +145,7 @@ public final class PostgresRenderer {
                 sql.append(Identifiers.quote(alias)).append('.');
             }
             sql.append(Identifiers.quote(entry.getKey()));
-            FilterAtoms.append(sql, args, entry.getValue());
+            FilterAtoms.append(sql, args, entry.getKey(), entry.getValue());
         }
         for (QueryOr or : disjunctions) {
             if (i++ > 0) {
@@ -159,7 +159,7 @@ public final class PostgresRenderer {
                     sql.append(" AND ");
                 }
                 sql.append(Identifiers.quote(join.alias())).append('.').append(Identifiers.quote(entry.getKey()));
-                FilterAtoms.append(sql, args, entry.getValue());
+                FilterAtoms.append(sql, args, entry.getKey(), entry.getValue());
             }
         }
         for (QuerySubquery subquery : subqueries) {
@@ -190,7 +190,7 @@ public final class PostgresRenderer {
                     sql.append(Identifiers.quote(alias)).append('.');
                 }
                 sql.append(Identifiers.quote(entry.getKey()));
-                FilterAtoms.append(sql, args, entry.getValue());
+                FilterAtoms.append(sql, args, entry.getKey(), entry.getValue());
             }
             if (wrap) {
                 sql.append(')');
@@ -202,8 +202,8 @@ public final class PostgresRenderer {
     private static void appendSubquery(StringBuilder sql, String outerAlias, QuerySubquery subquery, List<Object> args) {
         if (subquery.kind() == QuerySubquery.Kind.IN) {
             appendColumn(sql, outerAlias, subquery.outerColumn());
-            sql.append(" IN (SELECT ").append(Identifiers.quote(subquery.projection()))
-                    .append(" FROM ").append(Identifiers.quote(subquery.table()));
+        sql.append(" IN (SELECT ").append(Identifiers.quote(subquery.projection()))
+                    .append(" FROM ").append(Identifiers.quoteTable(subquery.table()));
             boolean aliased = !subquery.alias().equals(subquery.table());
             if (aliased) {
                 sql.append(' ').append(Identifiers.quote(subquery.alias()));
@@ -212,7 +212,7 @@ public final class PostgresRenderer {
             sql.append(')');
             return;
         }
-        sql.append("EXISTS (SELECT 1 FROM ").append(Identifiers.quote(subquery.table()));
+        sql.append("EXISTS (SELECT 1 FROM ").append(Identifiers.quoteTable(subquery.table()));
         boolean aliased = !subquery.correlated().isEmpty()
                 || !subquery.alias().equals(subquery.table())
                 || !subquery.nested().isEmpty();
@@ -246,7 +246,7 @@ public final class PostgresRenderer {
                 sql.append(Identifiers.quote(filterAlias)).append('.');
             }
             sql.append(Identifiers.quote(entry.getKey()));
-            FilterAtoms.append(sql, args, entry.getValue());
+            FilterAtoms.append(sql, args, entry.getKey(), entry.getValue());
         }
         for (QuerySubquery nested : subquery.nested()) {
             sql.append(started ? " AND " : " WHERE ");
@@ -303,14 +303,14 @@ public final class PostgresRenderer {
         }
     }
 
-    private static void placeholders(StringBuilder sql, Iterable<Object> values, List<Object> args) {
+    private static void placeholders(StringBuilder sql, Map<String, Object> values, List<Object> args) {
         int i = 0;
-        for (Object value : values) {
+        for (Map.Entry<String, Object> entry : values.entrySet()) {
             if (i++ > 0) {
                 sql.append(", ");
             }
             sql.append('?');
-            args.add(value);
+            args.add(FilterAtoms.bind(entry.getKey(), entry.getValue()));
         }
     }
 }

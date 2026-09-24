@@ -31,7 +31,7 @@ public final class NativeSqlPort {
             throw auditor.reject(IsolationErrorCode.NATIVE_TEMPLATE_NOT_WHITELISTED, context, templateId);
         }
         RenderedSql checked = compiler.compile(QueryAst.select(table, List.of("id"), Map.of()), context);
-        String sql = "SELECT count(*) FROM " + Identifiers.quote(checked.plan().table());
+        String sql = "SELECT count(*) FROM " + Identifiers.quoteTable(checked.plan().table());
         if (checked.plan().tenantRequired() && !checked.plan().platformContext()) {
             sql += " WHERE \"tenant_id\" = ?";
             if (checked.parameters().size() != 1) {

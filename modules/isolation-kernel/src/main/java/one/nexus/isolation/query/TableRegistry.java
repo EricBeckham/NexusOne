@@ -20,7 +20,7 @@ public final class TableRegistry {
         if (tables.containsKey(table.name())) {
             throw new IllegalArgumentException("duplicate table: " + table.name());
         }
-        Identifiers.require(table.name());
+        Identifiers.requireTable(table.name());
         table.columns().forEach(Identifiers::require);
         tables.put(table.name(), table);
         return this;
@@ -47,7 +47,7 @@ public final class TableRegistry {
         if (frozen) {
             throw new IllegalStateException("registry is frozen");
         }
-        Identifiers.require(table.name());
+        Identifiers.requireTable(table.name());
         table.columns().forEach(Identifiers::require);
         tables.put(table.name(), table);
         return this;

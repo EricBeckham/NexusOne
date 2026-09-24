@@ -130,7 +130,9 @@ public class IssuedTenantIsolationFilter extends OncePerRequestFilter {
             return true;
         }
         // Todos / process keep FlowAuthFilter as the exclusive binder (strict 403 if context missing).
-        return path.startsWith("/api/v1/p3") && !path.startsWith("/api/v1/p3/todos");
+        return (path.startsWith("/api/v1/p3") && !path.startsWith("/api/v1/p3/todos"))
+                || path.startsWith("/api/v1/p4")
+                || path.startsWith("/api/v1/p5");
     }
 
     private String lookupTenantCode(UUID tenantId) {
