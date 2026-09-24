@@ -34,7 +34,7 @@
 | V1a | Dashboard 积木：KPI 行 + 面板卡 + 空图表位 | `ui/v1a-dashboard-kpi-panel` | V0 | 空闲者 | | 待领取 |
 | V1b | Dashboard 积木：健康列表 + 活动时间线 + 待办列表 | `ui/v1b-dashboard-lists` | V0 | 空闲者 | | 待领取 |
 | V2 | 壳层 Icon 与顶栏视觉 | `ui/v2-shell-icons-header` | V0 | 空闲者 | | 待领取 |
-| V3 | P1 星域首页四层骨架 | `ui/v3-p1-home` | V0、V1a、V1b | 空闲者 | | 待领取 |
+| V3 | P1 星域首页四层骨架 | `ui/v3-p1-home` | V0、V1a、V1b | 空闲者 | Cursor | 已合并（PR #306） |
 | V4 | P1 租户目录 Filter + 列 + Drawer 壳 | `ui/v4-p1-tenant-list` | V0 | 空闲者 | | 待领取 |
 | V5 | P1 权益配额页视觉（进度条/卡片） | `ui/v5-p1-entitlement-visual` | V0、V1a | 空闲者 | | 待领取 |
 | V6 | P2 星权首页四层骨架 | `ui/v6-p2-home` | V0、V1a、V1b | 空闲者 | | 待领取 |
@@ -357,3 +357,4 @@ V-SEED-* 与 UI 卡可全程并行；有种子时首页验收可对照效果图�
 - 2026-09-24：初版。对照冻结 WEB 规范 V1.1 与五张效果图；V1 拆 V1a/V1b；V-SEED 拆 0 + P1…P5；状态全部待领取。
 - 2026-09-24：Cursor 从 `origin/main@4d0e2aa` 领取 V-SEED-0，分支 `feat/v-seed-0-demo-switch`。演示开关与文档开工，不插入业务行。
 - 2026-09-24：V-SEED-0 已合并（PR #296）。默认关闭，不插入业务行。
+- 2026-09-24：V3 已合并（PR #306）。P1 首页四层骨架，无聚合的层显示「暂无」。
