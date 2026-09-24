@@ -52,6 +52,17 @@ class IdentityApiTest {
     }
 
     @Test
+    void idpConfigurationApiRequiresAuthenticationAndIssuedTenantContext() throws Exception {
+        mvc.perform(get("/api/v1/identity/providers"))
+                .andExpect(status().isUnauthorized());
+
+        String token = StubIdentityProvider.token("idp-api-user", "idp-api-user@example.com", "idp-api-user", "IdP API User");
+        mvc.perform(get("/api/v1/identity/providers")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void loginSwitchAndOrgStayOnIssuedContext() throws Exception {
         UUID tenantA = UUID.fromString("11111111-1111-4111-8111-111111111111");
         UUID tenantB = UUID.fromString("22222222-2222-4222-8222-222222222222");

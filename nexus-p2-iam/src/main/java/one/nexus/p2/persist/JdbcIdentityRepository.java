@@ -322,6 +322,55 @@ public final class JdbcIdentityRepository implements IdentityRepository {
                 ts(Instant.now()), accountId);
     }
 
+    @Override
+    public Model.IdpConfiguration saveIdpConfiguration(Model.IdpConfiguration configuration) {
+        jdbc.update("""
+                INSERT INTO iam.iam_idp_configuration
+                  (id, tenant_id, provider_type, display_name, client_id, issuer, status,
+                   last_sync_at, last_sync_ok, sync_fail_count, deleted_at, created_at, updated_at, version)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT (id) DO UPDATE SET
+                  provider_type = EXCLUDED.provider_type,
+                  display_name = EXCLUDED.display_name,
+                  client_id = EXCLUDED.client_id,
+                  issuer = EXCLUDED.issuer,
+                  status = EXCLUDED.status,
+                  last_sync_at = EXCLUDED.last_sync_at,
+                  last_sync_ok = EXCLUDED.last_sync_ok,
+                  sync_fail_count = EXCLUDED.sync_fail_count,
+                  updated_at = EXCLUDED.updated_at,
+                  version = EXCLUDED.version
+                WHERE iam.iam_idp_configuration.tenant_id = EXCLUDED.tenant_id
+                """,
+                configuration.id(), configuration.tenantId(), configuration.providerType(),
+                configuration.displayName(), configuration.clientId(), configuration.issuer(),
+                configuration.status(), ts(configuration.lastSyncAt()), configuration.lastSyncOk(),
+                configuration.syncFailCount(), ts(configuration.deletedAt()), ts(configuration.createdAt()), ts(configuration.updatedAt()),
+                configuration.version());
+        return configuration;
+    }
+
+    @Override
+    public Optional<Model.IdpConfiguration> findIdpConfiguration(UUID tenantId, UUID id) {
+        return one("SELECT * FROM iam.iam_idp_configuration WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL",
+                IDP_CONFIGURATION, tenantId, id);
+    }
+
+    @Override
+    public List<Model.IdpConfiguration> listIdpConfigurations(UUID tenantId) {
+        return jdbc.query("SELECT * FROM iam.iam_idp_configuration WHERE tenant_id = ? AND deleted_at IS NULL ORDER BY created_at, id",
+                IDP_CONFIGURATION, tenantId);
+    }
+
+    @Override
+    public boolean deleteIdpConfiguration(UUID tenantId, UUID id) {
+        return jdbc.update("""
+                UPDATE iam.iam_idp_configuration
+                SET status = 'DISABLED', deleted_at = ?, updated_at = ?, version = version + 1
+                WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL
+                """, ts(Instant.now()), ts(Instant.now()), tenantId, id) == 1;
+    }
+
     private <T> Optional<T> one(String sql, RowMapper<T> mapper, Object... args) {
         List<T> rows = jdbc.query(sql, mapper, args);
         return rows.stream().findFirst();
@@ -374,6 +423,13 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     private static final RowMapper<Model.IssuedContext> CONTEXT = (rs, row) -> new Model.IssuedContext(
             uuid(rs, "id"), uuid(rs, "tenant_id"), uuid(rs, "account_id"), uuid(rs, "person_id"),
             rs.getString("idp_subject"), instant(rs, "issued_at"), instant(rs, "expires_at"), instant(rs, "revoked_at"));
+
+    private static final RowMapper<Model.IdpConfiguration> IDP_CONFIGURATION = (rs, row) -> new Model.IdpConfiguration(
+            uuid(rs, "id"), uuid(rs, "tenant_id"), rs.getString("provider_type"),
+            rs.getString("display_name"), rs.getString("client_id"), rs.getString("issuer"),
+            rs.getString("status"), instant(rs, "last_sync_at"), (Boolean) rs.getObject("last_sync_ok"),
+            rs.getInt("sync_fail_count"), instant(rs, "deleted_at"), instant(rs, "created_at"), instant(rs, "updated_at"),
+            rs.getInt("version"));
 
     private static UUID uuid(ResultSet rs, String column) throws SQLException {
         Object value = rs.getObject(column);
