@@ -116,6 +116,11 @@ class TenantRelationServiceTest {
         public List<TenantLink> listActive() {
             return links;
         }
+
+        @Override
+        public boolean updateParent(UUID tenantId, UUID parentTenantId, java.time.Instant updatedAt, UUID updatedBy) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private record FixedGuard(IsolationSnapshot snapshot) implements IsolationGuard {

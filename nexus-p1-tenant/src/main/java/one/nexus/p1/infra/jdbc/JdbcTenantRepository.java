@@ -200,6 +200,21 @@ public class JdbcTenantRepository implements TenantRepository, TenantRelationSto
     }
 
     @Override
+    public boolean updateParent(UUID tenantId, UUID parentTenantId, Instant updatedAt, UUID updatedBy) {
+        return jdbc.sql("""
+                        UPDATE platform.tenant
+                        SET parent_tenant_id = :parent, updated_at = :updated_at, updated_by = :updated_by,
+                            version = version + 1
+                        WHERE id = :id AND deleted_at IS NULL
+                        """)
+                .param("parent", parentTenantId)
+                .param("updated_at", JdbcValues.timestamp(updatedAt))
+                .param("updated_by", updatedBy)
+                .param("id", tenantId)
+                .update() == 1;
+    }
+
+    @Override
     public List<Tenant> listAll() {
         return jdbc.sql("SELECT * FROM platform.tenant WHERE deleted_at IS NULL ORDER BY created_at")
                 .query(this::mapTenant)

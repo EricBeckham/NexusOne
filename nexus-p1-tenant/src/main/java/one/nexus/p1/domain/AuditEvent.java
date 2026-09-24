@@ -35,6 +35,8 @@ public record AuditEvent(
     public static final String TENANT_DISABLED = "p1.tenant.disabled";
     public static final String TENANT_DISABLE_REJECTED = "p1.tenant.disable.rejected";
     public static final String TENANT_CONFIG_UPDATED = "p1.tenant.config.updated";
+    public static final String TENANT_PARENT_UPDATED = "p1.tenant.parent.updated";
+    public static final String TENANT_PARENT_REJECTED = "p1.tenant.parent.rejected";
     public static final String ADMIN_INIT_ACCEPTED = "p1.admin.init.accepted";
     public static final String QUOTA_CONSUMED = "p1.quota.consumed";
     public static final String QUOTA_RELEASED = "p1.quota.released";
