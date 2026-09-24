@@ -118,6 +118,12 @@ export const p1 = {
   tenantTree: () => api("/api/v1/p1/tenants/tree", { platform: true, auth: false }),
   tenantChildren: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/children`, { platform: true, auth: false }),
   tenantAncestors: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/ancestors`, { platform: true, auth: false }),
+  reparentTenant: (id, parentTenantId) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/parent`, {
+    method: "PATCH",
+    body: { parent_tenant_id: parentTenantId },
+    platform: true,
+    auth: false,
+  }),
   consume: (id, body) =>
     api(`/api/v1/p1/tenants/${id}/quotas/consume`, { method: "POST", body, platform: true, auth: false }),
   audit: (id) => api(`/api/v1/p1/tenants/${id}/audit-events?limit=50`, { platform: true, auth: false }),
