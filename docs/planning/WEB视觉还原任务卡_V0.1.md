@@ -37,7 +37,7 @@
 | V3 | P1 星域首页四层骨架 | `ui/v3-p1-home` | V0、V1a、V1b | 空闲者 | Cursor | 已合并（PR #306） |
 | V4 | P1 租户目录 Filter + 列 + Drawer 壳 | `ui/v4-p1-tenant-list` | V0 | 空闲者 | | 待领取 |
 | V5 | P1 权益配额页视觉（进度条/卡片） | `ui/v5-p1-entitlement-visual` | V0、V1a | 空闲者 | | 待领取 |
-| V6 | P2 星权首页四层骨架 | `ui/v6-p2-home` | V0、V1a、V1b | 空闲者 | | 待领取 |
+| V6 | P2 星权首页四层骨架 | `ui/v6-p2-home` | V0、V1a、V1b | 空闲者 | Cursor | 已合并（PR #308） |
 | V7 | P2 用户目录 Drawer 摘要 | `ui/v7-p2-person-drawer` | V0 | 空闲者 | | 待领取 |
 | V8 | P2 权限 Matrix 视觉增强 | `ui/v8-p2-permission-matrix` | V0 | 空闲者 | | 待领取 |
 | V9 | P3 星构首页/工作台对齐 §7 | `ui/v9-p3-home` | V0、V1a、V1b | 空闲者 | | 待领取 |
@@ -358,3 +358,4 @@ V-SEED-* 与 UI 卡可全程并行；有种子时首页验收可对照效果图�
 - 2026-09-24：Cursor 从 `origin/main@4d0e2aa` 领取 V-SEED-0，分支 `feat/v-seed-0-demo-switch`。演示开关与文档开工，不插入业务行。
 - 2026-09-24：V-SEED-0 已合并（PR #296）。默认关闭，不插入业务行。
 - 2026-09-24：V3 已合并（PR #306）。P1 首页四层骨架，无聚合的层显示「暂无」。
+- 2026-09-24：V6 已合并（PR #308）。P2 首页四层骨架；无租户上下文时为「暂无」。
