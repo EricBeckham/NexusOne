@@ -1,9 +1,6 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>待办</h1>
-      <p>我的待办 / 已办 / 我发起。办理走 <code>/api/v1/p3/path/tasks/{id}/approve|reject</code>（更新物理行审批状态）。</p>
-    </div>
+    <NxPageHeader title="待办" description="集中查看我的待办、已办和我发起的流程，并完成同意、驳回或撤回。" />
     <NxSourceBanner body="Live M0-08 + G18 path。GET /api/v1/p3/todos。同意/驳回走 path API，不是只调 /api/v1/process。意见字段 API 未提供。" />
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
     <div class="nx-tabs">
@@ -80,6 +77,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
