@@ -22,17 +22,22 @@
   --nx-info: #2e90fa;
   --nx-info-light: #eef6ff;
   --nx-product: #246bfd;
+  --nx-product-light: #eef5ff;
   --nx-shadow-card: 0 4px 16px rgba(31, 56, 88, 0.06);
+  --nx-shadow-popover: 0 10px 32px rgba(31, 56, 88, 0.14);
   --nx-radius: 12px;
   --nx-radius-sm: 8px;
   --nx-sidebar: 200px;
+  --nx-sidebar-collapsed: 64px;
   --nx-header: 56px;
   --nx-font: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
 }
 
-[data-product="p1"] { --nx-product: #246bfd; }
-[data-product="p2"] { --nx-product: #6d5cf6; }
-[data-product="p3"] { --nx-product: #2475ff; }
+[data-product="p1"] { --nx-product: #246bfd; --nx-product-light: #eef5ff; }
+[data-product="p2"] { --nx-product: #6d5cf6; --nx-product-light: #f3f0ff; }
+[data-product="p3"] { --nx-product: #2475ff; --nx-product-light: #eef5ff; }
+[data-product="p4"] { --nx-product: #ff7a1a; --nx-product-light: #fff4eb; }
+[data-product="p5"] { --nx-product: #1687ff; --nx-product-light: #e8f6ff; }
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }

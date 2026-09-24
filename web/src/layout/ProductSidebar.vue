@@ -1,0 +1,131 @@
+<template>
+  <div class="side-head" :class="{ collapsed }">
+    <span class="mark">{{ product.mark }}</span>
+    <div v-if="!collapsed">
+      <strong>{{ product.name }}</strong>
+      <div class="en">{{ product.en }}</div>
+    </div>
+    <button type="button" class="fold" :aria-label="collapsed ? '展开' : '收起'" :title="collapsed ? '展开' : '收起'" @click="$emit('toggle')">
+      {{ collapsed ? "›" : "收起" }}
+    </button>
+  </div>
+  <nav class="menu" :aria-label="product.name">
+    <template v-for="item in items" :key="item.id">
+      <router-link v-if="item.to" :to="item.to" custom v-slot="{ href, navigate }">
+        <a :href="href" :title="item.label" :class="{ current: isCurrent(item.to) }" @click="navigate">
+          <span class="icon">{{ item.label.slice(0, 1) }}</span>
+          <span v-if="!collapsed">{{ item.label }}</span>
+        </a>
+      </router-link>
+      <div v-else class="group" :class="{ open: groupActive(item) }">
+        <div class="group-label" :title="item.label">
+          <span class="icon">{{ item.label.slice(0, 1) }}</span>
+          <span v-if="!collapsed">{{ item.label }}</span>
+        </div>
+        <div v-if="!collapsed" class="children">
+          <router-link v-for="child in item.children" :key="child.id" :to="child.to" custom v-slot="{ href, navigate }">
+            <a :href="href" :class="{ current: isCurrent(child.to) }" @click="navigate">{{ child.label }}</a>
+          </router-link>
+        </div>
+      </div>
+    </template>
+  </nav>
+</template>
+
+<script setup>
+import { useRoute } from "vue-router";
+
+const props = defineProps({
+  product: { type: Object, required: true },
+  items: { type: Array, required: true },
+  collapsed: { type: Boolean, default: false },
+});
+defineEmits(["toggle"]);
+
+const route = useRoute();
+
+function menuLinks() {
+  const links = [];
+  for (const item of props.items) {
+    if (item.to) {
+      links.push(item.to);
+    }
+    for (const child of item.children || []) {
+      if (child.to) {
+        links.push(child.to);
+      }
+    }
+  }
+  return links;
+}
+
+function activeTarget() {
+  const path = route.path;
+  let best = "";
+  for (const to of menuLinks()) {
+    if ((path === to || path.startsWith(`${to}/`)) && to.length > best.length) {
+      best = to;
+    }
+  }
+  return best;
+}
+
+function isCurrent(to) {
+  return activeTarget() === to;
+}
+
+function groupActive(item) {
+  return (item.children || []).some((child) => isCurrent(child.to));
+}
+</script>
+
+<style scoped>
+.side-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  margin-bottom: 8px;
+}
+.side-head strong { display: block; font-size: 16px; }
+.en { color: var(--nx-text-secondary); font-size: 12px; }
+.mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--nx-product);
+  color: #fff;
+  flex: none;
+}
+.fold {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--nx-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+.menu a, .group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--nx-text-regular);
+  font-size: 14px;
+}
+.menu a.current {
+  background: var(--nx-product-light);
+  color: var(--nx-product);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--nx-product);
+}
+.side-head.collapsed { gap: 4px; }
+.side-head.collapsed .fold { margin-left: 0; padding: 0; }
+.icon { width: 20px; text-align: center; flex: none; }
+.children a { padding-left: 38px; }
+.group.open > .group-label { color: var(--nx-product); }
+</style>

@@ -1,12 +1,18 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { session } from "./api/session";
+import { productById } from "./nav/products";
 import { isSafeMobileReturn, safeMobileReturn } from "./mobile/auth/safeReturn";
 import { postHost } from "./mobile/host/hostBridge";
 
 const routes = [
   { path: "/login", name: "login", component: () => import("./views/LoginView.vue"), meta: { public: true, title: "登录" } },
   { path: "/callback", name: "callback", component: () => import("./views/CallbackView.vue"), meta: { public: true, title: "授权码回跳" } },
-  { path: "/", name: "home", component: () => import("./views/HomeView.vue"), meta: { title: "工作台", product: "p1" } },
+  { path: "/", name: "product-picker", component: () => import("./views/ProductPickerView.vue"), meta: { title: "产品选择" } },
+  { path: "/p1", name: "p1-home", component: () => import("./views/ProductHomeView.vue"), meta: { title: "首页", product: "p1" } },
+  { path: "/p2", name: "p2-home", component: () => import("./views/ProductHomeView.vue"), meta: { title: "首页", product: "p2" } },
+  { path: "/p3", name: "p3-home", component: () => import("./views/ProductHomeView.vue"), meta: { title: "首页", product: "p3" } },
+  { path: "/p4", name: "p4-home", component: () => import("./views/ProductHomeView.vue"), meta: { title: "首页", product: "p4" } },
+  { path: "/p5", name: "p5-home", component: () => import("./views/ProductHomeView.vue"), meta: { title: "首页", product: "p5" } },
   { path: "/p1/tenants", name: "tenants", component: () => import("./views/tenants/TenantListView.vue"), meta: { title: "租户目录", product: "p1" } },
   { path: "/p1/tenants/new", name: "tenant-create", component: () => import("./views/tenants/TenantCreateView.vue"), meta: { title: "创建租户", product: "p1" } },
   { path: "/p1/tenants/:id", name: "tenant-detail", component: () => import("./views/tenants/TenantDetailView.vue"), meta: { title: "租户详情", product: "p1" } },
@@ -195,6 +201,9 @@ router.beforeEach((to) => {
 });
 
 router.afterEach((to) => {
+  const product = productById(to.meta.product);
+  const title = to.meta.title || "NexusOne";
+  document.title = product ? `${product.name} · ${title}` : title;
   if (to.meta.mobile && !to.meta.harness) {
     postHost("route", { action: "changed", path: to.fullPath });
   }
