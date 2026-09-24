@@ -16,5 +16,11 @@
       <groupId>one.nexus</groupId>
       <artifactId>nexus-common</artifactId>
     </dependency>
+    <dependency><groupId>one.nexus</groupId><artifactId>nexus-crypto-core</artifactId></dependency>
+    <dependency><groupId>one.nexus</groupId><artifactId>nexus-audit-core</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-flyway</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
   </dependencies>
 </project>

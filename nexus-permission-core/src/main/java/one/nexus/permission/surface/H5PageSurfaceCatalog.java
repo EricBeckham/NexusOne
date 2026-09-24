@@ -143,7 +143,13 @@ public final class H5PageSurfaceCatalog {
                     Coverage.OPEN,
                     "MarketPage.vue",
                     "",
-                    "P4 catalog shell; catalog permission cell is not defined yet"));
+                    "P4 catalog shell; catalog permission cell is not defined yet"),
+            page(
+                    "/m/p5/connectors",
+                    Coverage.OPEN,
+                    "ConnectPage.vue",
+                    "",
+                    "P5 self-use integration shell; permission cell is not defined yet"));
 
     private H5PageSurfaceCatalog() {}
 

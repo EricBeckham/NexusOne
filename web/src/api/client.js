@@ -168,6 +168,15 @@ export const p4 = {
   uninstall: (installationId) => api(`/api/v1/p4/installations/${installationId}/uninstall`, { method: "POST", body: {} }),
 };
 
+/** P5 thin self-use integration surface; no external developer portal or OAuth ecosystem. */
+export const p5 = {
+  issueClient: (body) => api("/api/v1/p5/clients", { method: "POST", body, platform: true }),
+  createWebhook: (body) => api("/api/v1/p5/webhooks", { method: "POST", body, platform: true }),
+  connectors: () => api("/api/v1/p5/connectors"),
+  runConnector: (code) => api(`/api/v1/p5/connectors/${encodeURIComponent(code)}/run`, { method: "POST", body: {} }),
+  connectorRuns: () => api("/api/v1/p5/connector-runs"),
+};
+
 /** M0-05 / G2 permission engine. Role matrix lives here; no /api/v1/p2/roles. */
 export const perm = {
   health: () => api("/api/v1/permission/health", { auth: false }),

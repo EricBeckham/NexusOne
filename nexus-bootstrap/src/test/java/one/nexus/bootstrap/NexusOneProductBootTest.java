@@ -13,6 +13,8 @@ import one.nexus.crypto.SecretPort;
 import one.nexus.event.OutboxPort;
 import one.nexus.event.jdbc.JdbcOutboxStore;
 import one.nexus.notification.NotificationService;
+import one.nexus.p5.connect.ConnectModels.IssuedClient;
+import one.nexus.p5.connect.ConnectService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,9 @@ class NexusOneProductBootTest {
 
     @Autowired
     SecretPort secretPort;
+
+    @Autowired
+    ConnectService connectService;
 
     @BeforeAll
     static void startPostgres() throws Exception {
@@ -90,6 +95,7 @@ class NexusOneProductBootTest {
         assertTrue(versions.contains("531"), "G18 V531 missing, got " + versions);
         assertTrue(versions.contains("550"), "Flyway head V550 missing, got " + versions);
         assertTrue(versions.contains("600"), "P4 market V600 missing, got " + versions);
+        assertTrue(versions.contains("700"), "P5 connect V700 missing, got " + versions);
         Integer outboxTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'exec_outbox'",
                 Integer.class);
@@ -98,6 +104,10 @@ class NexusOneProductBootTest {
                 "select count(*) from information_schema.tables where table_schema = 'market' and table_name = 'app_package'",
                 Integer.class);
         assertEquals(1, marketTable);
+        Integer apiClientTable = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'integration' and table_name = 'api_client'",
+                Integer.class);
+        assertEquals(1, apiClientTable);
     }
 
     @Test
@@ -108,5 +118,25 @@ class NexusOneProductBootTest {
         secretPort.put("s0.probe", "not-for-git".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         assertEquals("not-for-git", secretPort.getUtf8("s0.probe"));
         secretPort.delete("s0.probe");
+    }
+
+    @Test
+    void p5SelfUseSlicePersistsIdentityIdempotencyWebhookAndConnectorRun() {
+        IssuedClient issued = connectService.issueClient("product-boot", List.of("integration:call"), 2);
+        var first = connectService.invoke(
+                issued.client().id(), issued.secret(), "integration:call", "boot-1", java.util.Map.of("probe", true));
+        var replay = connectService.invoke(
+                issued.client().id(), issued.secret(), "integration:call", "boot-1", java.util.Map.of("probe", true));
+        assertTrue(first.response().containsKey("accepted"));
+        assertTrue(replay.replayed());
+
+        connectService.subscribe("boot sink", "https://hooks.example.test/nexus", List.of("boot.ready"));
+        assertEquals(1, connectService.publish("boot-event-1", "boot.ready", java.util.Map.of("ready", true)));
+        assertEquals("SUCCEEDED", connectService.runConnector(ConnectService.SAMPLE_CONNECTOR).status());
+
+        assertEquals(1, jdbc.queryForObject("select count(*) from integration.api_client", Integer.class));
+        assertEquals(1, jdbc.queryForObject("select count(*) from integration.api_idempotency", Integer.class));
+        assertEquals(1, jdbc.queryForObject("select count(*) from integration.webhook_delivery", Integer.class));
+        assertEquals(1, jdbc.queryForObject("select count(*) from integration.connector_run", Integer.class));
     }
 }

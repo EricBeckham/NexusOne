@@ -33,9 +33,10 @@ These modules may use JDBC for **platform / catalog / identity** tables. They ar
 | `nexus-notification-core` | `notify.inbox`; IsolationKernel notify filter | `notification/infra/`, `NotificationConfiguration` |
 | `nexus-p3-studio` | catalog / form / flow metadata; SchemaService DDL; `GuardedLedgerStore` | `p3/infra/jdbc/`, `p3/infra/schema/`, `JdbcFormStore`, flow persist/engine, `StudioConfiguration` |
 | `nexus-p4-market` | `market.*` 应用目录、版本、SKU、订阅与安装元数据 | `p4/market/infra/jdbc/` |
+| `nexus-p5-connect` | `integration.*` 内部 API、Webhook 投递与连接器运行元数据 | `p5/connect/infra/jdbc/` |
 | `nexus-bootstrap` | `platform.runtime_meta` health only | `RuntimeMetaController` |
 
-**Not allowlisted** (must stay JDBC-free): `nexus-common`, `nexus-data-core`, `nexus-expression-core`, `nexus-cache-core`, `nexus-crypto-core`, `nexus-p5-connect`. P4 仅 `market/infra/jdbc` 可访问自有 `market.*` 元数据；Application / API / domain / path packages inside allowlisted modules are also JDBC-free.
+**Not allowlisted** (must stay JDBC-free): `nexus-common`, `nexus-data-core`, `nexus-expression-core`, `nexus-cache-core`, `nexus-crypto-core`. P4/P5 仅各自的 `infra/jdbc` 可访问自有 `market.*` / `integration.*` 元数据；Application / API / domain / path packages inside allowlisted modules are also JDBC-free.
 
 Tenant-table SQL allowlist (compiler + SchemaService + product adapter only):
 

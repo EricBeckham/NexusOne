@@ -42,6 +42,7 @@ export const OPEN_PAGES = Object.freeze([
   Object.freeze({ path: "/m/p3/files/:id", vue: "FileDetailPage.vue", reason: "file detail" }),
   Object.freeze({ path: "/m/p3/notifications", vue: "NotifyPage.vue", reason: "notify jump" }),
   Object.freeze({ path: "/m/p4/market", vue: "MarketPage.vue", reason: "P4 catalog shell; permission cell pending" }),
+  Object.freeze({ path: "/m/p5/connectors", vue: "ConnectPage.vue", reason: "P5 self-use integration shell; permission cell pending" }),
 ]);
 
 export function coveredPaths() {
