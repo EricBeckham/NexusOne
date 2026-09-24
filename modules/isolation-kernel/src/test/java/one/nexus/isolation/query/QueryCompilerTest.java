@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.sql.Timestamp;
 import java.time.Instant;
 import one.nexus.isolation.IsolationKernel;
@@ -69,7 +70,7 @@ class QueryCompilerTest {
         TenantContext alpha = alpha(kernel);
         RenderedSql read = kernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id", "title"), map("deleted_at", null)), alpha);
-        assertEquals("SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE \"deleted_at\" IS NULL AND \"tenant_id\" = ?", read.sql());
+        assertEquals("SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE \"deleted_at\" IS NULL AND \"tenant_id\"::text = ?", read.sql());
         assertEquals(List.of("alpha"), read.parameters());
         assertEquals("TenantContext", read.plan().tenantSource());
         assertTrue(read.plan().tenantRequired());
@@ -89,6 +90,22 @@ class QueryCompilerTest {
     }
 
     @Test
+    void uuidShapedTenantIdComparesAsTextAndInsertsAsUuid() {
+        IsolationKernel kernel = kernel(new CollectingAuditSink());
+        String tenantId = "55555555-5555-4555-8555-555555555555";
+        TenantContext tenant = kernel.tenants().issue(new AuthenticatedMembership(
+                Actor.person("user-a"), tenantId, "mem-a", Set.of(tenantId)), "trace-a");
+        RenderedSql read = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of()), tenant);
+        assertTrue(read.sql().contains("\"tenant_id\"::text = ?"));
+        assertEquals(tenantId, read.parameters().getFirst());
+
+        RenderedSql inserted = kernel.compiler().compile(
+                QueryAst.insert("ledger_entry", map("id", "1", "title", "hi")), tenant);
+        assertEquals(UUID.fromString(tenantId), inserted.parameters().get(2));
+    }
+
+    @Test
     void safelyQuotesSchemaQualifiedTenantTables() {
         IsolationKernel kernel = kernel(new CollectingAuditSink());
         TenantContext alpha = alpha(kernel);
@@ -97,7 +114,7 @@ class QueryCompilerTest {
                 QueryAst.select("market.installation", List.of("id", "app_id"), map("id", "install-1")), alpha);
 
         assertEquals(
-                "SELECT \"id\", \"app_id\" FROM \"market\".\"installation\" WHERE \"id\" = ? AND \"tenant_id\" = ?",
+                "SELECT \"id\", \"app_id\" FROM \"market\".\"installation\" WHERE \"id\" = ? AND \"tenant_id\"::text = ?",
                 read.sql());
         assertEquals(List.of("install-1", "alpha"), read.parameters());
         assertEquals("market.installation", read.plan().table());
@@ -123,7 +140,7 @@ class QueryCompilerTest {
                 "SELECT \"ledger_entry\".\"id\", \"installation\".\"version_id\" FROM "
                         + "\"ledger_entry\" \"ledger_entry\" INNER JOIN \"market\".\"installation\" \"installation\""
                         + " ON \"ledger_entry\".\"id\" = \"installation\".\"app_id\""
-                        + " AND \"installation\".\"tenant_id\" = ? WHERE \"ledger_entry\".\"tenant_id\" = ?",
+                        + " AND \"installation\".\"tenant_id\"::text = ? WHERE \"ledger_entry\".\"tenant_id\"::text = ?",
                 joined.sql());
         assertEquals(List.of("alpha", "alpha"), joined.parameters());
 
@@ -133,9 +150,9 @@ class QueryCompilerTest {
                                 QuerySubquery.in("id", "market.installation", "app_id", Map.of()))),
                 alpha);
         assertEquals(
-                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"id\" IN "
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ? AND \"id\" IN "
                         + "(SELECT \"app_id\" FROM \"market\".\"installation\" \"installation\""
-                        + " WHERE \"installation\".\"tenant_id\" = ?)",
+                        + " WHERE \"installation\".\"tenant_id\"::text = ?)",
                 subquery.sql());
         assertEquals(List.of("alpha", "alpha"), subquery.parameters());
     }
@@ -160,7 +177,7 @@ class QueryCompilerTest {
         assertEquals(
                 "SELECT \"id\", \"status\", \"next_attempt_at\" FROM "
                         + "\"integration\".\"webhook_delivery\" "
-                        + "WHERE \"status\" IN (?, ?) AND \"next_attempt_at\" <= ? AND \"tenant_id\" = ? "
+                        + "WHERE \"status\" IN (?, ?) AND \"next_attempt_at\" <= ? AND \"tenant_id\"::text = ? "
                         + "ORDER BY \"next_attempt_at\" ASC LIMIT ? OFFSET ?",
                 query.sql());
         assertEquals(
@@ -206,7 +223,7 @@ class QueryCompilerTest {
                 kernel.compiler().compile(QueryAst.select("platform_metric", List.of("id"), Map.of()), platform).sql());
         NativeSqlPort nativePort = kernel.nativeSql(Map.of("infra.count-ledger", "ledger_entry"));
         RenderedSql nativeCount = nativePort.compileCount("infra.count-ledger", alpha(kernel));
-        assertEquals("SELECT count(*) FROM \"ledger_entry\" WHERE \"tenant_id\" = ?", nativeCount.sql());
+        assertEquals("SELECT count(*) FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ?", nativeCount.sql());
         assertCode(IsolationErrorCode.NATIVE_TEMPLATE_NOT_WHITELISTED,
                 () -> nativePort.compileCount("business.raw-sql", alpha(kernel)));
     }
@@ -227,7 +244,7 @@ class QueryCompilerTest {
                         .withProjection(List.of("id", "title")),
                 alpha);
         assertTrue(scoped.sql().startsWith("SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE "));
-        assertTrue(scoped.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(scoped.sql().contains("\"tenant_id\"::text = ?"));
         assertTrue(scoped.sql().contains("\"owner_id\" = ?"));
         assertTrue(scoped.sql().contains("\"department_id\" = ?"));
         assertEquals("alpha", scoped.parameters().getFirst());
@@ -255,7 +272,7 @@ class QueryCompilerTest {
         RenderedSql scoped = kernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()), alpha);
         assertEquals(
-                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"department_id\" IN (?, ?)",
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ? AND \"department_id\" IN (?, ?)",
                 scoped.sql());
         assertEquals(List.of("alpha", "d1", "d2"), scoped.parameters());
 
@@ -263,7 +280,7 @@ class QueryCompilerTest {
                 QueryAst.select("ledger_entry", List.of("id"), map("id", List.of("r1", "r2"))),
                 alpha);
         assertTrue(encoded.sql().contains("\"id\" IN (?, ?)"));
-        assertTrue(encoded.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(encoded.sql().contains("\"tenant_id\"::text = ?"));
         assertTrue(encoded.sql().contains("\"department_id\" IN (?, ?)"));
         assertEquals(List.of("r1", "r2", "alpha", "d1", "d2"), encoded.parameters());
 
@@ -294,7 +311,7 @@ class QueryCompilerTest {
                                 map("department_id", "d1")))),
                 alpha);
         assertEquals(
-                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ?"
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ?"
                         + " AND (\"owner_id\" = ? OR \"department_id\" = ?)",
                 scoped.sql());
         assertEquals(List.of("alpha", "user-a", "d1"), scoped.parameters());
@@ -335,7 +352,7 @@ class QueryCompilerTest {
         TenantContext alpha = alpha(kernel);
         RenderedSql scoped = kernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()), alpha);
-        assertEquals("SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"owner_id\" = ?", scoped.sql());
+        assertEquals("SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ? AND \"owner_id\" = ?", scoped.sql());
         assertEquals(List.of("alpha", "user-a"), scoped.parameters());
     }
 
@@ -361,8 +378,8 @@ class QueryCompilerTest {
         assertEquals(
                 "SELECT \"ledger_entry\".\"id\", \"line\".\"amount\" FROM \"ledger_entry\" \"ledger_entry\""
                         + " INNER JOIN \"ledger_line\" \"line\""
-                        + " ON \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\" = ?"
-                        + " WHERE \"ledger_entry\".\"tenant_id\" = ?",
+                        + " ON \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\"::text = ?"
+                        + " WHERE \"ledger_entry\".\"tenant_id\"::text = ?",
                 joined.sql());
         assertEquals(List.of("alpha", "alpha"), joined.parameters());
         assertEquals(0, sink.rejectCount());
@@ -420,8 +437,8 @@ class QueryCompilerTest {
                 alpha);
         assertEquals(
                 "SELECT \"id\", \"title\" FROM \"ledger_entry\""
-                        + " WHERE \"tenant_id\" = ?"
-                        + " AND \"id\" IN (SELECT \"entry_id\" FROM \"ledger_line\" WHERE \"tenant_id\" = ?)"
+                        + " WHERE \"tenant_id\"::text = ?"
+                        + " AND \"id\" IN (SELECT \"entry_id\" FROM \"ledger_line\" WHERE \"tenant_id\"::text = ?)"
                         + " ORDER BY \"title\" ASC, \"id\" DESC"
                         + " LIMIT ? OFFSET ?",
                 inSelect.sql());
@@ -437,9 +454,9 @@ class QueryCompilerTest {
                 alpha);
         assertEquals(
                 "SELECT \"id\" FROM \"ledger_entry\""
-                        + " WHERE \"tenant_id\" = ?"
+                        + " WHERE \"tenant_id\"::text = ?"
                         + " AND EXISTS (SELECT 1 FROM \"ledger_line\" \"line\""
-                        + " WHERE \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\" = ?)",
+                        + " WHERE \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\"::text = ?)",
                 exists.sql());
         assertEquals(List.of("alpha", "alpha"), exists.parameters());
         assertEquals(0, sink.rejectCount());
@@ -501,9 +518,9 @@ class QueryCompilerTest {
                 alpha);
         assertEquals(
                 "SELECT \"id\", \"title\" FROM \"ledger_entry\""
-                        + " WHERE \"tenant_id\" = ?"
-                        + " AND \"id\" IN (SELECT \"entry_id\" FROM \"ledger_line\" WHERE \"tenant_id\" = ?"
-                        + " AND \"id\" IN (SELECT \"line_id\" FROM \"ledger_note\" WHERE \"tenant_id\" = ?))",
+                        + " WHERE \"tenant_id\"::text = ?"
+                        + " AND \"id\" IN (SELECT \"entry_id\" FROM \"ledger_line\" WHERE \"tenant_id\"::text = ?"
+                        + " AND \"id\" IN (SELECT \"line_id\" FROM \"ledger_note\" WHERE \"tenant_id\"::text = ?))",
                 inNested.sql());
         assertEquals(List.of("alpha", "alpha", "alpha"), inNested.parameters());
         assertEquals("TenantContext", inNested.plan().tenantSource());
@@ -515,11 +532,11 @@ class QueryCompilerTest {
                 alpha);
         assertEquals(
                 "SELECT \"id\" FROM \"ledger_entry\""
-                        + " WHERE \"tenant_id\" = ?"
+                        + " WHERE \"tenant_id\"::text = ?"
                         + " AND EXISTS (SELECT 1 FROM \"ledger_line\" \"line\""
-                        + " WHERE \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\" = ?"
+                        + " WHERE \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\"::text = ?"
                         + " AND EXISTS (SELECT 1 FROM \"ledger_note\" \"note\""
-                        + " WHERE \"line\".\"id\" = \"note\".\"line_id\" AND \"note\".\"tenant_id\" = ?))",
+                        + " WHERE \"line\".\"id\" = \"note\".\"line_id\" AND \"note\".\"tenant_id\"::text = ?))",
                 existsNested.sql());
         assertEquals(List.of("alpha", "alpha", "alpha"), existsNested.parameters());
         assertEquals(0, sink.rejectCount());
@@ -685,19 +702,19 @@ class QueryCompilerTest {
         assertEquals(
                 "SELECT \"ledger_entry\".\"id\", \"line\".\"amount\" FROM \"ledger_entry\" \"ledger_entry\""
                         + " LEFT OUTER JOIN \"ledger_line\" \"line\""
-                        + " ON \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\" = ?"
-                        + " WHERE \"ledger_entry\".\"tenant_id\" = ?",
+                        + " ON \"ledger_entry\".\"id\" = \"line\".\"entry_id\" AND \"line\".\"tenant_id\"::text = ?"
+                        + " WHERE \"ledger_entry\".\"tenant_id\"::text = ?",
                 left.sql());
         assertEquals(List.of("alpha", "alpha"), left.parameters());
         RenderedSql right = kernel.compiler().compile(
                 outerSelect(QueryJoin.Kind.RIGHT, List.of("ledger_entry.id", "line.amount"), Map.of()), alpha);
         assertTrue(right.sql().contains("RIGHT OUTER JOIN \"ledger_line\" \"line\""));
-        assertTrue(right.sql().contains("\"line\".\"tenant_id\" = ?"));
-        assertTrue(right.sql().contains("\"ledger_entry\".\"tenant_id\" = ?"));
+        assertTrue(right.sql().contains("\"line\".\"tenant_id\"::text = ?"));
+        assertTrue(right.sql().contains("\"ledger_entry\".\"tenant_id\"::text = ?"));
         RenderedSql full = kernel.compiler().compile(
                 outerSelect(QueryJoin.Kind.FULL, List.of("ledger_entry.id", "line.amount"), Map.of()), alpha);
         assertTrue(full.sql().contains("FULL OUTER JOIN \"ledger_line\" \"line\""));
-        assertTrue(full.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertTrue(full.sql().contains("\"line\".\"tenant_id\"::text = ?"));
         assertEquals(0, sink.rejectCount());
     }
 
@@ -713,7 +730,7 @@ class QueryCompilerTest {
         assertEquals(
                 "SELECT \"ledger_entry\".\"id\", \"line\".\"amount\" FROM \"ledger_entry\" \"ledger_entry\""
                         + " CROSS JOIN \"ledger_line\" \"line\""
-                        + " WHERE \"ledger_entry\".\"tenant_id\" = ? AND \"line\".\"tenant_id\" = ?",
+                        + " WHERE \"ledger_entry\".\"tenant_id\"::text = ? AND \"line\".\"tenant_id\"::text = ?",
                 crossed.sql());
         assertEquals(List.of("alpha", "alpha"), crossed.parameters());
         assertEquals(0, sink.rejectCount());

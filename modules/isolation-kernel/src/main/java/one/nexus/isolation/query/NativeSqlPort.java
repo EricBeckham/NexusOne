@@ -33,7 +33,7 @@ public final class NativeSqlPort {
         RenderedSql checked = compiler.compile(QueryAst.select(table, List.of("id"), Map.of()), context);
         String sql = "SELECT count(*) FROM " + Identifiers.quoteTable(checked.plan().table());
         if (checked.plan().tenantRequired() && !checked.plan().platformContext()) {
-            sql += " WHERE \"tenant_id\" = ?";
+            sql += " WHERE \"tenant_id\"::text = ?";
             if (checked.parameters().size() != 1) {
                 throw auditor.reject(IsolationErrorCode.TENANT_PREDICATE_REQUIRED, context, "native tenant binding mismatch");
             }

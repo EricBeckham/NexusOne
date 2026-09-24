@@ -56,8 +56,8 @@ class ConnectTenantReadTest {
                         Map.of()),
                         context)));
 
-        assertTrue(queries.stream().allMatch(query -> query.sql().contains("\"tenant_id\" = ?")));
-        assertTrue(queries.stream().allMatch(query -> query.parameters().contains(TENANT_ID)));
+        assertTrue(queries.stream().allMatch(query -> query.sql().contains("\"tenant_id\"::text = ?")));
+        assertTrue(queries.stream().allMatch(query -> query.parameters().contains(TENANT_ID.toString())));
         assertEquals("TenantContext", queries.getFirst().plan().tenantSource());
     }
 }
