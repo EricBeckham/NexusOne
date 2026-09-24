@@ -4,7 +4,7 @@
  * G17 leftover: in-app recovery codes after TOTP leftover.
  * Not a Keycloak write, not a second MFA stack, not a G17 close.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import RecoveryCodesView from "./RecoveryCodesView.vue";
@@ -38,23 +38,27 @@ describe("recovery codes leftover page", () => {
 
     await wrapper.get("[data-testid=recovery-code]").setValue("12");
     await wrapper.get("[data-testid=recovery-consume]").trigger("click");
-    await flushPromises();
-    expect(wrapper.get("[data-testid=recovery-error]").text()).toContain("8 位");
+    await vi.waitFor(() => {
+      expect(wrapper.get("[data-testid=recovery-error]").text()).toContain("8 位");
+    });
 
     await wrapper.get("[data-testid=recovery-code]").setValue("ZZZZ-ZZZZ");
     await wrapper.get("[data-testid=recovery-consume]").trigger("click");
-    await flushPromises();
-    expect(wrapper.get("[data-testid=recovery-error]").text()).toContain("不正确");
+    await vi.waitFor(() => {
+      expect(wrapper.get("[data-testid=recovery-error]").text()).toContain("不正确");
+    });
 
     await wrapper.get("[data-testid=recovery-code]").setValue(first);
     await wrapper.get("[data-testid=recovery-consume]").trigger("click");
-    await flushPromises();
-    expect(wrapper.get("[data-testid=recovery-success]").text()).toContain("已核销");
-    expect(wrapper.get("[data-testid=recovery-success]").text()).toContain("没有把恢复码写入 Keycloak");
+    await vi.waitFor(() => {
+      expect(wrapper.get("[data-testid=recovery-success]").text()).toContain("已核销");
+      expect(wrapper.get("[data-testid=recovery-success]").text()).toContain("没有把恢复码写入 Keycloak");
+    });
 
     await wrapper.get("[data-testid=recovery-code]").setValue(first);
     await wrapper.get("[data-testid=recovery-consume]").trigger("click");
-    await flushPromises();
-    expect(wrapper.get("[data-testid=recovery-error]").text()).toContain("已经核销");
+    await vi.waitFor(() => {
+      expect(wrapper.get("[data-testid=recovery-error]").text()).toContain("已经核销");
+    });
   });
 });

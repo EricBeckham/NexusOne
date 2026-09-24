@@ -36,7 +36,7 @@
 | X3 | P3 应用工作台正式首页 | `ui/x3-p3-workbench` | 无 | 空闲者 | Cursor | 进行中 |
 | B1 | P4/P5 读模型后端（list/read；Credential 视体积） | `feat/b1-p4-p5-read-models` | 无 | **建议 Codex** | | 待领取 |
 | X4 | P4 规范 §28 子页 | `ui/x4-p4-subpages` | **B1** | 空闲者 | | 待领取 |
-| X5 | P5 规范 §29 子页（自用） | `ui/x5-p5-subpages` | **B1** | 空闲者 | | 待领取 |
+| X5 | P5 规范 §29 子页（自用） | `ui/x5-p5-subpages` | **B1** | 空闲者 | Cursor | 进行中 |
 
 顺序：**X0、X1、X2、X3、B1 可并行**；**X4 / X5 等 B1 合并后**再开。业务优先级：**X1 最高**。
 
@@ -228,3 +228,4 @@ FE 对照（只读参考，B1 PR **不得**改这些文件）：`p4.catalog`、`
 - 2026-09-24：Cursor 根据壳波次（W0–W5）复盘 API 存货编写 V0.1；基线 `origin/main@0fac808`（含 #287 W5）；规划文档按 Eric 要求直推 `main`。
 - 2026-09-24：Cursor 从 `origin/main@fef30e5` 领取 X2，分支 `ui/x2-p1-entitlement`。权益与配额页开工。
 - 2026-09-24：Cursor 从 `origin/main@c5b0b02` 领取 X3，分支 `ui/x3-p3-workbench`。星构应用工作台开工。
+- 2026-09-24：Cursor 从 `origin/main@c53f2eb` 领取 X5，分支 `ui/x5-p5-subpages`。P5 自用子页开工。开放接口目录与 Credential 仍为后续：B1 未提供这两类读模型。

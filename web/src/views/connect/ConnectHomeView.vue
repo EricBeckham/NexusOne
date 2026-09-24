@@ -3,12 +3,19 @@
     <NxPageHeader
       eyebrow="P5 · NEXUS CONNECT"
       title="星联工作台"
-      description="查看自用连接器及其运行情况，管理入口保留在接入总览。"
+      description="自用连接器、API Client、Webhook 与调用日志。开放接口目录和 Credential 仍是后续。"
     >
       <template #actions>
         <router-link class="primary" to="/p5/connect">打开接入总览</router-link>
       </template>
     </NxPageHeader>
+
+    <nav class="subpages" aria-label="星联子页">
+      <router-link to="/p5/clients">API Client</router-link>
+      <router-link to="/p5/webhooks">Webhook</router-link>
+      <router-link to="/p5/connectors">Connector</router-link>
+      <router-link to="/p5/call-logs">调用日志</router-link>
+    </nav>
 
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
     <section v-else class="stats" aria-label="星联运行摘要">
@@ -74,6 +81,7 @@ onMounted(load);
 </script>
 
 <style scoped>
+.subpages { display: flex; flex-wrap: wrap; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); }
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
