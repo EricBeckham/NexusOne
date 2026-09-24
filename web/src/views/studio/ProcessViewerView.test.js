@@ -9,6 +9,9 @@ vi.mock("../../api/p3", () => ({
   p3: {
     listProcessDefinitions: vi.fn(),
     getProcessDefinition: vi.fn(),
+    listProcessDrafts: vi.fn(),
+    getProcessDraft: vi.fn(),
+    saveProcessDraft: vi.fn(),
   },
 }));
 
@@ -44,21 +47,56 @@ describe("process viewer", () => {
   beforeEach(() => {
     p3.listProcessDefinitions.mockReset();
     p3.getProcessDefinition.mockReset();
+    p3.listProcessDrafts.mockReset().mockResolvedValue([]);
+    p3.getProcessDraft.mockReset();
+    p3.saveProcessDraft.mockReset();
   });
 
-  it("opens a read-only graph and keeps save disabled", async () => {
+  it("edits a published definition only as a draft and saves it for reopening", async () => {
+    let persisted = null;
     p3.listProcessDefinitions.mockResolvedValue([definition]);
+    p3.listProcessDrafts.mockImplementation(async () => persisted ? [{ key: persisted.key, name: persisted.name }] : []);
     p3.getProcessDefinition.mockResolvedValue(definition);
     const wrapper = await mountAt("/p3/workflow/nexusSequentialApproval");
     expect(wrapper.get("[data-testid='process-canvas']").text()).toContain("Approve");
     expect(wrapper.get("[data-testid='process-properties']").text()).toContain("start");
-    expect(wrapper.get("[data-testid='process-properties']").text()).toContain("暂无");
-    const save = wrapper.get("[data-testid='process-save']");
-    expect(save.attributes("disabled")).toBeDefined();
-    expect(wrapper.text()).not.toContain("发布成功率");
     await wrapper.findAll("[data-testid='process-node']")[1].trigger("click");
     expect(wrapper.get("[data-testid='process-properties']").text()).toContain("approveTask");
+    expect(wrapper.find("[data-testid='process-save']").exists()).toBe(false);
+    await wrapper.get("[data-testid='process-edit-copy']").trigger("click");
+    await wrapper.get("[data-testid='node-name']").setValue("审批单据");
+    await wrapper.get("[data-testid='node-assignee']").setValue("${manager}");
+    await wrapper.get("[data-testid='node-actions'] button:nth-of-type(2)").trigger("click");
+    expect(wrapper.get("[data-testid='process-canvas']").text()).toContain("新用户任务");
+    p3.saveProcessDraft.mockImplementation(async (key, body) => {
+      persisted = { key, name: body.name, bpmn_xml: body.bpmn_xml };
+      return { key, name: body.name };
+    });
+    p3.getProcessDraft.mockImplementation(async () => persisted);
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    expect(p3.saveProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval", expect.objectContaining({
+      name: "Nexus sequential approval",
+      bpmn_xml: expect.stringContaining('name="审批单据"'),
+    }));
+    expect(p3.saveProcessDraft.mock.calls[0][1].bpmn_xml).toContain('flowable:assignee="${manager}"');
+    expect(wrapper.text()).not.toContain("发布成功率");
     expect(p3.getProcessDefinition).toHaveBeenCalledWith("nexusSequentialApproval");
+
+    const reopened = await mountAt("/p3/workflow/nexusSequentialApproval");
+    expect(p3.getProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");
+    expect(reopened.get("[data-testid='process-canvas']").text()).toContain("审批单据");
+    await reopened.findAll("[data-testid='process-node']")[1].trigger("click");
+    expect(reopened.get("[data-testid='node-assignee']").element.value).toBe("${manager}");
+  });
+
+  it("creates a new basic draft without inventing server-side records before save", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    expect(wrapper.findAll("[data-testid='process-node']")).toHaveLength(3);
+    expect(p3.saveProcessDraft).not.toHaveBeenCalled();
+    expect(wrapper.get("[data-testid='draft-name']").element.value).toBe("新流程草稿");
   });
 
   it("shows an empty state when the catalog has no definitions", async () => {

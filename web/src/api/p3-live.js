@@ -558,6 +558,18 @@ export async function getProcessDefinition(key) {
   return api(`/api/v1/process/definitions/${encodeURIComponent(key)}`);
 }
 
+export async function listProcessDrafts() {
+  return asList(await api("/api/v1/process/drafts"));
+}
+
+export async function getProcessDraft(key) {
+  return api(`/api/v1/process/drafts/${encodeURIComponent(key)}`);
+}
+
+export async function saveProcessDraft(key, body = {}) {
+  return api(`/api/v1/process/drafts/${encodeURIComponent(key)}`, { method: "PUT", body });
+}
+
 export async function listPublishCenter() {
   return asList(await api("/api/v1/p3/publish-center"));
 }
