@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,6 +25,7 @@ import one.nexus.p1.port.IsolationGuard;
 import one.nexus.p1.port.PlatformContext;
 
 @Service
+@ConditionalOnBean({IsolationGuard.class, AuditPort.class, ClockPort.class})
 public class FormTemplateDraftService {
     private static final List<String> FIELD_TYPES = List.of(
             "TEXT", "TEXTAREA", "NUMBER", "MONEY", "DATE", "SELECT", "PERSON", "ATTACHMENT");
