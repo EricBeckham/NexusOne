@@ -36,7 +36,7 @@
 | X3 | P3 应用工作台正式首页 | `ui/x3-p3-workbench` | 无 | 空闲者 | Cursor | 进行中 |
 | B1 | P4/P5 读模型后端（list/read；Credential 视体积） | `feat/b1-p4-p5-read-models` | 无 | **建议 Codex** | | 已合并（PR #292，main `c53f2eb`） |
 | F1 | 修复后端全量测试编译失败 | `fix/f1-backend-test-compile` | 无（与 X4/X5 独立，可并行） | 空闲者 | Cursor | 已合并（PR #299） |
-| F2 | 修复 P3 集成测试缺少 `platform.exec_outbox` 表 | `fix/f2-p3-integration-test-db` | 无（建议 F1 先合） | 空闲者 | Cursor | 进行中 |
+| F2 | 修复 P3 集成测试缺少 `platform.exec_outbox` 表 | `fix/f2-p3-integration-test-db` | 无（建议 F1 先合） | 空闲者 | Cursor | 已合并（PR #301） |
 | X4 | P4 规范 §28 子页 | `ui/x4-p4-subpages` | **B1 已合并（PR #292）** | 空闲者 | | 已合并（PR #293） |
 | X5 | P5 规范 §29 子页（自用） | `ui/x5-p5-subpages` | **B1 已合并（PR #292）** | 空闲者 | Cursor | 进行中 |
 
@@ -276,3 +276,4 @@ FE 对照（只读参考，B1 PR **不得**改这些文件）：`p4.catalog`、`
 - 2026-09-24：Cursor 从 `origin/main@f02c2b7` 领取 F1，分支 `fix/f1-backend-test-compile`。测试替身补 `updateProjection`，不改产品代码。
 - 2026-09-24：F1 已合并（PR #299）。
 - 2026-09-24：Cursor 从 `origin/main@648d60e` 领取 F2，分支 `fix/f2-p3-integration-test-db`。`platform.exec_outbox` 由 V500 创建，全新测试库已执行该迁移；路径测试失败点是 text 列与 uuid 参数比较。
+- 2026-09-24：F2 已合并（PR #301）。
