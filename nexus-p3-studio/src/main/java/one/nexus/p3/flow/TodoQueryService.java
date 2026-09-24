@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(name = "nexus.flow.engine")
 public class TodoQueryService {
     private final JdbcProcessStore store;
+    private final ApprovalCommentStore comments;
 
-    public TodoQueryService(JdbcProcessStore store) {
+    public TodoQueryService(JdbcProcessStore store, ApprovalCommentStore comments) {
         this.store = store;
+        this.comments = comments;
     }
 
     public List<TodoView> pending() {
@@ -26,7 +28,7 @@ public class TodoQueryService {
 
     public List<TodoView> done() {
         TenantContext tenant = requireTenant();
-        return store.doneBy(tenant.tenantId(), tenant.personId());
+        return store.doneBy(tenant.tenantId(), tenant.personId()).stream().map(comments::attach).toList();
     }
 
     public List<ProcessInstanceView> initiated() {
@@ -36,8 +38,8 @@ public class TodoQueryService {
 
     public TodoView get(UUID todoId) {
         TenantContext tenant = requireTenant();
-        return store.findTodo(tenant.tenantId(), todoId)
-                .orElseThrow(() -> FlowException.notFound("todo not found in current tenant"));
+        return comments.attach(store.findTodo(tenant.tenantId(), todoId)
+                .orElseThrow(() -> FlowException.notFound("todo not found in current tenant")));
     }
 
     private static TenantContext requireTenant() {
