@@ -20,11 +20,12 @@ import one.nexus.p1.domain.TenantKind;
 import one.nexus.p1.domain.TenantStatus;
 import one.nexus.p1.port.TableAccessPlan;
 import one.nexus.p1.port.TenantAdminInitializer.AdminInitResult;
+import one.nexus.p1.port.TenantRelationStore;
 import one.nexus.p1.port.TenantRepository;
 
 @Repository
 @DependsOn("flyway")
-public class JdbcTenantRepository implements TenantRepository {
+public class JdbcTenantRepository implements TenantRepository, TenantRelationStore {
 
     static final TableAccessPlan TENANT_PLAN = TableAccessPlan.platform("platform.tenant");
     static final TableAccessPlan CONFIG_PLAN = TableAccessPlan.platform("platform.tenant_config");
@@ -179,6 +180,23 @@ public class JdbcTenantRepository implements TenantRepository {
                 .query(Integer.class)
                 .single();
         return count != null && count > 0;
+    }
+
+    @Override
+    public List<TenantLink> listActive() {
+        return jdbc.sql("""
+                        SELECT id, code, name, status, parent_tenant_id
+                        FROM platform.tenant
+                        WHERE deleted_at IS NULL
+                        ORDER BY name
+                        """)
+                .query((rs, row) -> new TenantLink(
+                        JdbcValues.uuid(rs, "id"),
+                        rs.getString("code"),
+                        rs.getString("name"),
+                        rs.getString("status"),
+                        JdbcValues.uuid(rs, "parent_tenant_id")))
+                .list();
     }
 
     @Override
