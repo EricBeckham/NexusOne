@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -160,6 +161,38 @@ class CredentialSecretServiceTest {
 
         void put(CredentialMetadata row) {
             rows.put(row.id(), row);
+        }
+
+        @Override
+        public List<CredentialMetadata> list(UUID tenantId) {
+            return rows.values().stream()
+                    .filter(row -> tenantId.equals(row.tenantId()))
+                    .sorted(Comparator.comparing(CredentialMetadata::updatedAt).reversed())
+                    .toList();
+        }
+
+        @Override
+        public Optional<CredentialMetadata> findByName(UUID tenantId, String name) {
+            return rows.values().stream()
+                    .filter(row -> tenantId.equals(row.tenantId()) && name.equals(row.name()))
+                    .findFirst();
+        }
+
+        @Override
+        public void insert(CredentialMetadata row) {
+            rows.put(row.id(), row);
+        }
+
+        @Override
+        public boolean update(UUID tenantId, UUID id, String name, String provider, Instant expiresAt, Instant updatedAt) {
+            CredentialMetadata row = find(tenantId, id).orElse(null);
+            if (row == null) {
+                return false;
+            }
+            rows.put(id, new CredentialMetadata(
+                    row.id(), row.tenantId(), name, provider, row.status(),
+                    row.lastRotatedAt(), expiresAt, row.secretName(), row.createdAt(), updatedAt));
+            return true;
         }
 
         @Override
