@@ -32,24 +32,32 @@ public class MarketService {
     private final Clock clock;
     private final IdentityRepository identities;
     private final AuditPort audit;
+    private final ProductDefaultPermissionProvisioner permissionPacks;
 
     @Autowired
     public MarketService(MarketRepository market, TenantRepository tenants,
-            ObjectProvider<IdentityRepository> identities, ObjectProvider<AuditPort> audit) {
-        this(market, tenants, Clock.systemUTC(), identities.getIfAvailable(), audit.getIfAvailable());
+            ObjectProvider<IdentityRepository> identities, ObjectProvider<AuditPort> audit,
+            ObjectProvider<ProductDefaultPermissionProvisioner> permissionPacks) {
+        this(market, tenants, Clock.systemUTC(), identities.getIfAvailable(), audit.getIfAvailable(), permissionPacks.getIfAvailable());
     }
 
     MarketService(MarketRepository market, TenantRepository tenants, Clock clock) {
-        this(market, tenants, clock, null, null);
+        this(market, tenants, clock, null, null, null);
     }
 
     MarketService(MarketRepository market, TenantRepository tenants, Clock clock,
             IdentityRepository identities, AuditPort audit) {
+        this(market, tenants, clock, identities, audit, null);
+    }
+
+    MarketService(MarketRepository market, TenantRepository tenants, Clock clock,
+            IdentityRepository identities, AuditPort audit, ProductDefaultPermissionProvisioner permissionPacks) {
         this.market = market;
         this.tenants = tenants;
         this.clock = clock;
         this.identities = identities;
         this.audit = audit;
+        this.permissionPacks = permissionPacks;
     }
 
     @Transactional
@@ -136,6 +144,8 @@ public class MarketService {
         market.saveInstallationProductPin(new InstallationProductPin(installation.id(), definition.id(),
                 definition.formTemplateVersionId(), definition.processDefinitionKey(),
                 definition.processDefinitionVersion(), clock.instant()));
+        if (permissionPacks == null) throw new IllegalStateException("default permission pack provisioner is required");
+        permissionPacks.provision(tenantId, definition);
         if (audit == null) throw new IllegalStateException("audit port is required for tenant self-subscription");
         AccessContext context = AccessContextHolder.current();
         UUID actorId = UUID.fromString(((TenantContext) context).actor().actorId());

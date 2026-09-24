@@ -34,7 +34,8 @@ class MarketSelfSubscribeTest {
         UUID formId=UUID.randomUUID(), productId=UUID.randomUUID(), positionId=UUID.randomUUID();
         MarketRepository market=mock(MarketRepository.class); TenantRepository tenants=mock(TenantRepository.class);
         IdentityRepository iam=mock(IdentityRepository.class); AuditPort audit=mock(AuditPort.class);
-        MarketService service=new MarketService(market,tenants,Clock.fixed(NOW,ZoneOffset.UTC),iam,audit);
+        ProductDefaultPermissionProvisioner permissionPacks=mock(ProductDefaultPermissionProvisioner.class);
+        MarketService service=new MarketService(market,tenants,Clock.fixed(NOW,ZoneOffset.UTC),iam,audit,permissionPacks);
         var kernel=IsolationKernel.create(new TableRegistry().freeze(),Set.of(),new CollectingAuditSink());
         var context=kernel.tenants().issue(new AuthenticatedMembership(Actor.person(personId.toString()),tenantId.toString(),"member-a",Set.of(tenantId.toString())),"trace-a");
         var person=new Model.Person(personId,tenantId,UUID.randomUUID(),"Admin","A-1","a@example.com",null,null,
@@ -58,6 +59,7 @@ class MarketSelfSubscribeTest {
             Installation installation=service.subscribeProduct(tenantId,"HR_BASIC",versionId);
             assertThat(installation.status()).isEqualTo(InstallationStatus.INSTALLED);
             verify(market).saveInstallationProductPin(new InstallationProductPin(installation.id(),productId,formId,null,null,NOW));
+            verify(permissionPacks).provision(tenantId, new ProductDefinition(productId,"hr","HR","",formId,null,null,Map.of(),"DRAFT",NOW,NOW,1));
             verify(audit).append(any());
             return null;
         });
@@ -67,7 +69,7 @@ class MarketSelfSubscribeTest {
         UUID tenantId=UUID.randomUUID(), otherTenant=UUID.randomUUID(), actor=UUID.randomUUID();
         MarketRepository market=mock(MarketRepository.class); TenantRepository tenants=mock(TenantRepository.class);
         IdentityRepository iam=mock(IdentityRepository.class); MarketService service=new MarketService(market,tenants,
-                Clock.fixed(NOW,ZoneOffset.UTC),iam,mock(AuditPort.class));
+                Clock.fixed(NOW,ZoneOffset.UTC),iam,mock(AuditPort.class),mock(ProductDefaultPermissionProvisioner.class));
         var kernel=IsolationKernel.create(new TableRegistry().freeze(),Set.of(),new CollectingAuditSink());
         var context=kernel.tenants().issue(new AuthenticatedMembership(Actor.person(actor.toString()),tenantId.toString(),"member",Set.of(tenantId.toString())),"trace");
         when(iam.findPerson(tenantId,actor)).thenReturn(Optional.empty());
