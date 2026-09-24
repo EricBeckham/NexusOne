@@ -1,11 +1,9 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>星市</h1>
-      <p>发现已审核发布的应用，为当前租户选择 SKU 并安装。</p>
-    </div>
+    <NxPageHeader title="应用目录" description="发现已审核发布的应用，为当前租户选择 SKU 并安装。">
+      <template #actions><button class="ghost" type="button" @click="load">刷新目录</button></template>
+    </NxPageHeader>
     <div class="nx-row" style="margin-bottom:16px">
-      <button class="primary" type="button" @click="load">刷新目录</button>
       <span class="nx-muted">{{ items.length }} 个可用版本</span>
     </div>
     <p v-if="loading" class="nx-muted">正在加载…</p>
@@ -29,6 +27,7 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 

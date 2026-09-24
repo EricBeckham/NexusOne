@@ -73,4 +73,32 @@ describe("product shell menus", () => {
       "发布中心（后续）",
     ]);
   });
+
+  it("keeps P4 and P5 navigation product-scoped with only implemented links", () => {
+    const p4Items = navFor("p4");
+    const p5Items = navFor("p5");
+    const p4Links = collectLinks(p4Items);
+    const p5Links = collectLinks(p5Items);
+
+    expect(p4Links).toEqual(["/p4", "/p4/market"]);
+    expect(p5Links).toEqual(["/p5", "/p5/connect"]);
+    expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
+    expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
+    expect(p4Items.filter((item) => !item.to).map((item) => item.label)).toEqual([
+      "应用包（后续）",
+      "Product / SKU（后续）",
+      "订阅（后续）",
+      "安装升级（后续）",
+      "商业权益（后续）",
+      "运营分析（后续）",
+    ]);
+    expect(p5Items.filter((item) => !item.to).map((item) => item.label)).toEqual([
+      "开放接口（后续）",
+      "API Client（后续）",
+      "Webhook（后续）",
+      "Connector（后续）",
+      "Credential（后续）",
+      "调用日志（后续）",
+    ]);
+  });
 });

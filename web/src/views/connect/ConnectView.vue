@@ -1,9 +1,6 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>星联</h1>
-      <p>内部 API、可靠 Webhook 与 NexusOne 自用连接器。当前为 P5 薄切片，不开放第三方开发者生态。</p>
-    </div>
+    <NxPageHeader title="接入总览" description="管理内部服务身份、Webhook 投递与 NexusOne 自用连接器。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <div class="nx-grid kpi summary">
       <article class="nx-card"><strong>{{ connectors.length }}</strong><span>可用连接器</span></article>
@@ -47,6 +44,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import { p5 } from "../../api/client";
 
 const connectors=ref([]); const runs=ref([]); const issued=ref(null); const subscription=ref(null);
