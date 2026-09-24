@@ -27,9 +27,8 @@ describe("product shell menus", () => {
     expect(navFor("p1").find((item) => item.id === "quotas").to).toBe("/p1/quotas");
     expect(navFor("p1").find((item) => item.id === "service").to).toBe("/p1/services");
     expect(navFor("p1").find((item) => item.id === "audit").to).toBe("/p1/audit");
-    expect(navFor("p1").filter((item) => item.later).map((item) => item.label)).toEqual([
-      "租户关系",
-    ]);
+    expect(navFor("p1").find((item) => item.id === "relations").to).toBe("/p1/relations");
+    expect(navFor("p1").filter((item) => item.later).map((item) => item.label)).toEqual([]);
     const p2Labels = navFor("p2").map((item) => item.label);
     expect(p2Labels).toEqual(["首页", "用户", "组织架构", "岗位任职", "权限", "身份安全"]);
     const p2Links = collectLinks(navFor("p2"));
