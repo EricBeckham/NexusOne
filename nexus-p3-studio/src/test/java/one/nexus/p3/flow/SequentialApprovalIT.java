@@ -1,5 +1,6 @@
 package one.nexus.p3.flow;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,6 +55,42 @@ class SequentialApprovalIT {
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
         EmbeddedFlowSupport.register(registry, postgres);
+    }
+
+    @Test
+    void readsClasspathDefinitionOnlyWithAnIssuedTenantContext() throws Exception {
+        mvc.perform(get("/api/v1/process/definitions"))
+                .andExpect(status().isUnauthorized());
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                TENANT_A, "Flow Admin A", "flow-admin-a@example.com", "flow-admin-a"));
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                TENANT_B, "Flow Admin B", "flow-admin-b@example.com", "flow-admin-b"));
+        Session adminA = login("flow-admin-a", "flow-admin-a@example.com", "Flow Admin A");
+        Session adminB = login("flow-admin-b", "flow-admin-b@example.com", "Flow Admin B");
+
+        mvc.perform(get("/api/v1/process/definitions")
+                        .header("Authorization", "Bearer " + adminA.token)
+                        .header("X-Nexus-Context-Id", adminA.contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].key", hasItem("nexusSequentialApproval")));
+        mvc.perform(get("/api/v1/process/definitions/nexusSequentialApproval")
+                        .header("Authorization", "Bearer " + adminB.token)
+                        .header("X-Nexus-Context-Id", adminB.contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Nexus sequential approval"))
+                .andExpect(jsonPath("$.nodes[?(@.id == 'approveTask')].type").value(hasItem("userTask")))
+                .andExpect(jsonPath("$.business_key").doesNotExist());
+        mvc.perform(get("/api/v1/process/definitions/missing")
+                        .header("Authorization", "Bearer " + adminA.token)
+                        .header("X-Nexus-Context-Id", adminA.contextId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("P3.FLOW.0002"));
+        mvc.perform(get("/api/v1/process/definitions")
+                        .header("Authorization", "Bearer " + adminA.token)
+                        .header("X-Nexus-Context-Id", adminA.contextId)
+                        .header("X-Tenant-Id", TENANT_B.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("P3.FLOW.0006"));
     }
 
     @Test
