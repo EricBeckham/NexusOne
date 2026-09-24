@@ -34,6 +34,7 @@ const routes = [
   { path: "/p2/persons", name: "persons", component: () => import("./views/org/PersonListView.vue"), meta: { title: "用户目录", product: "p2" } },
   { path: "/p2/org", name: "org", component: () => import("./views/org/OrgTreeView.vue"), meta: { title: "组织架构", product: "p2" } },
   { path: "/p2/positions", name: "positions", component: () => import("./views/org/PositionView.vue"), meta: { title: "岗位任职", product: "p2" } },
+  { path: "/p2/identity-integrations", name: "identity-integrations", component: () => import("./views/org/IdentityIntegrationsView.vue"), meta: { title: "身份集成", product: "p2" } },
   { path: "/p2/mfa/enroll", name: "totp-enroll", component: () => import("./views/org/TotpEnrollView.vue"), meta: { title: "TOTP 注册", product: "p2", public: true } },
   { path: "/p2/mfa/recovery", name: "mfa-recovery", component: () => import("./views/org/RecoveryCodesView.vue"), meta: { title: "恢复码", product: "p2", public: true } },
   { path: "/p2/mfa/email", name: "mfa-email", component: () => import("./views/org/EmailMfaView.vue"), meta: { title: "邮箱 MFA", product: "p2", public: true } },

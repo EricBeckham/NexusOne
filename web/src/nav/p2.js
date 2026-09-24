@@ -4,6 +4,7 @@ export const p2Nav = [
   { id: "org", label: "组织架构", to: "/p2/org" },
   { id: "positions", label: "岗位任职", to: "/p2/positions" },
   { id: "permissions", label: "权限", to: "/p2/permissions" },
+  { id: "identity-integrations", label: "身份集成", to: "/p2/identity-integrations" },
   {
     id: "security",
     label: "身份安全",

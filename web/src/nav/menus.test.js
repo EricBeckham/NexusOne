@@ -30,13 +30,14 @@ describe("product shell menus", () => {
     expect(navFor("p1").find((item) => item.id === "relations").to).toBe("/p1/relations");
     expect(navFor("p1").filter((item) => item.later).map((item) => item.label)).toEqual([]);
     const p2Labels = navFor("p2").map((item) => item.label);
-    expect(p2Labels).toEqual(["首页", "用户", "组织架构", "岗位任职", "权限", "身份安全"]);
+    expect(p2Labels).toEqual(["首页", "用户", "组织架构", "岗位任职", "权限", "身份集成", "身份安全"]);
     const p2Links = collectLinks(navFor("p2"));
     expect(p2Links).toEqual(expect.arrayContaining([
       "/p2/persons",
       "/p2/org",
       "/p2/positions",
       "/p2/permissions",
+      "/p2/identity-integrations",
     ]));
     expect(collectLinks(navFor("p1")).some((link) => link.startsWith("/p2"))).toBe(false);
     expect(p2Links.some((link) => link.startsWith("/p1"))).toBe(false);
