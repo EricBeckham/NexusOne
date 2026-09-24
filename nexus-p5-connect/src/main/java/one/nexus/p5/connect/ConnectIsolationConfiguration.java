@@ -95,7 +95,21 @@ public class ConnectIsolationConfiguration {
                         "output",
                         "error",
                         "started_at",
-                        "finished_at");
+                        "finished_at")
+                .registerTenant(
+                        "integration.credential_metadata",
+                        "nexus-p5-connect",
+                        1,
+                        "id",
+                        "tenant_id",
+                        "name",
+                        "provider",
+                        "status",
+                        "last_rotated_at",
+                        "expires_at",
+                        "secret_name",
+                        "created_at",
+                        "updated_at");
         return IsolationKernel.create(tables.freeze(), Set.of(), sink);
     }
 }
