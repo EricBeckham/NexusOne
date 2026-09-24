@@ -3,13 +3,17 @@
     <NxPageHeader
       eyebrow="星构"
       title="流程设计器"
-      description="只读查看已部署流程。节点位置按连线排列，不保存草稿。"
+      description="编辑租户内流程草稿；已发布目录仅供查看，改动不会部署或发布。"
     >
       <template #actions>
-        <button type="button" class="ghost" disabled data-testid="process-save">保存（后续）</button>
+        <button type="button" class="ghost" data-testid="process-new" @click="newDraft">新建草稿</button>
+        <button v-if="!isEditing" type="button" class="ghost" data-testid="process-edit-copy" :disabled="!definition" @click="editAsDraft">创建可编辑草稿</button>
+        <button v-if="isEditing" type="button" class="primary" data-testid="process-save" :disabled="saving" @click="saveDraft">
+          {{ saving ? "保存中…" : "保存草稿" }}
+        </button>
       </template>
     </NxPageHeader>
-    <p class="nx-muted later-note">节点编辑、撤销、校验和发布定义仍是后续。本页不能改流程。</p>
+    <p class="nx-muted later-note">当前仅支持开始、用户任务、结束节点的基础编辑与草稿保存；不包含网关编辑、校验或发布。</p>
     <NxErrorState
       v-if="error"
       title="流程定义没有加载"
@@ -18,10 +22,10 @@
       retry-label="重试"
       @retry="reload"
     />
-    <NxEmpty v-else-if="!loading && !definitions.length" title="暂无流程定义" description="类路径里还没有可查看的流程。" />
+    <NxEmpty v-else-if="!loading && !definition && !definitions.length" title="暂无流程定义" description="类路径里还没有可查看的流程。" />
     <div v-else class="shell">
       <aside class="nx-card list" data-testid="process-list">
-        <h2>流程</h2>
+        <h2>流程与草稿</h2>
         <button
           v-for="item in definitions"
           :key="item.key"
@@ -31,7 +35,7 @@
           @click="openDefinition(item.key)"
         >
           <strong>{{ showText(item.name) }}</strong>
-          <span>{{ showText(item.key) }}</span>
+          <span>{{ showText(item.key) }} · {{ item.source === "draft" ? "草稿" : "已发布只读" }}</span>
         </button>
       </aside>
       <section class="nx-card canvas" data-testid="process-canvas">
@@ -44,7 +48,7 @@
           :width="graph.width"
           :height="graph.height"
           role="group"
-          aria-label="流程只读图"
+          aria-label="流程图"
         >
           <line
             v-for="flow in graph.flows"
@@ -70,15 +74,28 @@
       </section>
       <aside class="nx-card props" data-testid="process-properties">
         <h2>节点属性</h2>
+        <label v-if="isEditing" class="draft-name">草稿名称<input v-model="definition.name" data-testid="draft-name" aria-label="草稿名称" /></label>
         <dl v-if="selected">
           <dt>标识</dt>
           <dd>{{ showText(selected.id) }}</dd>
           <dt>名称</dt>
-          <dd>{{ showText(selected.name) }}</dd>
+          <dd v-if="isEditing && editableType(selected.type)"><input v-model="selected.name" data-testid="node-name" aria-label="节点名称" /></dd>
+          <dd v-else>{{ showText(selected.name) }}</dd>
           <dt>类型</dt>
           <dd>{{ showText(selected.type) }}</dd>
+          <template v-if="selected.type === 'userTask'">
+            <dt>审批人引用</dt>
+            <dd v-if="isEditing"><input v-model="selected.assignee" data-testid="node-assignee" aria-label="审批人引用" placeholder="例如 ${assignee}" /></dd>
+            <dd v-else>{{ showText(selected.assignee) }}</dd>
+          </template>
         </dl>
         <p v-else class="nx-muted">暂无</p>
+        <div v-if="isEditing" class="node-actions" data-testid="node-actions">
+          <h3>添加节点</h3>
+          <button type="button" class="ghost" @click="addNode('startEvent')">开始</button>
+          <button type="button" class="ghost" @click="addNode('userTask')">用户任务</button>
+          <button type="button" class="ghost" @click="addNode('endEvent')">结束</button>
+        </div>
         <h3>相关连线</h3>
         <ul v-if="selectedFlows.length">
           <li v-for="flow in selectedFlows" :key="flow.id || `${flow.source_ref}-${flow.target_ref}`">
@@ -97,18 +114,22 @@ import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader } from "../../components";
 import { p3 } from "../../api/p3";
+import { addDraftNode, createBlankDraft, parseDraftXml, serializeDraftXml } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
 
 const route = useRoute();
 const router = useRouter();
 const definitions = ref([]);
 const definition = ref(null);
+const isDraft = ref(false);
+const isEditing = ref(false);
+const saving = ref(false);
 const selectedId = ref("");
 const error = ref(null);
 const loading = ref(false);
 
 const graph = computed(() => layoutDefinition(definition.value || {}));
-const selected = computed(() => graph.value.nodes.find((node) => node.id === selectedId.value) || null);
+const selected = computed(() => definition.value?.nodes?.find((node) => node.id === selectedId.value) || null);
 const selectedFlows = computed(() => {
   const id = selectedId.value;
   return (definition.value?.flows || []).filter((flow) => flow.source_ref === id || flow.target_ref === id);
@@ -118,8 +139,13 @@ async function reload() {
   loading.value = true;
   error.value = null;
   try {
-    const listed = await p3.listProcessDefinitions();
-    definitions.value = Array.isArray(listed) ? listed : [];
+    const [listed, savedDrafts] = await Promise.all([p3.listProcessDefinitions(), p3.listProcessDrafts()]);
+    const catalog = Array.isArray(listed) ? listed : [];
+    const draftList = Array.isArray(savedDrafts) ? savedDrafts : [];
+    definitions.value = [
+      ...draftList.map((draft) => ({ key: draft.key, name: draft.name, source: "draft" })),
+      ...catalog.filter((item) => !draftList.some((draft) => draft.key === item.key)),
+    ];
     const key = route.params.key ? String(route.params.key) : "";
     if (!key) {
       definition.value = null;
@@ -129,7 +155,17 @@ async function reload() {
       }
       return;
     }
-    definition.value = await p3.getProcessDefinition(key);
+    const saved = draftList.find((draft) => draft.key === key);
+    if (saved) {
+      const draft = await p3.getProcessDraft(key);
+      definition.value = { ...parseDraftXml(draft.bpmn_xml || draft.bpmnXml), key, name: draft.name, source: "draft" };
+      isDraft.value = true;
+      isEditing.value = true;
+    } else {
+      definition.value = await p3.getProcessDefinition(key);
+      isDraft.value = false;
+      isEditing.value = false;
+    }
     const nodes = definition.value?.nodes || [];
     selectedId.value = nodes.some((node) => node.id === selectedId.value) ? selectedId.value : (nodes[0]?.id || "");
   } catch (err) {
@@ -147,6 +183,53 @@ function openDefinition(key) {
   router.push(`/p3/workflow/${encodeURIComponent(key)}`);
 }
 
+function newDraft() {
+  const key = `draft-${Date.now()}`;
+  definition.value = createBlankDraft(key);
+  isDraft.value = true;
+  isEditing.value = true;
+  selectedId.value = "approveTask";
+}
+
+function editAsDraft() {
+  if (!definition.value) return;
+  isDraft.value = true;
+  isEditing.value = true;
+}
+
+function addNode(type) {
+  if (!definition.value) return;
+  const existingIds = new Set(definition.value.nodes.map((node) => node.id));
+  definition.value = addDraftNode(definition.value, type);
+  selectedId.value = definition.value.nodes.find((node) => !existingIds.has(node.id))?.id || selectedId.value;
+}
+
+function editableType(type) {
+  return ["startEvent", "userTask", "endEvent"].includes(type);
+}
+
+async function saveDraft() {
+  if (!definition.value || saving.value) return;
+  saving.value = true;
+  error.value = null;
+  try {
+    const saved = await p3.saveProcessDraft(definition.value.key, {
+      name: definition.value.name,
+      bpmn_xml: serializeDraftXml(definition.value),
+    });
+    definition.value = { ...definition.value, name: saved.name || definition.value.name, source: "draft" };
+    isDraft.value = true;
+    isEditing.value = true;
+    const existing = definitions.value.find((item) => item.key === definition.value.key);
+    if (existing) existing.name = definition.value.name;
+    else definitions.value.unshift({ key: definition.value.key, name: definition.value.name, source: "draft" });
+  } catch (err) {
+    error.value = err;
+  } finally {
+    saving.value = false;
+  }
+}
+
 watch(() => route.params.key, reload, { immediate: true });
 </script>
 
@@ -159,6 +242,9 @@ watch(() => route.params.key, reload, { immediate: true });
   align-items: start;
 }
 .list, .props { display: grid; gap: var(--nx-space-2); }
+.draft-name { display: grid; gap: var(--nx-space-1); }
+.node-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }
+.node-actions h3 { width: 100%; }
 .list h2, .canvas h2, .props h2, .props h3 { margin: 0; font-size: var(--nx-font-size-md); }
 .item {
   display: grid;
