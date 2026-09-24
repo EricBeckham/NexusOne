@@ -54,6 +54,11 @@ management:
 #   quartz-enabled      true
 #   quartz-auto-startup true
 nexus:
+  # 禁止连生产 / 默认关闭。不要把 spring profile demo 放进正式启动。
+  # 说明：docs/engineering/demo-profile.md
+  demo:
+    enabled: ${NEXUS_DEMO_ENABLED:false}
+    environment: ${NEXUS_DEMO_ENVIRONMENT:local}
   execution:
     dispatcher-enabled: true
     worker-enabled: true
