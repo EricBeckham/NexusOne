@@ -45,7 +45,7 @@
 | V11 | P4 应用目录 Card Grid 视觉 | `ui/v11-p4-catalog-cards` | V0 | 空闲者 | | 待领取 |
 | V12 | P5 星联首页四层骨架 | `ui/v12-p5-home` | V0、V1a、V1b | 空闲者 | | 待领取 |
 | V13 | P5 接入总览信息架构视觉 | `ui/v13-p5-connect-layout` | V0 | 空闲者 | | 待领取 |
-| V-SEED-0 | 演示开关/profile 机制 + 文档（默认关） | `feat/v-seed-0-demo-switch` | 无 | 空闲者 | Cursor | 进行中 |
+| V-SEED-0 | 演示开关/profile 机制 + 文档（默认关） | `feat/v-seed-0-demo-switch` | 无 | 空闲者 | Cursor | 已合并（PR #296） |
 | V-SEED-P1 | 星域最小演示行 | `feat/v-seed-p1` | V-SEED-0 | 空闲者 | | 待领取 |
 | V-SEED-P2 | 星权最小演示行 | `feat/v-seed-p2` | V-SEED-0 | 空闲者 | | 待领取 |
 | V-SEED-P3 | 星构最小演示行 | `feat/v-seed-p3` | V-SEED-0 | 空闲者 | | 待领取 |
@@ -356,3 +356,4 @@ V-SEED-* 与 UI 卡可全程并行；有种子时首页验收可对照效果图�
 
 - 2026-09-24：初版。对照冻结 WEB 规范 V1.1 与五张效果图；V1 拆 V1a/V1b；V-SEED 拆 0 + P1…P5；状态全部待领取。
 - 2026-09-24：Cursor 从 `origin/main@4d0e2aa` 领取 V-SEED-0，分支 `feat/v-seed-0-demo-switch`。演示开关与文档开工，不插入业务行。
+- 2026-09-24：V-SEED-0 已合并（PR #296）。默认关闭，不插入业务行。
