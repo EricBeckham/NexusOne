@@ -5,7 +5,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import { audit } from "../../api/client";
 import PlatformAuditView from "./PlatformAuditView.vue";
 
-vi.mock("../../api/client", () => ({ audit: { platformEvents: vi.fn() } }));
+vi.mock("../../api/client", () => ({ audit: { platformEvents: vi.fn(), verifyChain: vi.fn() } }));
 
 const routes = [{ path: "/p1/audit", name: "p1-audit", component: PlatformAuditView }];
 
@@ -19,7 +19,10 @@ async function open(path = "/p1/audit") {
 }
 
 describe("P1 platform audit center", () => {
-  beforeEach(() => audit.platformEvents.mockReset());
+  beforeEach(() => {
+    audit.platformEvents.mockReset();
+    audit.verifyChain.mockReset();
+  });
 
   it("restores URL filters and opens only a safe read-only summary drawer", async () => {
     audit.platformEvents.mockResolvedValue({
@@ -70,5 +73,22 @@ describe("P1 platform audit center", () => {
     await flushPromises();
     expect(wrapper.text()).toContain("暂无");
     expect(audit.platformEvents).toHaveBeenCalledTimes(2);
+  });
+
+  it("verifies the platform hash chain without rendering an event payload", async () => {
+    audit.platformEvents.mockResolvedValue({ items: [], total: 0, page: 1, size: 20 });
+    audit.verifyChain.mockResolvedValue({
+      intact: false, checked: 3, failure: "event hash mismatch at 1", details: { secret: "must-not-render" },
+    });
+    const { wrapper } = await open();
+    await wrapper.get("[data-testid=verify-chain]").trigger("click");
+    await flushPromises();
+
+    expect(audit.verifyChain).toHaveBeenCalledOnce();
+    expect(wrapper.text()).toContain("链已破坏");
+    expect(wrapper.text()).toContain("3");
+    expect(wrapper.text()).toContain("event hash mismatch at 1");
+    expect(wrapper.text()).not.toContain("must-not-render");
+    expect(wrapper.text()).not.toContain("星构");
   });
 });
