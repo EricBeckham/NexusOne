@@ -40,4 +40,23 @@ class FlywaySqlContractTest {
                     });
         }
     }
+
+    @Test
+    void secretCiphertextMigrationStoresCiphertextAndNoPlaintextSecretColumns() throws IOException {
+        Path migration = Path.of("src/main/resources/db/migration/V004__platform_secret_ciphertext.sql");
+        assertTrue(Files.isRegularFile(migration), migration.toAbsolutePath().toString());
+        String sql = Files.readString(migration).toLowerCase(Locale.ROOT);
+        int start = sql.indexOf("create table platform.secret_ciphertext");
+        int end = sql.indexOf(";", start);
+        assertTrue(start >= 0 && end > start, "SecretPort ciphertext table must exist");
+        String table = sql.substring(start, end);
+        assertTrue(table.contains("secret_name varchar(512) primary key"));
+        assertTrue(table.contains("version integer not null"));
+        assertTrue(table.contains("ciphertext bytea not null"));
+        assertTrue(table.contains("key_id varchar(128) not null"));
+        assertTrue(table.contains("updated_at timestamptz not null"));
+        for (String forbidden : new String[]{"plaintext", "password", "client_secret", "secret_value"}) {
+            assertFalse(table.contains(forbidden), "secret ciphertext table must not store " + forbidden);
+        }
+    }
 }

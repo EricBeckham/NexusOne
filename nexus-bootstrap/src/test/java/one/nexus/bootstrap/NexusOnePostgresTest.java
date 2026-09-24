@@ -64,6 +64,7 @@ class NexusOnePostgresTest {
                 Integer.class);
         assertEquals(3, metaTables);
         assertTrue(versions.contains("500"), "M0-09 V500 execution channel must be applied, got " + versions);
+        assertTrue(versions.contains("4"), "M1 V004 durable secret ciphertext table must be applied, got " + versions);
         assertTrue(versions.contains("501"), "M0-11 V501 audit hash chain must be applied, got " + versions);
         assertTrue(versions.contains("502"), "G4 V502 audit export/archive must be applied, got " + versions);
         assertTrue(versions.contains("503"), "G4 V503 archive expiry grant must be applied, got " + versions);
@@ -76,6 +77,16 @@ class NexusOnePostgresTest {
                 "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'audit_record'",
                 Integer.class);
         assertEquals(1, auditTables);
+        Integer secretTables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'platform' and table_name = 'secret_ciphertext'",
+                Integer.class);
+        assertEquals(1, secretTables);
+        List<String> secretColumns = jdbc.queryForList(
+                "select column_name from information_schema.columns where table_schema = 'platform' and table_name = 'secret_ciphertext'",
+                String.class);
+        assertTrue(secretColumns.containsAll(List.of("secret_name", "version", "ciphertext", "key_id", "updated_at")));
+        assertTrue(secretColumns.stream().noneMatch(name -> name.contains("plaintext") || name.contains("password")
+                || name.contains("client_secret")), "secret store must not expose plaintext columns: " + secretColumns);
         Integer iamTables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'iam' and table_name = 'iam_global_account'",
                 Integer.class);
