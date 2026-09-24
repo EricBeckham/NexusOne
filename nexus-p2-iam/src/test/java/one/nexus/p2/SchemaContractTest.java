@@ -35,4 +35,30 @@ class SchemaContractTest {
         assertFalse(global.contains("tenant_id"),
                 "global account is platform-scoped and must not carry tenant_id");
     }
+
+    @Test
+    void idpConfigurationStoresTenantMetadataWithoutCredentials() throws Exception {
+        String sql;
+        try (var in = Objects.requireNonNull(
+                getClass().getResourceAsStream("/db/migration/V201__iam_idp_configuration.sql"),
+                "migration not on classpath")) {
+            sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        assertTrue(sql.contains("CREATE TABLE iam.iam_idp_configuration"));
+
+        int start = sql.indexOf("CREATE TABLE iam.iam_idp_configuration");
+        int end = sql.indexOf(";", start);
+        assertTrue(start >= 0 && end > start, "IdP configuration table must be present");
+        String table = sql.substring(start, end).toLowerCase();
+        for (String column : new String[]{
+                "tenant_id", "provider_type", "display_name", "issuer", "status",
+                "last_sync_at", "last_sync_ok", "sync_fail_count", "created_at", "updated_at"
+        }) {
+            assertTrue(table.matches("(?s).*\\b" + column + "\\b.*"), column + " metadata column must exist");
+        }
+        for (String forbidden : new String[]{"secret", "credential", "password", "private_key"}) {
+            assertFalse(table.contains(forbidden), "IdP configuration must not store " + forbidden);
+        }
+        assertTrue(sql.contains("sync_fail_count >= 0"), "sync failure count must be non-negative");
+    }
 }
