@@ -6,6 +6,7 @@
     </div>
     <label class="search">
       <span class="sr">全局搜索</span>
+      <NxIcon name="search" :size="18" />
       <input
         ref="searchEl"
         type="search"
@@ -19,7 +20,7 @@
         <i />
         {{ env.label }}
       </span>
-      <router-link class="notify" to="/p3/notifications">通知</router-link>
+      <router-link class="notify" to="/p3/notifications"><NxIcon name="bell" :size="18" /><span>通知</span></router-link>
       <div class="user">
         <button type="button" class="user-btn" @click="open = !open">
           {{ session.displayName || "未登录" }}
@@ -54,6 +55,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { clearIdentity, ensureContext, persist, session, switchTenant } from "../api/session";
 import { productById } from "../nav/products";
+import NxIcon from "../icons/NxIcon.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -138,7 +140,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
   font-size: 12px;
   white-space: nowrap;
 }
-.search { flex: 1; display: flex; justify-content: center; }
+.search { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--nx-text-secondary); }
 .search input {
   width: min(420px, 100%);
   min-width: 240px;
@@ -150,10 +152,10 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 }
 .actions { display: flex; align-items: center; gap: 12px; }
 .env { display: flex; align-items: center; gap: 6px; color: var(--nx-text-secondary); font-size: 13px; }
-.env i { width: 8px; height: 8px; border-radius: 50%; background: var(--nx-info); display: block; }
+.env i { width: 8px; height: 8px; border-radius: var(--nx-radius-pill); background: var(--nx-info); display: block; }
 .env[data-tone="prod"] i { background: var(--nx-success); }
 .env[data-tone="test"] i { background: var(--nx-warning); }
-.notify { font-size: 13px; }
+.notify { display: inline-flex; align-items: center; gap: 6px; color: var(--nx-text-regular); font-size: 13px; }
 .user { position: relative; }
 .user-btn, .link {
   background: none;
