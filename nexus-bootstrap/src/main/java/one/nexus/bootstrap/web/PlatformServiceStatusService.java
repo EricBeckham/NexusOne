@@ -8,9 +8,11 @@ import java.sql.Connection;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 import one.nexus.cache.CachePorts;
 import one.nexus.cache.Redis32CacheAdapter;
@@ -22,6 +24,7 @@ import org.flywaydb.core.Flyway;
 import org.quartz.Scheduler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /** Read-only, best-effort diagnostics. Each probe fails independently and never returns exception details. */
@@ -42,8 +45,11 @@ public class PlatformServiceStatusService {
     private final IamProperties iam;
     private final ObjectProvider<Scheduler> schedulers;
     private final ObjectProvider<ProcessEngine> processEngines;
+    private static final Duration DEFAULT_PROBE_TIMEOUT = Duration.ofSeconds(2);
+
     private final ObjectProvider<Flyway> flyways;
     private final Clock clock;
+    private Duration probeTimeout = DEFAULT_PROBE_TIMEOUT;
 
     @Autowired
     public PlatformServiceStatusService(
@@ -79,16 +85,32 @@ public class PlatformServiceStatusService {
         this.clock = clock;
     }
 
+    @Autowired
+    void setProbeTimeout(@Value("${nexus.platform.status.probe-timeout:2s}") Duration probeTimeout) {
+        this.probeTimeout = normalize(probeTimeout);
+    }
+
     public Snapshot snapshot() {
-        List<Component> components = new ArrayList<>();
-        components.add(probe("database", "数据库", this::database));
-        components.add(probe("redis", "Redis", this::redis));
-        components.add(probe("object-storage", "对象存储", this::objectStorage));
-        components.add(probe("keycloak", "Keycloak", this::keycloak));
-        components.add(probe("flowable", "Flowable", this::flowable));
-        components.add(probe("quartz", "Quartz", this::quartz));
-        components.add(probe("flyway", "Flyway", this::flyway));
-        return new Snapshot(components, clock.instant());
+        List<NamedProbe> probes = List.of(
+                new NamedProbe("database", "数据库", this::database),
+                new NamedProbe("redis", "Redis", this::redis),
+                new NamedProbe("object-storage", "对象存储", this::objectStorage),
+                new NamedProbe("keycloak", "Keycloak", this::keycloak),
+                new NamedProbe("flowable", "Flowable", this::flowable),
+                new NamedProbe("quartz", "Quartz", this::quartz),
+                new NamedProbe("flyway", "Flyway", this::flyway));
+        ExecutorService executor = Executors.newFixedThreadPool(probes.size(), PlatformServiceStatusService::daemon);
+        try {
+            List<CompletableFuture<Component>> futures = probes.stream()
+                    .map(item -> CompletableFuture
+                            .supplyAsync(() -> probe(item.code(), item.name(), item.check()), executor)
+                            .orTimeout(probeTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                            .exceptionally(error -> timedOut(item.code(), item.name())))
+                    .toList();
+            return new Snapshot(futures.stream().map(CompletableFuture::join).toList(), clock.instant());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private Probe database() throws Exception {
@@ -183,11 +205,30 @@ public class PlatformServiceStatusService {
         }
     }
 
+    private Component timedOut(String code, String name) {
+        return new Component(code, name, State.UNKNOWN, "探测超时", clock.instant());
+    }
+
+    private static Duration normalize(Duration probeTimeout) {
+        if (probeTimeout == null || probeTimeout.isZero() || probeTimeout.isNegative()) {
+            return DEFAULT_PROBE_TIMEOUT;
+        }
+        return probeTimeout;
+    }
+
+    private static Thread daemon(Runnable runnable) {
+        Thread thread = new Thread(runnable, "platform-status-probe");
+        thread.setDaemon(true);
+        return thread;
+    }
+
     private static String trimSlash(String value) {
         int end = value.length();
         while (end > 0 && value.charAt(end - 1) == '/') end--;
         return value.substring(0, end);
     }
+
+    private record NamedProbe(String code, String name, SupplierWithException check) {}
 
     private record Probe(State state, String message) {}
 
