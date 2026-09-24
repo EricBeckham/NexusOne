@@ -11,6 +11,8 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import one.nexus.bootstrap.isolation.bypass.RawTenantSqlFixture;
+import one.nexus.crypto.JdbcEncryptedSecretAdapter;
+import one.nexus.crypto.LocalThenEnvSecretPort;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -37,10 +39,12 @@ class QueryCompilerBypassArchTest {
             .that().resideOutsideOfPackages(
                     "one.nexus.p4.market.infra.jdbc..",
                     "one.nexus.p5.connect.infra.jdbc..")
+            .and().doNotBelongToAnyOf(JdbcEncryptedSecretAdapter.class, LocalThenEnvSecretPort.class)
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("java.sql..", "javax.sql..", "jakarta.sql..", "org.springframework.jdbc..")
             .because("tenant-table DML goes through QueryCompiler / IsolationKernel.jdbc(); "
+                    + "platform.secret_ciphertext JDBC is limited to the durable SecretPort; "
                     + "see docs/g1-querycompiler-bypass-ci.md");
 
     @ArchTest
