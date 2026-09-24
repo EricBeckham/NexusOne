@@ -10,6 +10,7 @@ import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.context.AccessContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,11 @@ import org.springframework.web.server.ResponseStatusException;
 import one.nexus.p1.domain.EntitlementPayload;
 import one.nexus.p1.domain.EntitlementProjection;
 import one.nexus.p1.port.TenantRepository;
+import one.nexus.p1.port.AuditPort;
+import one.nexus.p1.domain.AuditEvent;
+import one.nexus.p2.domain.IdentityRepository;
+import one.nexus.p2.domain.Model;
+import one.nexus.p2.session.AdminMfaPolicy;
 import one.nexus.p4.market.MarketModels.*;
 
 @Service
@@ -24,16 +30,26 @@ public class MarketService {
     private final MarketRepository market;
     private final TenantRepository tenants;
     private final Clock clock;
+    private final IdentityRepository identities;
+    private final AuditPort audit;
 
     @Autowired
-    public MarketService(MarketRepository market, TenantRepository tenants) {
-        this(market, tenants, Clock.systemUTC());
+    public MarketService(MarketRepository market, TenantRepository tenants,
+            ObjectProvider<IdentityRepository> identities, ObjectProvider<AuditPort> audit) {
+        this(market, tenants, Clock.systemUTC(), identities.getIfAvailable(), audit.getIfAvailable());
     }
 
     MarketService(MarketRepository market, TenantRepository tenants, Clock clock) {
+        this(market, tenants, clock, null, null);
+    }
+
+    MarketService(MarketRepository market, TenantRepository tenants, Clock clock,
+            IdentityRepository identities, AuditPort audit) {
         this.market = market;
         this.tenants = tenants;
         this.clock = clock;
+        this.identities = identities;
+        this.audit = audit;
     }
 
     @Transactional
@@ -105,6 +121,53 @@ public class MarketService {
         return installation;
     }
 
+    /** Tenant-admin self-service install. Idempotency contract is explicit conflict on duplicates. */
+    @Transactional
+    public Installation subscribeProduct(UUID tenantId, String skuCode, UUID versionId) {
+        assertTenant(requireTenantId(), tenantId);
+        requireTenantAdmin(tenantId);
+        ProductDefinition definition = market.productDefinitionForSku(skuCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "catalog SKU has no product definition"));
+        if (market.subscriptions().stream().anyMatch(row -> row.skuCode().equals(skuCode)
+                && row.status() == SubscriptionStatus.ACTIVE)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "tenant already has an active subscription for this SKU");
+        }
+        Installation installation = subscribeAndInstall(tenantId, skuCode, versionId);
+        market.saveInstallationProductPin(new InstallationProductPin(installation.id(), definition.id(),
+                definition.formTemplateVersionId(), definition.processDefinitionKey(),
+                definition.processDefinitionVersion(), clock.instant()));
+        if (audit == null) throw new IllegalStateException("audit port is required for tenant self-subscription");
+        AccessContext context = AccessContextHolder.current();
+        UUID actorId = UUID.fromString(((TenantContext) context).actor().actorId());
+        audit.append(new AuditEvent(UUID.randomUUID(), "market.subscription.self_service_activated", AuditEvent.VERSION,
+                clock.instant(), tenantId, actorId, tenantId, false, null, context.traceId(), context.traceId(), null,
+                AuditEvent.OUTCOME_ACCEPTED, "installation", installation.id().toString(),
+                Map.of("sku_code", skuCode, "product_definition_id", definition.id().toString(),
+                        "form_template_version_id", definition.formTemplateVersionId().toString())));
+        return installation;
+    }
+
+    private void requireTenantAdmin(UUID tenantId) {
+        AccessContext context = AccessContextHolder.currentOrNull();
+        if (!(context instanceof TenantContext tenant) || !tenant.tenantId().equals(tenantId.toString())
+                || identities == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "tenant administrator context is required");
+        }
+        UUID subject;
+        try { subject = UUID.fromString(tenant.actor().actorId()); }
+        catch (IllegalArgumentException ex) { throw new ResponseStatusException(HttpStatus.FORBIDDEN, "authenticated actor is invalid"); }
+        Model.Person person = identities.findPerson(tenantId, subject)
+                .or(() -> identities.findPersonByAccount(tenantId, subject))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "tenant administrator role is required"));
+        boolean tenantAdmin = identities.listEmploymentsByPerson(tenantId, person.id()).stream()
+                .filter(e -> e.status() == Model.EmploymentStatus.ACTIVE)
+                .map(e -> identities.findPosition(tenantId, e.positionId()).orElse(null))
+                .anyMatch(position -> position != null && "TENANT_ADMIN".equalsIgnoreCase(position.code()));
+        if (!tenantAdmin || person.status() != Model.PersonStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "tenant administrator role is required");
+        }
+    }
+
     @Transactional
     public Installation upgrade(UUID installationId, UUID versionId) {
         Installation current = installation(installationId);
@@ -167,6 +230,11 @@ public class MarketService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found"));
         assertTenant(tenantId, row.tenantId());
         return row;
+    }
+    @Transactional(readOnly = true) public InstallationProductPin installationProductPin(UUID installationId) {
+        getInstallation(installationId);
+        return market.installationProductPin(installationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation product pin not found"));
     }
 
     private AppPackage app(UUID id) { return market.app(id).orElseThrow(() -> new IllegalArgumentException("app not found")); }

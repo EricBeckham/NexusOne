@@ -161,6 +161,26 @@ public class JdbcMarketRepository implements MarketRepository {
                   ON b.product_definition_id=p.id WHERE b.sku_code=:sku
                 """).param("sku",skuCode).query(this::mapProductDefinition).optional();
     }
+    @Override public void saveInstallationProductPin(InstallationProductPin pin) {
+        assertCurrentTenantForInstallation(pin.installationId());
+        jdbc.sql("""
+                INSERT INTO market.installation_product_pin(installation_id,product_definition_id,form_template_version_id,
+                    process_definition_key,process_definition_version,pinned_at)
+                VALUES(:installation,:definition,:form,:processKey,:processVersion,:pinned)
+                """).param("installation",pin.installationId()).param("definition",pin.productDefinitionId())
+                .param("form",pin.formTemplateVersionId()).param("processKey",pin.processDefinitionKey())
+                .param("processVersion",pin.processDefinitionVersion()).param("pinned",timestamp(pin.pinnedAt())).update();
+    }
+    @Override public Optional<InstallationProductPin> installationProductPin(UUID installationId) {
+        assertCurrentTenantForInstallation(installationId);
+        return jdbc.sql("""
+                SELECT p.* FROM market.installation_product_pin p JOIN market.installation i ON i.id=p.installation_id
+                WHERE i.id=:installation AND i.tenant_id=:tenant
+                """).param("installation",installationId).param("tenant",currentTenantId())
+                .query((r,n) -> new InstallationProductPin(uuid(r,"installation_id"),uuid(r,"product_definition_id"),
+                        uuid(r,"form_template_version_id"),r.getString("process_definition_key"),
+                        (Integer)r.getObject("process_definition_version"),instant(r,"pinned_at"))).optional();
+    }
     @Override public Optional<UUID> publishedFormTemplateVersion(UUID id) {
         return jdbc.sql("SELECT id FROM platform.form_template_version WHERE id=:id AND published_at IS NOT NULL")
                 .param("id", id).query(UUID.class).optional();
@@ -224,6 +244,17 @@ public class JdbcMarketRepository implements MarketRepository {
                 || !tenant.tenantId().equals(tenantId.toString())) {
             throw new IllegalStateException("TenantContext does not own this market row");
         }
+    }
+    private void assertCurrentTenantForInstallation(UUID installationId) {
+        String tenantId = currentTenantId();
+        Integer count = jdbc.sql("SELECT 1 FROM market.installation WHERE id=:id AND tenant_id=:tenant")
+                .param("id",installationId).param("tenant",tenantId).query(Integer.class).optional().orElse(null);
+        if (count == null) throw new IllegalStateException("installation is outside current tenant scope");
+    }
+    private static String currentTenantId() {
+        one.nexus.isolation.api.AccessContext context=AccessContextHolder.current();
+        if (!(context instanceof one.nexus.isolation.api.TenantContext tenant)) throw new IllegalStateException("TenantContext required");
+        return tenant.tenantId();
     }
     private String write(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalStateException(e);}}
     private static UUID uuid(ResultSet r,String c)throws SQLException{Object v=r.getObject(c);return v==null?null:(v instanceof UUID u?u:UUID.fromString(v.toString()));}
