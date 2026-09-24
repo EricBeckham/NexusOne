@@ -26,6 +26,16 @@ const files = {
 
 const failures = [];
 
+function pageFile(page) {
+  if (page.path.startsWith("/m/p4/")) {
+    return `src/mobile/products/p4-market/pages/${page.vue}`;
+  }
+  if (page.path.startsWith("/m/p5/")) {
+    return `src/mobile/products/p5-connect/pages/${page.vue}`;
+  }
+  return `src/mobile/products/p3-studio/pages/${page.vue}`;
+}
+
 function requireIncludes(name, text, snippets) {
   for (const snippet of snippets) {
     if (!text.includes(snippet)) {
@@ -58,7 +68,7 @@ for (const path of catalogPaths) {
 }
 
 for (const page of COVERED_PAGES) {
-  const vue = read(`src/mobile/products/p3-studio/pages/${page.vue}`);
+  const vue = read(pageFile(page));
   if (!vue.includes("useH5Surface") || !vue.includes("H5_SURFACES")) {
     failures.push(`${page.path} (${page.vue}) must keep useH5Surface / H5_SURFACES`);
   }
@@ -71,7 +81,7 @@ for (const page of OPEN_PAGES) {
   if (!page.vue) {
     continue;
   }
-  const vue = read(`src/mobile/products/p3-studio/pages/${page.vue}`);
+  const vue = read(pageFile(page));
   if (vue.includes("useH5Surface") || vue.includes("H5_SURFACES")) {
     failures.push(`${page.path} is OPEN; reclassify before adding useH5Surface`);
   }

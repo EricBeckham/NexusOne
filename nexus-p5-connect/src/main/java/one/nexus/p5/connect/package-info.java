@@ -1,4 +1,2 @@
-/**
- * P5 is not in M0. Package reserved for the modular monolith map.
- */
+/** P5 星联自用集成：内部 API Client、Webhook 与连接器骨架。 */
 package one.nexus.p5.connect;

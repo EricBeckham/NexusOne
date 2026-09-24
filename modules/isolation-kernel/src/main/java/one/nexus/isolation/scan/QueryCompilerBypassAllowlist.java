@@ -84,6 +84,10 @@ public final class QueryCompilerBypassAllowlist {
                     "market.* application catalog / version / SKU / subscription / installation metadata",
                     List.of("nexus-p4-market/src/main/java/one/nexus/p4/market/infra/jdbc/")),
             new Module(
+                    "nexus-p5-connect",
+                    "integration.* internal API, webhook delivery, and connector execution metadata",
+                    List.of("nexus-p5-connect/src/main/java/one/nexus/p5/connect/infra/jdbc/")),
+            new Module(
                     "nexus-bootstrap",
                     "platform.runtime_meta health only; not tenant data",
                     List.of("nexus-bootstrap/src/main/java/one/nexus/bootstrap/web/RuntimeMetaController.java")));

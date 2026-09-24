@@ -1,6 +1,6 @@
 # G2 leftover — H5 every-page SurfaceGuard coverage honesty
 
-S0+S1 leftover from [g2-permission.md](./g2-permission.md) and [g2-h5-permission.md](./g2-h5-permission.md): #116 put H5 list / detail / form / todo (and query) on the same `SurfaceGuard`. That is **not** every `/m/*` page. This package **documents and statically guards** which routes are covered versus still open. **This is not a product-wide G2 close.** `g2_close=NOT_CLAIMED`.
+S0+S1 leftover from [g2-permission.md](./g2-permission.md) and [g2-h5-permission.md](./g2-h5-permission.md): #116 put H5 list / detail / form / todo (and query) on the same `SurfaceGuard`. That is **not** every `/m/*` page. This package **documents and statically guards** which routes are covered versus still open，**不宣称产品 G2 关闭**。`g2_close=NOT_CLAIMED`.
 
 It does **not** redo #116 H5 `/check`, #150 todo HTTP, #144 isolation-only `tenant_only` / catalog, or #137 physical dump. It does **not** put home / files / notify / login / host / harness on `SurfaceGuard`. It does **not** change `AuditPort.append` / `appendNewTransaction` same-TX rules. **G18 stays closed.**
 
@@ -20,6 +20,7 @@ Reuse only: the existing #116 Vue `useH5Surface` / `H5SurfaceGuard` twin. Java 2
 | `/m/p3/files`, `/m/p3/files/:id` | **OPEN** | File Service; no `SurfaceGuard` |
 | `/m/p3/notifications` | **OPEN** | notify jump; no `SurfaceGuard` |
 | `/m/p4/market` | **OPEN** | P4 星市目录壳；目录权限 cell 尚未冻结，不虚构 G2 覆盖 |
+| `/m/p5/connectors` | **OPEN** | P5 自用集成壳；权限 cell 尚未冻结，不虚构 G2 覆盖 |
 
 Thin wrappers: `H5PageSurfaceCatalog` + JS `h5PageInventory.js`. The static gate parses `web/src/router.js`. A new `/m/*` route without a catalog row fails. A fake close-claim fixture fails. Covered Vue files must keep `useH5Surface`. Open Vue files must not claim it.
 

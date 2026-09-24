@@ -36,6 +36,8 @@
         <router-link to="/p3/audit">审计哈希链</router-link>
         <p class="group">星市 · 应用市场</p>
         <router-link to="/p4/market">应用目录</router-link>
+        <p class="group">星联 · 自用集成</p>
+        <router-link to="/p5/connect">API / Webhook / 连接器</router-link>
       </nav>
     </aside>
     <div class="main">
