@@ -1,5 +1,9 @@
 package one.nexus.bootstrap.demo;
 
+import java.net.URI;
+import java.util.Locale;
+import java.util.Set;
+
 /**
  * Visual-demo switch. Default off. This class does not insert business rows.
  * Later V-SEED-P* cards must call {@link #enabled(String)} and no-op when it is false.
@@ -35,9 +39,18 @@ public final class DemoProfileGate {
     /** Demo may follow a loopback database only. A remote URL is treated as production-shaped. */
     public static boolean looksRemote(String datasourceUrl) {
         if (datasourceUrl == null || datasourceUrl.isBlank()) {
-            return false;
+            return true;
         }
-        String value = datasourceUrl.toLowerCase();
-        return !(value.contains("127.0.0.1") || value.contains("localhost") || value.contains("[::1]"));
+        try {
+            URI uri = URI.create(datasourceUrl.trim().substring("jdbc:".length()));
+            String host = uri.getHost();
+            if (host == null) {
+                return true;
+            }
+            String normalized = host.replace("[", "").replace("]", "").toLowerCase(Locale.ROOT);
+            return !Set.of("127.0.0.1", "localhost", "::1").contains(normalized);
+        } catch (IllegalArgumentException | IndexOutOfBoundsException exception) {
+            return true;
+        }
     }
 }
