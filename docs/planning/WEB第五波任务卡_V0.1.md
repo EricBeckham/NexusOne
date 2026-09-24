@@ -1,6 +1,6 @@
 # WEB 第五波任务卡（K 波 · 可配置审批产品 E2E）V0.1
 
-- 基线：`main@fa5d276e`（`docs(planning): blank line before later section after K-wave pointer`；M10 #358 / M11 #359 / M21 #360 / M22 #357 已合；M20 #356 已合）
+- 基线：`main@2af8c72b`（`K7: confirm form template publish and show the version (#373)`；**M1–M23 全部已合**；K 卡已合 10 张 + 修复 2 个，见 §二「K 卡合入快照」；审查修复见 K0）
 - 依据：Eric 确认的第五波主线（表单模板 + 流程 + 默认权限打包成产品 → 租户自助订阅 → 一级审批跑通）；`docs/design/星枢NexusOne_WEB页面设计与前端开发规范_V1.1.md` §25–§29；`docs/planning/快进P4P5_范围冻结表_V0.1.md`；`docs/planning/WEB第四波任务卡_V0.1.md`（M 波交付与未合登记）
 - 范围：打通「平台配置最简单业务审批产品 → 租户订阅即用 → 发起 / 待办审批 / 查看结果」端到端闭环。审批产品**不写死成业务模块**，用平台能力配出。**本波明确不做 H5**（无 `/m/*`、无 `web/src/mobile/**`）
 - 执行方：本地 Codex / Cursor 按卡领取；NexusOne 只负责拆分与审阅
@@ -10,7 +10,7 @@
 1. **一卡一产品 + 一种资源类型或一个薄片**；后端 / 前端分卡；**新表 / Flyway 单独成卡**；**密钥 / 权限开通等安全敏感单独成卡**；**仅测试**可单独成卡。
 2. **主线 = 可配置审批产品 E2E**：平台表单模板版本 + P3 流程定义版本 + 默认权限 → 打成 P4 产品 → 租户管理员自助订阅（无审核、无支付）→ 运行时发起与一级审批。
 3. **平台表单模板 ≠ 现有 P3 `business_meta.form`**：现有表单是**租户作用域**且绑定 `ledger_code` + `field_code`（M0-07）。本波新建**平台级**表单模板（字段名 / key / 类型 / 必填 / 下拉选项），供产品绑定；第一版字段类型：文本、多行文本、数字、金额、日期、单选下拉、成员选择、附件。
-4. **第四波依赖**：流程定义发布复用 **M10（#358 已合）/ M11（#359 已合）**；权益投影复用 **M20（#356 已合）**；平台哈希链校验 HTTP 复用 **M22（#357 已合）**。**M21（#360 已合）**；**M23 仍未合**，不阻塞本波 E2E。
+4. **第四波依赖**：流程定义发布复用 **M10（#358 已合）/ M11（#359 已合）**；权益投影复用 **M20（#356 已合）**；平台哈希链校验 HTTP 复用 **M22（#357 已合）**；权益页 **M21（#360 已合）**；审计中心校验按钮 **M23（#361 已合）**。**M1–M23 全部已合**（M23 #361 为最后一张）。**K1–K8、K14、K17 等 10 张 K 卡是在 G1/G2 门禁红着时合入的**：主线默认 `mvn test` 至今被 G1（QueryCompiler allowlist）/ G2（SurfaceGuard）打红，因此 **K0a → K0b → K0c 现在最优先**；门禁转绿之后，后续卡 PR 里的「后端测试绿」才有效。K0d 可选，不阻塞 E2E。
 5. **租户隔离硬约束**：每个后端读 / 写带租户边界 + 跨租户否定测试；平台级接口须平台职责。
 6. **不编造数据**：空态「暂无」；演示种子只走 local/demo 开关，并标明演示数据。
 7. **第一版明确不做**：会签 / 或签、条件分支、转交加签、拖拽式设计器、支付、平台审核订阅、订阅后跟随模板新版本升级、H5。
@@ -31,18 +31,72 @@
 
 ---
 
-## K0 — 修复卡占位
+## K0 — M 波统一审查修复卡（2026-09-25）
 
-- **状态**：占位。第四波（及本波前期）统一审查完成后再补具体修复卡。
-- **说明**：不占用 K1 起的业务编号；若审查产出必须先修的缺陷，在本小节追加 `K0.x` 并注明阻塞哪些 K 卡。
+- **来源**：M1–M23 合入后统一审查（worktree `D:\NexusOne-review-m` @ `4c6a42dd` / #361 tip）。审查报告仅对话交付，未入仓。
+- **总体**：业务与安全验收**有条件通过**；前端门禁全绿；后端默认 `mvn test` 被 G1（QueryCompiler JDBC allowlist）与 G2（SurfaceGuard）打红（`-Dmaven.test.failure.ignore=true` 下 1037 测 / 5 失败 / 27 跳过）。
+- **现状与优先级**：审查后 K1–K8、K14、K17 等 K 卡已在 G1/G2 门禁红着时合入（见 §二快照）。**K0a → K0b → K0c 现在最优先**，由一人串行（三张动同一批门禁 allowlist / ArchUnit / 门禁测试文件，串行避冲突）；门禁绿后，后续卡的「后端测试绿」才有效。**K0d 可选**，不阻塞 E2E。
+- **K0 合完后**：跑一次完整 `mvn test`。审查之后才合入的平台模板接口（**K2 / K4 / K6**，`FormTemplateController` `/api/v1/p1/platform/form-templates*`）是否带 SurfaceGuard **尚未核对**；若 G2 报红，**并入 K0c** 一起修。K 卡合入若新增 G1 违例（如新 JDBC 类未入 allowlist），同理并入 K0b。
+- 2026-09-25 复核 `main@2af8c72b`：allowlist 的 bootstrap 仍仅 `RuntimeMetaController.java`（`nexus-crypto-core` 只在扫描根列表中，未入 allowlist）；两 Process 草稿/校验控制器仍无 SurfaceGuard；`OidcClientCredentialsTester.java:49` 仍有 `new String(secret, …)`。四张 K0 均**未开始**。
+- **不做**：把路径塞进 `UNGUARDED_*` leftover 而不接 Guard（除非诚实登记 leftover 并说明）；静默关闸。
+
+### 总览
+
+| 编号 | 标题 | 产品 | 类型 | 依赖 | 可并行 | 预估 |
+|---|---|---|---|---|---|---|
+| **K0a** | G1：durable SecretPort JDBC 入 QueryCompiler allowlist + ArchUnit 例外 | 平台/安全 | **安全** | 无 | 同一人串行，其后 K0b | 1h |
+| **K0b** | G1：bootstrap demo seed + 平台只读 JDBC 入 allowlist（或迁出 PRODUCT 扫描） | 平台 | 门禁 | K0a（同 Gate 冲突区） | 同一人串行，其后 K0c | 1h |
+| **K0c** | G2：P3 流程草稿/校验/发布 API 接入 SurfaceGuard（G2 若报 K2/K4/K6 一并修） | P3 | **安全** | 建议 K0b 后（同一人串行） | 与 K0d 可并行 | 1–2h |
+| **K0d** | M4 跟进：OidcClientCredentialsTester 去掉 secret→String 拷贝（**可选**） | P2 | **安全** | 无 | 是 | 1h |
+
+### K0a — G1：durable SecretPort JDBC allowlist + ArchUnit
+
+- **类型**：安全 / 门禁　**分支**：`sec/k0a-crypto-jdbc-allowlist`　**前置**：无
+- **目标**：将 `nexus-crypto-core` 的 `JdbcEncryptedSecretAdapter`（及装配路径 `LocalThenEnvSecretPort.durableSystem`）纳入 `QueryCompilerBypassAllowlist` 文档化 MODULE 前缀；为 ArchUnit `QueryCompilerBypassArchTest` 增加平台密文表 JDBC 的包例外。PR 说明：`platform.secret_ciphertext` 为平台级密文存储，非租户 AST 业务表。
+- **区域**：`modules/isolation-kernel/.../QueryCompilerBypassAllowlist.java`；相关 ArchUnit；必要时仅文档注释。
+- **不做**：改 SecretPort 业务语义；关闸；处理 bootstrap demo（归 K0b）。
+- **依赖**：无
+- **验收**：`QueryCompilerBypassGateTest.productMainPassesWithDocumentedAllowlist`、`G1QueryCompilerBypassTest.productMainHasNoQueryCompilerBypass`、`QueryCompilerBypassArchTest.applicationLayersMustNotUseJdbc` 在仅含本卡改动时，**不再因 crypto JDBC 失败**（bootstrap 遗留可仍红，由 K0b 清）。
+- **阻塞**：主线默认 `mvn test`（与 K0b 一起）。
+- **PR 标题**：`K0a: allowlist durable SecretPort JDBC for G1`
+
+### K0b — G1：bootstrap demo / 平台只读 JDBC allowlist
+
+- **类型**：门禁　**分支**：`fix/k0b-bootstrap-jdbc-allowlist`　**前置**：**K0a**（同 allowlist 文件冲突区串行）
+- **目标**：将 bootstrap 中仍扫进 PRODUCT main 的 JDBC 纳入文档化 allowlist，或迁出扫描范围（demo 仅 profile）：`P1–P5DemoSeedConfiguration`、`PlatformAuditSearchService`、`PlatformServiceStatusService`（现状 allowlist 仍仅 `RuntimeMetaController.java`）。文档注明 demo-only / 平台只读。开工前在最新 main 重跑 G1，若 K 卡（如 K2/K6/K8/K14 的 JDBC 适配）带来新违例，按同一原则一并处理。
+- **不做**：改 demo 业务数据；关闸。
+- **依赖**：K0a
+- **验收**：与 K0a 合入后，`QueryCompilerBypassGateTest` / `G1QueryCompilerBypassTest` / 相关 ArchUnit **全绿**。
+- **阻塞**：主线默认 `mvn test`（与 K0a 一起）。
+- **PR 标题**：`K0b: allowlist bootstrap demo and platform JDBC for G1`
+
+### K0c — G2：Process 草稿/校验/发布 SurfaceGuard
+
+- **类型**：安全　**分支**：`sec/k0c-process-surface-guard`　**前置**：建议 K0b 后（同一人串行，避门禁文件冲突）
+- **目标**：为 `ProcessDefinitionDraftController`、`ProcessDefinitionValidationController`（及同控制器上的 publish/publication 面，路径含 `/api/v1/process/drafts`）接入合适的 Process/Catalog `SurfaceGuard`（或等价 GUARD_TOKEN + PermissionEngine 决策）。保持既有跨租户否定测试绿。若 G2 同时报审查后合入的平台模板接口（K2/K4/K6）未接 Guard，**并入本卡**一起接。
+- **不做**：仅把路径塞进 `UNGUARDED_P3_LEFTOVER_PATHS`（除非诚实登记 leftover 并说明）；改草稿/校验/发布业务语义。
+- **依赖**：无硬依赖；建议 K0b 后
+- **验收**：`SurfaceGuardBypassGateTest.productMainPassesWithDocumentedAllowlist`、`G2SurfaceGuardBypassTest.productMainHasNoSurfaceGuardBypass` 绿；草稿/校验/发布跨租户否定仍绿。
+- **阻塞**：主线默认 `mvn test`（G2）。K0a–K0c 合完后跑一次完整 `mvn test` 确认全绿。
+- **PR 标题**：`K0c: guard process draft validate publish surfaces`
+
+### K0d — M4 跟进：去掉 secret→String 拷贝
+
+- **类型**：安全　**分支**：`sec/k0d-oidc-tester-no-secret-string`　**前置**：无
+- **目标**：`OidcClientCredentialsTester` 中 `new String(secret, UTF_8)`（约 L49–57）改为对 `byte[]` 直接做 form-urlencode，或用可擦除缓冲，避免堆上不可擦 String 滞留。保持 peer IP 复核与私网/回环/链路本地/组播/CGNAT 拒绝、HTTPS-only。
+- **不做**：改 SSRF 策略；FE。
+- **依赖**：无
+- **验收**：`OidcClientCredentialsTesterTest` 仍拒私网；公共 issuer 路径可用；无行为回归。
+- **阻塞**：**可选**；不阻塞 E2E，谁空谁做。
+- **PR 标题**：`K0d: avoid String copy of IdP client secret in tester`
 
 ---
 
 ## 一、分功能现状（已有 vs 缺失）
 
-> 摸查基线：`origin/main@fa5d276e`。下列「已有」均给路径；**未在代码中证实的不写成已有**。
+> 摸查基线：`origin/main@4c6a42dd`（M 波审查尖端）；合入状态同步到 `main@2af8c72b`（#373）。下列「已有」均给路径；**未在代码中证实的不写成已有**。
 
-### 0) 第四波依赖卡合入快照（@fa5d276e）
+### 0) 第四波依赖卡合入快照（M1–M23 全部已合）
 
 | 卡 | 状态 | 对本波 |
 |---|---|---|
@@ -53,7 +107,7 @@
 | **M20**（商业权益只读投影） | **已合**（#356） | 订阅后权益投影可复用 |
 | **M21**（商业权益页） | **已合**（#360，`CommercialEntitlementsView`；侧栏 `entitlements` 已去 later） | E2E **非阻塞**；可只读核对订阅权益 |
 | **M22**（平台审计哈希链校验 API） | **已合**（#357，`AuditChainVerifyController` `/api/v1/audit/chain`） | E2E **非阻塞**；可并行外挂按钮 |
-| M23（审计中心「校验哈希链」按钮） | **未合** | E2E **非阻塞** |
+| **M23**（审计中心「校验哈希链」按钮） | **已合**（#361，平台审计中心校验动作；只展示 intact/checked/failure） | E2E **非阻塞** |
 
 ### 1) P3 流程运行时
 
@@ -104,16 +158,16 @@
 
 | 窗口 | 现状（`*/db/migration/V*.sql`） |
 |---|---|
-| 平台 bootstrap | `V001`–`V004`（含 `V004__platform_secret_ciphertext.sql`） |
+| 平台 bootstrap | `V001`–`V006`（含 `V004__platform_secret_ciphertext.sql`；**K1** `V005__platform_form_template.sql`；#363 `V006__allow_invalid_form_template_drafts.sql`） |
 | P1 | `V100`–`V102` |
 | P2 | `V200`–`V202` |
 | permission | `V300` |
-| P3 | `V400`；表单 `V530`–`V531`；流程 `V550`–`V551` |
+| P3 | `V400`；表单 `V530`–`V531`；流程 `V550`–`V551`；**K14** `V552__product_application.sql` |
 | event/audit/file/notify | `V500`–`V504`、`V510`–`V511`、`V520` |
-| P4 | `V600` |
+| P4 | `V600`；**K8** `V601__market_product_definition.sql` |
 | P5 | `V700`–`V704` |
 | **命名** | `V{数字}__{snake_desc}.sql`；**全局版本号不重复** |
-| **本波建议占用** | 平台模板 `V005__platform_form_template.sql`；申请单 `V552__product_application.sql`；意见列（若需）`V553__process_todo_comment.sql`；产品定义 `V601__market_product_definition.sql` |
+| **本波实际占用** | `V005`（K1）、`V006`（#363 修复）、`V552`（K14）、`V601`（K8），均已合；**V553 未使用**（K17 未加迁移，见 §四）。全局最高仍为 P5 `V704` |
 
 ### 8) 审计
 
@@ -135,31 +189,53 @@
 
 | 编号 | 标题 | 产品 | 类型 | 依赖 | 可并行 | 预估 |
 |---|---|---|---|---|---|---|
-| **K0** | 修复卡占位 | — | — | 审查后补 | — | — |
-| K1 | 平台表单模板表迁移 | 平台 | 迁移 | 无 | Flyway 串行 | 1h |
-| K2 | 平台表单模板草稿 CRUD API | 平台 | 后端 | K1 | 其后 K3/K4 | 1–2h |
-| K3 | 平台表单模板编辑页（列表+预览） | 平台 | 前端 | K2 | 是 | 1–2h |
-| K4 | 平台表单模板校验 API | 平台 | 后端 | K1 | 可与 K2 后并行 | 1h |
-| K5 | 平台表单模板校验 UX | 平台 | 前端 | K4、K3 | 是 | 1h |
-| K6 | 平台表单模板发布 API | 平台 | 后端 | K4 | 其后 K7 | 1–2h |
-| K7 | 平台表单模板发布 UX | 平台 | 前端 | K6、K5 | 是 | 1h |
-| K8 | 市场产品定义表迁移 | P4 | 迁移 | 无 | Flyway 串行（见 §四） | 1h |
-| K9 | 产品定义绑定 API | P4 | 后端 | K8、K6；**M10（已合）** | 其后 K10 | 1–2h |
+| **K0a** | G1：durable SecretPort JDBC allowlist + ArchUnit | 平台/安全 | **安全** | 无 | 其后 K0b | 1h |
+| **K0b** | G1：bootstrap demo/平台 JDBC allowlist | 平台 | 门禁 | 建议 K0a | 与 K0c/K0d 并行 | 1h |
+| **K0c** | G2：Process 草稿/校验/发布 SurfaceGuard | P3 | **安全** | 无 | 与 K0a/K0d 并行 | 1–2h |
+| **K0d** | M4 跟进：去掉 secret→String | P2 | **安全** | 无 | 是 | 1h |
+| K1 ✅ | 平台表单模板表迁移（**已合 #362**） | 平台 | 迁移 | 无 | Flyway 串行 | 1h |
+| K2 ✅ | 平台表单模板草稿 CRUD API（**已合 #364**） | 平台 | 后端 | K1 | 其后 K3/K4 | 1–2h |
+| K3 ✅ | 平台表单模板编辑页（列表+预览）（**已合 #370**） | 平台 | 前端 | K2 | 是 | 1–2h |
+| K4 ✅ | 平台表单模板校验 API（**已合 #366**） | 平台 | 后端 | K1 | 可与 K2 后并行 | 1h |
+| K5 ✅ | 平台表单模板校验 UX（**已合 #371**） | 平台 | 前端 | K4、K3 | 是 | 1h |
+| K6 ✅ | 平台表单模板发布 API（**已合 #367**） | 平台 | 后端 | K4 | 其后 K7 | 1–2h |
+| K7 ✅ | 平台表单模板发布 UX（**已合 #373**） | 平台 | 前端 | K6、K5 | 是 | 1h |
+| K8 ✅ | 市场产品定义表迁移（**已合 #368**） | P4 | 迁移 | 无 | Flyway 串行（见 §四） | 1h |
+| K9 | 产品定义绑定 API | P4 | 后端 | K8 ✅、K6 ✅；**M10（已合）** | 其后 K10 | 1–2h |
 | K10 | 产品定义绑定页 | P4 | 前端 | K9；**M11（已合）** | 是 | 1–2h |
 | K11 | 产品定义挂接 SKU / 目录 API | P4 | 后端 | K9 | 其后 K12a | 1–2h |
 | K12a | 租户自助订阅并钉版本开通 API | P4 | 后端 | K11；**M20（已合）** | 其后 K12b/K13 | 1–2h |
 | K12b | 开通默认权限包下发（安全） | P4 | **安全** | K12a | 其后发起链 | 1–2h |
 | K13 | 租户目录「订阅开通」UX | P4 | 前端 | K12a（权限就绪建议等 K12b） | 是 | 1–2h |
-| K14 | 产品申请单表迁移 | P3 | 迁移 | 无 | Flyway 串行（见 §四） | 1h |
+| K14 ✅ | 产品申请单表迁移（**已合 #369**） | P3 | 迁移 | 无 | Flyway 串行（见 §四） | 1h |
 | K15a | 按钉住模板校验 values_json（可测校验器） | P3 | 后端 | K6、K12a | 可与 K14 后并行 | 1–2h |
 | K15b | 创建申请并按钉住流程启动一级审批 API | P3 | 后端 | K15a、K14、K12a（需默认权限时 **K12b**）；**M10（已合）** | 其后 K16 | 1–2h |
 | K16 | 已开通产品发起页（模板渲染） | P3/P4 | 前端 | K15b、K13 | 是 | 1–2h |
-| K17 | 审批同意/驳回意见 API | P3 | 后端 | 无（现有 approve/reject） | **可最先并行** | 1–2h |
-| K18 | 我的待办意见 + 我的申请结果 UX | P3 | 前端 | K17；结果依赖 K15b | 是 | 1–2h |
+| K17 ✅ | 审批同意/驳回意见 API（**已合 #365**） | P3 | 后端 | 无（现有 approve/reject） | **可最先并行** | 1–2h |
+| K18 | 我的待办意见 + 我的申请结果 UX | P3 | 前端 | K17 ✅；结果依赖 K15b | 是 | 1–2h |
 | K19 | 订阅/模板/申请跨租户否定测试 | 平台 | 仅测试 | K2、K12a、K12b、K15a、K15b | 建议其后 | 1–2h |
 | K20 | 演示种子：简单审批产品包 | 平台 | 种子 | K11、K6；**M10（已合）** | 仅 local/demo | 1–2h |
 
-**类型合计（不含 K0）**：迁移 3 · 后端 9 · 前端 7 · **安全 1** · 仅测试 1 · 种子 1 → **22 张业务卡 + K0**。
+**类型合计**：K0 修复 4（安全 3 + 门禁 1）；业务卡迁移 3 · 后端 9 · 前端 7 · **安全 1** · 仅测试 1 · 种子 1 → **22 张业务卡 + 4 张 K0**。
+
+### K 卡合入快照（`main@2af8c72b`）
+
+| 卡 / PR | 状态 | 提交（main） |
+|---|---|---|
+| **K1** #362 | **已合** | `68cf9ad4` `K1: add platform form template tables`（V005） |
+| （修复）#363 | **已合** | `b7876643` `fix: allow invalid form template drafts for validation`（V006） |
+| **K2** #364 | **已合** | `f0900251` `K2: platform form template draft CRUD` |
+| **K17** #365 | **已合** | `04fd8dac` `K17: accept an optional comment on approve and reject`（无迁移） |
+| **K4** #366 | **已合** | `2ec2514a` `K4: validate platform form templates` |
+| **K6** #367 | **已合** | `ee0d5fa0` `K6: publish platform form template versions` |
+| **K8** #368 | **已合** | `a93d5b5c` `K8: add market product definition tables`（V601） |
+| **K14** #369 | **已合** | `60cd9101` `K14: add the product application table`（V552） |
+| **K3** #370 | **已合** | `3ba990ca` `K3: edit form templates as a field list with a preview` |
+| **K5** #371 | **已合** | `da66af98` `K5: show form template validation on the field list` |
+| （修复）#372 | **已合** | `929d5305` `fix: keep P3 tests independent of optional P1 wiring` |
+| **K7** #373 | **已合** | `2af8c72b` `K7: confirm form template publish and show the version` |
+
+**未合**：K0a–K0d；业务卡 K9、K10、K11、K12a、K12b、K13、K15a、K15b、K16、K18、K19、K20（12 张）。上述 K 卡均在 G1/G2 门禁红着时合入，其「后端测试绿」以 K0 合完后的完整 `mvn test` 为准。
 
 ---
 
@@ -167,6 +243,7 @@
 
 ### K1 — 平台表单模板表迁移
 
+- **状态**：**已合**（#362，`68cf9ad4`）
 - **类型**：迁移　**分支**：`mig/k1-platform-form-template`　**前置**：无
 - **目标**：`V005__platform_form_template.sql`：`platform.form_template` / `platform.form_template_field` / `platform.form_template_version`（模板头、草稿字段、不可变版本快照）。字段类型 CHECK：`TEXT|TEXTAREA|NUMBER|MONEY|DATE|SELECT|PERSON|ATTACHMENT`。注册 `platform.table_registry`（scope=platform，tenant_required=false）。
 - **不做**：改 `business_meta.form*`；发布 / 校验业务逻辑；前端。
@@ -176,6 +253,7 @@
 
 ### K2 — 平台表单模板草稿 CRUD API
 
+- **状态**：**已合**（#364，`f0900251`）
 - **类型**：后端　**分支**：`feat/k2-form-template-draft-api`　**前置**：K1
 - **目标**：平台管理员创建 / 列表 / 获取 / 更新草稿（字段列表按序保存）。租户上下文 → FORBIDDEN/404。写审计。
 - **不做**：validate / publish；租户直接改平台草稿。
@@ -185,6 +263,7 @@
 
 ### K3 — 平台表单模板编辑页（列表 + 右侧预览）
 
+- **状态**：**已合**（#370，`3ba990ca`）
 - **类型**：前端　**分支**：`ui/k3-form-template-editor`　**前置**：K2
 - **目标**：平台壳入口「表单模板」：字段列表编辑（名称、key、类型、必填；SELECT 编辑选项）；右侧只读预览。**不做拖拽设计器**。
 - **不做**：validate / publish 可用态（可灰置，归 K5/K7）；H5。
@@ -194,6 +273,7 @@
 
 ### K4 — 平台表单模板校验 API
 
+- **状态**：**已合**（#366，`2ec2514a`）
 - **类型**：后端　**分支**：`feat/k4-form-template-validate`　**前置**：K1
 - **目标**：`POST .../form-templates/{id}/validate`：≥1 字段；key 唯一合法；SELECT 必有选项；失败字段级错误；成功 → `VALIDATED`。写审计。
 - **不做**：publish；改台账表单校验。
@@ -203,6 +283,7 @@
 
 ### K5 — 平台表单模板校验 UX
 
+- **状态**：**已合**（#371，`da66af98`）
 - **类型**：前端　**分支**：`ui/k5-form-template-validate`　**前置**：K4、K3
 - **目标**：校验按钮 + 错误到字段；成功态可见。
 - **不做**：publish。
@@ -212,6 +293,7 @@
 
 ### K6 — 平台表单模板发布 API
 
+- **状态**：**已合**（#367，`ee0d5fa0`）
 - **类型**：后端　**分支**：`feat/k6-form-template-publish`　**前置**：K4
 - **目标**：仅 `VALIDATED` 可发布；生成不可变 `form_template_version` 快照并切换 running；再改草稿须重校验；已发布版本不可改。写审计。
 - **不做**：自动推送到已订阅租户（第一版不升级跟随）。
@@ -221,6 +303,7 @@
 
 ### K7 — 平台表单模板发布 UX
 
+- **状态**：**已合**（#373，`2af8c72b`）
 - **类型**：前端　**分支**：`ui/k7-form-template-publish`　**前置**：K6、K5
 - **目标**：发布确认 + 版本号 + 失败原文。
 - **不做**：版本 diff 大件。
@@ -230,6 +313,7 @@
 
 ### K8 — 市场产品定义表迁移
 
+- **状态**：**已合**（#368，`a93d5b5c`）
 - **类型**：迁移　**分支**：`mig/k8-market-product-definition`　**前置**：无（**合入序见 §四**）
 - **目标**：`V601__market_product_definition.sql`：`market.product_definition`（code、name、form_template_version_id、process_definition_key、process_definition_version、default_permission_pack jsonb、status…）；可选 `market.sku_product_binding(sku_code, product_definition_id)`。
 - **不做**：业务 API；改写 `V600` 历史脚本。
@@ -293,6 +377,7 @@
 
 ### K14 — 产品申请单表迁移
 
+- **状态**：**已合**（#369，`60cd9101`）
 - **类型**：迁移　**分支**：`mig/k14-product-application`　**前置**：无（**合入序见 §四**）
 - **目标**：`V552__product_application.sql`：`business_meta.product_application`（tenant_id、installation_id 或 product_definition_id、form_template_version_id、process_instance_id、values_json、status∈`RUNNING|APPROVED|REJECTED`、initiator_person_id…）。第一版 API/UI **不暴露 WITHDRAWN**。租户索引 + table_registry。
 - **不做**：API；改 Flowable 引擎表。
@@ -329,16 +414,18 @@
 
 ### K17 — 审批同意 / 驳回意见 API
 
+- **状态**：**已合**（#365，`04fd8dac`）
 - **类型**：后端　**分支**：`feat/k17-approval-comment`　**前置**：无
-- **目标**：为 `POST /api/v1/process/tasks/{todoId}/approve|reject` 增加可选 `comment`；持久化（若需 DDL：极小迁移 `V553__process_todo_comment.sql`——**超 1h 则拆 K17a 迁移卡，禁止超大 PR**）。写审计；跨租户否定。
+- **目标**：为 `POST /api/v1/process/tasks/{todoId}/approve|reject` 增加可选 `comment`；持久化；写审计；跨租户否定。
+- **实际实现（#365）**：意见存为 Flowable 任务评论（`nexus-p3-studio/.../flow/ApprovalCommentStore.java`），**未加 Flyway**；原设想的 V553 / **K17a 迁移卡不再需要**。
 - **不做**：转交 / 加签；改状态机。
-- **依赖**：无（可与 K1 并行）；合入序若含 V553 见 §四
+- **依赖**：无
 - **验收**：有 / 无意见均可；跨租户不可批。
 - **PR 标题**：`K17: approval approve reject with comment`
 
 ### K18 — 我的待办意见 + 我的申请结果 UX
 
-- **类型**：前端　**分支**：`ui/k18-todo-and-my-requests`　**前置**：K17；申请列表字段依赖 **K15b**
+- **类型**：前端　**分支**：`ui/k18-todo-and-my-requests`　**前置**：K17（✅ 已合 #365）；申请列表字段依赖 **K15b**
 - **目标**：待办意见真正提交 API（去掉「仅本页」文案）；「我的申请」展示进行中 / 通过 / 驳回与意见。本波隐藏撤回入口。
 - **不做**：H5 待办；复杂筛选。
 - **依赖**：K17、K15b
@@ -370,18 +457,25 @@
 以**全局版本号数值**为准（Flyway 扫描全序）：
 
 ```text
-K1   (V005__platform_form_template.sql)
- → K14  (V552__product_application.sql)
- → [可选 K17a V553__process_todo_comment.sql]
- → K8   (V601__market_product_definition.sql)
+K1   (V005__platform_form_template.sql)          ✅ #362
+ → #363 (V006__allow_invalid_form_template_drafts.sql) ✅ 修复
+ → K14  (V552__product_application.sql)          ✅ #369
+ → K8   (V601__market_product_definition.sql)    ✅ #368
 ```
+
+现状（`main@2af8c72b`）：**本波计划内迁移已全部合入**；剩余卡无计划内迁移。
+
+**K17a / V553 结论**：K17（#365）用 Flowable 任务评论存意见（`ApprovalCommentStore`），没有加迁移，**K17a 不再需要**。
+
+**如果将来仍要加 V553（或任何低于已应用最高版本的号）**：仓库 Flyway 配置未开启乱序——`nexus-bootstrap/src/main/resources/application.yaml` 的 `spring.flyway` 只设了 `enabled` / `locations` / `schemas: platform` / `table: flyway_schema_history` / `validate-on-migrate: true` / `create-schemas`；`IdentityConfiguration`（schema `iam`）自建 `Flyway.configure()` 也未设；全仓无 `outOfOrder` / `out-of-order` 配置，即取默认 **`outOfOrder=false`**。此时在已迁到 V601（全局已到 V704）的库上新增 V553，Flyway 会把它当作「比已应用最高版本小的未应用迁移」，`validate` 报错 / 被拒，不会执行。所以：
+
+1. 新迁移号须**高于目标库已应用的最高版本**（当前全局最高 V704）。注意这与「按模块窗口取号」（如 P3 用 V5xx）冲突：窗口内补号会因低于 V704 被拒；需要新迁移时先确认取号规则。
+2. 若确需插入低号，须 Eric 决定是否开启 `outOfOrder`（影响全局迁移语义），**不在本波默认做**。
 
 规则：
 
 1. 两人及以上时 **禁止**并行合入两个 Flyway PR。
-2. 逻辑上产品定义（K8）先于申请业务（K15b），但 **K14 表可先合**；K15a/K15b 代码仍依赖 K12a（及建议 K12b）/K6。
-3. K17 若需意见列，必须单独迁移 PR，插在 V552 与 V601 之间。
-4. **K12a / K12b / K15a / K15b 本身不含 Flyway**（除非实现时被迫加旁表——若加，须另开迁移卡并插入本序，禁止塞进业务 PR）。
+2. **K9 / K11 / K12a / K12b / K15a / K15b 本身不含 Flyway**（除非实现时被迫加旁表——若加，须另开迁移卡，版本号按上条取高号，禁止塞进业务 PR）。
 
 ---
 
@@ -391,13 +485,16 @@ K1   (V005__platform_form_template.sql)
 M10 (流程发布 API, 已合) ──┐
 M11 (流程发布 UX, 已合) ──┼──► K9 / K10 / K15b / K20
 M20 (权益投影, 已合) ──────► K12a
-M22 (哈希链校验 API, 已合)  # 非本波阻塞；可外挂 M23
+M22 (哈希链校验 API, 已合) / M23 (校验按钮, 已合)  # 非本波阻塞
+K0a → K0b → K0c   # G1/G2 门禁；现在最优先，一人串行（K 卡已在门禁红时合入）
+K0d                # M4 String 拷贝；可选
+# ✅ = 已合（main@2af8c72b）
 
-K1(mig) → K2(BE) → K3(FE)
-       ↘ K4(BE) → K5(FE) → K7(FE)
-                ↘ K6(BE) ↗
+K1✅(mig) → K2✅(BE) → K3✅(FE)
+       ↘ K4✅(BE) → K5✅(FE) → K7✅(FE)
+                ↘ K6✅(BE) ↗
                      │
-K14(mig)            K8(mig) → K9(BE) → K10(FE)
+K14✅(mig)          K8✅(mig) → K9(BE) → K10(FE)
                      │          └→ K11(BE) → K12a(BE) → K12b(SEC)
                      │                          │            │
                      │                          └→ K13(FE)   │
@@ -405,7 +502,7 @@ K14(mig)            K8(mig) → K9(BE) → K10(FE)
                      └──────────► K15a(BE) ─────┴────────────┘
                                      └→ K15b(BE) → K16(FE)
                                            ▲
-K17(BE) → K18(FE)   # 可早并行；K18 展示申请结果需 K15b
+K17✅(BE) → K18(FE)   # K18 展示申请结果需 K15b
 
 K19(test) ← K2 + K12a + K12b + K15a + K15b
 K20(seed) ← K6 + K11 + M10(已合)
@@ -413,18 +510,30 @@ K20(seed) ← K6 + K11 + M10(已合)
 
 ---
 
-## 六、建议第一批（当前 2 人）
+## 六、下一批（当前 2 人 · K0 优先）
 
-| 批次 | 人 A | 人 B | 理由 |
-|---|---|---|---|
-| **Batch 0** | **K1 → K2** | **K17**（无迁移时） | A 开模板主链；B 补审批意见（M10/M11 已合，无需再优先卸依赖） |
-| **Batch 0b** | K4 | K3（K2 合入后） | 校验与编辑 UX |
-| **Batch 1** | K6 → K7 | **K14**（K1 已合后） | 模板发布；申请表迁移排队 |
-| **Batch 2** | K8 → K9 → K10 | K5 / K18 | 产品定义（流程发布已可用）vs UX |
-| **Batch 3** | K11 → **K12a → K12b** → K13 | **K15a → K15b** → K16 | 订阅+权限 vs 校验+开单 |
-| **Batch 4** | K19 | K20 | 否定测试与演示种子 |
+> 已合：K1–K8、K14、K17（见 §二快照）。以下只排未合卡；每张的前置均已在依赖表核对。
 
-两人时 **不要**并行合入两个 Flyway PR。
+| 人 | 顺序 | 等待点 |
+|---|---|---|
+| **人 A**（后端主链，串行） | **K9 → K11 → K12a → K12b → K15a** | K9 前置 K8 ✅ / K6 ✅ / M10 ✅，可立即开；其后每张依赖上一张（K15a 另需 K6 ✅） |
+| **人 B** | **K0a → K0b → K0c → K10 → K13** | K0 系列无前置，立即开；K10 等 **K9** 合；K13 等 **K12a** 合（建议等 K12b） |
+
+**理由**：K0a–K0c 动同一批门禁 allowlist / ArchUnit / 门禁测试文件，一人串行避冲突；A 的主链每张依赖上一张。
+
+**说明**：K0 合完后跑一次完整 `mvn test`；审查后才合入的平台模板接口（K2/K4/K6）是否带 SurfaceGuard 尚未核对，若 G2 报红则并入 K0c。
+
+**再下一批（收尾）**
+
+| 卡 | 前置 |
+|---|---|
+| **K15b** → **K16** | K15b：K15a、K14 ✅、K12a、K12b、M10 ✅；K16：K15b、K13 |
+| **K18** | K17 ✅、K15b |
+| **K19** | K2 ✅、K12a、K12b、K15a、K15b |
+| **K20** | K11、K6 ✅、M10 ✅ |
+| 可选 **K0d** | 无；谁空谁做，不阻塞 E2E |
+
+计划内 Flyway 已全部合入；若有人被迫新增迁移，仍 **不要**并行合入两个 Flyway PR（版本号见 §四）。
 
 ---
 
@@ -461,7 +570,7 @@ K20(seed) ← K6 + K11 + M10(已合)
 | 订阅后模板版本自动升级迁移 | 不做 |
 | 把 `business_meta.form` 台账表单改造成产品模板 | **不做**（新建平台模板） |
 | S2 治理 / 备份恢复 / 开发者门户 | 冻结表后置 |
-| M23 哈希链校验按钮 | 不阻塞 E2E；M22 API 已合，按钮可外挂；M21 权益页已合 |
+| M21 / M23（权益页 / 哈希链校验按钮） | **已合**（#360 / #361）；不阻塞 E2E |
 | 发布中心真 Expand/Migrate/Switch/Contract | 后置 |
 
 ---
@@ -471,3 +580,4 @@ K20(seed) ← K6 + K11 + M10(已合)
 - 2026-09-25：NexusOne 草稿 V0.1。对照当时 `main@8ce154aa`；主线为可配置审批产品 E2E；写明与现有台账表单、预置流程键、P4 安装链路的差异；依赖 M10/M11/M20；K0 占位。
 - 2026-09-25：Eric 批准推送。拆分 **K12→K12a/K12b**、**K15→K15a/K15b**（不重编号后续卡）；业务卡合计 22（含安全 1）；同步 **M10 #358 / M11 #359 / M22 #357 已合**，M21/M23 当时仍未合；基线更新为 `main@7b14460d`；第一批派发不再要求「先做 M10」。
 - 2026-09-25：推送后发现 **M21 #360** 已合入 main（只读商业权益页）；快照表与默认决策改为 M21 已合，仅 **M23** 仍未合；基线跟到本提交。
+- 2026-09-25：第四波统一审查有条件通过（后端 1037 测 5 失败 27 跳过，均在 G1 allowlist / G2 SurfaceGuard；前端全过）后补 K0a–K0d；同步 #361–#373 合入现状（M23 #361；K1/K2/K3/K4/K5/K6/K7/K8/K14/K17 已合；#363、#372 修复）；K17 未加迁移，K17a/V553 取消；下一批改为 K0 优先（人 A：K9→K11→K12a→K12b→K15a；人 B：K0a→K0b→K0c→K10→K13）。基线 `main@2af8c72b`。
