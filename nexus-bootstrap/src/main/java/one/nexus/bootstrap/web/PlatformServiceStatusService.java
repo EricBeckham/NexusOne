@@ -21,6 +21,7 @@ import org.flowable.engine.ProcessEngine;
 import org.flywaydb.core.Flyway;
 import org.quartz.Scheduler;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /** Read-only, best-effort diagnostics. Each probe fails independently and never returns exception details. */
@@ -44,6 +45,7 @@ public class PlatformServiceStatusService {
     private final ObjectProvider<Flyway> flyways;
     private final Clock clock;
 
+    @Autowired
     public PlatformServiceStatusService(
             DataSource dataSource,
             CachePorts cache,
