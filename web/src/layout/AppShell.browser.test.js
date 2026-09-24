@@ -31,7 +31,9 @@ describe("W0 product shell", () => {
     expect(wrapper.attributes("data-product")).toBe("p1");
     expect(wrapper.text()).toContain("星域");
     expect(wrapper.text()).toContain("Nexus Tenant");
-    expect(wrapper.text()).toContain("租户目录");
+    expect(wrapper.text()).toContain("租户列表");
+    expect(wrapper.text()).toContain("后续");
+    expect(wrapper.text()).not.toContain("用户");
     expect(wrapper.text()).not.toContain("M0-12 壳");
 
     await router.push("/p4");
@@ -40,6 +42,7 @@ describe("W0 product shell", () => {
     expect(wrapper.text()).toContain("星市");
     expect(wrapper.text()).toContain("Nexus Market");
     expect(wrapper.text()).toContain("应用目录");
+    expect(wrapper.text()).not.toContain("租户列表");
   });
 
   it("keeps a deep link inside the product frame", async () => {

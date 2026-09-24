@@ -1,9 +1,10 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>组织架构</h1>
-      <p>Tree 只包含当前 TenantContext 下的部门。跨租户 parent_id 会被服务端拒绝。</p>
-    </div>
+    <NxPageHeader
+      eyebrow="星权"
+      title="组织架构"
+      description="Tree 只包含当前 TenantContext 下的部门。跨租户 parent_id 会被服务端拒绝。"
+    />
     <form class="nx-card" @submit.prevent="create">
       <div class="nx-row">
         <div class="nx-field"><label>编码</label><input v-model="form.code" required /></div>
@@ -26,6 +27,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { p2 } from "../../api/client";
+import { NxPageHeader } from "../../components";
 import { ensureContext, session } from "../../api/session";
 
 const tree = ref([]);

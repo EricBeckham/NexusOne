@@ -1,12 +1,14 @@
 <template>
   <div>
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>租户目录</h1>
-        <p>P1 平台范围列表。隔离由服务端 PlatformContext 守卫，不在前端拼 tenant_id 过滤。</p>
-      </div>
-      <router-link class="primary" to="/p1/tenants/new">创建租户</router-link>
-    </div>
+    <NxPageHeader
+      eyebrow="星域"
+      title="租户列表"
+      description="P1 平台范围列表。隔离由服务端 PlatformContext 守卫，不在前端拼 tenant_id 过滤。"
+    >
+      <template #actions>
+        <router-link class="primary" to="/p1/tenants/new">创建租户</router-link>
+      </template>
+    </NxPageHeader>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <table class="nx-table">
       <thead>
@@ -38,6 +40,7 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p1 } from "../../api/client";
 

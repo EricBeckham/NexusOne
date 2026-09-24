@@ -34,7 +34,7 @@
 |---|---|---|---|---|---|---|
 | W0 | 界面框架（共用顶栏 + 产品侧栏 + 产品切换） | `ui/w0-shell` | 无 | 本地 Codex | Cursor | 进行中 |
 | W1 | 公共组件最小集 | `ui/w1-components` | 无 | Cursor | Codex | 已领取 |
-| W2 | P1 星域 + P2 星权挂进侧栏 | `ui/w2-p1-p2` | W0（最好也有 W1） | 空闲者 | | 待领取 |
+| W2 | P1 星域 + P2 星权挂进侧栏 | `ui/w2-p1-p2` | W0（最好也有 W1） | 空闲者 | Cursor | 进行中 |
 | W3 | P3 星构挂进侧栏 | `ui/w3-p3` | W0 | 空闲者 | Codex | 已领取 |
 | W4 | P4 星市 + P5 星联 | `ui/w4-p4-p5` | W0 | 空闲者 | | 待领取 |
 | W5 | 收尾（文档、截图、清单） | `ui/w5-cleanup` | W2、W3、W4 | 最后收尾者 | | 待领取 |
@@ -141,3 +141,4 @@
 - 2026-09-24：Codex 从 `origin/main@7e12898` 领取 W1，分支 `ui/w1-components`，工作树 `C:\Users\Administrator\.codex\worktrees\w1-components\NexusOne`。
 - 2026-09-24：Cursor 从 `origin/main@e7223ea` 领取 W0，分支 `ui/w0-shell`，工作树 `D:\NexusOne-w0`。
 - 2026-09-24：W0 开工，拆出共用顶栏、产品侧栏和产品切换。
+- 2026-09-24：Cursor 从 `origin/main@83bc784` 领取 W2，分支 `ui/w2-p1-p2`。P1、P2 菜单和简版首页开工。
