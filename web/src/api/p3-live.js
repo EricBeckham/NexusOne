@@ -557,3 +557,11 @@ export async function listProcessDefinitions() {
 export async function getProcessDefinition(key) {
   return api(`/api/v1/process/definitions/${encodeURIComponent(key)}`);
 }
+
+export async function listPublishCenter() {
+  return asList(await api("/api/v1/p3/publish-center"));
+}
+
+export async function getPublishCenter(id) {
+  return api(`/api/v1/p3/publish-center/${encodeURIComponent(id)}`);
+}
