@@ -8,12 +8,20 @@
       <template #actions>
         <button type="button" class="ghost" data-testid="process-new" @click="newDraft">新建草稿</button>
         <button v-if="!isEditing" type="button" class="ghost" data-testid="process-edit-copy" :disabled="!definition" @click="editAsDraft">创建可编辑草稿</button>
+        <button
+          v-if="isPersistedDraft"
+          type="button"
+          class="ghost"
+          data-testid="process-validate"
+          :disabled="dirty || saving || validating"
+          @click="validateDraft"
+        >{{ validating ? "校验中…" : "校验草稿" }}</button>
         <button v-if="isEditing" type="button" class="primary" data-testid="process-save" :disabled="saving" @click="saveDraft">
           {{ saving ? "保存中…" : "保存草稿" }}
         </button>
       </template>
     </NxPageHeader>
-    <p class="nx-muted later-note">当前仅支持开始、用户任务、结束节点的基础编辑与草稿保存；不包含网关编辑、校验或发布。</p>
+    <p class="nx-muted later-note">当前仅支持开始、用户任务、结束节点的基础编辑与结构校验；校验不部署或发布流程。</p>
     <NxErrorState
       v-if="error"
       title="流程定义没有加载"
@@ -96,6 +104,19 @@
           <button type="button" class="ghost" @click="addNode('userTask')">用户任务</button>
           <button type="button" class="ghost" @click="addNode('endEvent')">结束</button>
         </div>
+        <section v-if="validationResult" class="validation-result" data-testid="process-validation" :data-valid="validationResult.valid">
+          <strong>{{ validationResult.valid ? "校验通过" : "校验未通过" }}</strong>
+          <p v-if="validationResult.valid" class="nx-muted">当前草稿满足基础结构要求。</p>
+          <ul v-else>
+            <li v-for="(item, index) in validationResult.errors || []" :key="`${item.code}-${index}`">
+              <strong>{{ item.code }}</strong> {{ item.message }}
+              <span v-if="item.node_id || item.flow_id">（{{ item.node_id || item.flow_id }}）</span>
+            </li>
+          </ul>
+        </section>
+        <p v-if="validationError" class="validation-error" role="alert" data-testid="process-validation-error">
+          校验请求失败：{{ validationError.message || "请稍后重试" }}
+        </p>
         <h3>相关连线</h3>
         <ul v-if="selectedFlows.length">
           <li v-for="flow in selectedFlows" :key="flow.id || `${flow.source_ref}-${flow.target_ref}`">
@@ -123,7 +144,12 @@ const definitions = ref([]);
 const definition = ref(null);
 const isDraft = ref(false);
 const isEditing = ref(false);
+const isPersistedDraft = ref(false);
+const dirty = ref(false);
 const saving = ref(false);
+const validating = ref(false);
+const validationResult = ref(null);
+const validationError = ref(null);
 const selectedId = ref("");
 const error = ref(null);
 const loading = ref(false);
@@ -149,6 +175,9 @@ async function reload() {
     const key = route.params.key ? String(route.params.key) : "";
     if (!key) {
       definition.value = null;
+      isPersistedDraft.value = false;
+      dirty.value = false;
+      validationResult.value = null;
       selectedId.value = "";
       if (definitions.value[0]?.key) {
         await router.replace(`/p3/workflow/${encodeURIComponent(definitions.value[0].key)}`);
@@ -161,16 +190,23 @@ async function reload() {
       definition.value = { ...parseDraftXml(draft.bpmn_xml || draft.bpmnXml), key, name: draft.name, source: "draft" };
       isDraft.value = true;
       isEditing.value = true;
+      isPersistedDraft.value = true;
     } else {
       definition.value = await p3.getProcessDefinition(key);
       isDraft.value = false;
       isEditing.value = false;
+      isPersistedDraft.value = false;
     }
+    dirty.value = false;
+    validationResult.value = null;
+    validationError.value = null;
     const nodes = definition.value?.nodes || [];
     selectedId.value = nodes.some((node) => node.id === selectedId.value) ? selectedId.value : (nodes[0]?.id || "");
   } catch (err) {
     error.value = err;
     definition.value = null;
+    isPersistedDraft.value = false;
+    dirty.value = false;
   } finally {
     loading.value = false;
   }
@@ -188,6 +224,9 @@ function newDraft() {
   definition.value = createBlankDraft(key);
   isDraft.value = true;
   isEditing.value = true;
+  isPersistedDraft.value = false;
+  dirty.value = true;
+  validationResult.value = null;
   selectedId.value = "approveTask";
 }
 
@@ -195,6 +234,9 @@ function editAsDraft() {
   if (!definition.value) return;
   isDraft.value = true;
   isEditing.value = true;
+  isPersistedDraft.value = false;
+  dirty.value = true;
+  validationResult.value = null;
 }
 
 function addNode(type) {
@@ -220,6 +262,10 @@ async function saveDraft() {
     definition.value = { ...definition.value, name: saved.name || definition.value.name, source: "draft" };
     isDraft.value = true;
     isEditing.value = true;
+    isPersistedDraft.value = true;
+    dirty.value = false;
+    validationResult.value = null;
+    validationError.value = null;
     const existing = definitions.value.find((item) => item.key === definition.value.key);
     if (existing) existing.name = definition.value.name;
     else definitions.value.unshift({ key: definition.value.key, name: definition.value.name, source: "draft" });
@@ -229,6 +275,26 @@ async function saveDraft() {
     saving.value = false;
   }
 }
+
+async function validateDraft() {
+  if (!definition.value || !isPersistedDraft.value || dirty.value || validating.value) return;
+  validating.value = true;
+  validationError.value = null;
+  validationResult.value = null;
+  try {
+    validationResult.value = await p3.validateProcessDraft(definition.value.key);
+  } catch (err) {
+    validationError.value = err;
+  } finally {
+    validating.value = false;
+  }
+}
+
+watch(definition, () => {
+  validationResult.value = null;
+  validationError.value = null;
+  if (isEditing.value) dirty.value = true;
+}, { deep: true, flush: "sync" });
 
 watch(() => route.params.key, reload, { immediate: true });
 </script>
@@ -245,6 +311,10 @@ watch(() => route.params.key, reload, { immediate: true });
 .draft-name { display: grid; gap: var(--nx-space-1); }
 .node-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }
 .node-actions h3 { width: 100%; }
+.validation-result { display: grid; gap: var(--nx-space-2); padding: var(--nx-space-2); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); }
+.validation-result[data-valid="true"] { border-color: var(--nx-success, #238636); }
+.validation-result ul { margin: 0; padding-left: 1.1em; display: grid; gap: var(--nx-space-1); }
+.validation-result li span, .validation-error { color: var(--nx-text-secondary); }
 .list h2, .canvas h2, .props h2, .props h3 { margin: 0; font-size: var(--nx-font-size-md); }
 .item {
   display: grid;

@@ -12,6 +12,7 @@ vi.mock("../../api/p3", () => ({
     listProcessDrafts: vi.fn(),
     getProcessDraft: vi.fn(),
     saveProcessDraft: vi.fn(),
+    validateProcessDraft: vi.fn(),
   },
 }));
 
@@ -50,6 +51,7 @@ describe("process viewer", () => {
     p3.listProcessDrafts.mockReset().mockResolvedValue([]);
     p3.getProcessDraft.mockReset();
     p3.saveProcessDraft.mockReset();
+    p3.validateProcessDraft.mockReset();
   });
 
   it("edits a published definition only as a draft and saves it for reopening", async () => {
@@ -82,10 +84,29 @@ describe("process viewer", () => {
     expect(p3.saveProcessDraft.mock.calls[0][1].bpmn_xml).toContain('flowable:assignee="${manager}"');
     expect(wrapper.text()).not.toContain("发布成功率");
     expect(p3.getProcessDefinition).toHaveBeenCalledWith("nexusSequentialApproval");
+    p3.validateProcessDraft.mockResolvedValue({
+      valid: false,
+      errors: [{ code: "USER_TASK_ASSIGNEE_REQUIRED", message: "用户任务必须填写审批人引用", node_id: "approveTask" }],
+    });
+    expect(wrapper.get("[data-testid='process-validate']").attributes("disabled")).toBeUndefined();
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    expect(p3.validateProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");
+    expect(wrapper.get("[data-testid='process-validation']").text()).toContain("校验未通过");
+    expect(wrapper.get("[data-testid='process-validation']").text()).toContain("USER_TASK_ASSIGNEE_REQUIRED");
+    await wrapper.get("[data-testid='node-name']").setValue("已修改但尚未保存");
+    expect(wrapper.find("[data-testid='process-validation']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='process-validate']").attributes("disabled")).toBeDefined();
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    p3.validateProcessDraft.mockResolvedValue({ valid: true, errors: [] });
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='process-validation']").text()).toContain("校验通过");
 
     const reopened = await mountAt("/p3/workflow/nexusSequentialApproval");
     expect(p3.getProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");
-    expect(reopened.get("[data-testid='process-canvas']").text()).toContain("审批单据");
+    expect(reopened.get("[data-testid='process-canvas']").text()).toContain("已修改但尚未保存");
     await reopened.findAll("[data-testid='process-node']")[1].trigger("click");
     expect(reopened.get("[data-testid='node-assignee']").element.value).toBe("${manager}");
   });
@@ -97,6 +118,7 @@ describe("process viewer", () => {
     expect(wrapper.findAll("[data-testid='process-node']")).toHaveLength(3);
     expect(p3.saveProcessDraft).not.toHaveBeenCalled();
     expect(wrapper.get("[data-testid='draft-name']").element.value).toBe("新流程草稿");
+    expect(wrapper.find("[data-testid='process-validate']").exists()).toBe(false);
   });
 
   it("shows an empty state when the catalog has no definitions", async () => {

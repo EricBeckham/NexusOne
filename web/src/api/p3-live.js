@@ -570,6 +570,10 @@ export async function saveProcessDraft(key, body = {}) {
   return api(`/api/v1/process/drafts/${encodeURIComponent(key)}`, { method: "PUT", body });
 }
 
+export async function validateProcessDraft(key) {
+  return api(`/api/v1/process/drafts/${encodeURIComponent(key)}/validate`, { method: "POST" });
+}
+
 export async function listPublishCenter() {
   return asList(await api("/api/v1/p3/publish-center"));
 }
