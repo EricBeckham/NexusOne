@@ -549,3 +549,11 @@ export async function beginExportWizard(body = {}) {
 export async function completeExportWizard(body = {}) {
   return wrap(await api("/api/v1/p3/exports/wizard/complete", { method: "POST", body }));
 }
+
+export async function listProcessDefinitions() {
+  return asList(await api("/api/v1/process/definitions"));
+}
+
+export async function getProcessDefinition(key) {
+  return api(`/api/v1/process/definitions/${encodeURIComponent(key)}`);
+}

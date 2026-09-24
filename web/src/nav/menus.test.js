@@ -67,10 +67,10 @@ describe("product shell menus", () => {
       "/p3/exports/wizard",
       "/p3/notifications",
       "/p3/audit",
+      "/p3/workflow",
     ]);
     expect(links.every((link) => link === "/p3" || link.startsWith("/p3/"))).toBe(true);
     expect(items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
-      "流程设计器（后续）",
       "发布中心（后续）",
     ]);
     expect(items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
