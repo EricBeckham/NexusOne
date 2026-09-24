@@ -26,10 +26,6 @@ import org.springframework.stereotype.Service;
 /** Read-only, best-effort diagnostics. Each probe fails independently and never returns exception details. */
 @Service
 public class PlatformServiceStatusService {
-    private static final HttpClient HTTP = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(2))
-            .build();
-
     public enum State { UP, DOWN, UNKNOWN }
 
     public record Component(String code, String name, State status, String message, Instant checkedAt) {}
@@ -129,7 +125,10 @@ public class PlatformServiceStatusService {
                 .timeout(Duration.ofSeconds(3))
                 .GET()
                 .build();
-        HttpResponse<Void> response = HTTP.send(request, HttpResponse.BodyHandlers.discarding());
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(2))
+                .build();
+        HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
         return response.statusCode() >= 200 && response.statusCode() < 300
                 ? new Probe(State.UP, "Keycloak OIDC discovery 可访问")
                 : new Probe(State.DOWN, "Keycloak OIDC discovery 返回非成功状态");
