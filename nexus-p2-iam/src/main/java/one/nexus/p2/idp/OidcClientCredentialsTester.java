@@ -5,11 +5,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.URLConnection;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 import one.nexus.p2.domain.Model;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -62,6 +66,9 @@ public final class OidcClientCredentialsTester implements IdpConnectionTester {
         connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
         connection.setReadTimeout(READ_TIMEOUT_MILLIS);
         connection.setInstanceFollowRedirects(false);
+        SSLSocketFactory current = connection.getSSLSocketFactory();
+        connection.setSSLSocketFactory(new PublicPeerSslSocketFactory(
+                current != null ? current : (SSLSocketFactory) SSLSocketFactory.getDefault()));
         connection.setRequestProperty("Accept", "application/json");
         connection.setRequestMethod(method);
         try {
@@ -96,9 +103,7 @@ public final class OidcClientCredentialsTester implements IdpConnectionTester {
                 || !"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) return false;
         try {
             for (InetAddress address : InetAddress.getAllByName(uri.getHost())) {
-                if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
-                        || address.isSiteLocalAddress() || address.isMulticastAddress()
-                        || isCarrierGradeNat(address.getAddress())) return false;
+                if (isNonPublic(address)) return false;
             }
             return true;
         } catch (IOException ex) {
@@ -106,8 +111,94 @@ public final class OidcClientCredentialsTester implements IdpConnectionTester {
         }
     }
 
+    static boolean isNonPublic(InetAddress address) {
+        if (address == null) return true;
+        byte[] raw = address.getAddress();
+        if (raw.length == 16 && isMappedIpv4(raw)) {
+            try {
+                return isNonPublic(InetAddress.getByAddress(Arrays.copyOfRange(raw, 12, 16)));
+            } catch (UnknownHostException ex) {
+                return true;
+            }
+        }
+        if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
+                || address.isSiteLocalAddress() || address.isMulticastAddress()
+                || isCarrierGradeNat(raw) || isUniqueLocal(raw)) return true;
+        return false;
+    }
+
+    /** Closes the connected socket when its peer is not public. The address is not included in the error. */
+    static Socket requirePublicPeer(Socket socket) throws IOException {
+        if (isNonPublic(socket.getInetAddress())) {
+            try {
+                socket.close();
+            } catch (IOException ignored) {
+                // The refusal stands even if closing the socket fails.
+            }
+            throw new IOException("connection target is not a public address");
+        }
+        return socket;
+    }
+
     private static boolean isCarrierGradeNat(byte[] address) {
         return address.length == 4 && (address[0] & 0xff) == 100 && (address[1] & 0xc0) == 0x40;
+    }
+
+    private static boolean isUniqueLocal(byte[] address) {
+        return address.length == 16 && (address[0] & 0xfe) == 0xfc;
+    }
+
+    private static boolean isMappedIpv4(byte[] address) {
+        if (address.length != 16) return false;
+        for (int index = 0; index < 10; index++) {
+            if (address[index] != 0) return false;
+        }
+        return address[10] == (byte) 0xff && address[11] == (byte) 0xff;
+    }
+
+    static final class PublicPeerSslSocketFactory extends SSLSocketFactory {
+        private final SSLSocketFactory delegate;
+
+        PublicPeerSslSocketFactory(SSLSocketFactory delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public String[] getDefaultCipherSuites() {
+            return delegate.getDefaultCipherSuites();
+        }
+
+        @Override
+        public String[] getSupportedCipherSuites() {
+            return delegate.getSupportedCipherSuites();
+        }
+
+        @Override
+        public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
+            requirePublicPeer(socket);
+            return requirePublicPeer(delegate.createSocket(socket, host, port, autoClose));
+        }
+
+        @Override
+        public Socket createSocket(String host, int port) throws IOException {
+            return requirePublicPeer(delegate.createSocket(host, port));
+        }
+
+        @Override
+        public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException {
+            return requirePublicPeer(delegate.createSocket(host, port, localHost, localPort));
+        }
+
+        @Override
+        public Socket createSocket(InetAddress host, int port) throws IOException {
+            return requirePublicPeer(delegate.createSocket(host, port));
+        }
+
+        @Override
+        public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)
+                throws IOException {
+            return requirePublicPeer(delegate.createSocket(address, port, localAddress, localPort));
+        }
     }
 
     private static int effectivePort(URI uri) {
