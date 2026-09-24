@@ -54,11 +54,15 @@ defineEmits(["toggle"]);
 const route = useRoute();
 
 function destination(item) {
+  const id = route.params.id;
+  const onTenant = id && id !== "new" && route.path.startsWith("/p1/tenants/");
+  if (item.detailSuffix && onTenant) {
+    return `/p1/tenants/${id}${item.detailSuffix}`;
+  }
   if (item.to) {
     return item.to;
   }
-  const id = route.params.id;
-  if (item.detailBase && route.name === "tenant-detail" && id && id !== "new") {
+  if (item.detailBase && onTenant && (route.name === "tenant-detail" || route.name === "tenant-entitlement")) {
     return `${item.detailBase}/${id}`;
   }
   return "";

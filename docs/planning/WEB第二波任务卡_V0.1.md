@@ -32,7 +32,7 @@
 |---|---|---|---|---|---|---|
 | X0 | 壳收尾小修（单测全绿 + 死代码 / later / KPI / 路由测） | `ui/x0-shell-polish` | 无 | 空闲者 | | 待领取 |
 | X1 | P2 角色 / 数据范围 / 字段权限正式页 | `ui/x1-p2-permissions` | 无（建议 X0 先合） | Cursor / Codex | | 待领取 |
-| X2 | P1 权益与配额正式页 | `ui/x2-p1-entitlement` | 无 | 空闲者 | | 待领取 |
+| X2 | P1 权益与配额正式页 | `ui/x2-p1-entitlement` | 无 | 空闲者 | Cursor | 进行中 |
 | X3 | P3 应用工作台正式首页 | `ui/x3-p3-workbench` | 无 | 空闲者 | | 待领取 |
 | B1 | P4/P5 读模型后端（list/read；Credential 视体积） | `feat/b1-p4-p5-read-models` | 无 | **建议 Codex** | | 待领取 |
 | X4 | P4 规范 §28 子页 | `ui/x4-p4-subpages` | **B1** | 空闲者 | | 待领取 |
@@ -226,3 +226,4 @@ FE 对照（只读参考，B1 PR **不得**改这些文件）：`p4.catalog`、`
 ## 修订记录
 
 - 2026-09-24：Cursor 根据壳波次（W0–W5）复盘 API 存货编写 V0.1；基线 `origin/main@0fac808`（含 #287 W5）；规划文档按 Eric 要求直推 `main`。
+- 2026-09-24：Cursor 从 `origin/main@fef30e5` 领取 X2，分支 `ui/x2-p1-entitlement`。权益与配额页开工。

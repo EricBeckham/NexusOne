@@ -25,6 +25,7 @@
         </div>
         <div class="nx-card" style="margin-top:16px;">
           <h3>Quota</h3>
+          <p><router-link :to="`/p1/tenants/${tenant.id}/entitlement`">权益与配额</router-link></p>
           <p v-for="q in quotas" :key="q.metric">
             {{ q.metric }} {{ q.used }}/{{ q.limit }}
             <NxStatus v-if="q.warning" label="WARN" tone="warning" />
