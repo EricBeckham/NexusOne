@@ -36,7 +36,8 @@ public class FormIsolationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/api/v1/p3/forms");
+        String path = request.getRequestURI();
+        return !path.startsWith("/api/v1/p3/forms") && !path.startsWith("/api/v1/p3/publish-center");
     }
 
     @Override

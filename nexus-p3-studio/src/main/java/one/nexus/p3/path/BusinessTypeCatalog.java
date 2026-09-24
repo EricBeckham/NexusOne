@@ -99,6 +99,13 @@ public final class BusinessTypeCatalog {
                 "unknown business type: " + code + " (leave|expense|travel)"));
     }
 
+    public static Optional<TypeSpec> findByFormCode(String formCode) {
+        if (formCode == null || formCode.isBlank()) {
+            return Optional.empty();
+        }
+        return TYPES.values().stream().filter(type -> formCode.equals(type.formCode())).findFirst();
+    }
+
     public static Optional<TypeSpec> find(String code) {
         if (code == null || code.isBlank()) {
             return Optional.empty();

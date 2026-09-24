@@ -216,6 +216,7 @@
 
 ### N14 — P3 发布中心聚合只读 API
 
+- **状态**：已合并（PR #320），负责人 Cursor
 - **类型**：后端　**分支**：`feat/n14-publish-center-read`　**前置**：无
 - **目标**：聚合表单发布日志/版本状态（及可选 business-type provision 摘要）为发布中心 list/detail；状态枚举对齐 §27.8（Draft/Validating/Ready/Publishing/Running/Failed/RolledBack）能映射的做映射，不能的诚实返回原值。
 - **区域**：`nexus-p3-studio`；例如 `GET /api/v1/p3/publish-center`、`GET .../{id}`。
@@ -304,3 +305,4 @@ Flyway 冲突区：N1 / N8 / N16 串行合入（不同号段可开发并行，�
 
 - 2026-09-24：NexusOne 草稿 V0.1。对照 `main@b06a51f` 只读 worktree 与第二波缺口表。
 - 2026-09-24：N12 已合并（PR #318）。P3 流程定义只读 API，读类路径 BPMN，不发布新定义。
+- 2026-09-24：N14 已合并（PR #320）。P3 发布中心只读聚合，不执行 Schema 变更。
