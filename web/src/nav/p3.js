@@ -8,4 +8,6 @@ export const p3Nav = [
   { id: "exports", label: "导出向导", to: "/p3/exports/wizard" },
   { id: "notifications", label: "站内通知", to: "/p3/notifications" },
   { id: "audit", label: "审计哈希链", to: "/p3/audit" },
+  { id: "workflow-designer", label: "流程设计器（后续）" },
+  { id: "publish-center", label: "发布中心（后续）" },
 ];

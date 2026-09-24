@@ -1,12 +1,6 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>报表表面</h1>
-      <p>
-        查询走 <code>ledger/read</code>，导出走 <code>ledger.export.csv/submit</code>，
-        与 list / AuthorizedExport 同一 PermissionEngine。不是物理 dump，不宣称产品 G2 关闭。
-      </p>
-    </div>
+    <NxPageHeader title="报表" description="按当前租户权限查询台账，并创建经过字段投影的导出任务。" />
     <NxSourceBanner body="POST /api/v1/p3/reports/query 与 /export 先经 ReportSurfaceGuard。桌面台账 / 表单 / 待办页未改。物理 dump 仍开放。" />
     <div class="nx-card" style="margin-bottom:16px;" data-testid="g2-report-decision">
       <h3>Decision</h3>
@@ -63,6 +57,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { perm } from "../../api/client";
 import { p3 } from "../../api/p3";

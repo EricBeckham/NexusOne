@@ -1,13 +1,6 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>物理 dump / 原始导出</h1>
-      <p>
-        读走 <code>ledger/read</code>，dump 走 <code>ledger.export.csv/submit</code>，
-        经 DumpSurfaceGuard 后 <code>AuthorizedExport.writeProjected</code>。
-        不是报表 Task submit，不宣称产品 G2 关闭。
-      </p>
-    </div>
+    <NxPageHeader title="物理 dump / 原始导出" description="原始导出经过数据权限判定与字段投影，不等同于报表任务。" />
     <NxSourceBanner body="POST /api/v1/p3/dumps/export 先经 DumpSurfaceGuard。桌面台账 / 表单 / 待办 / 报表页未改。pg_dump 运维仍开放。" />
     <div class="nx-card" style="margin-bottom:16px;" data-testid="g2-dump-decision">
       <h3>Decision</h3>
@@ -47,6 +40,7 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { perm } from "../../api/client";
 import { p3 } from "../../api/p3";

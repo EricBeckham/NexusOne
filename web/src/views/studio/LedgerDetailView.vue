@@ -1,15 +1,13 @@
 <template>
   <div v-if="ledger">
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>{{ ledger.name }}</h1>
-        <p class="nx-code">{{ ledger.code }} · {{ ledger.physical_table }}</p>
-      </div>
-      <div class="nx-row">
-        <NxStatus :label="`Schema v${ledger.running_schema_version}`" tone="success" />
-        <router-link class="ghost" to="/p3/ledgers">返回列表</router-link>
-      </div>
-    </div>
+    <NxPageHeader :title="ledger.name" :description="`${ledger.code} · ${ledger.physical_table}`">
+      <template #actions>
+        <div class="nx-row">
+          <NxStatus :label="`Schema v${ledger.running_schema_version}`" tone="success" />
+          <router-link class="ghost" to="/p3/ledgers">返回列表</router-link>
+        </div>
+      </template>
+    </NxPageHeader>
     <NxSourceBanner body="T3-E 记录增删改查统一走 /api/v1/p3/ledgers/{id}/records；更新携带 version 做乐观锁，查询继续由服务端绑定 TenantContext 与 DataScope。" />
     <div v-if="readDecision" class="nx-card" style="margin-bottom:16px;" data-testid="g2-ledger-decision">
       <h3>ledger/read 判定</h3>
@@ -145,6 +143,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";

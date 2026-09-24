@@ -1,9 +1,6 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>审计哈希链</h1>
-      <p>只读 <code>GET /api/v1/audit/traces/{traceId}</code>。按当前租户过滤，不改链。G18 的数据与审批事件按 trace 可查。</p>
-    </div>
+    <NxPageHeader title="审计哈希链" description="按当前租户与 Trace ID 只读查询数据和审批事件，不修改审计链。" />
     <NxSourceBanner body="M0-11 platform.audit_record。submit-start / approve 会带 X-Trace-Id。空列表表示该 trace 在本租户没有事件，不是 MOCK。" />
     <form class="nx-card" style="margin-bottom:16px;max-width:720px;" @submit.prevent="load">
       <div class="nx-field">
@@ -46,6 +43,7 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { audit } from "../../api/client";

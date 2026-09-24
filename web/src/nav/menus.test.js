@@ -51,4 +51,26 @@ describe("product shell menus", () => {
       "/p2/mfa/recovery",
     ]));
   });
+
+  it("keeps the P3 sidebar scoped to Studio and marks deferred surfaces", () => {
+    const items = navFor("p3");
+    const links = collectLinks(items);
+
+    expect(links).toEqual([
+      "/p3",
+      "/p3/ledgers",
+      "/p3/forms",
+      "/p3/todos",
+      "/p3/reports",
+      "/p3/dumps",
+      "/p3/exports/wizard",
+      "/p3/notifications",
+      "/p3/audit",
+    ]);
+    expect(links.every((link) => link === "/p3" || link.startsWith("/p3/"))).toBe(true);
+    expect(items.filter((item) => !item.to).map((item) => item.label)).toEqual([
+      "流程设计器（后续）",
+      "发布中心（后续）",
+    ]);
+  });
 });

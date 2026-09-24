@@ -33,7 +33,7 @@
           </router-link>
         </div>
       </div>
-      <div v-else class="later" :title="`${item.label}，从列表进入`">
+      <div v-else class="later" :title="item.detailBase ? `${item.label}，从列表进入` : item.label">
         <span class="icon">{{ item.label.slice(0, 1) }}</span>
         <span v-if="!collapsed">{{ item.label }}</span>
       </div>

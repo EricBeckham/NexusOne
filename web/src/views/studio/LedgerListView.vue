@@ -1,14 +1,12 @@
 <template>
   <div>
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>台账</h1>
-        <p>创建一个租户应用及其首条台账；每条台账仍是一张由 SchemaService 管理的物理表。</p>
-      </div>
-      <button class="primary" type="button" data-testid="ledger-create-toggle" @click="showCreate = !showCreate">
-        {{ showCreate ? "收起创建" : "创建台账" }}
-      </button>
-    </div>
+    <NxPageHeader title="台账" description="创建租户应用及其业务台账，并维护字段与记录。">
+      <template #actions>
+        <button class="primary" type="button" data-testid="ledger-create-toggle" @click="showCreate = !showCreate">
+          {{ showCreate ? "收起创建" : "创建台账" }}
+        </button>
+      </template>
+    </NxPageHeader>
     <NxSourceBanner body="T3-E 使用 Live M0-06：POST applications → POST applications/{id}/ledgers。业务模板入口继续保留，但不是本任务验收路径。" />
     <div class="nx-card" style="margin-bottom:16px;">
       <div class="nx-muted">自建台账 Quota（P1 /api/v1/p1/tenants/{id}/quotas，非 ledger payload）</div>
@@ -98,6 +96,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
