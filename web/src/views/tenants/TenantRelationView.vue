@@ -2,7 +2,7 @@
   <NxPageHeader
     eyebrow="星域 / 租户关系"
     title="租户关系"
-    description="只读父子关系。本页不改挂租户，也不展示跨租户业务数据。"
+    description="可改挂上级。本页不展示跨租户业务数据。"
   />
 
   <NxNoPermission v-if="denied" title="暂无权限" :description="error || '当前身份不能查看租户关系。'" />
@@ -63,6 +63,25 @@
         <ul v-else-if="children?.length" data-testid="relation-children">
           <li v-for="item in children" :key="item.id">{{ item.name || "暂无" }} · {{ item.code || "暂无" }}</li>
         </ul>
+        <form class="reparent" data-testid="reparent-form" @submit.prevent="saveParent">
+          <h3>改挂</h3>
+          <label>
+            新上级
+            <select v-model="parentChoice" :disabled="savingParent">
+              <option value="">清空上级</option>
+              <option v-for="item in parentChoices" :key="item.id" :value="item.id">
+                {{ item.name || "暂无" }} · {{ item.code || "暂无" }}
+              </option>
+            </select>
+          </label>
+          <p v-if="!parentChoices.length" class="nx-muted">暂无其他租户可选。</p>
+          <label class="confirm">
+            <input v-model="confirmed" type="checkbox" :disabled="savingParent" />
+            确认改挂
+          </label>
+          <p v-if="reparentError" class="nx-error" role="alert">{{ reparentError }}</p>
+          <button type="submit" :disabled="!confirmed || savingParent">{{ savingParent ? "保存中…" : "保存改挂" }}</button>
+        </form>
       </template>
     </section>
   </div>
@@ -97,6 +116,10 @@ const detailError = ref("");
 const detailTrace = ref("");
 const detailDenied = ref(false);
 const expanded = ref(new Set());
+const parentChoice = ref("");
+const confirmed = ref(false);
+const savingParent = ref(false);
+const reparentError = ref("");
 
 const selectedId = computed(() => (route.params.id ? String(route.params.id) : ""));
 const query = computed(() => String(route.query.q || ""));
@@ -104,6 +127,19 @@ const visibleTree = computed(() => filterTree(roots.value || [], query.value));
 const lazy = computed(() => nodeCount(roots.value || []) > LAZY_TREE_LIMIT);
 const rows = computed(() => visibleRows(visibleTree.value, { lazy: lazy.value, expanded: expanded.value }));
 const selected = computed(() => findNode(roots.value || [], selectedId.value));
+const parentChoices = computed(() => {
+  const choices = [];
+  function walk(nodes) {
+    for (const node of nodes || []) {
+      if (node.id !== selectedId.value) {
+        choices.push(node);
+      }
+      walk(node.children);
+    }
+  }
+  walk(roots.value || []);
+  return choices;
+});
 const parentLabel = computed(() => {
   const nearest = ancestors.value?.[0];
   if (!nearest) {
@@ -121,6 +157,24 @@ function onSearch(event) {
     delete next.q;
   }
   router.replace({ query: next });
+}
+
+async function saveParent() {
+  if (!selectedId.value || !confirmed.value || savingParent.value) {
+    return;
+  }
+  savingParent.value = true;
+  reparentError.value = "";
+  try {
+    await p1.reparentTenant(selectedId.value, parentChoice.value || null);
+    confirmed.value = false;
+    await loadTree();
+    await loadDetail(selectedId.value);
+  } catch (err) {
+    reparentError.value = err?.message || "改挂失败";
+  } finally {
+    savingParent.value = false;
+  }
 }
 
 function select(id) {
@@ -207,8 +261,14 @@ async function loadDetail(id) {
 
 onMounted(loadTree);
 watch(selectedId, (id) => {
+  confirmed.value = false;
+  reparentError.value = "";
+  parentChoice.value = "";
   loadDetail(id);
 }, { immediate: true });
+watch(selected, (node) => {
+  parentChoice.value = node?.parentTenantId || "";
+});
 </script>
 
 <style scoped>
@@ -227,6 +287,9 @@ watch(selectedId, (id) => {
 .detail-pane dl div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
 .detail-pane dt { color: var(--nx-text-muted, #718096); }
 .detail-pane dd, .detail-pane ol, .detail-pane ul { margin: 0; }
+.reparent { display: grid; gap: 8px; margin-top: 16px; }
+.reparent select, .reparent button { font: inherit; }
+.confirm { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 768px) {
   .split { grid-template-columns: 1fr; }
 }

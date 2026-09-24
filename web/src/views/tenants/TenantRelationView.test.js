@@ -10,6 +10,7 @@ vi.mock("../../api/client", () => ({
     tenantTree: vi.fn(),
     tenantChildren: vi.fn(),
     tenantAncestors: vi.fn(),
+    reparentTenant: vi.fn(),
   },
 }));
 
@@ -53,6 +54,7 @@ describe("P1 tenant relation page", () => {
     p1.tenantTree.mockReset();
     p1.tenantChildren.mockReset();
     p1.tenantAncestors.mockReset();
+    p1.reparentTenant.mockReset();
     p1.tenantChildren.mockResolvedValue([]);
     p1.tenantAncestors.mockResolvedValue([]);
   });
@@ -110,5 +112,39 @@ describe("P1 tenant relation page", () => {
     const { wrapper } = await open("/p1/relations?q=没有这个租户");
     expect(wrapper.text()).toContain("没有匹配的租户");
     expect(wrapper.find('[role="treeitem"]').exists()).toBe(false);
+    expect(wrapper.find("[data-testid=reparent-form]").exists()).toBe(false);
+  });
+
+  it("asks for confirmation and shows the server cycle error", async () => {
+    p1.tenantTree.mockResolvedValue(tree);
+    p1.reparentTenant.mockRejectedValue(Object.assign(new Error("不能挂到自己的后代"), { status: 409 }));
+    const { wrapper } = await open("/p1/relations/root");
+
+    const form = wrapper.get("[data-testid=reparent-form]");
+    expect(form.text()).toContain("分部");
+    expect(form.get("button").attributes("disabled")).toBeDefined();
+    await form.get('input[type="checkbox"]').setValue(true);
+    await form.get("select").setValue("child");
+    await form.trigger("submit");
+    await flushPromises();
+
+    expect(p1.reparentTenant).toHaveBeenCalledWith("root", "child");
+    expect(form.text()).toContain("不能挂到自己的后代");
+  });
+
+  it("clears the parent after confirmation and reloads the tree", async () => {
+    p1.tenantTree.mockResolvedValue(tree);
+    p1.reparentTenant.mockResolvedValue({ id: "child", code: "branch", name: "分部", parentTenantId: null });
+    const { wrapper } = await open("/p1/relations/child");
+    const form = wrapper.get("[data-testid=reparent-form]");
+
+    await form.get("select").setValue("");
+    await form.get('input[type="checkbox"]').setValue(true);
+    await form.trigger("submit");
+    await flushPromises();
+
+    expect(p1.reparentTenant).toHaveBeenCalledWith("child", null);
+    expect(p1.tenantTree).toHaveBeenCalledTimes(2);
+    expect(form.text()).not.toContain("不能挂到自己的后代");
   });
 });
