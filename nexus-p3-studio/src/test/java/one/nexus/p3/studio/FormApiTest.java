@@ -157,6 +157,75 @@ class FormApiTest {
                 .andExpect(jsonPath("$.running_version").value(org.hamcrest.Matchers.nullValue()));
     }
 
+    @Test
+    void publishCenterListsOnlyTheCallerTenant() throws Exception {
+        mvc.perform(get("/api/v1/p3/publish-center"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/api/v1/p3/forms")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"app_code":"hr","form_code":"center_form","name":"发布中心单",
+                                 "bindings":[{"widget_code":"title","ledger_code":"leave_request","field_code":"title","required":true}]}
+                                """))
+                .andExpect(status().isCreated());
+        MvcResult listed = mvc.perform(get("/api/v1/p3/forms")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String id = null;
+        for (JsonNode node : mapper.readTree(listed.getResponse().getContentAsString())) {
+            if ("center_form".equals(node.get("form_code").asText())) {
+                id = node.get("form_id").asText();
+            }
+        }
+        org.junit.jupiter.api.Assertions.assertNotNull(id);
+
+        mvc.perform(get("/api/v1/p3/publish-center")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.form_id == '" + id + "')].status")
+                        .value(org.hamcrest.Matchers.hasItem("Draft")));
+
+        mvc.perform(post("/api/v1/p3/forms/" + id + "/validate")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/p3/forms/" + id + "/publish")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"notes\":\"v1\"}"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/v1/p3/publish-center")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.form_id == '" + id + "')].status")
+                        .value(org.hamcrest.Matchers.hasItem("Running")));
+        mvc.perform(get("/api/v1/p3/publish-center/" + id)
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_A)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-a"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.schema_execution").value(false))
+                .andExpect(jsonPath("$.schema_notice").value("回滚不会回滚共享物理 Schema，也不会删除已有业务数据。"))
+                .andExpect(jsonPath("$.logs").isNotEmpty());
+        mvc.perform(get("/api/v1/p3/publish-center")
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_B)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-b"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.form_id == '" + id + "')]").isEmpty());
+        mvc.perform(get("/api/v1/p3/publish-center/" + id)
+                        .header(FormIsolationFilter.HEADER_DEMO_TENANT, TENANT_B)
+                        .header(FormIsolationFilter.HEADER_DEMO_ACTOR, "user-b"))
+                .andExpect(status().isNotFound());
+    }
+
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @ComponentScan(
