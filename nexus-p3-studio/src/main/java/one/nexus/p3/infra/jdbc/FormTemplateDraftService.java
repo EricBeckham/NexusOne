@@ -109,6 +109,49 @@ public class FormTemplateDraftService {
         return new ValidationResult(id, errors.isEmpty(), status, errors);
     }
 
+    @Transactional
+    public PublishResult publishDraft(UUID id) {
+        PlatformContext platform = isolation.requirePlatformContext("form-template.publish", PlatformDuty.SYSTEM_ADMIN);
+        String status = jdbc.query("SELECT status FROM platform.form_template WHERE id = ? FOR UPDATE",
+                rs -> rs.next() ? rs.getString(1) : null, id);
+        if (status == null) throw notFound();
+        requireValidated(status);
+
+        TemplateView template = getWithoutGuard(id);
+        int nextVersion = jdbc.queryForObject(
+                "SELECT COALESCE(MAX(version), 0) + 1 FROM platform.form_template_version WHERE template_id = ?",
+                Integer.class, id);
+        UUID versionId = UUID.randomUUID();
+        Instant publishedAt = clock.now();
+        String snapshot;
+        try {
+            snapshot = mapper.writeValueAsString(template.fields());
+        } catch (JacksonException e) {
+            throw new IllegalStateException("could not serialize form template snapshot", e);
+        }
+        jdbc.update("""
+                INSERT INTO platform.form_template_version
+                    (id, template_id, version, fields_snapshot, published_at, published_by)
+                VALUES (?, ?, ?, CAST(? AS jsonb), ?, ?)
+                """, versionId, id, nextVersion, snapshot, publishedAt, platform.actor().subjectId());
+        jdbc.update("""
+                UPDATE platform.form_template
+                   SET status = 'PUBLISHED', running_version_id = ?, updated_at = ?, version = version + 1
+                 WHERE id = ?
+                """, versionId, publishedAt, id);
+        audit.append(new AuditEvent(UUID.randomUUID(), "platform.form_template.published", AuditEvent.VERSION,
+                publishedAt, null, platform.actor().subjectId(), platform.actorHomeTenantId(), true,
+                platform.reason(), platform.traceId(), platform.traceId(), null, AuditEvent.OUTCOME_ACCEPTED,
+                "form_template", id.toString(), Map.of("version_id", versionId.toString(), "version", nextVersion)));
+        return new PublishResult(id, versionId, nextVersion, publishedAt, template.fields());
+    }
+
+    static void requireValidated(String status) {
+        if (!"VALIDATED".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "publish requires VALIDATED template status");
+        }
+    }
+
     private void replaceFields(UUID templateId, List<FieldWrite> fields, Instant now) {
         jdbc.update("DELETE FROM platform.form_template_field WHERE template_id = ?", templateId);
         for (int position = 0; position < fields.size(); position++) {
@@ -185,6 +228,7 @@ public class FormTemplateDraftService {
             UUID runningVersionId, Instant createdAt, Instant updatedAt, long version, List<FieldView> fields) { }
     public record ValidationError(UUID fieldId, String fieldKey, String code, String message) { }
     public record ValidationResult(UUID templateId, boolean valid, String status, List<ValidationError> errors) { }
+    public record PublishResult(UUID templateId, UUID versionId, int version, Instant publishedAt, List<FieldView> fields) { }
 
     private static final class TemplateRow {
         private final UUID id, runningVersionId;
