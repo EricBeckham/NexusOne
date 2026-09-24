@@ -61,4 +61,18 @@ class SchemaContractTest {
         }
         assertTrue(sql.contains("sync_fail_count >= 0"), "sync failure count must be non-negative");
     }
+
+    @Test
+    void idpConfigurationExtensionAddsOnlyPublicClientIdAndDeletionMarker() throws Exception {
+        String sql;
+        try (var in = Objects.requireNonNull(
+                getClass().getResourceAsStream("/db/migration/V202__iam_idp_client_id.sql"),
+                "migration not on classpath")) {
+            sql = new String(in.readAllBytes(), StandardCharsets.UTF_8).toLowerCase();
+        }
+        assertTrue(sql.contains("add column client_id varchar(256)"));
+        assertTrue(sql.contains("add column deleted_at timestamptz"));
+        assertFalse(sql.contains("client_secret"));
+        assertFalse(sql.contains("password"));
+    }
 }

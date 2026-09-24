@@ -18,6 +18,7 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
     private final Map<UUID, Model.Position> positions = new ConcurrentHashMap<>();
     private final Map<UUID, Model.Employment> employments = new ConcurrentHashMap<>();
     private final Map<UUID, Model.IssuedContext> contexts = new ConcurrentHashMap<>();
+    private final Map<UUID, Model.IdpConfiguration> idpConfigurations = new ConcurrentHashMap<>();
 
     @Override
     public Model.GlobalAccount saveAccount(Model.GlobalAccount account) {
@@ -253,5 +254,45 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
             }
             return context;
         });
+    }
+
+    @Override
+    public Model.IdpConfiguration saveIdpConfiguration(Model.IdpConfiguration configuration) {
+        idpConfigurations.put(configuration.id(), configuration);
+        return configuration;
+    }
+
+    @Override
+    public Optional<Model.IdpConfiguration> findIdpConfiguration(UUID tenantId, UUID id) {
+        return Optional.ofNullable(idpConfigurations.get(id))
+                .filter(configuration -> configuration.tenantId().equals(tenantId)
+                        && configuration.deletedAt() == null);
+    }
+
+    @Override
+    public List<Model.IdpConfiguration> listIdpConfigurations(UUID tenantId) {
+        return idpConfigurations.values().stream()
+                .filter(configuration -> configuration.tenantId().equals(tenantId)
+                        && configuration.deletedAt() == null)
+                .sorted(java.util.Comparator.comparing(Model.IdpConfiguration::createdAt))
+                .toList();
+    }
+
+    @Override
+    public boolean deleteIdpConfiguration(UUID tenantId, UUID id) {
+        java.util.concurrent.atomic.AtomicBoolean deleted = new java.util.concurrent.atomic.AtomicBoolean();
+        idpConfigurations.computeIfPresent(id, (key, configuration) -> {
+            if (configuration.tenantId().equals(tenantId) && configuration.deletedAt() == null) {
+                deleted.set(true);
+                Instant now = Instant.now();
+                return new Model.IdpConfiguration(configuration.id(), configuration.tenantId(),
+                        configuration.providerType(), configuration.displayName(), configuration.clientId(),
+                        configuration.issuer(), "DISABLED", configuration.lastSyncAt(), configuration.lastSyncOk(),
+                        configuration.syncFailCount(), now, configuration.createdAt(), now,
+                        configuration.version() + 1);
+            }
+            return configuration;
+        });
+        return deleted.get();
     }
 }

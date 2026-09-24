@@ -3,6 +3,7 @@ package one.nexus.p2;
 import one.nexus.audit.AuditPort;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.idp.IdentityProviderPort;
+import one.nexus.p2.idp.IdpConfigurationService;
 import one.nexus.p2.idp.KeycloakIdentityProvider;
 import one.nexus.p2.idp.StubIdentityProvider;
 import one.nexus.p2.persist.InMemoryIdentityRepository;
@@ -63,6 +64,11 @@ public class IdentityConfiguration {
             return new JdbcIdentityRepository(new JdbcTemplate(dataSource));
         }
         return new InMemoryIdentityRepository();
+    }
+
+    @Bean
+    IdpConfigurationService idpConfigurationService(IdentityRepository repository, Clock clock, IamProperties properties) {
+        return new IdpConfigurationService(repository, clock, properties.mfaPolicy());
     }
 
     @Bean

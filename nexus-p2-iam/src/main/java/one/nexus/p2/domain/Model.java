@@ -111,4 +111,22 @@ public final class Model {
             Instant expiresAt,
             Instant revokedAt
     ) {}
+
+    /** Tenant-scoped IdP metadata. Secrets are deliberately held outside the model. */
+    public record IdpConfiguration(
+            UUID id,
+            UUID tenantId,
+            String providerType,
+            String displayName,
+            String clientId,
+            String issuer,
+            String status,
+            Instant lastSyncAt,
+            Boolean lastSyncOk,
+            int syncFailCount,
+            Instant deletedAt,
+            Instant createdAt,
+            Instant updatedAt,
+            int version
+    ) {}
 }

@@ -70,4 +70,12 @@ public interface IdentityRepository {
     Optional<Model.IssuedContext> findContext(UUID contextId);
 
     void revokeContextsForAccount(UUID accountId);
+
+    Model.IdpConfiguration saveIdpConfiguration(Model.IdpConfiguration configuration);
+
+    Optional<Model.IdpConfiguration> findIdpConfiguration(UUID tenantId, UUID id);
+
+    List<Model.IdpConfiguration> listIdpConfigurations(UUID tenantId);
+
+    boolean deleteIdpConfiguration(UUID tenantId, UUID id);
 }
