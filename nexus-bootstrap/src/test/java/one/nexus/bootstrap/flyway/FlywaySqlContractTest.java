@@ -59,4 +59,20 @@ class FlywaySqlContractTest {
             assertFalse(table.contains(forbidden), "secret ciphertext table must not store " + forbidden);
         }
     }
+
+    @Test
+    void platformFormTemplateMigrationDefinesPlatformTablesAndRegistersThem() throws IOException {
+        Path migration = Path.of("src/main/resources/db/migration/V005__platform_form_template.sql");
+        assertTrue(Files.isRegularFile(migration), migration.toAbsolutePath().toString());
+        String sql = Files.readString(migration).toLowerCase(Locale.ROOT);
+        for (String table : new String[]{"platform.form_template", "platform.form_template_field", "platform.form_template_version"}) {
+            assertTrue(sql.contains("create table " + table), table + " must exist");
+            assertTrue(sql.contains("'" + table.substring("platform.".length()) + "', 'platform', false"), table + " must be registered as platform scoped");
+        }
+        for (String type : new String[]{"text", "textarea", "number", "money", "date", "select", "person", "attachment"}) {
+            assertTrue(sql.contains("'" + type + "'"), "field type missing: " + type);
+        }
+        assertTrue(sql.contains("fields_snapshot jsonb not null"));
+        assertTrue(sql.contains("unique (template_id, version)"));
+    }
 }
