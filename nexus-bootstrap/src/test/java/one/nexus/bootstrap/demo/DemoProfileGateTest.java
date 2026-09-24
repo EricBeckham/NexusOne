@@ -21,10 +21,16 @@ class DemoProfileGateTest {
     void allowsLocalDemoAndRefusesProductionShapedTargets() {
         DemoProfileGate.assertAllowed(false, "production", "jdbc:postgresql://db.example:5432/nexusone");
         DemoProfileGate.assertAllowed(true, "local", "jdbc:postgresql://127.0.0.1:5432/nexusone");
+        DemoProfileGate.assertAllowed(true, "local", "jdbc:postgresql://localhost:5432/nexusone");
+        DemoProfileGate.assertAllowed(true, "local", "jdbc:postgresql://[::1]:5432/nexusone");
         assertThrows(IllegalStateException.class,
                 () -> DemoProfileGate.assertAllowed(true, "production", "jdbc:postgresql://127.0.0.1:5432/nexusone"));
         assertThrows(IllegalStateException.class,
                 () -> DemoProfileGate.assertAllowed(true, "local", "jdbc:postgresql://db.internal:5432/nexusone"));
+        assertThrows(IllegalStateException.class,
+                () -> DemoProfileGate.assertAllowed(true, "local", "jdbc:postgresql://db.internal/nexusone?host=localhost"));
+        assertThrows(IllegalStateException.class,
+                () -> DemoProfileGate.assertAllowed(true, "local", ""));
     }
 
     @Test
