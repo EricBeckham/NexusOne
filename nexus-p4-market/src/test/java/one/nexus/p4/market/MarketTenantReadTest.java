@@ -70,9 +70,9 @@ class MarketTenantReadTest {
 
         assertEquals(
                 "SELECT \"id\", \"tenant_id\", \"app_id\" FROM \"market\".\"installation\" "
-                        + "WHERE \"id\" = ? AND \"tenant_id\" = ?",
+                        + "WHERE \"id\" = ? AND \"tenant_id\"::text = ?",
                 query.sql());
-        assertEquals(ALPHA, query.parameters().getLast());
+        assertEquals(ALPHA.toString(), query.parameters().getLast());
         assertTrue(query.plan().tenantRequired());
     }
 

@@ -70,7 +70,7 @@ class QueryAstScopedQueryTest {
         assertEquals(List.of("id", "title"), list.encoding().query().projection());
         assertFalse(list.compiled().sql().contains("secret"));
         assertTrue(list.compiled().sql().contains("\"owner_id\" = ?"));
-        assertTrue(list.compiled().sql().contains("\"tenant_id\" = ?"));
+        assertTrue(list.compiled().sql().contains("\"tenant_id\"::text = ?"));
         assertTrue(list.compiled().sql().contains("\"deleted_at\" IS NULL"));
         assertTrue(list.compiled().sql().contains("LIMIT ? OFFSET ?"));
         assertEquals(list.compiled().sql(), list.bound().sql());
@@ -85,7 +85,7 @@ class QueryAstScopedQueryTest {
                 kernel.compiler(),
                 AccessContextHolder.current());
         assertTrue(detail.compiled().sql().contains("\"id\" = ?"));
-        assertTrue(detail.compiled().sql().contains("\"tenant_id\" = ?"));
+        assertTrue(detail.compiled().sql().contains("\"tenant_id\"::text = ?"));
         assertFalse(detail.compiled().sql().contains("tenant_id = ? AND"));
 
         BoundSql count = QueryAstScopedQuery.count(QueryAstScopedQuery.compile(
@@ -203,7 +203,7 @@ class QueryAstScopedQueryTest {
         assertTrue(compiled.scopeFullyEncoded());
         assertEquals(List.of("d1", "d2"), compiled.encoding().query().filters().get("department_id"));
         assertTrue(compiled.compiled().sql().contains("\"department_id\" IN (?, ?)"));
-        assertTrue(compiled.compiled().sql().contains("\"tenant_id\" = ?"));
+        assertTrue(compiled.compiled().sql().contains("\"tenant_id\"::text = ?"));
         assertEquals(compiled.compiled().sql(), compiled.bound().sql());
         assertEquals(List.of("d1", "d2", "alpha", 10, 0), compiled.bound().parameters());
     }

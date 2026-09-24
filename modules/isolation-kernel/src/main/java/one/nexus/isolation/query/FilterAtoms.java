@@ -38,9 +38,15 @@ final class FilterAtoms {
     }
 
     static void append(StringBuilder sql, List<Object> args, String column, Object value) {
+        // Ledger tenant_id is text; P4/P5 tenant_id is uuid. Compare both as text.
+        // Inserts still use bind(), which keeps a real UUID for uuid columns.
+        boolean tenantText = "tenant_id".equals(column);
+        if (tenantText) {
+            sql.append("::text");
+        }
         if (value instanceof QueryRange range) {
             sql.append(' ').append(range.comparison().sql()).append(" ?");
-            args.add(bind(column, range.value()));
+            args.add(tenantText ? asText(range.value()) : bind(column, range.value()));
             return;
         }
         if (value == null) {
@@ -58,13 +64,20 @@ final class FilterAtoms {
                     sql.append(", ");
                 }
                 sql.append('?');
-                args.add(bind(column, items.get(i)));
+                args.add(tenantText ? asText(items.get(i)) : bind(column, items.get(i)));
             }
             sql.append(')');
             return;
         }
         sql.append(" = ?");
-        args.add(bind(column, value));
+        args.add(tenantText ? asText(value) : bind(column, value));
+    }
+
+    private static Object asText(Object value) {
+        if (value instanceof UUID uuid) {
+            return uuid.toString();
+        }
+        return value;
     }
 
     static Object bind(String column, Object value) {

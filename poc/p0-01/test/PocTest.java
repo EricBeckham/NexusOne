@@ -32,7 +32,7 @@ public final class PocTest {
         Poc.PlatformContextIssuer issuer = new Poc.PlatformContextIssuer(Collections.singleton("ops.summary"), audit::add);
 
         Poc.RenderedSql read = executor.compile(Poc.Query.select("ledger_entry", Arrays.asList("id", "title"), map("deleted_at", null)), alpha);
-        equal("SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE \"deleted_at\" IS NULL AND \"tenant_id\" = ?", read.sql);
+        equal("SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE \"deleted_at\" IS NULL AND \"tenant_id\"::text = ?", read.sql);
         equal(Arrays.asList("alpha"), read.parameters);
         equal(true, read.plan.tenantRequired);
         equal("TenantContext", read.plan.tenantSource);
@@ -41,10 +41,10 @@ public final class PocTest {
         equal("INSERT INTO \"ledger_entry\" (\"id\", \"title\", \"tenant_id\") VALUES (?, ?, ?)", inserted.sql);
         equal(Arrays.asList("1", "hi", "alpha"), inserted.parameters);
         Poc.RenderedSql updated = executor.compile(Poc.Query.update("ledger_entry", map("title", "new"), map("id", "1")), alpha);
-        equal("UPDATE \"ledger_entry\" SET \"title\" = ? WHERE \"id\" = ? AND \"tenant_id\" = ?", updated.sql);
+        equal("UPDATE \"ledger_entry\" SET \"title\" = ? WHERE \"id\" = ? AND \"tenant_id\"::text = ?", updated.sql);
         equal(Arrays.asList("new", "1", "alpha"), updated.parameters);
         Poc.RenderedSql deleted = executor.compile(Poc.Query.delete("ledger_entry", map("id", "1")), alpha);
-        equal("DELETE FROM \"ledger_entry\" WHERE \"id\" = ? AND \"tenant_id\" = ?", deleted.sql);
+        equal("DELETE FROM \"ledger_entry\" WHERE \"id\" = ? AND \"tenant_id\"::text = ?", deleted.sql);
 
         denied(() -> executor.compile(Poc.Query.select("ledger_entry", Arrays.asList("id"), map()), null));
         denied(() -> executor.compile(Poc.Query.insert("ledger_entry", map("id", "1", "tenant_id", "beta")), alpha));
@@ -66,7 +66,7 @@ public final class PocTest {
         equal("SELECT \"id\" FROM \"platform_metric\"", executor.compile(Poc.Query.select("platform_metric", Arrays.asList("id"), map()), platform).sql);
         Poc.NativeSqlPort nativePort = new Poc.NativeSqlPort(executor, Collections.singletonMap("infra.count-ledger", "ledger_entry"));
         Poc.RenderedSql nativeCount = nativePort.compileCount("infra.count-ledger", alpha);
-        equal("SELECT count(*) FROM \"ledger_entry\" WHERE \"tenant_id\" = ?", nativeCount.sql);
+        equal("SELECT count(*) FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ?", nativeCount.sql);
         equal(Arrays.asList("alpha"), nativeCount.parameters);
         equal(true, nativeCount.plan.tenantRequired);
         denied(() -> nativePort.compileCount("business.raw-sql", alpha));

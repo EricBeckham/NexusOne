@@ -184,7 +184,7 @@ public final class Poc {
                 Collections.<String, Object>emptyMap()), context);
             String sql = "SELECT count(*) FROM " + quote(checked.plan.table);
             if (checked.plan.tenantRequired && !checked.plan.platformContext) {
-                sql += " WHERE \"tenant_id\" = ?";
+                sql += " WHERE \"tenant_id\"::text = ?";
                 if (checked.parameters.size() != 1) throw new SecurityException("native tenant binding mismatch");
             } else if (!checked.parameters.isEmpty()) {
                 throw new SecurityException("unexpected native parameters");

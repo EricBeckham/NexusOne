@@ -87,7 +87,7 @@ class IsolationDataScopeInjectorTest {
         RenderedSql sql = kernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id", "title"), Map.of()), alpha);
         assertEquals(
-                "SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"owner_id\" = ?",
+                "SELECT \"id\", \"title\" FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ? AND \"owner_id\" = ?",
                 sql.sql());
         assertEquals(List.of("alpha", "u1"), sql.parameters());
     }
@@ -105,7 +105,7 @@ class IsolationDataScopeInjectorTest {
         RenderedSql sql = kernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()), alpha);
         assertEquals(
-                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"department_id\" IN (?, ?)",
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ? AND \"department_id\" IN (?, ?)",
                 sql.sql());
         assertEquals(List.of("alpha", "d1", "d2"), sql.parameters());
     }

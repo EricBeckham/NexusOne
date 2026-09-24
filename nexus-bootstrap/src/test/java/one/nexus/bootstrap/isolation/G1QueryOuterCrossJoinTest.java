@@ -114,7 +114,7 @@ class G1QueryOuterCrossJoinTest {
                 Map.of("id", ExportFieldRule.allow(), "amount", ExportFieldRule.allow()),
                 false);
         assertTrue(allowedLeft.sql().contains("LEFT OUTER JOIN"));
-        assertTrue(allowedLeft.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertTrue(allowedLeft.sql().contains("\"line\".\"tenant_id\"::text = ?"));
 
         var allowedCross = IsolatedExport.compile(
                 kernel.compiler(),
@@ -124,7 +124,7 @@ class G1QueryOuterCrossJoinTest {
                 Map.of("id", ExportFieldRule.allow(), "amount", ExportFieldRule.allow()),
                 false);
         assertTrue(allowedCross.sql().contains("CROSS JOIN"));
-        assertTrue(allowedCross.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertTrue(allowedCross.sql().contains("\"line\".\"tenant_id\"::text = ?"));
 
         assertFalse(compileRanPastGuard.get());
         assertTrue(collecting.rejected(IsolationErrorCode.CROSS_TENANT_JOIN));

@@ -79,7 +79,7 @@ class G1QueryDataScopeInAstTest {
         assertFalse(compiled.encoding().query().filters().containsKey("tenant_id"));
         RenderedSql sql = compiled.compiled();
         assertTrue(sql.sql().contains("\"department_id\" IN (?, ?)"));
-        assertTrue(sql.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(sql.sql().contains("\"tenant_id\"::text = ?"));
         assertEquals(sql.sql(), compiled.bound().sql());
         assertEquals(List.of("d1", "d2", "alpha"), sql.parameters());
 
@@ -108,7 +108,7 @@ class G1QueryDataScopeInAstTest {
                 List.of(Map.of("owner_id", "user-alpha"), Map.of("department_id", "d1")),
                 compiledOr.encoding().query().disjunctions().getFirst().branches());
         assertTrue(compiledOr.compiled().sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
-        assertTrue(compiledOr.compiled().sql().contains("\"tenant_id\" = ?"));
+        assertTrue(compiledOr.compiled().sql().contains("\"tenant_id\"::text = ?"));
         assertEquals(compiledOr.compiled().sql(), compiledOr.bound().sql());
         assertEquals(List.of("alpha", "user-alpha", "d1"), compiledOr.compiled().parameters());
 

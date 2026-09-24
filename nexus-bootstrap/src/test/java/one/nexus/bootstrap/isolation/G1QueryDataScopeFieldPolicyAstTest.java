@@ -91,14 +91,14 @@ class G1QueryDataScopeFieldPolicyAstTest {
         RenderedSql compiled = kernel.compiler().compile(encoded.query(), AccessContextHolder.current());
         assertEquals(
                 "SELECT \"id\", \"title\", \"phone\" FROM \"ledger_entry\""
-                        + " WHERE \"owner_id\" = ? AND \"tenant_id\" = ?",
+                        + " WHERE \"owner_id\" = ? AND \"tenant_id\"::text = ?",
                 compiled.sql());
         assertEquals(List.of("user-alpha", "alpha"), compiled.parameters());
 
         RenderedSql injected = scopedKernel.compiler().compile(
                 QueryAst.select("ledger_entry", List.of("id", "title"), Map.of()),
                 AccessContextHolder.current());
-        assertTrue(injected.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(injected.sql().contains("\"tenant_id\"::text = ?"));
         assertTrue(injected.sql().contains("\"owner_id\" = ?"));
         assertEquals(List.of("alpha", "user-alpha"), injected.parameters());
 
@@ -110,7 +110,7 @@ class G1QueryDataScopeFieldPolicyAstTest {
                         kernel.registry().require("ledger_entry")).query(),
                 AccessContextHolder.current());
         assertTrue(deptSql.sql().contains("\"department_id\" = ?"));
-        assertTrue(deptSql.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(deptSql.sql().contains("\"tenant_id\"::text = ?"));
 
         var dropped = IsolatedExport.compile(
                 kernel.compiler(),
@@ -151,7 +151,7 @@ class G1QueryDataScopeFieldPolicyAstTest {
         assertTrue(encodedOr.scopeFullyEncoded());
         RenderedSql orSql = kernel.compiler().compile(encodedOr.query(), AccessContextHolder.current());
         assertTrue(orSql.sql().contains("(\"owner_id\" = ? OR \"department_id\" = ?)"));
-        assertTrue(orSql.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(orSql.sql().contains("\"tenant_id\"::text = ?"));
         assertEquals(List.of("alpha", "user-alpha", "d1"), orSql.parameters());
 
         Predicate leftoverScope = Predicate.anyOf(

@@ -134,7 +134,7 @@ class G1FieldPolicyMaskSecondAuthHonestyTest {
                 true);
         assertTrue(FieldPolicyMaskHonesty.compiledSqlLeavesMaskToProjector(grantedCompile.sql(), "phone"));
         assertTrue(grantedCompile.sql().contains("\"owner_id\" = ?"));
-        assertTrue(grantedCompile.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(grantedCompile.sql().contains("\"tenant_id\"::text = ?"));
 
         AtomicReference<String> csv = new AtomicReference<>();
         IsolatedExport.writeProjected(

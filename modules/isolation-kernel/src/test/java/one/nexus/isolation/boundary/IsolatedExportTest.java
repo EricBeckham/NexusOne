@@ -111,7 +111,7 @@ class IsolatedExportTest {
                 false);
         assertTrue(dropped.sql().startsWith("SELECT \"id\", \"title\" FROM \"ledger_entry\""));
         assertFalse(dropped.sql().contains("secret"));
-        assertTrue(dropped.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(dropped.sql().contains("\"tenant_id\"::text = ?"));
         IsolationException missing = assertThrows(IsolationException.class, () -> IsolatedExport.compile(
                 tables.compiler(),
                 QueryAst.select("ledger_entry", List.of("id"), Map.of()),
@@ -182,7 +182,7 @@ class IsolatedExportTest {
                 policy,
                 false);
         assertTrue(sql.sql().contains("INNER JOIN"));
-        assertTrue(sql.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertTrue(sql.sql().contains("\"line\".\"tenant_id\"::text = ?"));
         AtomicReference<String> key = new AtomicReference<>();
         AtomicReference<String> csv = new AtomicReference<>();
         IsolatedExport.writeProjected(
@@ -312,7 +312,7 @@ class IsolatedExportTest {
                 policy,
                 false);
         assertTrue(left.sql().contains("LEFT OUTER JOIN"));
-        assertTrue(left.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertTrue(left.sql().contains("\"line\".\"tenant_id\"::text = ?"));
         var crossed = IsolatedExport.compile(
                 tables.compiler(),
                 QueryAst.select("ledger_entry", List.of("ledger_entry.id", "line.amount"), Map.of(), List.of(
@@ -321,7 +321,7 @@ class IsolatedExportTest {
                 policy,
                 false);
         assertTrue(crossed.sql().contains("CROSS JOIN"));
-        assertTrue(crossed.sql().contains("\"line\".\"tenant_id\" = ?"));
+        assertTrue(crossed.sql().contains("\"line\".\"tenant_id\"::text = ?"));
     }
 
     @Test
@@ -347,7 +347,7 @@ class IsolatedExportTest {
                 "alpha",
                 policy,
                 false);
-        assertTrue(sql.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(sql.sql().contains("\"tenant_id\"::text = ?"));
         assertTrue(sql.sql().contains("\"owner_id\" = ?"));
         assertFalse(sql.sql().contains("secret"));
         assertTrue(sql.sql().startsWith("SELECT \"id\", \"title\" FROM"));

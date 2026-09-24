@@ -99,7 +99,7 @@ class G1QueryNestedSubqueryTest {
                 false);
         assertTrue(allowed.sql().contains("IN (SELECT \"entry_id\" FROM \"ledger_line\""));
         assertTrue(allowed.sql().contains("IN (SELECT \"line_id\" FROM \"ledger_note\""));
-        assertTrue(allowed.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(allowed.sql().contains("\"tenant_id\"::text = ?"));
         assertEquals(3, allowed.parameters().stream().filter("alpha"::equals).count());
 
         var exists = kernel.compiler().compile(

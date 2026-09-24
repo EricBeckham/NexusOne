@@ -88,7 +88,7 @@ class G1ExportFieldPolicyDropTest {
                 false);
         assertTrue(compiled.sql().startsWith("SELECT \"id\", \"title\" FROM \"ledger_entry\""));
         assertFalse(compiled.sql().contains("secret"));
-        assertTrue(compiled.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(compiled.sql().contains("\"tenant_id\"::text = ?"));
 
         var encodedCompile = IsolatedExport.compile(
                 kernel.compiler(),

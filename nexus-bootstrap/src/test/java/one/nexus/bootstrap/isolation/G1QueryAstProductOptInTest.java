@@ -92,7 +92,7 @@ class G1QueryAstProductOptInTest {
         assertEquals("user-alpha", list.encoding().query().filters().get("owner_id"));
         assertFalse(list.encoding().query().filters().containsKey("tenant_id"));
         assertTrue(list.compiled().sql().contains("\"owner_id\" = ?"));
-        assertTrue(list.compiled().sql().contains("\"tenant_id\" = ?"));
+        assertTrue(list.compiled().sql().contains("\"tenant_id\"::text = ?"));
         assertTrue(list.compiled().sql().contains("LIMIT ? OFFSET ?"));
         assertFalse(list.compiled().sql().contains("secret"));
         assertEquals(list.compiled().sql(), list.bound().sql());
@@ -116,7 +116,7 @@ class G1QueryAstProductOptInTest {
                 kernel.compiler(),
                 AccessContextHolder.current()));
         assertTrue(count.sql().startsWith("SELECT count(*) FROM ("));
-        assertTrue(count.sql().contains("\"tenant_id\" = ?"));
+        assertTrue(count.sql().contains("\"tenant_id\"::text = ?"));
 
         Predicate orScope = Predicate.anyOf(
                 Predicate.atom("owner_id", "=", "user-alpha"),

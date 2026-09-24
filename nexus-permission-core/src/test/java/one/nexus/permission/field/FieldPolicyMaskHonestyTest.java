@@ -58,7 +58,7 @@ class FieldPolicyMaskHonestyTest {
         assertEquals(List.of("id", "title", "phone"), encoded.query().projection());
 
         assertTrue(FieldPolicyMaskHonesty.compiledSqlLeavesMaskToProjector(
-                "SELECT \"id\", \"title\", \"phone\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ?",
+                "SELECT \"id\", \"title\", \"phone\" FROM \"ledger_entry\" WHERE \"tenant_id\"::text = ?",
                 "phone"));
         assertFalse(FieldPolicyMaskHonesty.compiledSqlLeavesMaskToProjector(
                 "SELECT \"id\", mask(\"phone\") FROM \"ledger_entry\"",
