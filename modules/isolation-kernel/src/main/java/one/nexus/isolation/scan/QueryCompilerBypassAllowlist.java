@@ -88,6 +88,12 @@ public final class QueryCompilerBypassAllowlist {
                     "integration.* internal API, webhook delivery, and connector execution metadata",
                     List.of("nexus-p5-connect/src/main/java/one/nexus/p5/connect/infra/jdbc/")),
             new Module(
+                    "nexus-crypto-core",
+                    "platform.secret_ciphertext envelopes only; not tenant AST tables",
+                    List.of(
+                            "nexus-crypto-core/src/main/java/one/nexus/crypto/JdbcEncryptedSecretAdapter.java",
+                            "nexus-crypto-core/src/main/java/one/nexus/crypto/LocalThenEnvSecretPort.java")),
+            new Module(
                     "nexus-bootstrap",
                     "platform.runtime_meta health only; not tenant data",
                     List.of("nexus-bootstrap/src/main/java/one/nexus/bootstrap/web/RuntimeMetaController.java")));
