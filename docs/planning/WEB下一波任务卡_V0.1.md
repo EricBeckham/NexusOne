@@ -199,6 +199,7 @@
 
 ### N12 — P3 流程定义只读 API
 
+- **状态**：已合并（PR #318），负责人 Cursor
 - **类型**：后端　**分支**：`feat/n12-process-definition-read`　**前置**：无
 - **目标**：对已部署/类路径流程键返回只读定义摘要（节点列表/边/BPMN 或 JSON 视图模型），供查看器。
 - **区域**：`nexus-p3-studio` flow 包；例如 `GET /api/v1/process/definitions`、`GET /api/v1/process/definitions/{key}`。
@@ -302,3 +303,4 @@ Flyway 冲突区：N1 / N8 / N16 串行合入（不同号段可开发并行，�
 ## 七、修订记录
 
 - 2026-09-24：NexusOne 草稿 V0.1。对照 `main@b06a51f` 只读 worktree 与第二波缺口表。
+- 2026-09-24：N12 已合并（PR #318）。P3 流程定义只读 API，读类路径 BPMN，不发布新定义。
