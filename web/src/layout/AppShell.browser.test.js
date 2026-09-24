@@ -6,14 +6,19 @@ import { mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import App from "../App.vue";
 import { NAV_BY_PRODUCT, collectLinks } from "../nav";
+import { PRODUCTS } from "../nav/products";
 import AppShell from "./AppShell.vue";
+import ProductPickerView from "../views/ProductPickerView.vue";
 
 const baseRoutes = [
   { path: "/login", component: { template: "<p>login-page</p>" }, meta: { public: true, title: "登录" } },
   { path: "/callback", component: { template: "<p>callback-page</p>" }, meta: { public: true, title: "授权码回跳" } },
   { path: "/", component: { template: "<p>picker-page</p>" }, meta: { title: "产品选择" } },
   { path: "/p1", component: { template: "<p>p1-page</p>" }, meta: { title: "星域", product: "p1" } },
+  { path: "/p2", component: { template: "<p>p2-page</p>" }, meta: { title: "星权", product: "p2" } },
+  { path: "/p3", component: { template: "<p>p3-page</p>" }, meta: { title: "星构", product: "p3" } },
   { path: "/p4", component: { template: "<p>p4-page</p>" }, meta: { title: "星市", product: "p4" } },
+  { path: "/p5", component: { template: "<p>p5-page</p>" }, meta: { title: "星联", product: "p5" } },
   { path: "/p3/ledgers/:id", component: { template: "<p>ledger-page</p>" }, meta: { title: "台账详情", product: "p3" } },
   { path: "/p3/notifications", component: { template: "<p>notify-page</p>" }, meta: { title: "站内通知", product: "p3" } },
 ];
@@ -68,6 +73,40 @@ describe("W0 product shell", () => {
     expect(wrapper.text()).toContain("审计哈希链");
     const current = wrapper.findAll(".menu a.current").map((item) => item.attributes("title"));
     expect(current).toEqual(["台账"]);
+  });
+
+  it("shows SVG product icons on the product picker cards", async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/", component: ProductPickerView }, ...PRODUCTS.map((product) => ({ path: product.home, component: { template: "<div />" } }))],
+    });
+    await router.push("/"); await router.isReady();
+    const wrapper = mount(ProductPickerView, { global: { plugins: [router] } });
+    expect(wrapper.findAll(".card .mark svg")).toHaveLength(5);
+  });
+
+  it("uses recognizable SVG icons for all five product menus and keeps them when collapsed", async () => {
+    const router = await boot("/p1");
+    const wrapper = mount(AppShell, { global: { plugins: [router] } });
+    for (const product of ["p1", "p2", "p3", "p4", "p5"]) {
+      await router.push(`/${product}`);
+      await wrapper.vm.$nextTick();
+      expect(wrapper.attributes("data-product")).toBe(product);
+      expect(wrapper.find(".side-head .mark svg").exists()).toBe(true);
+      expect(wrapper.findAll(".menu svg.icon").length).toBeGreaterThan(0);
+      expect(wrapper.findAll(".switcher .mark svg")).toHaveLength(5);
+    }
+    await wrapper.get(".fold").trigger("click");
+    expect(wrapper.classes()).toContain("collapsed");
+    expect(wrapper.find(".menu a[title='首页'] svg.icon").exists()).toBe(true);
+  });
+
+  it("uses icons for global search and notifications while retaining environment status", async () => {
+    const router = await boot("/p1");
+    const wrapper = mount(AppShell, { global: { plugins: [router] } });
+    expect(wrapper.find(".search svg").exists()).toBe(true);
+    expect(wrapper.find(".notify svg").exists()).toBe(true);
+    expect(wrapper.text()).toContain("测试环境");
   });
 
   it("does not wrap login or callback in the product frame", async () => {
