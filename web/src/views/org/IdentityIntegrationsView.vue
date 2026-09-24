@@ -6,7 +6,7 @@
     </template>
   </NxPageHeader>
 
-  <NxPanelCard title="身份提供方" eyebrow="OIDC" description="当前接口支持配置与连接测试，不提供手动同步操作。">
+  <NxPanelCard title="身份提供方" eyebrow="OIDC" description="可配置、测试连接，并对已支持的身份源立即同步。">
     <NxErrorState v-if="error" :title="error" :trace-id="traceId" @retry="load" />
     <p v-else-if="loading && !loaded" class="state-note" role="status">正在加载身份提供方…</p>
     <NxEmpty v-else-if="loaded && !providers.length" title="暂无身份提供方" description="添加 OIDC 身份提供方后，可写入密钥并测试连接。" />
@@ -26,8 +26,10 @@
           <div><dt>客户端 ID</dt><dd>{{ provider.clientId || "暂无" }}</dd></div>
           <div><dt>密钥状态</dt><dd>{{ secretLabel(provider.id) }}</dd></div>
           <div><dt>最近测试</dt><dd>{{ formatTime(provider.lastSyncAt) }}</dd></div>
+          <div><dt>最近同步</dt><dd>{{ formatTime(provider.lastSyncAt) }}</dd></div>
           <div><dt>最近测试结果</dt><dd>{{ testLabel(provider.lastSyncOk) }}</dd></div>
           <div><dt>连接失败次数</dt><dd>{{ countLabel(provider.syncFailCount) }}</dd></div>
+          <div><dt>失败数</dt><dd>{{ countLabel(provider.syncFailCount) }}</dd></div>
         </dl>
 
         <p v-if="actionMessages[provider.id]" class="action-message" role="status">{{ actionMessages[provider.id] }}</p>
@@ -35,6 +37,7 @@
           <button class="button secondary" type="button" @click="openEdit(provider)">配置</button>
           <button class="button secondary" type="button" :disabled="!secretConfigured(provider.id) || busyId === provider.id" @click="openSecret(provider)">{{ secretConfigured(provider.id) ? "轮转密钥" : "写入密钥" }}</button>
           <button class="button secondary" type="button" :disabled="!secretConfigured(provider.id) || busyId === provider.id" @click="testConnection(provider)">测试连接</button>
+          <button class="button secondary" type="button" :disabled="busyId === provider.id" @click="syncNow(provider)">立即同步</button>
           <button class="button secondary" type="button" :disabled="busyId === provider.id" @click="toggleStatus(provider)">{{ provider.status === "ENABLED" ? "停用" : "启用" }}</button>
           <button class="button danger" type="button" :disabled="busyId === provider.id" @click="removeProvider(provider)">删除</button>
         </footer>
@@ -192,6 +195,29 @@ async function saveSecret() {
   }
 }
 
+function syncMessage(result) {
+  const when = formatTime(result?.lastSyncAt);
+  const fails = countLabel(result?.syncFailCount);
+  if (result?.status === "FAILED" || result?.lastSyncOk === false) {
+    return `同步失败 · ${when} · 失败数 ${fails}`;
+  }
+  if (result?.status === "SUCCEEDED" || result?.lastSyncOk === true) {
+    return `同步完成 · ${when} · 失败数 ${fails}`;
+  }
+  return "同步结果暂无";
+}
+async function syncNow(provider) {
+  busyId.value = provider.id;
+  actionMessages.value = { ...actionMessages.value, [provider.id]: "正在同步…" };
+  try {
+    const result = await p2.syncIdentityProvider(provider.id);
+    actionMessages.value = { ...actionMessages.value, [provider.id]: syncMessage(result) };
+    await load();
+  } catch (err) {
+    const message = err?.message || "同步请求失败";
+    actionMessages.value = { ...actionMessages.value, [provider.id]: /password|secret|token/i.test(message) ? "同步请求失败" : message };
+  } finally { busyId.value = ""; }
+}
 async function testConnection(provider) {
   busyId.value = provider.id;
   actionMessages.value = { ...actionMessages.value, [provider.id]: "正在测试连接…" };

@@ -7,7 +7,7 @@ import IdentityIntegrationsView from "./IdentityIntegrationsView.vue";
 vi.mock("../../api/client", () => ({ p2: {
   identityProviders: vi.fn(), identityProviderSecretStatus: vi.fn(), createIdentityProvider: vi.fn(),
   updateIdentityProvider: vi.fn(), deleteIdentityProvider: vi.fn(), writeIdentityProviderSecret: vi.fn(),
-  rotateIdentityProviderSecret: vi.fn(), testIdentityProviderConnection: vi.fn(),
+  rotateIdentityProviderSecret: vi.fn(), testIdentityProviderConnection: vi.fn(), syncIdentityProvider: vi.fn(),
 } }));
 
 const provider = {
@@ -28,6 +28,8 @@ describe("P2 identity integrations page", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("公司 SSO");
+    expect(wrapper.text()).toContain("最近同步");
+    expect(wrapper.text()).toContain("失败数");
     expect(wrapper.text()).toContain("连接失败次数");
     expect(wrapper.text()).toContain("3");
     expect(wrapper.text()).toContain("失败");
@@ -72,5 +74,35 @@ describe("P2 identity integrations page", () => {
     expect(wrapper.text()).toContain("forbidden");
     expect(wrapper.text()).toContain("trace-n11");
     expect(wrapper.find(".provider-card").exists()).toBe(false);
+  });
+
+  it("syncs now and shows the returned time and failure count", async () => {
+    p2.syncIdentityProvider.mockResolvedValue({
+      status: "FAILED", lastSyncAt: "2026-09-24T09:00:00Z", lastSyncOk: false, syncFailCount: 4,
+    });
+    p2.identityProviders
+      .mockResolvedValueOnce([provider])
+      .mockResolvedValueOnce([{ ...provider, lastSyncAt: "2026-09-24T09:00:00Z", syncFailCount: 4 }]);
+    const wrapper = mount(IdentityIntegrationsView);
+    await flushPromises();
+    await wrapper.findAll("button").find((button) => button.text() === "立即同步").trigger("click");
+    await flushPromises();
+
+    expect(p2.syncIdentityProvider).toHaveBeenCalledWith("provider-1");
+    expect(wrapper.text()).toContain("同步失败");
+    expect(wrapper.text()).toContain("失败数 4");
+    expect(wrapper.text()).not.toContain("同步人数");
+  });
+
+  it("hides a sync error that would expose a secret", async () => {
+    p2.syncIdentityProvider.mockRejectedValue(new Error("password=must-not-leak"));
+    const wrapper = mount(IdentityIntegrationsView);
+    await flushPromises();
+    await wrapper.findAll("button").find((button) => button.text() === "立即同步").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("同步请求失败");
+    expect(wrapper.text()).not.toContain("must-not-leak");
+    expect(wrapper.text()).not.toContain("password=");
   });
 });
