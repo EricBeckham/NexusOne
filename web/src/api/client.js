@@ -171,6 +171,7 @@ export const p2 = {
   writeIdentityProviderSecret: (id, clientSecret) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/secret`, { method: "PUT", body: { clientSecret } }),
   rotateIdentityProviderSecret: (id, clientSecret) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/secret/rotate`, { method: "POST", body: { clientSecret } }),
   testIdentityProviderConnection: (id) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/test-connection`, { method: "POST" }),
+  syncIdentityProvider: (id) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/sync`, { method: "POST" }),
   bootstrapAdmin: (tenantId, body) =>
     api(`/api/v1/internal/tenants/${tenantId}/admin-users`, { method: "POST", body, auth: false }),
 };
