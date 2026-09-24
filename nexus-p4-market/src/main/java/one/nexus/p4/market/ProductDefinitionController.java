@@ -19,4 +19,7 @@ public class ProductDefinitionController {
     @PutMapping("/{id}") public ProductDefinition update(@PathVariable UUID id, @RequestBody ProductDefinitionWrite request) {
         return service.update(id, request);
     }
+    @PutMapping("/{id}/skus/{skuCode}") public ProductDefinition bindSku(@PathVariable UUID id, @PathVariable String skuCode) {
+        return service.bindSku(skuCode, id);
+    }
 }

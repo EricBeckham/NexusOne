@@ -77,6 +77,20 @@ public class ProductDefinitionService {
         return next;
     }
 
+    @Transactional
+    public ProductDefinition bindSku(String skuCode, UUID productDefinitionId) {
+        PlatformContext actor = isolation.requirePlatformContext("product-definition.bind-sku", PlatformDuty.SYSTEM_ADMIN);
+        if (market.sku(skuCode).isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "sku not found");
+        ProductDefinition definition = require(productDefinitionId);
+        market.bindSkuToProductDefinition(skuCode, productDefinitionId);
+        Instant now = clock.now();
+        audit.append(new AuditEvent(UUID.randomUUID(), "platform.product_definition.sku_bound", AuditEvent.VERSION,
+                now, null, actor.actor().subjectId(), actor.actorHomeTenantId(), true, actor.reason(), actor.traceId(),
+                actor.traceId(), null, AuditEvent.OUTCOME_ACCEPTED, "sku", skuCode,
+                Map.of("product_definition_id", productDefinitionId.toString())));
+        return definition;
+    }
+
     private void validate(ProductDefinitionWrite request) {
         if (request == null || blank(request.code()) || request.code().length() > 80 || blank(request.name())
                 || request.name().length() > 160 || request.formTemplateVersionId() == null

@@ -131,9 +131,35 @@ public class JdbcMarketRepository implements MarketRepository {
             AppPackage a = new AppPackage(uuid(rs,"app_id"),rs.getString("code"),rs.getString("name"),rs.getString("summary"),instant(rs,"created_at"));
             AppVersion v = new AppVersion(uuid(rs,"version_id"),a.id(),rs.getString("version"),VersionStatus.PUBLISHED,
                     rs.getString("release_notes"),null,instant(rs,"published_at"));
-            List<Sku> skus = jdbc.sql("SELECT * FROM market.sku WHERE app_id=:id ORDER BY code").param("id",a.id()).query(this::mapSku).list();
+            List<CatalogSku> skus = jdbc.sql("""
+                    SELECT s.*, p.id pd_id, p.code pd_code, p.name pd_name, p.description pd_description,
+                           p.form_template_version_id pd_form, p.process_definition_key pd_process_key,
+                           p.process_definition_version pd_process_version, p.default_permission_pack::text pd_pack,
+                           p.status pd_status, p.created_at pd_created, p.updated_at pd_updated, p.version pd_version
+                    FROM market.sku s LEFT JOIN market.sku_product_binding b ON b.sku_code=s.code
+                    LEFT JOIN market.product_definition p ON p.id=b.product_definition_id
+                    WHERE s.app_id=:id ORDER BY s.code
+                    """).param("id",a.id()).query((skuRow,rowNum) -> {
+                Sku sku = mapSku(skuRow,rowNum);
+                UUID productId = uuid(skuRow,"pd_id");
+                ProductDefinition definition = productId == null ? null : mapProductDefinitionColumns(skuRow);
+                return new CatalogSku(sku, definition);
+            }).list();
             return new CatalogItem(a,v,skus);
         }).list();
+    }
+    @Override public void bindSkuToProductDefinition(String skuCode, UUID productDefinitionId) {
+        jdbc.sql("""
+                INSERT INTO market.sku_product_binding(sku_code,product_definition_id,created_at)
+                VALUES(:sku,:definition,CURRENT_TIMESTAMP)
+                ON CONFLICT(sku_code) DO UPDATE SET product_definition_id=:definition,created_at=CURRENT_TIMESTAMP
+                """).param("sku",skuCode).param("definition",productDefinitionId).update();
+    }
+    @Override public Optional<ProductDefinition> productDefinitionForSku(String skuCode) {
+        return jdbc.sql("""
+                SELECT p.* FROM market.product_definition p JOIN market.sku_product_binding b
+                  ON b.product_definition_id=p.id WHERE b.sku_code=:sku
+                """).param("sku",skuCode).query(this::mapProductDefinition).optional();
     }
     @Override public Optional<UUID> publishedFormTemplateVersion(UUID id) {
         return jdbc.sql("SELECT id FROM platform.form_template_version WHERE id=:id AND published_at IS NOT NULL")
@@ -168,6 +194,13 @@ public class JdbcMarketRepository implements MarketRepository {
                 (Integer) r.getObject("process_definition_version"),
                 json.readValue(r.getString("default_permission_pack"),new TypeReference<Map<String,Object>>(){}),
                 r.getString("status"),instant(r,"created_at"),instant(r,"updated_at"),r.getLong("version"));
+        } catch(Exception e) { throw new SQLException("invalid product definition",e); }
+    }
+    private ProductDefinition mapProductDefinitionColumns(ResultSet r)throws SQLException {
+        try { return new ProductDefinition(uuid(r,"pd_id"),r.getString("pd_code"),r.getString("pd_name"),r.getString("pd_description"),
+                uuid(r,"pd_form"),r.getString("pd_process_key"),(Integer)r.getObject("pd_process_version"),
+                json.readValue(r.getString("pd_pack"),new TypeReference<Map<String,Object>>(){}),r.getString("pd_status"),
+                instant(r,"pd_created"),instant(r,"pd_updated"),r.getLong("pd_version"));
         } catch(Exception e) { throw new SQLException("invalid product definition",e); }
     }
     private AppPackage mapApp(ResultSet r,int n)throws SQLException{return new AppPackage(uuid(r,"id"),r.getString("code"),r.getString("name"),r.getString("summary"),instant(r,"created_at"));}

@@ -24,7 +24,8 @@ public final class MarketModels {
                                Instant startedAt, Instant endedAt) {}
     public record Installation(UUID id, UUID tenantId, UUID appId, UUID versionId,
                                InstallationStatus status, Instant installedAt, Instant updatedAt) {}
-    public record CatalogItem(AppPackage app, AppVersion version, java.util.List<Sku> skus) {}
+    public record CatalogItem(AppPackage app, AppVersion version, java.util.List<CatalogSku> skus) {}
+    public record CatalogSku(Sku sku, ProductDefinition productDefinition) {}
     public record ProductDefinition(UUID id, String code, String name, String description,
             UUID formTemplateVersionId, String processDefinitionKey, Integer processDefinitionVersion,
             Map<String, Object> defaultPermissionPack, String status, Instant createdAt, Instant updatedAt,

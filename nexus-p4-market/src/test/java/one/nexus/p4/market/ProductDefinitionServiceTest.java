@@ -61,4 +61,16 @@ class ProductDefinitionServiceTest {
         assertThatThrownBy(() -> service.create(request())).isInstanceOf(ResponseStatusException.class);
         verifyNoInteractions(market);
     }
+
+    @Test void bindsSkuAndWritesAudit() {
+        allowPlatform();
+        UUID definitionId = UUID.randomUUID();
+        var definition = new one.nexus.p4.market.MarketModels.ProductDefinition(definitionId, "hr-basic", "HR 基础版",
+                "desc", versionId, null, null, Map.of(), "DRAFT", Instant.EPOCH, Instant.EPOCH, 1);
+        when(market.sku("HR_BASIC")).thenReturn(Optional.of(new one.nexus.p4.market.MarketModels.Sku("HR_BASIC", UUID.randomUUID(), "HR Basic", Map.of())));
+        when(market.productDefinition(definitionId)).thenReturn(Optional.of(definition));
+        assertThat(service.bindSku("HR_BASIC", definitionId)).isEqualTo(definition);
+        verify(market).bindSkuToProductDefinition("HR_BASIC", definitionId);
+        verify(audit).append(argThat(event -> event.eventType().equals("platform.product_definition.sku_bound")));
+    }
 }
