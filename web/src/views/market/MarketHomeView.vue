@@ -12,9 +12,9 @@
 
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
     <section v-else class="stats" aria-label="星市目录摘要">
-      <NxStatCard label="已上架应用" :value="appCount" />
-      <NxStatCard label="可用版本" :value="catalog.length" />
-      <NxStatCard label="可选 SKU" :value="skuCount" />
+      <NxStatCard label="已上架应用" :value="loading ? null : appCount" />
+      <NxStatCard label="可用版本" :value="loading ? null : catalog.length" />
+      <NxStatCard label="可选 SKU" :value="loading ? null : skuCount" />
     </section>
 
     <section class="nx-card catalog-preview">
@@ -45,7 +45,7 @@ import { NxEmpty, NxErrorState, NxPageHeader, NxStatCard, NxStatusTag } from "..
 import { p4 } from "../../api/client";
 
 const catalog = ref([]);
-const loading = ref(false);
+const loading = ref(true);
 const error = ref("");
 const appCount = computed(() => new Set(catalog.value.map((item) => item.app.id)).size);
 const skuCount = computed(() => catalog.value.reduce((total, item) => total + (item.skus?.length || 0), 0));

@@ -54,4 +54,23 @@ describe("W4 Connect home", () => {
     expect(wrapper.text()).toContain("暂无可用连接器");
     expect(wrapper.text()).toContain("暂无");
   });
+
+  it("does not show zero KPI values while connector data is loading", async () => {
+    let resolveConnectors;
+    let resolveRuns;
+    mocks.connectors.mockReturnValue(new Promise((resolve) => {
+      resolveConnectors = resolve;
+    }));
+    mocks.connectorRuns.mockReturnValue(new Promise((resolve) => {
+      resolveRuns = resolve;
+    }));
+    const wrapper = await mountHome();
+
+    expect(wrapper.findAll(".value").map((value) => value.text())).toEqual(["暂无", "暂无", "暂无"]);
+
+    resolveConnectors([]);
+    resolveRuns([]);
+    await flushPromises();
+    expect(wrapper.findAll(".value").map((value) => value.text())).toEqual(["0", "0", "暂无"]);
+  });
 });

@@ -68,10 +68,11 @@ describe("product shell menus", () => {
       "/p3/audit",
     ]);
     expect(links.every((link) => link === "/p3" || link.startsWith("/p3/"))).toBe(true);
-    expect(items.filter((item) => !item.to).map((item) => item.label)).toEqual([
+    expect(items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
       "流程设计器（后续）",
       "发布中心（后续）",
     ]);
+    expect(items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
   });
 
   it("keeps P4 and P5 navigation product-scoped with only implemented links", () => {
@@ -84,7 +85,7 @@ describe("product shell menus", () => {
     expect(p5Links).toEqual(["/p5", "/p5/connect"]);
     expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
     expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
-    expect(p4Items.filter((item) => !item.to).map((item) => item.label)).toEqual([
+    expect(p4Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
       "应用包（后续）",
       "Product / SKU（后续）",
       "订阅（后续）",
@@ -92,7 +93,7 @@ describe("product shell menus", () => {
       "商业权益（后续）",
       "运营分析（后续）",
     ]);
-    expect(p5Items.filter((item) => !item.to).map((item) => item.label)).toEqual([
+    expect(p5Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
       "开放接口（后续）",
       "API Client（后续）",
       "Webhook（后续）",
@@ -100,5 +101,7 @@ describe("product shell menus", () => {
       "Credential（后续）",
       "调用日志（后续）",
     ]);
+    expect(p4Items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
+    expect(p5Items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
   });
 });

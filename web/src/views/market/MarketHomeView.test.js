@@ -47,4 +47,18 @@ describe("W4 Market home", () => {
     expect(wrapper.text()).toContain("暂无已发布应用");
     expect(wrapper.text()).toContain("0");
   });
+
+  it("does not show zero KPI values while the catalog is loading", async () => {
+    let resolveCatalog;
+    mocks.catalog.mockReturnValue(new Promise((resolve) => {
+      resolveCatalog = resolve;
+    }));
+    const wrapper = await mountHome();
+
+    expect(wrapper.findAll(".value").map((value) => value.text())).toEqual(["暂无", "暂无", "暂无"]);
+
+    resolveCatalog([]);
+    await flushPromises();
+    expect(wrapper.findAll(".value").map((value) => value.text())).toEqual(["0", "0", "0"]);
+  });
 });
