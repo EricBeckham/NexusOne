@@ -94,6 +94,83 @@ class SequentialApprovalIT {
     }
 
     @Test
+    void publishesDraftAsTenantScopedDefinitionAndStartsIt() throws Exception {
+        jdbc.update("""
+                INSERT INTO platform.tenant (
+                    id, code, name, kind, status, created_at, created_by, updated_at, updated_by, version)
+                VALUES (?, 'm10_flow_a', 'M10 Flow A', 'BUSINESS', 'ENABLED', now(), ?, now(), ?, 1)
+                ON CONFLICT (id) DO NOTHING
+                """, TENANT_A, UUID.randomUUID(), UUID.randomUUID());
+        jdbc.update("""
+                INSERT INTO platform.tenant (
+                    id, code, name, kind, status, created_at, created_by, updated_at, updated_by, version)
+                VALUES (?, 'm10_flow_b', 'M10 Flow B', 'BUSINESS', 'ENABLED', now(), ?, now(), ?, 1)
+                ON CONFLICT (id) DO NOTHING
+                """, TENANT_B, UUID.randomUUID(), UUID.randomUUID());
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                TENANT_A, "Flow Admin A", "flow-admin-a@example.com", "flow-admin-a"));
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                TENANT_B, "Flow Admin B", "flow-admin-b@example.com", "flow-admin-b"));
+        Session adminA = login("flow-admin-a", "flow-admin-a@example.com", "Flow Admin A");
+        Session adminB = login("flow-admin-b", "flow-admin-b@example.com", "Flow Admin B");
+        Member reviewer = provisionMember(adminA, "m10-reviewer", "m10-reviewer@example.com", "M10 Reviewer");
+        String xml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:flowable="http://flowable.org/bpmn" targetNamespace="https://nexus.one/process">
+                  <process id="m10Approval" name="M10 approval" isExecutable="true">
+                    <startEvent id="start"/><sequenceFlow id="toReview" sourceRef="start" targetRef="review"/>
+                    <userTask id="review" name="Review" flowable:assignee="${assignee}"/>
+                    <sequenceFlow id="toEnd" sourceRef="review" targetRef="end"/><endEvent id="end"/>
+                  </process>
+                </definitions>
+                """;
+        String authA = "Bearer " + adminA.token;
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
+                        "/api/v1/process/drafts/m10Approval")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"M10 approval\",\"bpmnXml\":"
+                                + new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(xml) + "}"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/process/drafts/m10Approval/validate")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.valid").value(true));
+        mvc.perform(post("/api/v1/process/drafts/m10Approval/publish")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
+        mvc.perform(get("/api/v1/process/definitions/m10Approval")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.source").value("tenant-deployment"))
+                .andExpect(jsonPath("$.nodes[?(@.id == 'review')].name").value(hasItem("Review")));
+        mvc.perform(get("/api/v1/process/drafts/m10Approval/publication")
+                        .header("Authorization", "Bearer " + adminB.token)
+                        .header("X-Nexus-Context-Id", adminB.contextId))
+                .andExpect(status().isNotFound());
+        String businessKey = "m10-" + UUID.randomUUID();
+        mvc.perform(post("/api/v1/process/instances")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"processKey\":\"m10Approval\",\"businessKey\":\"" + businessKey
+                                + "\",\"assigneeType\":\"PERSON\",\"assigneeRef\":\"" + reviewer.personId + "\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.processKey").value("m10Approval"));
+
+        String invalid = "<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\"><process id=\"m10Broken\"></process></definitions>";
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/process/drafts/m10Broken")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Broken\",\"bpmnXml\":"
+                                + new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(invalid) + "}"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/process/drafts/m10Broken/publish")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/process/drafts/m10Broken/publication")
+                        .header("Authorization", authA).header("X-Nexus-Context-Id", adminA.contextId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void healthIsPublicAndClientTenantIsRejected() throws Exception {
         assertEquals(1, jdbc.queryForObject(
                 "select count(*) from information_schema.tables "

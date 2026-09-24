@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,9 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(name = "nexus.flow.engine")
 public class ProcessDefinitionDraftController {
     private final ProcessDefinitionDraftService drafts;
+    private final one.nexus.p3.flow.ProcessDefinitionPublishService publishing;
 
-    public ProcessDefinitionDraftController(ProcessDefinitionDraftService drafts) {
+    public ProcessDefinitionDraftController(
+            ProcessDefinitionDraftService drafts,
+            one.nexus.p3.flow.ProcessDefinitionPublishService publishing
+    ) {
         this.drafts = drafts;
+        this.publishing = publishing;
     }
 
     @GetMapping
@@ -34,6 +40,16 @@ public class ProcessDefinitionDraftController {
     @PutMapping("/{key}")
     public ProcessDefinitionDraft save(@PathVariable String key, @RequestBody SaveDraftBody body) {
         return drafts.save(key, body.name(), body.bpmnXml());
+    }
+
+    @PostMapping("/{key}/publish")
+    public one.nexus.p3.flow.ProcessDefinitionPublishService.PublishedDefinition publish(@PathVariable String key) {
+        return publishing.publish(key);
+    }
+
+    @GetMapping("/{key}/publication")
+    public one.nexus.p3.flow.ProcessDefinitionPublishService.PublishedDefinition publication(@PathVariable String key) {
+        return publishing.get(key);
     }
 
     public record SaveDraftBody(String name, String bpmnXml) {}

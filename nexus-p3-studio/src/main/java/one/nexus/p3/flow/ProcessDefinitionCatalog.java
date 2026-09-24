@@ -43,6 +43,23 @@ public final class ProcessDefinitionCatalog {
                 .orElseThrow(() -> FlowException.notFound("process definition not found"));
     }
 
+    public static Map<String, Object> read(String xml, String source) {
+        try {
+            Element root = parse(xml);
+            NodeList children = root.getChildNodes();
+            for (int i = 0; i < children.getLength(); i++) {
+                Node node = children.item(i);
+                if (node instanceof Element element && "process".equals(element.getLocalName())) {
+                    return process(element, source);
+                }
+            }
+            if ("process".equals(root.getLocalName())) return process(root, source);
+            throw new IOException("BPMN process missing");
+        } catch (Exception ex) {
+            throw new IllegalStateException("cannot read process definition", ex);
+        }
+    }
+
     private static List<Map<String, Object>> read(Resource resource) throws IOException {
         Element root = parse(resource);
         String source = resource.getFilename() == null ? "classpath" : "processes/" + resource.getFilename();
@@ -135,5 +152,22 @@ public final class ProcessDefinitionCatalog {
         } catch (Exception ex) {
             throw new IOException("cannot parse " + resource.getDescription(), ex);
         }
+    }
+
+    private static Element parse(String xml) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setXIncludeAware(false);
+        factory.setExpandEntityReferences(false);
+        try {
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        } catch (IllegalArgumentException ignored) {
+            // Secure-processing mode remains enabled on parsers without these attributes.
+        }
+        return factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(new java.io.StringReader(xml)))
+                .getDocumentElement();
     }
 }

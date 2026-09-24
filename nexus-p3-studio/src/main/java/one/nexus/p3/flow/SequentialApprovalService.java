@@ -36,6 +36,7 @@ public class SequentialApprovalService {
     private final AssigneeResolver assignees;
     private final PermissionModule permission;
     private final ObjectProvider<TenantMemberGrantSeeder> grantSeeder;
+    private final ProcessDefinitionPublishService publishing;
 
     public SequentialApprovalService(
             RuntimeService runtimeService,
@@ -43,7 +44,8 @@ public class SequentialApprovalService {
             JdbcProcessStore store,
             AssigneeResolver assignees,
             PermissionModule permission,
-            ObjectProvider<TenantMemberGrantSeeder> grantSeeder
+            ObjectProvider<TenantMemberGrantSeeder> grantSeeder,
+            ProcessDefinitionPublishService publishing
     ) {
         this.runtimeService = runtimeService;
         this.taskService = taskService;
@@ -51,6 +53,7 @@ public class SequentialApprovalService {
         this.assignees = assignees;
         this.permission = permission;
         this.grantSeeder = grantSeeder;
+        this.publishing = publishing;
     }
 
     @Transactional
@@ -60,9 +63,8 @@ public class SequentialApprovalService {
         String processKey = command.processKey() == null || command.processKey().isBlank()
                 ? FlowEngineConfiguration.PROCESS_KEY
                 : command.processKey();
-        if (!FlowEngineConfiguration.PROCESS_KEY.equals(processKey)) {
-            throw FlowException.badRequest("only nexusSequentialApproval is supported in M0-08");
-        }
+        ProcessDefinitionPublishService.PublishedDefinition published =
+                FlowEngineConfiguration.PROCESS_KEY.equals(processKey) ? null : publishing.get(processKey);
         guard("process.instance", "start");
         List<UUID> candidates = assignees.resolve(tenant.tenantId(), command.assigneeType(), command.assigneeRef());
         UUID assignee = candidates.getFirst();
@@ -70,8 +72,10 @@ public class SequentialApprovalService {
             throw FlowException.conflict("business_key already used in this tenant");
         });
         Instant now = Utc.now();
-        ProcessInstance flowable = runtimeService.createProcessInstanceBuilder()
-                .processDefinitionKey(processKey)
+        var processBuilder = runtimeService.createProcessInstanceBuilder();
+        if (published == null) processBuilder.processDefinitionKey(processKey);
+        else processBuilder.processDefinitionId(published.processDefinitionId());
+        ProcessInstance flowable = processBuilder
                 .businessKey(command.businessKey())
                 .variable("assignee", assignee.toString())
                 .variable("initiator", tenant.personId().toString())
