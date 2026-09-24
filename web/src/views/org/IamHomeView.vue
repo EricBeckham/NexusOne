@@ -1,18 +1,71 @@
 <template>
   <NxPageHeader eyebrow="星权" title="星权" description="Nexus IAM" />
-  <div class="nx-grid kpi">
-    <NxStatCard label="用户" :value="personCount" unit="人" :hint="personHint" />
-    <NxStatCard label="部门" :value="departmentCount" unit="个" :hint="departmentHint" />
-    <NxStatCard label="岗位" :value="positionCount" unit="个" :hint="positionHint" />
-  </div>
+  <DashboardLayers>
+    <template #kpi>
+      <NxKpiRow aria-label="星权指标" :items="kpiItems" />
+    </template>
+    <template #charts>
+      <NxPanelCard title="用户趋势" description="没有趋势聚合接口。">
+        <NxChartPlaceholder title="用户趋势" />
+      </NxPanelCard>
+      <NxPanelCard title="组织构成" description="没有构成聚合接口。">
+        <NxChartPlaceholder title="组织构成" />
+      </NxPanelCard>
+      <NxPanelCard title="账号状态" description="没有状态分布接口。">
+        <NxChartPlaceholder title="账号状态" />
+      </NxPanelCard>
+    </template>
+    <template #lists>
+      <NxPanelCard title="待处理">
+        <NxTodoList :items="[]" />
+      </NxPanelCard>
+      <NxPanelCard title="近期活动">
+        <NxActivityTimeline :items="[]" />
+      </NxPanelCard>
+      <NxPanelCard title="运行健康">
+        <NxHealthList :items="[]" />
+      </NxPanelCard>
+    </template>
+    <template #table>
+      <NxPanelCard title="用户" description="只展示接口已返回的用户。">
+        <template #actions>
+          <router-link to="/p2/persons">查看全部</router-link>
+        </template>
+        <NxEmpty v-if="contextMissing" title="暂无" description="需要租户上下文" compact />
+        <NxEmpty v-else-if="!persons.length" title="暂无" description="当前没有可展示的用户。" compact />
+        <table v-else class="nx-table">
+          <thead>
+            <tr><th>姓名</th><th>邮箱</th><th>状态</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in persons.slice(0, 8)" :key="row.id || row.email">
+              <td>{{ text(row.display_name || row.displayName || row.name) }}</td>
+              <td>{{ text(row.email) }}</td>
+              <td>{{ text(row.status) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </NxPanelCard>
+    </template>
+  </DashboardLayers>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { p2 } from "../../api/client";
 import { session } from "../../api/session";
-import { NxPageHeader, NxStatCard } from "../../components";
+import {
+  NxActivityTimeline,
+  NxChartPlaceholder,
+  NxEmpty,
+  NxHealthList,
+  NxKpiRow,
+  NxPageHeader,
+  NxPanelCard,
+  NxTodoList,
+} from "../../components";
 import { countTree, realCount } from "../homeStats";
+import DashboardLayers from "../DashboardLayers.vue";
 
 const personCount = ref(null);
 const personHint = ref("");
@@ -20,25 +73,38 @@ const departmentCount = ref(null);
 const departmentHint = ref("");
 const positionCount = ref(null);
 const positionHint = ref("");
+const persons = ref([]);
+const contextMissing = ref(false);
+
+const kpiItems = computed(() => [
+  { id: "persons", label: "用户", value: personCount.value, unit: "人", hint: personHint.value },
+  { id: "departments", label: "部门", value: departmentCount.value, unit: "个", hint: departmentHint.value },
+  { id: "positions", label: "岗位", value: positionCount.value, unit: "个", hint: positionHint.value },
+]);
+
+function text(value) {
+  return value === null || value === undefined || value === "" ? "暂无" : String(value);
+}
 
 onMounted(async () => {
   if (!session.contextId) {
+    contextMissing.value = true;
     const hint = "需要租户上下文";
     personHint.value = hint;
     departmentHint.value = hint;
     positionHint.value = hint;
     return;
   }
-  const [persons, departments, positions] = await Promise.allSettled([
+  const [personResult, departments, positions] = await Promise.allSettled([
     p2.persons(),
     p2.departments(),
     p2.positions(),
   ]);
-  if (persons.status === "fulfilled") {
-    personCount.value = realCount(persons.value);
-    if (personCount.value === null) {
-      personHint.value = "接口没有返回列表";
-    }
+  if (personResult.status === "fulfilled" && Array.isArray(personResult.value)) {
+    persons.value = personResult.value;
+    personCount.value = realCount(personResult.value);
+  } else if (personResult.status === "fulfilled") {
+    personHint.value = "接口没有返回列表";
   } else {
     personHint.value = "接口不可用";
   }
