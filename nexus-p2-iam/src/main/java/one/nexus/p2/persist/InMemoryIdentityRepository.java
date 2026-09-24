@@ -312,4 +312,9 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
         });
         return updated.get();
     }
+
+    @Override
+    public boolean recordIdpSync(UUID tenantId, UUID id, boolean succeeded, Instant syncedAt) {
+        return recordIdpConnectionTest(tenantId, id, succeeded, syncedAt);
+    }
 }

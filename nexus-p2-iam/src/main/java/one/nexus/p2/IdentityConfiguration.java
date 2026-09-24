@@ -7,6 +7,7 @@ import one.nexus.p2.idp.IdentityProviderPort;
 import one.nexus.p2.idp.IdpConfigurationService;
 import one.nexus.p2.idp.IdpConnectionTester;
 import one.nexus.p2.idp.IdpSecretService;
+import one.nexus.p2.idp.IdpSyncService;
 import one.nexus.p2.idp.OidcClientCredentialsTester;
 import one.nexus.p2.idp.KeycloakIdentityProvider;
 import one.nexus.p2.idp.StubIdentityProvider;
@@ -96,6 +97,17 @@ public class IdentityConfiguration {
     ) {
         return new IdpSecretService(repository, secrets.getIfAvailable(), audits.getIfAvailable(),
                 clock, properties.mfaPolicy(), connectionTester);
+    }
+
+    @Bean
+    IdpSyncService idpSyncService(
+            IdentityRepository repository,
+            Clock clock,
+            IamProperties properties,
+            IdentityModule module
+    ) {
+        return new IdpSyncService(repository, clock, properties.mfaPolicy(),
+                tenantId -> module.personReconciler().reconcile(true, tenantId));
     }
 
     @Bean

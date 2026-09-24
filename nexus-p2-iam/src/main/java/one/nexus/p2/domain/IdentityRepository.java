@@ -81,4 +81,6 @@ public interface IdentityRepository {
     boolean deleteIdpConfiguration(UUID tenantId, UUID id);
 
     boolean recordIdpConnectionTest(UUID tenantId, UUID id, boolean succeeded, Instant testedAt);
+
+    boolean recordIdpSync(UUID tenantId, UUID id, boolean succeeded, Instant syncedAt);
 }

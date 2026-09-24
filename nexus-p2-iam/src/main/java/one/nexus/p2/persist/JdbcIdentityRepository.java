@@ -382,6 +382,11 @@ public final class JdbcIdentityRepository implements IdentityRepository {
                 """, ts(testedAt), succeeded, succeeded, ts(testedAt), tenantId, id) == 1;
     }
 
+    @Override
+    public boolean recordIdpSync(UUID tenantId, UUID id, boolean succeeded, Instant syncedAt) {
+        return recordIdpConnectionTest(tenantId, id, succeeded, syncedAt);
+    }
+
     private <T> Optional<T> one(String sql, RowMapper<T> mapper, Object... args) {
         List<T> rows = jdbc.query(sql, mapper, args);
         return rows.stream().findFirst();
