@@ -212,6 +212,15 @@ export const p5 = {
   callLogs: () => api("/api/v1/p5/call-logs"),
   apiCatalog: () => api("/api/v1/p5/api-catalog"),
   apiCatalogEntry: (id) => api(`/api/v1/p5/api-catalog/${encodeURIComponent(id)}`),
+  credentials: () => api("/api/v1/p5/credentials"),
+  credential: (id) => api(`/api/v1/p5/credentials/${encodeURIComponent(id)}`),
+  createCredential: (body) => api("/api/v1/p5/credentials", { method: "POST", body }),
+  updateCredential: (id, body) => api(`/api/v1/p5/credentials/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  credentialSecretStatus: (id) => api(`/api/v1/p5/credentials/${encodeURIComponent(id)}/secret`),
+  writeCredentialSecret: (id, secret) => api(`/api/v1/p5/credentials/${encodeURIComponent(id)}/secret`, { method: "PUT", body: { secret } }),
+  rotateCredentialSecret: (id, secret) => api(`/api/v1/p5/credentials/${encodeURIComponent(id)}/secret/rotate`, { method: "POST", body: { secret } }),
+  revokeCredentialSecret: (id) => api(`/api/v1/p5/credentials/${encodeURIComponent(id)}/secret`, { method: "DELETE" }),
+  probeCredentialSecret: (id) => api(`/api/v1/p5/credentials/${encodeURIComponent(id)}/secret/probe`, { method: "POST" }),
 };
 
 /** M0-05 / G2 permission engine. Role matrix lives here; no /api/v1/p2/roles. */

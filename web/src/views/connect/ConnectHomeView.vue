@@ -3,7 +3,7 @@
     <NxPageHeader
       eyebrow="P5 · NEXUS CONNECT"
       title="星联工作台"
-      description="自用连接器、API Client、Webhook、调用日志与自用 API 目录。Credential 仍是后续。"
+      description="自用连接器、API Client、Webhook、调用日志、自用 API 目录与凭证。"
     >
       <template #actions>
         <router-link class="primary" to="/p5/connect">打开接入总览</router-link>
@@ -15,6 +15,7 @@
       <router-link to="/p5/clients">API Client</router-link>
       <router-link to="/p5/webhooks">Webhook</router-link>
       <router-link to="/p5/connectors">Connector</router-link>
+      <router-link to="/p5/credentials">Credential</router-link>
       <router-link to="/p5/call-logs">调用日志</router-link>
     </nav>
 

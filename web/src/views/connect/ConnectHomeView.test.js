@@ -18,6 +18,7 @@ async function mountHome() {
       { path: "/p5/clients", component: { template: "<div />" } },
       { path: "/p5/webhooks", component: { template: "<div />" } },
       { path: "/p5/connectors", component: { template: "<div />" } },
+      { path: "/p5/credentials", component: { template: "<div />" } },
       { path: "/p5/call-logs", component: { template: "<div />" } },
     ],
   });
@@ -55,6 +56,7 @@ describe("W4 Connect home", () => {
       "/p5/clients",
       "/p5/webhooks",
       "/p5/connectors",
+      "/p5/credentials",
       "/p5/call-logs",
     ]);
     expect(wrapper.text()).toContain("自检");
