@@ -2,6 +2,7 @@ package one.nexus.p3.studio.form;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import one.nexus.p1.port.IsolationGuard;
 import one.nexus.p3.infra.jdbc.FormTemplateDraftService;
 
 @RestController
+@ConditionalOnBean(IsolationGuard.class)
 @RequestMapping("/api/v1/p1/platform/form-templates")
 public class FormTemplateController {
     private final IsolationGuard isolation;
