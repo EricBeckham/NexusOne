@@ -9,5 +9,5 @@ export const p3Nav = [
   { id: "notifications", label: "站内通知", to: "/p3/notifications" },
   { id: "audit", label: "审计哈希链", to: "/p3/audit" },
   { id: "workflow-designer", label: "流程设计器", to: "/p3/workflow" },
-  { id: "publish-center", label: "发布中心（后续）", later: true },
+  { id: "publish-center", label: "发布中心", to: "/p3/publish-center" },
 ];

@@ -51,4 +51,6 @@ export const p3 = {
   completeExportWizard: (...args) => live.completeExportWizard(...args),
   listProcessDefinitions: (...args) => live.listProcessDefinitions(...args),
   getProcessDefinition: (...args) => live.getProcessDefinition(...args),
+  listPublishCenter: (...args) => live.listPublishCenter(...args),
+  getPublishCenter: (...args) => live.getPublishCenter(...args),
 };
