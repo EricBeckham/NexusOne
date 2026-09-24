@@ -25,9 +25,9 @@ describe("product shell menus", () => {
     const p1 = navFor("p1").map((item) => item.label);
     expect(p1).toEqual(["首页", "租户列表", "新建租户", "租户详情", "租户关系", "权益与配额", "平台服务态", "平台审计"]);
     expect(navFor("p1").find((item) => item.id === "quotas").to).toBe("/p1/quotas");
+    expect(navFor("p1").find((item) => item.id === "service").to).toBe("/p1/services");
     expect(navFor("p1").filter((item) => item.later).map((item) => item.label)).toEqual([
       "租户关系",
-      "平台服务态",
       "平台审计",
     ]);
     const p2Labels = navFor("p2").map((item) => item.label);
