@@ -36,7 +36,7 @@
 | W1 | 公共组件最小集 | `ui/w1-components` | 无 | Cursor | Codex | 已领取 |
 | W2 | P1 星域 + P2 星权挂进侧栏 | `ui/w2-p1-p2` | W0（最好也有 W1） | 空闲者 | Cursor | 进行中 |
 | W3 | P3 星构挂进侧栏 | `ui/w3-p3` | W0 | 空闲者 | Codex | 已领取 |
-| W4 | P4 星市 + P5 星联 | `ui/w4-p4-p5` | W0 | 空闲者 | | 待领取 |
+| W4 | P4 星市 + P5 星联 | `ui/w4-p4-p5` | W0 | 空闲者 | Codex | 已领取 |
 | W5 | 收尾（文档、截图、清单） | `ui/w5-cleanup` | W2、W3、W4 | 最后收尾者 | | 待领取 |
 
 顺序：W0 与 W1 可同时开；W0 合并后 W2、W3、W4 并行；最后 W5。
@@ -137,6 +137,7 @@
 
 ## 修订记录
 
+- 2026-09-24：Codex 从 `origin/main@c5a5772` 领取 W4，分支 `ui/w4-p4-p5`，工作树 `C:\Users\Administrator\.codex\worktrees\w4-p4-p5\NexusOne`。
 - 2026-09-24：Codex 从 `origin/main@83bc784` 领取 W3，分支 `ui/w3-p3`，工作树 `C:\Users\Administrator\.codex\worktrees\w3-p3\NexusOne`。
 - 2026-09-24：Codex 从 `origin/main@7e12898` 领取 W1，分支 `ui/w1-components`，工作树 `C:\Users\Administrator\.codex\worktrees\w1-components\NexusOne`。
 - 2026-09-24：Cursor 从 `origin/main@e7223ea` 领取 W0，分支 `ui/w0-shell`，工作树 `D:\NexusOne-w0`。
