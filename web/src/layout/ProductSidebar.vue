@@ -107,7 +107,7 @@ function groupActive(item) {
 const iconsByItem = {
   home: "home", tenants: "building", "tenant-create": "userPlus", "tenant-detail": "building",
   relations: "network", quotas: "gauge", service: "server", audit: "shield",
-  persons: "users", org: "network", positions: "briefcase", permissions: "key", security: "shield",
+  persons: "users", org: "network", positions: "briefcase", permissions: "key", "identity-integrations": "shield", security: "shield",
   totp: "phone", recovery: "key", email: "mail", ledgers: "table", forms: "file", todos: "check",
   reports: "chart", dumps: "archive", exports: "download", notifications: "bell", "workflow-designer": "workflow",
   "publish-center": "upload", market: "grid", packages: "package", skus: "tag", subscriptions: "card",

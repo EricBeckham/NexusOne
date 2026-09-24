@@ -157,6 +157,14 @@ export const p2 = {
   assignEmployment: (body) => api("/api/v1/employments", { method: "POST", body }),
   memberships: () => api("/api/v1/memberships"),
   addMembership: (accountId) => api("/api/v1/memberships", { method: "POST", body: { account_id: accountId } }),
+  identityProviders: () => api("/api/v1/identity/providers"),
+  createIdentityProvider: (body) => api("/api/v1/identity/providers", { method: "POST", body }),
+  updateIdentityProvider: (id, body) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}`, { method: "PUT", body }),
+  deleteIdentityProvider: (id) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  identityProviderSecretStatus: (id) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/secret`),
+  writeIdentityProviderSecret: (id, clientSecret) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/secret`, { method: "PUT", body: { clientSecret } }),
+  rotateIdentityProviderSecret: (id, clientSecret) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/secret/rotate`, { method: "POST", body: { clientSecret } }),
+  testIdentityProviderConnection: (id) => api(`/api/v1/identity/providers/${encodeURIComponent(id)}/test-connection`, { method: "POST" }),
   bootstrapAdmin: (tenantId, body) =>
     api(`/api/v1/internal/tenants/${tenantId}/admin-users`, { method: "POST", body, auth: false }),
 };
