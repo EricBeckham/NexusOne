@@ -3,6 +3,7 @@ package one.nexus.p2.domain;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 public interface IdentityRepository {
     Model.GlobalAccount saveAccount(Model.GlobalAccount account);
@@ -78,4 +79,6 @@ public interface IdentityRepository {
     List<Model.IdpConfiguration> listIdpConfigurations(UUID tenantId);
 
     boolean deleteIdpConfiguration(UUID tenantId, UUID id);
+
+    boolean recordIdpConnectionTest(UUID tenantId, UUID id, boolean succeeded, Instant testedAt);
 }

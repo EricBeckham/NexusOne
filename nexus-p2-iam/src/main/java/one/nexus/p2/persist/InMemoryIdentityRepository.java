@@ -295,4 +295,21 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
         });
         return deleted.get();
     }
+
+    @Override
+    public boolean recordIdpConnectionTest(UUID tenantId, UUID id, boolean succeeded, Instant testedAt) {
+        java.util.concurrent.atomic.AtomicBoolean updated = new java.util.concurrent.atomic.AtomicBoolean();
+        idpConfigurations.computeIfPresent(id, (key, configuration) -> {
+            if (configuration.tenantId().equals(tenantId) && configuration.deletedAt() == null) {
+                updated.set(true);
+                return new Model.IdpConfiguration(configuration.id(), configuration.tenantId(),
+                        configuration.providerType(), configuration.displayName(), configuration.clientId(),
+                        configuration.issuer(), configuration.status(), testedAt, succeeded,
+                        succeeded ? 0 : configuration.syncFailCount() + 1, null,
+                        configuration.createdAt(), testedAt, configuration.version() + 1);
+            }
+            return configuration;
+        });
+        return updated.get();
+    }
 }

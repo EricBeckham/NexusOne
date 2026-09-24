@@ -1,9 +1,13 @@
 package one.nexus.p2;
 
 import one.nexus.audit.AuditPort;
+import one.nexus.crypto.SecretPort;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.idp.IdentityProviderPort;
 import one.nexus.p2.idp.IdpConfigurationService;
+import one.nexus.p2.idp.IdpConnectionTester;
+import one.nexus.p2.idp.IdpSecretService;
+import one.nexus.p2.idp.OidcClientCredentialsTester;
 import one.nexus.p2.idp.KeycloakIdentityProvider;
 import one.nexus.p2.idp.StubIdentityProvider;
 import one.nexus.p2.persist.InMemoryIdentityRepository;
@@ -19,6 +23,7 @@ import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -67,8 +72,30 @@ public class IdentityConfiguration {
     }
 
     @Bean
-    IdpConfigurationService idpConfigurationService(IdentityRepository repository, Clock clock, IamProperties properties) {
+    IdpConfigurationService idpConfigurationService(
+            IdentityRepository repository,
+            Clock clock,
+            IamProperties properties
+    ) {
         return new IdpConfigurationService(repository, clock, properties.mfaPolicy());
+    }
+
+    @Bean
+    IdpConnectionTester idpConnectionTester(ObjectMapper mapper) {
+        return new OidcClientCredentialsTester(mapper);
+    }
+
+    @Bean
+    IdpSecretService idpSecretService(
+            IdentityRepository repository,
+            ObjectProvider<SecretPort> secrets,
+            ObjectProvider<AuditPort> audits,
+            Clock clock,
+            IamProperties properties,
+            IdpConnectionTester connectionTester
+    ) {
+        return new IdpSecretService(repository, secrets.getIfAvailable(), audits.getIfAvailable(),
+                clock, properties.mfaPolicy(), connectionTester);
     }
 
     @Bean
