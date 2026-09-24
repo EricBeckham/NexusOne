@@ -228,7 +228,8 @@ public final class JdbcProcessStore {
                 rs.getTimestamp("acted_at") == null ? null : rs.getTimestamp("acted_at").toInstant(),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getString("business_key"),
-                ProcessStatus.valueOf(rs.getString("instance_status")));
+                ProcessStatus.valueOf(rs.getString("instance_status")),
+                null);
     }
 
     private static Timestamp ts(Instant instant) {

@@ -79,13 +79,13 @@ public class ProcessController {
     }
 
     @PostMapping("/tasks/{todoId}/approve")
-    public TodoView approve(@PathVariable UUID todoId) {
-        return approvals.approve(todoId);
+    public TodoView approve(@PathVariable UUID todoId, @RequestBody(required = false) DecisionBody body) {
+        return approvals.approve(todoId, commentOf(body));
     }
 
     @PostMapping("/tasks/{todoId}/reject")
-    public TodoView reject(@PathVariable UUID todoId) {
-        return approvals.reject(todoId);
+    public TodoView reject(@PathVariable UUID todoId, @RequestBody(required = false) DecisionBody body) {
+        return approvals.reject(todoId, commentOf(body));
     }
 
     @PostMapping("/instances/{instanceId}/withdraw")
@@ -94,6 +94,13 @@ public class ProcessController {
     }
 
     public record StartBody(String processKey, String businessKey, String assigneeType, String assigneeRef) {}
+
+    /** Optional decision note. Absent, blank, and whitespace-only are the same as no comment. */
+    public record DecisionBody(String comment) {}
+
+    private static String commentOf(DecisionBody body) {
+        return body == null ? null : body.comment();
+    }
 
     private static void requireTenant() {
         if (TenantContextHolder.get() == null) {

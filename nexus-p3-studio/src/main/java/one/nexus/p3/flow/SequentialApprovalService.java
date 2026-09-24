@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import one.nexus.audit.AuditCaptures;
+import one.nexus.audit.AuditPort;
 import one.nexus.common.id.UuidV7;
 import one.nexus.common.time.Utc;
 import one.nexus.p2.kernel.TenantContext;
@@ -30,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @ConditionalOnProperty(name = "nexus.flow.engine")
 public class SequentialApprovalService {
+    static final int MAX_COMMENT_LENGTH = 2000;
+
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final JdbcProcessStore store;
@@ -37,6 +41,8 @@ public class SequentialApprovalService {
     private final PermissionModule permission;
     private final ObjectProvider<TenantMemberGrantSeeder> grantSeeder;
     private final ProcessDefinitionPublishService publishing;
+    private final ApprovalCommentStore comments;
+    private final ObjectProvider<AuditPort> auditPort;
 
     public SequentialApprovalService(
             RuntimeService runtimeService,
@@ -45,7 +51,9 @@ public class SequentialApprovalService {
             AssigneeResolver assignees,
             PermissionModule permission,
             ObjectProvider<TenantMemberGrantSeeder> grantSeeder,
-            ProcessDefinitionPublishService publishing
+            ProcessDefinitionPublishService publishing,
+            ApprovalCommentStore comments,
+            ObjectProvider<AuditPort> auditPort
     ) {
         this.runtimeService = runtimeService;
         this.taskService = taskService;
@@ -54,6 +62,8 @@ public class SequentialApprovalService {
         this.permission = permission;
         this.grantSeeder = grantSeeder;
         this.publishing = publishing;
+        this.comments = comments;
+        this.auditPort = auditPort;
     }
 
     @Transactional
@@ -125,7 +135,8 @@ public class SequentialApprovalService {
                 null,
                 now,
                 command.businessKey(),
-                ProcessStatus.RUNNING));
+                ProcessStatus.RUNNING,
+                null));
         store.recordAction(tenant.tenantId(), instanceId, null, tenant.personId(), "START",
                 "START:" + command.businessKey(), now);
         return view;
@@ -133,12 +144,22 @@ public class SequentialApprovalService {
 
     @Transactional
     public TodoView approve(UUID todoId) {
-        return complete(todoId, "APPROVE", ProcessStatus.APPROVED);
+        return approve(todoId, null);
+    }
+
+    @Transactional
+    public TodoView approve(UUID todoId, String comment) {
+        return complete(todoId, "APPROVE", ProcessStatus.APPROVED, comment);
     }
 
     @Transactional
     public TodoView reject(UUID todoId) {
-        return complete(todoId, "REJECT", ProcessStatus.REJECTED);
+        return reject(todoId, null);
+    }
+
+    @Transactional
+    public TodoView reject(UUID todoId, String comment) {
+        return complete(todoId, "REJECT", ProcessStatus.REJECTED, comment);
     }
 
     @Transactional
@@ -167,13 +188,13 @@ public class SequentialApprovalService {
         return store.findInstance(tenant.tenantId(), instanceId).orElseThrow();
     }
 
-    private TodoView complete(UUID todoId, String outcome, ProcessStatus endStatus) {
+    private TodoView complete(UUID todoId, String outcome, ProcessStatus endStatus, String comment) {
         TenantContext tenant = requireTenant();
         TodoView todo = store.findTodo(tenant.tenantId(), todoId)
                 .orElseThrow(() -> FlowException.notFound("todo not found in current tenant"));
         String key = outcome + ":" + todoId;
         if (todo.status() == TodoStatus.DONE && outcome.equals(todo.outcome())) {
-            return todo;
+            return comments.attach(todo);
         }
         if (todo.status() != TodoStatus.PENDING) {
             throw FlowException.conflict("todo is " + todo.status());
@@ -182,16 +203,58 @@ public class SequentialApprovalService {
                 && (todo.assigneePersonId() == null || !todo.assigneePersonId().equals(tenant.personId()))) {
             throw FlowException.forbidden("current person is not a candidate for this todo");
         }
+        String normalized = normalizeComment(comment);
         guard("process.task", outcome.toLowerCase());
         Instant now = Utc.now();
+        ProcessInstanceView instance = store.findInstance(tenant.tenantId(), todo.instanceId())
+                .orElseThrow(() -> FlowException.notFound("process instance not found in current tenant"));
         taskService.setAssignee(todo.flowableTaskId(), tenant.personId().toString());
+        if (normalized != null) {
+            comments.save(todo.flowableTaskId(), instance.flowableInstanceId(), normalized);
+        }
         taskService.complete(todo.flowableTaskId(), Map.of("outcome", outcome));
         store.completeTodo(tenant.tenantId(), todoId, tenant.personId(), outcome, now);
         store.finishInstance(tenant.tenantId(), todo.instanceId(), endStatus, now);
         if (!store.actionExists(tenant.tenantId(), key)) {
             store.recordAction(tenant.tenantId(), todo.instanceId(), todoId, tenant.personId(), outcome, key, now);
         }
-        return store.findTodo(tenant.tenantId(), todoId).orElseThrow();
+        auditDecision(tenant, todo, outcome, normalized);
+        TodoView saved = store.findTodo(tenant.tenantId(), todoId).orElseThrow();
+        return normalized == null ? saved : saved.withComment(normalized);
+    }
+
+    static String normalizeComment(String comment) {
+        if (comment == null) {
+            return null;
+        }
+        String trimmed = comment.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.length() > MAX_COMMENT_LENGTH) {
+            throw FlowException.badRequest("comment must be at most " + MAX_COMMENT_LENGTH + " characters");
+        }
+        return trimmed;
+    }
+
+    private void auditDecision(TenantContext tenant, TodoView todo, String outcome, String comment) {
+        AuditPort port = auditPort.getIfAvailable();
+        if (port == null) {
+            return;
+        }
+        String action = "APPROVE".equals(outcome) ? "approve" : "reject";
+        port.append(AuditCaptures.approval(
+                "p3.process.task." + action,
+                true,
+                tenant.tenantId(),
+                tenant.personId(),
+                todo.id().toString(),
+                action,
+                null,
+                Map.of(
+                        "instance_id", todo.instanceId().toString(),
+                        "comment_present", comment == null ? "false" : "true",
+                        "comment_chars", Integer.toString(comment == null ? 0 : comment.length()))));
     }
 
     private void guard(String resource, String action) {

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,6 +35,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @SpringBootTest(classes = NexusP3FlowApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("flow")
+@Import(FlowAuditTestConfig.class)
 class SequentialApprovalIT {
     private static EmbeddedPostgres postgres;
 
@@ -376,6 +378,140 @@ class SequentialApprovalIT {
                 "select count(*) from business_meta.process_instance where business_key = ?",
                 Integer.class, businessKey));
         assertEquals(0, runtimeService.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).count());
+    }
+
+    @Test
+    void optionalCommentIsStoredAndOtherTenantCannotDecide() throws Exception {
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                TENANT_A, "Flow Admin A", "flow-admin-a@example.com", "flow-admin-a"));
+        identity.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                TENANT_B, "Flow Admin B", "flow-admin-b@example.com", "flow-admin-b"));
+        Session adminA = login("flow-admin-a", "flow-admin-a@example.com", "Flow Admin A");
+        Session adminB = login("flow-admin-b", "flow-admin-b@example.com", "Flow Admin B");
+        Member reviewer = provisionMember(adminA, "comment-reviewer", "comment-reviewer@example.com", "Comment Reviewer");
+
+        String approveTodo = startTodo(adminA, reviewer, "comment-approve-" + UUID.randomUUID());
+        mvc.perform(post("/api/v1/process/tasks/" + approveTodo + "/approve")
+                        .header("Authorization", "Bearer " + adminB.token)
+                        .header("X-Nexus-Context-Id", adminB.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\":\"越权意见\"}"))
+                .andExpect(status().isNotFound());
+        assertEquals(0, auditCount("p3.process.task.approve", approveTodo));
+
+        String opinion = "同意，金额合理";
+        mvc.perform(post("/api/v1/process/tasks/" + approveTodo + "/approve")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\":\"  " + opinion + "  \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("APPROVE"))
+                .andExpect(jsonPath("$.comment").value(opinion));
+        mvc.perform(get("/api/v1/todos/" + approveTodo)
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comment").value(opinion));
+        mvc.perform(get("/api/v1/todos/done")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == '" + approveTodo + "')].comment").value(hasItem(opinion)));
+        mvc.perform(post("/api/v1/process/tasks/" + approveTodo + "/approve")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\":\"另一条意见\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comment").value(opinion));
+        assertEquals(1, auditCount("p3.process.task.approve", approveTodo));
+        assertEquals("true", auditDetail(approveTodo, "p3.process.task.approve", "comment_present"));
+        assertEquals("7", auditDetail(approveTodo, "p3.process.task.approve", "comment_chars"));
+        assertTrue(!auditDetails("p3.process.task.approve", approveTodo).contains(opinion));
+
+        String rejectTodo = startTodo(adminA, reviewer, "comment-reject-" + UUID.randomUUID());
+        String rejection = "材料不齐";
+        mvc.perform(post("/api/v1/process/tasks/" + rejectTodo + "/reject")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\":\"" + rejection + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("REJECT"))
+                .andExpect(jsonPath("$.comment").value(rejection));
+        mvc.perform(get("/api/v1/todos/" + rejectTodo)
+                        .header("Authorization", "Bearer " + adminB.token)
+                        .header("X-Nexus-Context-Id", adminB.contextId))
+                .andExpect(status().isNotFound());
+        assertEquals("true", auditDetail(rejectTodo, "p3.process.task.reject", "comment_present"));
+        assertTrue(!auditDetails("p3.process.task.reject", rejectTodo).contains(rejection));
+
+        String plainTodo = startTodo(adminA, reviewer, "comment-plain-" + UUID.randomUUID());
+        mvc.perform(post("/api/v1/process/tasks/" + plainTodo + "/reject")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("REJECT"))
+                .andExpect(jsonPath("$.comment").doesNotExist());
+        assertEquals("false", auditDetail(plainTodo, "p3.process.task.reject", "comment_present"));
+
+        String blankTodo = startTodo(adminA, reviewer, "comment-blank-" + UUID.randomUUID());
+        mvc.perform(post("/api/v1/process/tasks/" + blankTodo + "/approve")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\":\"   \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comment").doesNotExist());
+
+        String longTodo = startTodo(adminA, reviewer, "comment-long-" + UUID.randomUUID());
+        String tooLong = "长".repeat(SequentialApprovalService.MAX_COMMENT_LENGTH + 1);
+        mvc.perform(post("/api/v1/process/tasks/" + longTodo + "/approve")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\":\"" + tooLong + "\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/todos/" + longTodo)
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"));
+        assertEquals(0, auditCount("p3.process.task.approve", longTodo));
+    }
+
+    private String startTodo(Session admin, Member reviewer, String businessKey) throws Exception {
+        mvc.perform(post("/api/v1/process/instances")
+                        .header("Authorization", "Bearer " + admin.token)
+                        .header("X-Nexus-Context-Id", admin.contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"businessKey\":\"" + businessKey
+                                + "\",\"assigneeType\":\"PERSON\",\"assigneeRef\":\"" + reviewer.personId + "\"}"))
+                .andExpect(status().isOk());
+        return extract(mvc.perform(get("/api/v1/todos/pending")
+                        .header("Authorization", "Bearer " + reviewer.session.token)
+                        .header("X-Nexus-Context-Id", reviewer.session.contextId))
+                .andReturn().getResponse().getContentAsString(), "id");
+    }
+
+    private int auditCount(String eventType, String resourceId) {
+        Integer count = jdbc.queryForObject(
+                "select count(*) from platform.audit_record where event_type = ? and resource_id = ?",
+                Integer.class, eventType, resourceId);
+        return count == null ? 0 : count;
+    }
+
+    private String auditDetails(String eventType, String resourceId) {
+        return jdbc.queryForObject(
+                "select details::text from platform.audit_record where event_type = ? and resource_id = ?",
+                String.class, eventType, resourceId);
+    }
+
+    private String auditDetail(String resourceId, String eventType, String key) {
+        return jdbc.queryForObject(
+                "select details->>? from platform.audit_record where event_type = ? and resource_id = ?",
+                String.class, key, eventType, resourceId);
     }
 
     private Session login(String username, String email, String name) throws Exception {

@@ -1,5 +1,6 @@
 package one.nexus.p3.flow;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +38,26 @@ public final class ProcessRecords {
             Instant actedAt,
             Instant createdAt,
             String businessKey,
-            ProcessStatus instanceStatus
-    ) {}
+            ProcessStatus instanceStatus,
+            @JsonInclude(JsonInclude.Include.NON_NULL) String comment
+    ) {
+        public TodoView withComment(String comment) {
+            return new TodoView(
+                    id,
+                    tenantId,
+                    instanceId,
+                    flowableTaskId,
+                    taskName,
+                    assigneePersonId,
+                    candidatePersonIds,
+                    status,
+                    outcome,
+                    actedByPersonId,
+                    actedAt,
+                    createdAt,
+                    businessKey,
+                    instanceStatus,
+                    comment);
+        }
+    }
 }
