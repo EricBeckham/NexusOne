@@ -4,6 +4,15 @@ import { productById } from "./nav/products";
 import { isSafeMobileReturn, safeMobileReturn } from "./mobile/auth/safeReturn";
 import { postHost } from "./mobile/host/hostBridge";
 
+const developmentRoutes = import.meta.env.DEV
+  ? [{
+      path: "/__dev/components",
+      name: "dev-components",
+      component: () => import("./views/dev/ComponentGalleryView.vue"),
+      meta: { title: "公共组件示例", product: "p3" },
+    }]
+  : [];
+
 const routes = [
   { path: "/login", name: "login", component: () => import("./views/LoginView.vue"), meta: { public: true, title: "登录" } },
   { path: "/callback", name: "callback", component: () => import("./views/CallbackView.vue"), meta: { public: true, title: "授权码回跳" } },
@@ -37,6 +46,7 @@ const routes = [
   { path: "/p3/exports/wizard", name: "export-wizard", component: () => import("./views/studio/ExportWizardView.vue"), meta: { title: "导出向导", product: "p3" } },
   { path: "/p4/market", name: "market", component: () => import("./views/market/MarketView.vue"), meta: { title: "星市", product: "p4" } },
   { path: "/p5/connect", name: "connect", component: () => import("./views/connect/ConnectView.vue"), meta: { title: "星联", product: "p5" } },
+  ...developmentRoutes,
   { path: "/m", redirect: "/m/p3/home" },
   {
     path: "/m/login",
