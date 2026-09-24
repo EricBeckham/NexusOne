@@ -20,10 +20,16 @@
       <button class="primary" type="button" data-testid="template-save" :disabled="saving" @click="save">
         {{ saving ? "保存中…" : "保存草稿" }}
       </button>
-      <button class="ghost" type="button" data-testid="template-validate" disabled>校验</button>
+      <button class="ghost" type="button" data-testid="template-validate" :disabled="creating || validating" @click="validate">
+        {{ validating ? "校验中…" : "校验" }}
+      </button>
       <button class="ghost" type="button" data-testid="template-publish" disabled>发布</button>
     </div>
-    <p class="nx-muted">校验和发布在后续步骤开放。</p>
+    <p v-if="validation?.valid" class="ok" data-testid="template-validate-ok">校验通过</p>
+    <ul v-if="formErrors.length" class="errors" data-testid="template-validate-errors">
+      <li v-for="(message, index) in formErrors" :key="index">{{ message }}</li>
+    </ul>
+    <p class="nx-muted">发布在后续步骤开放。</p>
   </section>
 
   <div class="editor">
@@ -39,6 +45,7 @@
           </select>
         </label>
         <label class="check"><input v-model="field.required" type="checkbox" data-testid="field-required" /> 必填</label>
+        <p v-for="(message, messageIndex) in fieldErrors(field)" :key="messageIndex" class="field-error" data-testid="field-error">{{ message }}</p>
         <div v-if="field.type === 'SELECT'" class="options" data-testid="field-options">
           <p>选项</p>
           <div v-for="(option, optionIndex) in field.options" :key="optionIndex" class="option-row">
@@ -110,6 +117,8 @@ const fields = ref([]);
 const error = ref("");
 const traceId = ref("");
 const saving = ref(false);
+const validating = ref(false);
+const validation = ref(null);
 
 function statusLabel(value) {
   return ({ DRAFT: "草稿", VALIDATED: "已校验", PUBLISHED: "已发布", ARCHIVED: "已归档" })[value] || value || "暂无";
@@ -142,6 +151,22 @@ function normalizeOptions(options) {
     return { label: text, value: text };
   });
 }
+
+function fieldErrors(field) {
+  const errors = validation.value?.errors;
+  if (!Array.isArray(errors) || !field.key) return [];
+  return errors.filter((error) => error?.fieldKey === field.key || error?.field_key === field.key)
+    .map((error) => error.message)
+    .filter(Boolean);
+}
+
+const formErrors = computed(() => {
+  const errors = validation.value?.errors;
+  if (!Array.isArray(errors)) return [];
+  return errors.filter((error) => !error?.fieldKey && !error?.field_key)
+    .map((error) => error.message)
+    .filter(Boolean);
+});
 
 function filledOptions(field) {
   return (field.options || []).filter((option) => option.label || option.value).map((option) => ({
@@ -199,7 +224,26 @@ async function load() {
 }
 
 async function reload() {
+  validation.value = null;
   await load();
+}
+
+async function validate() {
+  if (creating.value || validating.value) return;
+  validating.value = true;
+  error.value = "";
+  traceId.value = "";
+  validation.value = null;
+  try {
+    const result = await p1.validateFormTemplate(route.params.id);
+    validation.value = result;
+    if (result?.status) status.value = result.status;
+  } catch (err) {
+    error.value = err?.message || "校验失败";
+    traceId.value = err?.traceId || "";
+  } finally {
+    validating.value = false;
+  }
 }
 
 async function save() {
@@ -210,6 +254,7 @@ async function save() {
     const saved = creating.value
       ? await p1.createFormTemplate(payload())
       : await p1.updateFormTemplate(route.params.id, payload());
+    validation.value = null;
     applyTemplate(saved);
     if (creating.value && saved?.id) {
       await router.replace(`/p1/form-templates/${saved.id}`);
@@ -233,6 +278,9 @@ onMounted(load);
 .editor { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr); gap: 16px; align-items: start; }
 .field { display: grid; gap: 8px; margin: 12px 0; padding-top: 12px; border-top: 1px solid var(--nx-border, #e5eaf2); }
 .check { display: flex; gap: 8px; align-items: center; }
+.ok { margin: 0; color: var(--nx-success, #18794e); font-weight: 700; }
+.errors, .field-error { margin: 0; color: var(--nx-danger, #b42318); }
+.errors { padding-left: 18px; }
 .options { display: grid; gap: 8px; }
 .option-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
 .preview fieldset { border: 0; margin: 0; padding: 0; }

@@ -131,6 +131,7 @@ export const p1 = {
   formTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { platform: true, auth: false }),
   createFormTemplate: (body) => api("/api/v1/p1/platform/form-templates", { method: "POST", body, platform: true, auth: false }),
   updateFormTemplate: (id, body) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
+  validateFormTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}/validate`, { method: "POST", body: {}, platform: true, auth: false }),
 };
 
 export const p2 = {

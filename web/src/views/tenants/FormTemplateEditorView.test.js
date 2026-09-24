@@ -10,6 +10,7 @@ vi.mock("../../api/client", () => ({
     formTemplate: vi.fn(),
     createFormTemplate: vi.fn(),
     updateFormTemplate: vi.fn(),
+    validateFormTemplate: vi.fn(),
   },
 }));
 
@@ -34,6 +35,7 @@ describe("form template editor", () => {
     p1.formTemplate.mockReset();
     p1.createFormTemplate.mockReset();
     p1.updateFormTemplate.mockReset();
+    p1.validateFormTemplate.mockReset();
   });
 
   it("shows an empty field list and keeps validate and publish disabled", async () => {
@@ -105,6 +107,54 @@ describe("form template editor", () => {
       ],
     });
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p1/form-templates/tpl-1");
+  });
+
+  it("shows field errors and a success state from the validate API", async () => {
+    p1.formTemplate.mockResolvedValue({
+      id: "tpl-1",
+      code: "leave",
+      name: "请假",
+      status: "DRAFT",
+      fields: [
+        { key: "Reason", label: "事由", type: "TEXT", required: false, options: null },
+        { key: "category", label: "类别", type: "SELECT", required: false, options: [] },
+      ],
+    });
+    p1.validateFormTemplate.mockResolvedValueOnce({
+      templateId: "tpl-1",
+      valid: false,
+      status: "DRAFT",
+      errors: [
+        { fieldKey: "Reason", code: "field.key.invalid", message: "字段 key 须以小写字母开头，只能包含小写字母、数字和下划线" },
+        { fieldKey: "category", code: "field.options.required", message: "单选字段至少需要一个选项" },
+        { fieldKey: null, code: "fields.required", message: "至少需要一个字段" },
+      ],
+    });
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    expect(wrapper.get("[data-testid='template-validate']").attributes("disabled")).toBeUndefined();
+    expect(wrapper.get("[data-testid='template-publish']").attributes("disabled")).toBeDefined();
+    await wrapper.get("[data-testid='template-validate']").trigger("click");
+    await flushPromises();
+    const errors = wrapper.findAll("[data-testid='field-error']").map((node) => node.text());
+    expect(errors).toEqual([
+      "字段 key 须以小写字母开头，只能包含小写字母、数字和下划线",
+      "单选字段至少需要一个选项",
+    ]);
+    expect(wrapper.get("[data-testid='template-validate-errors']").text()).toContain("至少需要一个字段");
+    expect(p1.validateFormTemplate).toHaveBeenCalledWith("tpl-1");
+
+    p1.validateFormTemplate.mockResolvedValueOnce({
+      templateId: "tpl-1",
+      valid: true,
+      status: "VALIDATED",
+      errors: [],
+    });
+    await wrapper.get("[data-testid='template-validate']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='template-validate-ok']").text()).toBe("校验通过");
+    expect(wrapper.get("[data-testid='template-status']").text()).toContain("已校验");
+    expect(wrapper.find("[data-testid='field-error']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='template-publish']").attributes("disabled")).toBeDefined();
   });
 
   it("shows the server error text", async () => {
