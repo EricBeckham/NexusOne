@@ -23,6 +23,7 @@ const routes = [
   { path: "/p4", name: "p4-home", component: () => import("./views/market/MarketHomeView.vue"), meta: { title: "首页", product: "p4" } },
   { path: "/p5", name: "p5-home", component: () => import("./views/connect/ConnectHomeView.vue"), meta: { title: "首页", product: "p5" } },
   { path: "/p1/quotas", name: "p1-quotas", component: () => import("./views/tenants/TenantEntitlementView.vue"), meta: { title: "权益与配额", product: "p1" } },
+  { path: "/p1/services", name: "p1-services", component: () => import("./views/tenants/PlatformServicesView.vue"), meta: { title: "平台服务态", product: "p1" } },
   { path: "/p1/tenants", name: "tenants", component: () => import("./views/tenants/TenantListView.vue"), meta: { title: "租户目录", product: "p1" } },
   { path: "/p1/tenants/new", name: "tenant-create", component: () => import("./views/tenants/TenantCreateView.vue"), meta: { title: "创建租户", product: "p1" } },
   { path: "/p1/tenants/:id/entitlement", name: "tenant-entitlement", component: () => import("./views/tenants/TenantEntitlementView.vue"), meta: { title: "权益与配额", product: "p1" } },
