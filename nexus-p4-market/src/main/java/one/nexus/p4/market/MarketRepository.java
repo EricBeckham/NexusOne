@@ -22,4 +22,8 @@ public interface MarketRepository {
     List<Subscription> subscriptions();
     Optional<Subscription> subscriptionForCurrentTenant(UUID id);
     List<CatalogItem> catalog();
+    void saveProductDefinition(ProductDefinition definition);
+    List<ProductDefinition> productDefinitions();
+    Optional<ProductDefinition> productDefinition(UUID id);
+    Optional<UUID> publishedFormTemplateVersion(UUID id);
 }

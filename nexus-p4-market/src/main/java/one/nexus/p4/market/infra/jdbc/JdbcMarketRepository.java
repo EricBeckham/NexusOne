@@ -135,6 +135,41 @@ public class JdbcMarketRepository implements MarketRepository {
             return new CatalogItem(a,v,skus);
         }).list();
     }
+    @Override public Optional<UUID> publishedFormTemplateVersion(UUID id) {
+        return jdbc.sql("SELECT id FROM platform.form_template_version WHERE id=:id AND published_at IS NOT NULL")
+                .param("id", id).query(UUID.class).optional();
+    }
+    @Override public void saveProductDefinition(ProductDefinition d) {
+        jdbc.sql("""
+                INSERT INTO market.product_definition(id,code,name,description,form_template_version_id,
+                    process_definition_key,process_definition_version,default_permission_pack,status,created_at,updated_at,version)
+                VALUES(:id,:code,:name,:description,:form,:processKey,:processVersion,CAST(:pack AS jsonb),:status,:created,:updated,:version)
+                ON CONFLICT(id) DO UPDATE SET code=:code,name=:name,description=:description,
+                    form_template_version_id=:form,process_definition_key=:processKey,
+                    process_definition_version=:processVersion,default_permission_pack=CAST(:pack AS jsonb),
+                    status=:status,updated_at=:updated,version=:version
+                """)
+                .param("id",d.id()).param("code",d.code()).param("name",d.name()).param("description",d.description())
+                .param("form",d.formTemplateVersionId()).param("processKey",d.processDefinitionKey())
+                .param("processVersion",d.processDefinitionVersion()).param("pack",write(d.defaultPermissionPack()))
+                .param("status",d.status()).param("created",timestamp(d.createdAt())).param("updated",timestamp(d.updatedAt()))
+                .param("version",d.version()).update();
+    }
+    @Override public List<ProductDefinition> productDefinitions() {
+        return jdbc.sql("SELECT * FROM market.product_definition ORDER BY code").query(this::mapProductDefinition).list();
+    }
+    @Override public Optional<ProductDefinition> productDefinition(UUID id) {
+        return jdbc.sql("SELECT * FROM market.product_definition WHERE id=:id").param("id",id)
+                .query(this::mapProductDefinition).optional();
+    }
+    private ProductDefinition mapProductDefinition(ResultSet r,int n)throws SQLException {
+        try { return new ProductDefinition(uuid(r,"id"),r.getString("code"),r.getString("name"),r.getString("description"),
+                uuid(r,"form_template_version_id"),r.getString("process_definition_key"),
+                (Integer) r.getObject("process_definition_version"),
+                json.readValue(r.getString("default_permission_pack"),new TypeReference<Map<String,Object>>(){}),
+                r.getString("status"),instant(r,"created_at"),instant(r,"updated_at"),r.getLong("version"));
+        } catch(Exception e) { throw new SQLException("invalid product definition",e); }
+    }
     private AppPackage mapApp(ResultSet r,int n)throws SQLException{return new AppPackage(uuid(r,"id"),r.getString("code"),r.getString("name"),r.getString("summary"),instant(r,"created_at"));}
     private AppVersion mapVersion(ResultSet r,int n)throws SQLException{return new AppVersion(uuid(r,"id"),uuid(r,"app_id"),r.getString("version"),VersionStatus.valueOf(r.getString("status")),r.getString("release_notes"),instant(r,"created_at"),instant(r,"published_at"));}
     private Sku mapSku(ResultSet r,int n)throws SQLException{try{return new Sku(r.getString("code"),uuid(r,"app_id"),r.getString("name"),json.readValue(r.getString("entitlements"),new TypeReference<Map<String,EntitlementSpec>>(){}));}catch(Exception e){throw new SQLException("invalid SKU entitlements",e);}}

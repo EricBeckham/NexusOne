@@ -25,4 +25,19 @@ public final class MarketModels {
     public record Installation(UUID id, UUID tenantId, UUID appId, UUID versionId,
                                InstallationStatus status, Instant installedAt, Instant updatedAt) {}
     public record CatalogItem(AppPackage app, AppVersion version, java.util.List<Sku> skus) {}
+    public record ProductDefinition(UUID id, String code, String name, String description,
+            UUID formTemplateVersionId, String processDefinitionKey, Integer processDefinitionVersion,
+            Map<String, Object> defaultPermissionPack, String status, Instant createdAt, Instant updatedAt,
+            long version) {
+        public ProductDefinition {
+            defaultPermissionPack = defaultPermissionPack == null ? Map.of() : Map.copyOf(defaultPermissionPack);
+        }
+    }
+    public record ProductDefinitionWrite(String code, String name, String description,
+            UUID formTemplateVersionId, String processDefinitionKey, Integer processDefinitionVersion,
+            Map<String, Object> defaultPermissionPack) {
+        public ProductDefinitionWrite {
+            defaultPermissionPack = defaultPermissionPack == null ? Map.of() : Map.copyOf(defaultPermissionPack);
+        }
+    }
 }
