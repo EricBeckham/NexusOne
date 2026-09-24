@@ -1,6 +1,6 @@
 # WEB 第二波任务卡 V0.1
 
-- 基线：`main@0fac808`（W5 已合入，PR #287；五产品壳 W0–W5 关闭）
+- 基线：`main@c53f2eb`（B1 已合入，PR #292；五产品壳 W0–W5 关闭）
 - 依据：壳波次复盘存货；`docs/planning/WEB五产品壳任务卡_V0.1.md` 缺口清单；`docs/design/星枢NexusOne_WEB页面设计与前端开发规范_V1.1.md` §28/§29；`docs/planning/快进P4P5_范围冻结表_V0.1.md`
 - 范围：桌面 WEB 第二波（权限正式页、权益配额页、应用工作台、P4/P5 读模型与子页）。**H5（`/m/*`、`web/src/mobile/**`）继续整波延后**
 - 执行方：本地 Codex、Cursor 等按卡领取；NexusOne 只负责拆分与审阅
@@ -34,11 +34,13 @@
 | X1 | P2 角色 / 数据范围 / 字段权限正式页 | `ui/x1-p2-permissions` | 无（建议 X0 先合） | Cursor / Codex | | 待领取 |
 | X2 | P1 权益与配额正式页 | `ui/x2-p1-entitlement` | 无 | 空闲者 | Cursor | 进行中 |
 | X3 | P3 应用工作台正式首页 | `ui/x3-p3-workbench` | 无 | 空闲者 | Cursor | 进行中 |
-| B1 | P4/P5 读模型后端（list/read；Credential 视体积） | `feat/b1-p4-p5-read-models` | 无 | **建议 Codex** | | 待领取 |
-| X4 | P4 规范 §28 子页 | `ui/x4-p4-subpages` | **B1** | 空闲者 | | 待领取 |
-| X5 | P5 规范 §29 子页（自用） | `ui/x5-p5-subpages` | **B1** | 空闲者 | | 待领取 |
+| B1 | P4/P5 读模型后端（list/read；Credential 视体积） | `feat/b1-p4-p5-read-models` | 无 | **建议 Codex** | | 已合并（PR #292，main `c53f2eb`） |
+| F1 | 修复后端全量测试编译失败 | `fix/f1-backend-test-compile` | 无（与 X4/X5 独立，可并行） | 空闲者 | | 待领取 |
+| F2 | 修复 P3 集成测试缺少 `platform.exec_outbox` 表 | `fix/f2-p3-integration-test-db` | 无（建议 F1 先合） | 空闲者 | | 待领取 |
+| X4 | P4 规范 §28 子页 | `ui/x4-p4-subpages` | **B1 已合并（PR #292）** | 空闲者 | | 已解锁，待领取 |
+| X5 | P5 规范 §29 子页（自用） | `ui/x5-p5-subpages` | **B1 已合并（PR #292）** | 空闲者 | | 已解锁，待领取 |
 
-顺序：**X0、X1、X2、X3、B1 可并行**；**X4 / X5 等 B1 合并后**再开。业务优先级：**X1 最高**。
+顺序：**X0、X1、X2、X3、B1、F1、F2 可并行**；**X4 / X5 等 B1 合并后**再开；F2 建议 F1 先合。业务优先级：**X1 最高**。
 
 ---
 
@@ -132,6 +134,8 @@
 
 ## B1 P4/P5 读模型后端
 
+状态：已合并（PR #292，main commit `c53f2eb`）。因此 X4 / X5 现已解锁，可领取并行执行。
+
 分支：`feat/b1-p4-p5-read-models`　前置：无　类型：**后端-only**　建议执行方：Codex
 
 ### 已有（不要重复造写路径）
@@ -172,6 +176,45 @@ FE 对照（只读参考，B1 PR **不得**改这些文件）：`p4.catalog`、`
 - 对应模块测试必须绿。
 
 验收：MockMvc 或等价证明 list/read；契约字段写进 PR 说明供 X4/X5 使用。
+
+---
+
+## F1 修复后端全量测试编译失败
+
+分支：`fix/f1-backend-test-compile`　前置：无（与 X4 / X5 独立，可并行）　类型：后端测试修复
+
+问题：
+
+- `T2PlatformAdminAuditTest` 内部的 `InMemoryTenantRepository` 测试替身没有实现仓库接口新增的 `updateProjection` 方法，导致后端 reactor `testCompile` 失败。
+- 该问题已存在于 `main`，并非 B1 引入。
+
+要做：
+
+- 仅修改测试代码，使测试替身实现 `updateProjection`，恢复后端全量测试编译与运行。
+- 小 nit：`ConnectTenantReadTest` 存在重复 import，可顺手清理；该项为可选，不影响验收。
+
+范围：只改测试代码。
+
+验收：全量 Maven 测试能编译并运行，且 `T2PlatformAdminAuditTest` 通过。
+
+交付：单独一个 PR；预计 1 小时。
+
+---
+
+## F2 修复 P3 集成测试缺少 `platform.exec_outbox` 表
+
+分支：`fix/f2-p3-integration-test-db`　前置：无（建议 F1 先合；与 X4 / X5 独立，可并行）　类型：后端测试健康
+
+问题：P3 path 集成测试依赖 `platform.exec_outbox` 表，但本地测试库没有该表。
+
+要做：
+
+- 先查清该表应由哪个迁移创建，并区分是迁移缺失、迁移未在测试环境执行，还是测试环境配置问题。
+- 按根因修复测试环境或迁移执行路径；如需新增迁移，单独成卡、单独 PR，本卡不直接扩大为迁移开发。
+
+依赖：无；建议 F1 先合。
+
+验收：该集成测试在本地全新库上通过，且不影响其他模块。
 
 ---
 
@@ -226,5 +269,6 @@ FE 对照（只读参考，B1 PR **不得**改这些文件）：`p4.catalog`、`
 ## 修订记录
 
 - 2026-09-24：Cursor 根据壳波次（W0–W5）复盘 API 存货编写 V0.1；基线 `origin/main@0fac808`（含 #287 W5）；规划文档按 Eric 要求直推 `main`。
+- 2026-09-24：B1 已合入 `main@c53f2eb`（PR #292）；X4 / X5 解锁。
 - 2026-09-24：Cursor 从 `origin/main@fef30e5` 领取 X2，分支 `ui/x2-p1-entitlement`。权益与配额页开工。
 - 2026-09-24：Cursor 从 `origin/main@c5b0b02` 领取 X3，分支 `ui/x3-p3-workbench`。星构应用工作台开工。
