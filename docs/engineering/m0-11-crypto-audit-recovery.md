@@ -14,7 +14,7 @@
 | PostgreSQL | **15.x**（本机验证 15.19）。不是目标 Profile |
 | Provider | Bouncy Castle `bcprov-jdk18on:1.85.2`（与 P0-10 相同 JCA 路径）。**不是** GM/T 资质模块 |
 
-凭据只来自环境变量。`NEXUS_CRYPTO_MASTER_KEY` 不得写入 Git、Issue 或日志。
+部署 master key 通过环境变量注入。`NEXUS_CRYPTO_MASTER_KEY` 不得写入 Git、Issue、数据库或日志。
 
 ## 交付
 
@@ -31,7 +31,7 @@
 
 密文信封 `NXC1` 携带套件、`keyId`、版本、12 字节 nonce。另一套件无法解密。`Keyring.rotate()` 保留旧版本以便解开历史密文。
 
-`SecretPort` 首期实现是 `LocalEncryptedSecretAdapter`（进程内 envelope，走 CryptoPort）。S0 产品默认叠加只读 `EnvSecretAdapter`（`LocalThenEnvSecretPort`）。不要求 OpenBao / 云 KMS / 国密密码机。S0 接线见 [s0-secret-port.md](./s0-secret-port.md)。
+`SecretPort` 通过 `CryptoPort` envelope 加密；产品默认使用 `JdbcEncryptedSecretAdapter` 持久化密文，并由 `LocalThenEnvSecretPort` 在本地密文与只读 `EnvSecretAdapter` 间回退。不要求 OpenBao / 云 KMS / 国密密码机。跨进程解密要求部署复用稳定的 master key；ephemeral key 不支持重启恢复。S0 接线见 [s0-secret-port.md](./s0-secret-port.md)。
 
 配置（`nexus-bootstrap`）：
 

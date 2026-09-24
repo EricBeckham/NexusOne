@@ -6,12 +6,13 @@ import one.nexus.common.error.ErrorCode;
 import one.nexus.common.error.NexusException;
 
 /**
- * S0 product {@link SecretPort}: in-process overlay first, then environment
- * variables. {@code put}/{@code delete} affect only the local overlay.
+ * Product {@link SecretPort}: local encrypted storage first, then environment
+ * variables. {@code put}/{@code delete} affect only the local store.
  *
  * <p>Env-backed reads are live (no cache). A mutable env map rotates on the
- * next {@code get} when there is no overlay. {@link #system(CryptoPort)}
- * still uses {@code System::getenv} (Java 21 process-start snapshot).
+ * next {@code get} when there is no local value. Both {@link #system(CryptoPort)}
+ * and {@link #durableSystem(CryptoPort, javax.sql.DataSource)} still use
+ * {@code System::getenv} (Java 21 process-start snapshot).
  *
  * <p>Does not introduce OpenBao or KMS. ARCH-007: an independent secret
  * platform is not required to start the app.
@@ -25,9 +26,15 @@ public final class LocalThenEnvSecretPort implements SecretPort {
         this.environment = Objects.requireNonNull(environment, "environment");
     }
 
+    /** Compatibility factory for in-memory/test use; backend reports {@code local+env}. */
     public static LocalThenEnvSecretPort system(CryptoPort crypto) {
         return new LocalThenEnvSecretPort(
                 new LocalEncryptedSecretAdapter(crypto), EnvSecretAdapter.system(crypto.suite()));
+    }
+
+    public static LocalThenEnvSecretPort durableSystem(CryptoPort crypto, javax.sql.DataSource dataSource) {
+        return new LocalThenEnvSecretPort(
+                new JdbcEncryptedSecretAdapter(dataSource, crypto), EnvSecretAdapter.system(crypto.suite()));
     }
 
     @Override
@@ -64,7 +71,7 @@ public final class LocalThenEnvSecretPort implements SecretPort {
 
     @Override
     public String backend() {
-        return "local+env";
+        return local.backend() + "+" + environment.backend();
     }
 
     public SecretPort local() {

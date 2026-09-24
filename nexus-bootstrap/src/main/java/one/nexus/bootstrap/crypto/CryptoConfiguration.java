@@ -1,6 +1,7 @@
 package one.nexus.bootstrap.crypto;
 
 import java.security.SecureRandom;
+import javax.sql.DataSource;
 import one.nexus.crypto.CryptoPort;
 import one.nexus.crypto.CryptoSuite;
 import one.nexus.crypto.Hex;
@@ -33,7 +34,7 @@ public class CryptoConfiguration {
     }
 
     @Bean
-    SecretPort secretPort(CryptoPort cryptoPort) {
-        return LocalThenEnvSecretPort.system(cryptoPort);
+    SecretPort secretPort(CryptoPort cryptoPort, DataSource dataSource) {
+        return LocalThenEnvSecretPort.durableSystem(cryptoPort, dataSource);
     }
 }
