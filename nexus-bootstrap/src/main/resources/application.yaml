@@ -72,6 +72,10 @@ nexus:
   p1:
     demo-context:
       enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
+  platform:
+    status:
+      # Per-probe wall clock. A timed-out dependency is UNKNOWN and does not block the others.
+      probe-timeout: ${NEXUS_PLATFORM_STATUS_PROBE_TIMEOUT:2s}
   p3:
     demo-context: ${NEXUS_P3_DEMO_CONTEXT_ENABLED:false}
   iam:
