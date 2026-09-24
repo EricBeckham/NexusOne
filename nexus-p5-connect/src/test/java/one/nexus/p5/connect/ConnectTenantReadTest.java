@@ -13,7 +13,6 @@ import one.nexus.isolation.api.AuthenticatedMembership;
 import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.RenderedSql;
-import one.nexus.isolation.audit.CollectingAuditSink;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.isolation.query.TableRegistry;
 import org.junit.jupiter.api.AfterEach;
