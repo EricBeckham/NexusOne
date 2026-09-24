@@ -6,6 +6,7 @@ import java.util.UUID;
 import one.nexus.p2.domain.Model;
 import one.nexus.p2.idp.IdpConfigurationService;
 import one.nexus.p2.idp.IdpSecretService;
+import one.nexus.p2.idp.IdpSyncService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,10 +23,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class IdpConfigurationController {
     private final IdpConfigurationService providers;
     private final IdpSecretService secrets;
+    private final IdpSyncService sync;
 
-    public IdpConfigurationController(IdpConfigurationService providers, IdpSecretService secrets) {
+    public IdpConfigurationController(
+            IdpConfigurationService providers, IdpSecretService secrets, IdpSyncService sync) {
         this.providers = providers;
         this.secrets = secrets;
+        this.sync = sync;
     }
 
     @GetMapping
@@ -78,6 +82,11 @@ public class IdpConfigurationController {
     @PostMapping("/{id}/test-connection")
     public IdpSecretService.ConnectionTestResult testConnection(@PathVariable UUID id) {
         return secrets.testConnection(id);
+    }
+
+    @PostMapping("/{id}/sync")
+    public IdpSyncService.SyncResult sync(@PathVariable UUID id) {
+        return sync.sync(id);
     }
 
     public record IdpConfigurationBody(
