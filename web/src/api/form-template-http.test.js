@@ -40,4 +40,13 @@ describe("platform form template HTTP", () => {
     expect(init.headers["X-Nexus-Demo-Actor-Id"]).toBeTruthy();
     expect(init.headers["X-Tenant-Id"]).toBeUndefined();
   });
+
+  it("posts publication without a client tenant", async () => {
+    await p1.publishFormTemplate("tpl 1");
+    const [path, init] = fetch.mock.calls[0];
+    expect(path).toBe("/api/v1/p1/platform/form-templates/tpl%201/publish");
+    expect(init.method).toBe("POST");
+    expect(init.headers["X-Nexus-Demo-Actor-Id"]).toBeTruthy();
+    expect(init.headers["X-Tenant-Id"]).toBeUndefined();
+  });
 });
