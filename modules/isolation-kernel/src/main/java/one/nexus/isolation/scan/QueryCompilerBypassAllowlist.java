@@ -95,13 +95,23 @@ public final class QueryCompilerBypassAllowlist {
                             "nexus-crypto-core/src/main/java/one/nexus/crypto/LocalThenEnvSecretPort.java")),
             new Module(
                     "nexus-bootstrap",
-                    "platform.runtime_meta health only; not tenant data",
-                    List.of("nexus-bootstrap/src/main/java/one/nexus/bootstrap/web/RuntimeMetaController.java")));
+                    "runtime health, platform read-only audit/status probes, and local/demo seeds; not tenant AST DML",
+                    List.of(
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/web/RuntimeMetaController.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/web/PlatformAuditSearchService.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/web/PlatformServiceStatusService.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P1DemoSeedConfiguration.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P2DemoSeedConfiguration.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P3DemoSeedConfiguration.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P4DemoSeedConfiguration.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P5DemoSeedConfiguration.java")));
 
     /**
      * Files that may mention tenant physical / Query AST table identifiers
-     * together with JDBC. Compiler internals, SchemaService DDL, and the
-     * product {@code GuardedLedgerStore} adapter.
+     * together with JDBC. Compiler internals, SchemaService DDL, the product
+     * {@code GuardedLedgerStore} adapter, and the local/demo P3 seed that
+     * stores a physical-table name in catalog metadata without creating or
+     * querying that table.
      */
     public static final List<String> TENANT_TABLE_SQL_PATHS = List.of(
             "modules/isolation-kernel/src/main/java/one/nexus/isolation/jdbc/GuardedJdbc.java",
@@ -111,7 +121,8 @@ public final class QueryCompilerBypassAllowlist {
             "modules/isolation-kernel/src/main/java/one/nexus/isolation/query/TenantInjector.java",
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/jdbc/GuardedLedgerStore.java",
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/schema/JdbcSchemaService.java",
-            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/schema/PostgresDialectRenderer.java");
+            "nexus-p3-studio/src/main/java/one/nexus/p3/infra/schema/PostgresDialectRenderer.java",
+            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P3DemoSeedConfiguration.java");
 
     /** Product trees scanned by the gate. {@code poc/} and {@code web/} stay out. */
     public static final List<String> PRODUCT_SOURCE_ROOTS = List.of(
