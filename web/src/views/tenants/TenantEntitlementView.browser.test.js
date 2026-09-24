@@ -65,6 +65,9 @@ describe("P1 entitlement page", () => {
     expect(wrapper.text()).toContain("3");
     expect(wrapper.text()).toContain("APPS");
     expect(wrapper.text()).toContain("REJECT");
+    expect(wrapper.get("[role='meter']").attributes("aria-valuenow")).toBe("33");
+    expect(wrapper.get("[data-testid='sku-readonly']").find("a").exists()).toBe(false);
+    expect(wrapper.findAll("a").some((link) => String(link.attributes("href")).includes("/p4"))).toBe(false);
     expect(p1.entitlement).toHaveBeenCalledWith("t-1");
   });
 

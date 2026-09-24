@@ -49,3 +49,10 @@ export function quotaRows(value) {
 export function show(value) {
   return value === null || value === undefined || value === "" ? "暂无" : String(value);
 }
+
+export function usagePercent(used, limit) {
+  if (!Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0) {
+    return null;
+  }
+  return Math.min(100, Math.round((used / limit) * 100));
+}

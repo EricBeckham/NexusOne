@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entitlementItems, entitlementSummary, quotaRows, show } from "./entitlementDisplay";
+import { entitlementItems, entitlementSummary, quotaRows, show, usagePercent } from "./entitlementDisplay";
 
 describe("entitlement display", () => {
   it("reads only fields the entitlement payload actually has", () => {
@@ -35,5 +35,13 @@ describe("entitlement display", () => {
   it("prints 暂无 for missing values and keeps a real zero", () => {
     expect(show(null)).toBe("暂无");
     expect(show(0)).toBe("0");
+  });
+
+  it("derives a progress percent only when both used and limit are real", () => {
+    expect(usagePercent(1, 3)).toBe(33);
+    expect(usagePercent(0, 5)).toBe(0);
+    expect(usagePercent(8, 3)).toBe(100);
+    expect(usagePercent(null, 3)).toBeNull();
+    expect(usagePercent(1, 0)).toBeNull();
   });
 });
