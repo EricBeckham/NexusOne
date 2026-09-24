@@ -54,6 +54,7 @@ export const p3 = {
   listProcessDrafts: (...args) => live.listProcessDrafts(...args),
   getProcessDraft: (...args) => live.getProcessDraft(...args),
   saveProcessDraft: (...args) => live.saveProcessDraft(...args),
+  validateProcessDraft: (...args) => live.validateProcessDraft(...args),
   listPublishCenter: (...args) => live.listPublishCenter(...args),
   getPublishCenter: (...args) => live.getPublishCenter(...args),
 };
