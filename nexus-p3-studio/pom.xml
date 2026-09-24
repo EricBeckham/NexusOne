@@ -31,6 +31,10 @@
     </dependency>
     <dependency>
       <groupId>one.nexus</groupId>
+      <artifactId>nexus-file-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
       <artifactId>nexus-permission-core</artifactId>
       <optional>true</optional>
     </dependency>
