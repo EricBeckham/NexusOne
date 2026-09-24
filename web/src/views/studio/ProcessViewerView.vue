@@ -16,12 +16,20 @@
           :disabled="dirty || saving || validating"
           @click="validateDraft"
         >{{ validating ? "校验中…" : "校验草稿" }}</button>
+        <button
+          v-if="canPublish"
+          type="button"
+          class="primary"
+          data-testid="process-publish"
+          :disabled="publishing"
+          @click="publishConfirm = true"
+        >发布流程</button>
         <button v-if="isEditing" type="button" class="primary" data-testid="process-save" :disabled="saving" @click="saveDraft">
           {{ saving ? "保存中…" : "保存草稿" }}
         </button>
       </template>
     </NxPageHeader>
-    <p class="nx-muted later-note">当前仅支持开始、用户任务、结束节点的基础编辑与结构校验；校验不部署或发布流程。</p>
+    <p class="nx-muted later-note">当前仅支持开始、用户任务、结束节点的基础编辑与结构校验；发布前必须保存并通过校验。</p>
     <NxErrorState
       v-if="error"
       title="流程定义没有加载"
@@ -117,6 +125,14 @@
         <p v-if="validationError" class="validation-error" role="alert" data-testid="process-validation-error">
           校验请求失败：{{ validationError.message || "请稍后重试" }}
         </p>
+        <section v-if="publication" class="publication-result" data-testid="process-publication">
+          <strong>已发布</strong>
+          <span v-if="publication.version">最近发布版本 v{{ publication.version }}</span>
+          <span v-else>服务端已确认发布</span>
+        </section>
+        <p v-if="publishError" class="publish-error" role="alert" data-testid="process-publish-error">
+          发布失败：{{ publishError.message || "服务端未能发布此流程" }}
+        </p>
         <h3>相关连线</h3>
         <ul v-if="selectedFlows.length">
           <li v-for="flow in selectedFlows" :key="flow.id || `${flow.source_ref}-${flow.target_ref}`">
@@ -126,6 +142,18 @@
         </ul>
         <p v-else class="nx-muted">暂无</p>
       </aside>
+    </div>
+    <div v-if="publishConfirm" class="confirm-backdrop" data-testid="process-publish-confirm-backdrop">
+      <section class="confirm-dialog nx-card" role="dialog" aria-modal="true" aria-labelledby="process-publish-confirm-title" data-testid="process-publish-confirm">
+        <h2 id="process-publish-confirm-title">确认发布流程？</h2>
+        <p>将当前已保存且校验通过的草稿发布为租户可用版本。正在运行的流程实例不会迁移。</p>
+        <div class="confirm-actions">
+          <button type="button" class="ghost" data-testid="process-publish-cancel" :disabled="publishing" @click="publishConfirm = false">取消</button>
+          <button type="button" class="primary" data-testid="process-publish-confirm-submit" :disabled="publishing" @click="publishDraft">
+            {{ publishing ? "发布中…" : "确认发布" }}
+          </button>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -148,11 +176,16 @@ const isPersistedDraft = ref(false);
 const dirty = ref(false);
 const saving = ref(false);
 const validating = ref(false);
+const publishing = ref(false);
+const publishConfirm = ref(false);
+const publication = ref(null);
+const publishError = ref(null);
 const validationResult = ref(null);
 const validationError = ref(null);
 const selectedId = ref("");
 const error = ref(null);
 const loading = ref(false);
+const canPublish = computed(() => isPersistedDraft.value && !dirty.value && validationResult.value?.valid === true && !publishing.value);
 
 const graph = computed(() => layoutDefinition(definition.value || {}));
 const selected = computed(() => definition.value?.nodes?.find((node) => node.id === selectedId.value) || null);
@@ -178,6 +211,9 @@ async function reload() {
       isPersistedDraft.value = false;
       dirty.value = false;
       validationResult.value = null;
+      publication.value = null;
+      publishError.value = null;
+      publishConfirm.value = false;
       selectedId.value = "";
       if (definitions.value[0]?.key) {
         await router.replace(`/p3/workflow/${encodeURIComponent(definitions.value[0].key)}`);
@@ -188,6 +224,12 @@ async function reload() {
     if (saved) {
       const draft = await p3.getProcessDraft(key);
       definition.value = { ...parseDraftXml(draft.bpmn_xml || draft.bpmnXml), key, name: draft.name, source: "draft" };
+      try {
+        publication.value = await p3.getProcessPublication(key);
+      } catch (publicationLookupError) {
+        if (publicationLookupError.status !== 404) throw publicationLookupError;
+        publication.value = null;
+      }
       isDraft.value = true;
       isEditing.value = true;
       isPersistedDraft.value = true;
@@ -200,6 +242,8 @@ async function reload() {
     dirty.value = false;
     validationResult.value = null;
     validationError.value = null;
+    publishError.value = null;
+    publishConfirm.value = false;
     const nodes = definition.value?.nodes || [];
     selectedId.value = nodes.some((node) => node.id === selectedId.value) ? selectedId.value : (nodes[0]?.id || "");
   } catch (err) {
@@ -207,6 +251,9 @@ async function reload() {
     definition.value = null;
     isPersistedDraft.value = false;
     dirty.value = false;
+    publication.value = null;
+    publishError.value = null;
+    publishConfirm.value = false;
   } finally {
     loading.value = false;
   }
@@ -227,6 +274,8 @@ function newDraft() {
   isPersistedDraft.value = false;
   dirty.value = true;
   validationResult.value = null;
+  publication.value = null;
+  publishError.value = null;
   selectedId.value = "approveTask";
 }
 
@@ -266,6 +315,7 @@ async function saveDraft() {
     dirty.value = false;
     validationResult.value = null;
     validationError.value = null;
+    publishError.value = null;
     const existing = definitions.value.find((item) => item.key === definition.value.key);
     if (existing) existing.name = definition.value.name;
     else definitions.value.unshift({ key: definition.value.key, name: definition.value.name, source: "draft" });
@@ -290,9 +340,25 @@ async function validateDraft() {
   }
 }
 
+async function publishDraft() {
+  if (!canPublish.value || !definition.value || publishing.value) return;
+  publishing.value = true;
+  publishError.value = null;
+  try {
+    publication.value = await p3.publishProcessDraft(definition.value.key);
+    publishConfirm.value = false;
+  } catch (err) {
+    publishError.value = err;
+  } finally {
+    publishing.value = false;
+  }
+}
+
 watch(definition, () => {
   validationResult.value = null;
   validationError.value = null;
+  publishError.value = null;
+  if (dirty.value) publishConfirm.value = false;
   if (isEditing.value) dirty.value = true;
 }, { deep: true, flush: "sync" });
 
@@ -314,7 +380,12 @@ watch(() => route.params.key, reload, { immediate: true });
 .validation-result { display: grid; gap: var(--nx-space-2); padding: var(--nx-space-2); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); }
 .validation-result[data-valid="true"] { border-color: var(--nx-success, #238636); }
 .validation-result ul { margin: 0; padding-left: 1.1em; display: grid; gap: var(--nx-space-1); }
-.validation-result li span, .validation-error { color: var(--nx-text-secondary); }
+.validation-result li span, .validation-error, .publish-error { color: var(--nx-text-secondary); }
+.publication-result { display: grid; gap: var(--nx-space-1); padding: var(--nx-space-2); border: 1px solid var(--nx-success, #238636); border-radius: var(--nx-radius-sm); }
+.confirm-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: var(--nx-space-4); background: rgb(0 0 0 / 48%); }
+.confirm-dialog { width: min(100%, 440px); display: grid; gap: var(--nx-space-3); }
+.confirm-dialog h2, .confirm-dialog p { margin: 0; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: var(--nx-space-2); }
 .list h2, .canvas h2, .props h2, .props h3 { margin: 0; font-size: var(--nx-font-size-md); }
 .item {
   display: grid;

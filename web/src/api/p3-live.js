@@ -574,6 +574,14 @@ export async function validateProcessDraft(key) {
   return api(`/api/v1/process/drafts/${encodeURIComponent(key)}/validate`, { method: "POST" });
 }
 
+export async function getProcessPublication(key) {
+  return api(`/api/v1/process/drafts/${encodeURIComponent(key)}/publication`);
+}
+
+export async function publishProcessDraft(key) {
+  return api(`/api/v1/process/drafts/${encodeURIComponent(key)}/publish`, { method: "POST" });
+}
+
 export async function listPublishCenter() {
   return asList(await api("/api/v1/p3/publish-center"));
 }

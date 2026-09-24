@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { persist, session } from "./session";
-import { validateProcessDraft } from "./p3-live";
+import { publishProcessDraft, validateProcessDraft } from "./p3-live";
 
 describe("M9 process draft validation HTTP contract", () => {
   beforeEach(() => {
@@ -25,5 +25,20 @@ describe("M9 process draft validation HTTP contract", () => {
     expect(init.headers["X-Nexus-Context-Id"]).toBe("m9-context");
     expect(init.headers["X-Tenant-Id"]).toBeUndefined();
     expect(result).toMatchObject({ valid: false, errors: [{ code: "START_REQUIRED" }] });
+  });
+
+  it("posts publication to the server and returns its real deployment version", async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ key: "approval", version: 4, deploymentId: "dep-4" }),
+    });
+    const result = await publishProcessDraft("approval one");
+    const [path, init] = fetch.mock.calls[0];
+    expect(path).toBe("/api/v1/process/drafts/approval%20one/publish");
+    expect(init.method).toBe("POST");
+    expect(init.headers["X-Nexus-Context-Id"]).toBe("m9-context");
+    expect(init.headers["X-Tenant-Id"]).toBeUndefined();
+    expect(result).toMatchObject({ key: "approval", version: 4, deploymentId: "dep-4" });
   });
 });
