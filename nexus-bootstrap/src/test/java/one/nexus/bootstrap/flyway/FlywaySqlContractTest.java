@@ -75,4 +75,13 @@ class FlywaySqlContractTest {
         assertTrue(sql.contains("fields_snapshot jsonb not null"));
         assertTrue(sql.contains("unique (template_id, version)"));
     }
+
+    @Test
+    void platformFormTemplateDraftsCanPersistValidationErrorsForK4() throws IOException {
+        Path migration = Path.of("src/main/resources/db/migration/V006__allow_invalid_form_template_drafts.sql");
+        assertTrue(Files.isRegularFile(migration), migration.toAbsolutePath().toString());
+        String sql = Files.readString(migration).toLowerCase(Locale.ROOT);
+        assertTrue(sql.contains("drop constraint form_template_field_key_unique"));
+        assertTrue(sql.contains("drop constraint form_template_select_options"));
+    }
 }
