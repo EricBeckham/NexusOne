@@ -3,6 +3,7 @@ package one.nexus.p2;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import one.nexus.audit.InMemoryHashChainedAuditPort;
 import one.nexus.crypto.CryptoSuite;
@@ -128,6 +130,89 @@ class IdpSecretServiceTest {
         assertEquals(Boolean.FALSE, saved.lastSyncOk());
         assertEquals(1, saved.syncFailCount());
         assertFalse(audits.chain().getFirst().event().details().toString().contains("bad-secret"));
+    }
+
+    @Test
+    void crossTenantCannotWriteRotateOrTestIdentityProviderSecret() {
+        Clock clock = Clock.systemUTC();
+        InMemoryIdentityRepository repository = new InMemoryIdentityRepository();
+        StubIdentityProvider idp = new StubIdentityProvider();
+        IdentityModule module = new IdentityModule(repository, idp, new KeycloakSmtpHook(idp, false),
+                clock, Duration.ofHours(1));
+        TenantAdminInitializer.Result tenantAAdmin = module.adminInitializer().initialize(
+                new TenantAdminInitializer.Command(TENANT, "IdP Admin A", "idp-negative-a@example.test", "idp-negative-a"));
+        UUID tenantB = UUID.fromString("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        TenantAdminInitializer.Result tenantBAdmin = module.adminInitializer().initialize(
+                new TenantAdminInitializer.Command(tenantB, "IdP Admin B", "idp-negative-b@example.test", "idp-negative-b"));
+        bind(tenantAAdmin);
+        Model.IdpConfiguration provider = new IdpConfigurationService(repository, clock, AdminMfaPolicy.forced())
+                .create(new IdpConfigurationService.Command("OIDC", "Corp SSO", "client-a",
+                        "https://id.example.test/realms/a", "DISABLED"));
+        var crypto = JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL);
+        var port = new LocalEncryptedSecretAdapter(crypto);
+        var audits = new InMemoryHashChainedAuditPort(crypto);
+        AtomicInteger connectionTests = new AtomicInteger();
+        IdpSecretService service = new IdpSecretService(repository, port, audits, clock,
+                AdminMfaPolicy.forced(), (configuration, secret) -> {
+                    connectionTests.incrementAndGet();
+                    return true;
+                });
+        service.write(provider.id(), "tenant-a-secret");
+        int originalVersion = port.find(IdpSecretService.secretName(provider)).orElseThrow().secretVersion();
+
+        bind(tenantBAdmin);
+        DomainException write = assertThrows(DomainException.class, () -> service.write(provider.id(), "attacker-write"));
+        DomainException rotate = assertThrows(DomainException.class, () -> service.rotate(provider.id(), "attacker-rotate"));
+        DomainException test = assertThrows(DomainException.class, () -> service.testConnection(provider.id()));
+
+        assertEquals("P2.IAM.NOT_FOUND", write.code());
+        assertEquals("P2.IAM.NOT_FOUND", rotate.code());
+        assertEquals("P2.IAM.NOT_FOUND", test.code());
+        assertEquals(originalVersion, port.find(IdpSecretService.secretName(provider)).orElseThrow().secretVersion());
+        assertEquals(0, connectionTests.get());
+        assertNull(repository.findIdpConfiguration(TENANT, provider.id()).orElseThrow().lastSyncAt());
+        assertEquals(0, repository.findIdpConfiguration(TENANT, provider.id()).orElseThrow().syncFailCount());
+    }
+
+    @Test
+    void nonAdministratorCannotWriteRotateOrTestIdentityProviderSecret() {
+        Clock clock = Clock.systemUTC();
+        InMemoryIdentityRepository repository = new InMemoryIdentityRepository();
+        StubIdentityProvider idp = new StubIdentityProvider();
+        IdentityModule module = new IdentityModule(repository, idp, new KeycloakSmtpHook(idp, false),
+                clock, Duration.ofHours(1));
+        TenantAdminInitializer.Result admin = module.adminInitializer().initialize(
+                new TenantAdminInitializer.Command(TENANT, "IdP Admin", "idp-negative-admin@example.test", "idp-negative-admin"));
+        bind(admin);
+        Model.IdpConfiguration provider = new IdpConfigurationService(repository, clock, AdminMfaPolicy.forced())
+                .create(new IdpConfigurationService.Command("OIDC", "Corp SSO", "client-a",
+                        "https://id.example.test/realms/a", "DISABLED"));
+        var crypto = JcaCryptoPort.ephemeral(CryptoSuite.INTERNATIONAL);
+        var port = new LocalEncryptedSecretAdapter(crypto);
+        var audits = new InMemoryHashChainedAuditPort(crypto);
+        AtomicInteger connectionTests = new AtomicInteger();
+        IdpSecretService service = new IdpSecretService(repository, port, audits, clock,
+                AdminMfaPolicy.forced(), (configuration, secret) -> {
+                    connectionTests.incrementAndGet();
+                    return true;
+                });
+        service.write(provider.id(), "admin-secret");
+        int originalVersion = port.find(IdpSecretService.secretName(provider)).orElseThrow().secretVersion();
+
+        Instant now = Instant.now();
+        TenantContextHolder.set(new TenantContext(UUID.randomUUID(), TENANT, UUID.randomUUID(), UUID.randomUUID(),
+                "non-admin", now, now.plusSeconds(3600)));
+        DomainException write = assertThrows(DomainException.class, () -> service.write(provider.id(), "attacker-write"));
+        DomainException rotate = assertThrows(DomainException.class, () -> service.rotate(provider.id(), "attacker-rotate"));
+        DomainException test = assertThrows(DomainException.class, () -> service.testConnection(provider.id()));
+
+        assertEquals("P2.IAM.FORBIDDEN", write.code());
+        assertEquals("P2.IAM.FORBIDDEN", rotate.code());
+        assertEquals("P2.IAM.FORBIDDEN", test.code());
+        assertEquals(originalVersion, port.find(IdpSecretService.secretName(provider)).orElseThrow().secretVersion());
+        assertEquals(0, connectionTests.get());
+        assertNull(repository.findIdpConfiguration(TENANT, provider.id()).orElseThrow().lastSyncAt());
+        assertEquals(0, repository.findIdpConfiguration(TENANT, provider.id()).orElseThrow().syncFailCount());
     }
 
     private static void bind(TenantAdminInitializer.Result admin) {
