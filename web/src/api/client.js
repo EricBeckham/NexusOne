@@ -159,6 +159,16 @@ export const p2 = {
 
 export const p4 = {
   catalog: () => api("/api/v1/p4/catalog", { auth: false }),
+  apps: () => api("/api/v1/p4/apps", { auth: false }),
+  app: (appId) => api(`/api/v1/p4/apps/${encodeURIComponent(appId)}`, { auth: false }),
+  versions: (appId) => api(`/api/v1/p4/apps/${encodeURIComponent(appId)}/versions`, { auth: false }),
+  version: (versionId) => api(`/api/v1/p4/versions/${encodeURIComponent(versionId)}`, { auth: false }),
+  skus: () => api("/api/v1/p4/skus", { auth: false }),
+  sku: (code) => api(`/api/v1/p4/skus/${encodeURIComponent(code)}`, { auth: false }),
+  subscriptions: () => api("/api/v1/p4/subscriptions"),
+  subscription: (id) => api(`/api/v1/p4/subscriptions/${encodeURIComponent(id)}`),
+  installations: () => api("/api/v1/p4/installations"),
+  installation: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}`),
   createApp: (body) => api("/api/v1/p4/apps", { method: "POST", body, platform: true, auth: false }),
   createVersion: (appId, body) => api(`/api/v1/p4/apps/${appId}/versions`, { method: "POST", body, platform: true, auth: false }),
   transition: (versionId, action) => api(`/api/v1/p4/versions/${versionId}/${action}`, { method: "POST", body: {}, platform: true, auth: false }),

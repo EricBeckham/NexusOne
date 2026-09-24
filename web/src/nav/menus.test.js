@@ -81,15 +81,11 @@ describe("product shell menus", () => {
     const p4Links = collectLinks(p4Items);
     const p5Links = collectLinks(p5Items);
 
-    expect(p4Links).toEqual(["/p4", "/p4/market"]);
+    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/packages", "/p4/skus", "/p4/subscriptions", "/p4/installations"]);
     expect(p5Links).toEqual(["/p5", "/p5/connect"]);
     expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
     expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
     expect(p4Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
-      "应用包（后续）",
-      "Product / SKU（后续）",
-      "订阅（后续）",
-      "安装升级（后续）",
       "商业权益（后续）",
       "运营分析（后续）",
     ]);
