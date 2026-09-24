@@ -1,0 +1,7 @@
+# 禁止连生产 / 默认关闭
+# 只有显式加入 spring profile `demo` 时才会加载本文件。
+# 本卡不插入业务行。V-SEED-P1…P5 必须先看到 nexus.demo.enabled=true 才允许写演示行。
+nexus:
+  demo:
+    enabled: true
+    environment: ${NEXUS_DEMO_ENVIRONMENT:local}
