@@ -181,10 +181,16 @@ export const p4 = {
 /** P5 thin self-use integration surface; no external developer portal or OAuth ecosystem. */
 export const p5 = {
   issueClient: (body) => api("/api/v1/p5/clients", { method: "POST", body, platform: true }),
+  clients: () => api("/api/v1/p5/clients"),
+  client: (id) => api(`/api/v1/p5/clients/${encodeURIComponent(id)}`),
   createWebhook: (body) => api("/api/v1/p5/webhooks", { method: "POST", body, platform: true }),
+  webhooks: () => api("/api/v1/p5/webhooks"),
+  webhook: (id) => api(`/api/v1/p5/webhooks/${encodeURIComponent(id)}`),
+  webhookDeliveries: (id) => api(`/api/v1/p5/webhooks/${encodeURIComponent(id)}/deliveries`),
   connectors: () => api("/api/v1/p5/connectors"),
   runConnector: (code) => api(`/api/v1/p5/connectors/${encodeURIComponent(code)}/run`, { method: "POST", body: {} }),
   connectorRuns: () => api("/api/v1/p5/connector-runs"),
+  callLogs: () => api("/api/v1/p5/call-logs"),
 };
 
 /** M0-05 / G2 permission engine. Role matrix lives here; no /api/v1/p2/roles. */

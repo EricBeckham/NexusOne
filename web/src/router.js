@@ -52,6 +52,12 @@ const routes = [
   { path: "/p4/subscriptions", name: "p4-subscriptions", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "订阅", product: "p4" } },
   { path: "/p4/installations", name: "p4-installations", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "安装升级", product: "p4" } },
   { path: "/p5/connect", name: "connect", component: () => import("./views/connect/ConnectView.vue"), meta: { title: "星联", product: "p5" } },
+  { path: "/p5/clients", name: "p5-clients", component: () => import("./views/connect/ClientsView.vue"), meta: { title: "API Client", product: "p5" } },
+  { path: "/p5/clients/:id", name: "p5-client", component: () => import("./views/connect/ClientsView.vue"), meta: { title: "API Client", product: "p5" } },
+  { path: "/p5/webhooks", name: "p5-webhooks", component: () => import("./views/connect/WebhooksView.vue"), meta: { title: "Webhook", product: "p5" } },
+  { path: "/p5/webhooks/:id", name: "p5-webhook", component: () => import("./views/connect/WebhooksView.vue"), meta: { title: "Webhook", product: "p5" } },
+  { path: "/p5/connectors", name: "p5-connectors", component: () => import("./views/connect/ConnectorsView.vue"), meta: { title: "Connector", product: "p5" } },
+  { path: "/p5/call-logs", name: "p5-call-logs", component: () => import("./views/connect/CallLogsView.vue"), meta: { title: "调用日志", product: "p5" } },
   ...developmentRoutes,
   { path: "/m", redirect: "/m/p3/home" },
   {

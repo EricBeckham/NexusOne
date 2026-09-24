@@ -11,7 +11,14 @@ import ConnectHomeView from "./ConnectHomeView.vue";
 async function mountHome() {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: "/p5", component: ConnectHomeView }, { path: "/p5/connect", component: { template: "<div />" } }],
+    routes: [
+      { path: "/p5", component: ConnectHomeView },
+      { path: "/p5/connect", component: { template: "<div />" } },
+      { path: "/p5/clients", component: { template: "<div />" } },
+      { path: "/p5/webhooks", component: { template: "<div />" } },
+      { path: "/p5/connectors", component: { template: "<div />" } },
+      { path: "/p5/call-logs", component: { template: "<div />" } },
+    ],
   });
   await router.push("/p5");
   await router.isReady();
@@ -42,6 +49,12 @@ describe("W4 Connect home", () => {
     expect(wrapper.text()).toContain("运行记录");
     expect(wrapper.text()).toContain("SUCCESS");
     expect(wrapper.get("a.primary").attributes("href")).toBe("/p5/connect");
+    expect(wrapper.findAll(".subpages a").map((link) => link.attributes("href"))).toEqual([
+      "/p5/clients",
+      "/p5/webhooks",
+      "/p5/connectors",
+      "/p5/call-logs",
+    ]);
     expect(wrapper.text()).toContain("自检");
     expect(wrapper.text()).toContain("停用连接器");
     expect(wrapper.text()).toContain("停用");
