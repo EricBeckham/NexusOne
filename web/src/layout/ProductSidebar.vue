@@ -1,40 +1,40 @@
 <template>
   <div class="side-head" :class="{ collapsed }">
-    <span class="mark">{{ product.mark }}</span>
+    <span class="mark"><NxIcon :name="product.icon" :size="20" /></span>
     <div v-if="!collapsed">
       <strong>{{ product.name }}</strong>
       <div class="en">{{ product.en }}</div>
     </div>
     <button type="button" class="fold" :aria-label="collapsed ? '展开' : '收起'" :title="collapsed ? '展开' : '收起'" @click="$emit('toggle')">
-      {{ collapsed ? "›" : "收起" }}
+      <NxIcon :name="collapsed ? 'chevronRight' : 'chevronLeft'" :size="18" />
     </button>
   </div>
   <nav class="menu" :aria-label="product.name">
     <template v-for="item in items" :key="item.id">
       <router-link v-if="destination(item)" :to="destination(item)" custom v-slot="{ href, navigate }">
         <a :href="href" :title="item.label" :class="{ current: isCurrent(destination(item)) }" @click="navigate">
-          <span class="icon">{{ item.label.slice(0, 1) }}</span>
+          <NxIcon class="icon" :name="iconFor(item)" :size="20" />
           <span v-if="!collapsed">{{ item.label }}</span>
         </a>
       </router-link>
       <div v-else-if="item.later" class="later" :title="item.label">
-        <span class="icon">{{ item.label.slice(0, 1) }}</span>
+        <NxIcon class="icon" :name="iconFor(item)" :size="20" />
         <span v-if="!collapsed">{{ item.label }}</span>
         <span v-if="!collapsed" class="tag">后续</span>
       </div>
       <div v-else-if="item.children?.length" class="group" :class="{ open: groupActive(item) }">
         <div class="group-label" :title="item.label">
-          <span class="icon">{{ item.label.slice(0, 1) }}</span>
+          <NxIcon class="icon" :name="iconFor(item)" :size="20" />
           <span v-if="!collapsed">{{ item.label }}</span>
         </div>
         <div v-if="!collapsed" class="children">
           <router-link v-for="child in item.children" :key="child.id" :to="child.to" custom v-slot="{ href, navigate }">
-            <a :href="href" :class="{ current: isCurrent(child.to) }" @click="navigate">{{ child.label }}</a>
+            <a :href="href" :class="{ current: isCurrent(child.to) }" @click="navigate"><NxIcon class="child-icon" :name="iconFor(child)" :size="16" />{{ child.label }}</a>
           </router-link>
         </div>
       </div>
       <div v-else class="later" :title="item.detailBase ? `${item.label}，从列表进入` : item.label">
-        <span class="icon">{{ item.label.slice(0, 1) }}</span>
+        <NxIcon class="icon" :name="iconFor(item)" :size="20" />
         <span v-if="!collapsed">{{ item.label }}</span>
       </div>
     </template>
@@ -43,6 +43,7 @@
 
 <script setup>
 import { useRoute } from "vue-router";
+import NxIcon from "../icons/NxIcon.vue";
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -102,6 +103,18 @@ function isCurrent(to) {
 function groupActive(item) {
   return (item.children || []).some((child) => isCurrent(child.to));
 }
+
+const iconsByItem = {
+  home: "home", tenants: "building", "tenant-create": "userPlus", "tenant-detail": "building",
+  relations: "network", quotas: "gauge", service: "server", audit: "shield",
+  persons: "users", org: "network", positions: "briefcase", permissions: "key", security: "shield",
+  totp: "phone", recovery: "key", email: "mail", ledgers: "table", forms: "file", todos: "check",
+  reports: "chart", dumps: "archive", exports: "download", notifications: "bell", "workflow-designer": "workflow",
+  "publish-center": "upload", market: "grid", packages: "package", skus: "tag", subscriptions: "card",
+  "install-upgrade": "arrowUp", entitlements: "gift", operations: "chart", connect: "plug", apis: "code",
+  "api-clients": "code", webhooks: "webhook", connectors: "network", credentials: "key", "call-logs": "clock",
+};
+function iconFor(item) { return iconsByItem[item.id] || "grid"; }
 </script>
 
 <style scoped>
@@ -125,6 +138,10 @@ function groupActive(item) {
   flex: none;
 }
 .fold {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   margin-left: auto;
   border: 0;
   background: none;
@@ -160,7 +177,8 @@ function groupActive(item) {
   font-size: 14px;
 }
 .tag { margin-left: auto; color: var(--nx-text-secondary); font-size: 12px; }
-.icon { width: 20px; text-align: center; flex: none; }
-.children a { padding-left: 38px; }
+.icon { width: 20px; text-align: center; flex: none; color: currentColor; }
+.children a { display: flex; align-items: center; gap: 8px; padding-left: 38px; }
+.child-icon { flex: none; color: var(--nx-text-secondary); }
 .group.open > .group-label { color: var(--nx-product); }
 </style>

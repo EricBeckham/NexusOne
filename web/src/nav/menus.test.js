@@ -9,6 +9,7 @@ describe("product shell menus", () => {
       expect(product.name).toBeTruthy();
       expect(product.en).toBeTruthy();
       expect(product.home).toBe(`/${product.id}`);
+      expect(product.icon).toBeTruthy();
     }
   });
 

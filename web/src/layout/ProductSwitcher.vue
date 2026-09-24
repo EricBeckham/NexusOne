@@ -6,9 +6,10 @@
       :key="item.id"
       :to="item.home"
       :title="item.name"
+      :data-product="item.id"
       :class="{ current: item.id === currentId }"
     >
-      <span class="mark">{{ item.mark }}</span>
+      <span class="mark"><NxIcon :name="item.icon" :size="18" /></span>
       <span v-if="!collapsed">{{ item.name }}</span>
     </router-link>
   </nav>
@@ -16,6 +17,7 @@
 
 <script setup>
 import { PRODUCTS } from "../nav/products";
+import NxIcon from "../icons/NxIcon.vue";
 
 defineProps({
   currentId: { type: String, default: "" },
@@ -45,14 +47,13 @@ defineProps({
   font-weight: 600;
 }
 .mark {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--nx-radius-sm);
   display: grid;
   place-items: center;
-  background: var(--nx-primary-light);
+  background: var(--nx-product-light);
   color: var(--nx-product);
-  font-size: 12px;
   flex: none;
 }
 </style>
