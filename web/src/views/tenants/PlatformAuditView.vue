@@ -1,5 +1,15 @@
 <template>
-  <NxPageHeader eyebrow="星域 / 平台治理" title="平台审计中心" description="检索平台审计事件。结果为只读摘要，不包含事件详情载荷；哈希链验证仍请使用星构审计页。" />
+  <NxPageHeader eyebrow="星域 / 平台治理" title="平台审计中心" description="检索平台审计事件。结果为只读摘要，不包含事件详情载荷。哈希链校验只返回是否完整、校验条数和失败原因。" />
+
+  <NxPanelCard title="哈希链" eyebrow="平台校验" description="校验当前平台审计链，不展示事件载荷。">
+    <button class="primary" type="button" data-testid="verify-chain" :disabled="verifying" @click="verifyChain">{{ verifying ? "校验中…" : "校验哈希链" }}</button>
+    <p v-if="chainError" class="nx-error" role="alert">{{ chainError }}</p>
+    <dl v-else-if="chainResult" class="chain-result">
+      <div><dt>结果</dt><dd>{{ chainResult.intact ? "链完整" : "链已破坏" }}</dd></div>
+      <div><dt>校验条数</dt><dd>{{ chainResult.checked == null ? "暂无" : chainResult.checked }}</dd></div>
+      <div><dt>失败原因</dt><dd>{{ chainResult.failure || "暂无" }}</dd></div>
+    </dl>
+  </NxPanelCard>
 
   <NxPanelCard title="筛选条件" eyebrow="Filter">
     <form class="filters" @submit.prevent="applyFilters">
@@ -92,6 +102,9 @@ const error = ref("");
 const traceId = ref("");
 const loading = ref(false);
 const selected = ref(null);
+const verifying = ref(false);
+const chainResult = ref(null);
+const chainError = ref("");
 const pageCount = computed(() => Math.max(1, Math.ceil((result.value?.total || 0) / PAGE_SIZE)));
 
 function queryValue(value) {
@@ -143,6 +156,25 @@ function apiFilters() {
   return {
     ...urlQuery(currentPage()),
   };
+}
+
+async function verifyChain() {
+  verifying.value = true;
+  chainError.value = "";
+  try {
+    const response = await audit.verifyChain();
+    const checked = Number(response?.checked);
+    chainResult.value = {
+      intact: response?.intact === true,
+      checked: Number.isFinite(checked) ? checked : null,
+      failure: typeof response?.failure === "string" ? response.failure : "",
+    };
+  } catch (err) {
+    chainResult.value = null;
+    chainError.value = err?.message || "哈希链校验失败";
+  } finally {
+    verifying.value = false;
+  }
 }
 
 async function load() {
@@ -228,6 +260,9 @@ watch(() => route.fullPath, () => {
 button:disabled { opacity: .55; cursor: not-allowed; }
 .table-wrap { overflow-x: auto; }
 .audit-table { min-width: 1000px; }
+.chain-result { display: grid; gap: 8px; margin: 12px 0 0; }
+.chain-result div { display: grid; grid-template-columns: 96px 1fr; gap: 8px; }
+.chain-result dd { margin: 0; overflow-wrap: anywhere; }
 .trace-cell { max-width: 180px; overflow-wrap: anywhere; }
 .result-pill { display: inline-flex; padding: 3px 8px; border-radius: 999px; color: #58677c; background: #edf1f6; font-size: 12px; white-space: nowrap; }
 .result-pill[data-result="ACCEPTED"] { color: #18794e; background: #e7f7ee; }

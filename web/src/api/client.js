@@ -259,4 +259,5 @@ export const audit = {
     const suffix = query.toString() ? `?${query}` : "";
     return api(`/api/v1/audit/events${suffix}`, { platform: true, auth: false });
   },
+  verifyChain: () => api("/api/v1/audit/chain/verify", { method: "POST", platform: true, auth: false }),
 };
