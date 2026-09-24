@@ -32,4 +32,18 @@ class ApiCatalogSchemaContractTest {
         assertTrue(table.contains("unique (http_method, path, version)"),
                 "an API version must be unique per method and path");
     }
+
+    @Test
+    void tenantScopeIsOptionalAndStillHasNoSecret() throws Exception {
+        String sql;
+        try (var in = Objects.requireNonNull(
+                getClass().getResourceAsStream("/db/migration/V703__p5_api_catalog_tenant.sql"),
+                "tenant scope migration not on classpath")) {
+            sql = new String(in.readAllBytes(), StandardCharsets.UTF_8).toLowerCase();
+        }
+        assertTrue(sql.contains("add column tenant_id uuid null"), "tenant ownership must stay optional");
+        for (String forbidden : new String[]{"secret", "credential", "password", "api_key", "token"}) {
+            assertFalse(sql.contains(forbidden), "tenant scope migration must not add " + forbidden);
+        }
+    }
 }
