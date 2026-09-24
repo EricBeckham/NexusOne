@@ -195,6 +195,8 @@ export const p5 = {
   runConnector: (code) => api(`/api/v1/p5/connectors/${encodeURIComponent(code)}/run`, { method: "POST", body: {} }),
   connectorRuns: () => api("/api/v1/p5/connector-runs"),
   callLogs: () => api("/api/v1/p5/call-logs"),
+  apiCatalog: () => api("/api/v1/p5/api-catalog"),
+  apiCatalogEntry: (id) => api(`/api/v1/p5/api-catalog/${encodeURIComponent(id)}`),
 };
 
 /** M0-05 / G2 permission engine. Role matrix lives here; no /api/v1/p2/roles. */
