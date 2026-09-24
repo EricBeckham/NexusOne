@@ -55,4 +55,10 @@ public class FormTemplateController {
         isolation.requirePlatformContext("form-template.validate", PlatformDuty.SYSTEM_ADMIN);
         return templates.validateDraft(id);
     }
+
+    @PostMapping("/{id}/publish")
+    public FormTemplateDraftService.PublishResult publish(@PathVariable UUID id) {
+        isolation.requirePlatformContext("form-template.publish", PlatformDuty.SYSTEM_ADMIN);
+        return templates.publishDraft(id);
+    }
 }
