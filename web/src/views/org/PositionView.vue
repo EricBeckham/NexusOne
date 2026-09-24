@@ -1,9 +1,10 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>岗位与任职</h1>
-      <p>Position ≠ Role。Role / DataScope 要等 M0-05。这里只接 M0-04 岗位与任职 API。</p>
-    </div>
+    <NxPageHeader
+      eyebrow="星权"
+      title="岗位任职"
+      description="Position ≠ Role。Role / DataScope 要等 M0-05。这里只接 M0-04 岗位与任职 API。"
+    />
     <NxTodo body="角色授权、Permission Matrix、PolicySnapshot 页面已放在「权限」菜单，目前是明确 TODO，不调用不存在的权限引擎。" />
     <div class="nx-grid" style="grid-template-columns: 1fr 1fr;">
       <form class="nx-card" @submit.prevent="createPos">
@@ -38,6 +39,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import NxTodo from "../../components/NxTodo.vue";
 import { p2 } from "../../api/client";
 

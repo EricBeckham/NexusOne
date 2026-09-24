@@ -1,9 +1,10 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>用户目录</h1>
-      <p>列表来自当前服务端签发的租户上下文。切换租户后本表必须换成另一套 Person 行。</p>
-    </div>
+    <NxPageHeader
+      eyebrow="星权"
+      title="用户"
+      description="列表来自当前服务端签发的租户上下文。切换租户后本表必须换成另一套 Person 行。"
+    />
     <p v-if="!session.contextId" class="nx-error">没有 context。请先登录并完成租户切换。</p>
     <form class="nx-card" style="margin-bottom:16px;" @submit.prevent="create">
       <div class="nx-row">
@@ -33,6 +34,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p2 } from "../../api/client";
 import { ensureContext, session } from "../../api/session";

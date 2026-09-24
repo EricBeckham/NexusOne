@@ -20,6 +20,28 @@ describe("product shell menus", () => {
     }
   });
 
+  it("keeps P1 and P2 on their own menus", () => {
+    const p1 = navFor("p1").map((item) => item.label);
+    expect(p1).toEqual(["首页", "租户列表", "新建租户", "租户详情", "租户关系", "配额", "平台服务态", "平台审计"]);
+    expect(navFor("p1").filter((item) => item.later).map((item) => item.label)).toEqual([
+      "租户关系",
+      "配额",
+      "平台服务态",
+      "平台审计",
+    ]);
+    const p2Labels = navFor("p2").map((item) => item.label);
+    expect(p2Labels).toEqual(["首页", "用户", "组织架构", "岗位任职", "权限", "身份安全"]);
+    const p2Links = collectLinks(navFor("p2"));
+    expect(p2Links).toEqual(expect.arrayContaining([
+      "/p2/persons",
+      "/p2/org",
+      "/p2/positions",
+      "/p2/permissions",
+    ]));
+    expect(collectLinks(navFor("p1")).some((link) => link.startsWith("/p2"))).toBe(false);
+    expect(p2Links.some((link) => link.startsWith("/p1"))).toBe(false);
+  });
+
   it("keeps existing notification, audit, and MFA links", () => {
     const links = collectLinks([...navFor("p2"), ...navFor("p3")]);
     expect(links).toEqual(expect.arrayContaining([

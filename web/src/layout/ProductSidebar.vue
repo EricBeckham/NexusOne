@@ -11,13 +11,18 @@
   </div>
   <nav class="menu" :aria-label="product.name">
     <template v-for="item in items" :key="item.id">
-      <router-link v-if="item.to" :to="item.to" custom v-slot="{ href, navigate }">
-        <a :href="href" :title="item.label" :class="{ current: isCurrent(item.to) }" @click="navigate">
+      <router-link v-if="destination(item)" :to="destination(item)" custom v-slot="{ href, navigate }">
+        <a :href="href" :title="item.label" :class="{ current: isCurrent(destination(item)) }" @click="navigate">
           <span class="icon">{{ item.label.slice(0, 1) }}</span>
           <span v-if="!collapsed">{{ item.label }}</span>
         </a>
       </router-link>
-      <div v-else class="group" :class="{ open: groupActive(item) }">
+      <div v-else-if="item.later" class="later" :title="item.label">
+        <span class="icon">{{ item.label.slice(0, 1) }}</span>
+        <span v-if="!collapsed">{{ item.label }}</span>
+        <span v-if="!collapsed" class="tag">后续</span>
+      </div>
+      <div v-else-if="item.children?.length" class="group" :class="{ open: groupActive(item) }">
         <div class="group-label" :title="item.label">
           <span class="icon">{{ item.label.slice(0, 1) }}</span>
           <span v-if="!collapsed">{{ item.label }}</span>
@@ -27,6 +32,10 @@
             <a :href="href" :class="{ current: isCurrent(child.to) }" @click="navigate">{{ child.label }}</a>
           </router-link>
         </div>
+      </div>
+      <div v-else class="later" :title="`${item.label}，从列表进入`">
+        <span class="icon">{{ item.label.slice(0, 1) }}</span>
+        <span v-if="!collapsed">{{ item.label }}</span>
       </div>
     </template>
   </nav>
@@ -44,11 +53,23 @@ defineEmits(["toggle"]);
 
 const route = useRoute();
 
+function destination(item) {
+  if (item.to) {
+    return item.to;
+  }
+  const id = route.params.id;
+  if (item.detailBase && route.name === "tenant-detail" && id && id !== "new") {
+    return `${item.detailBase}/${id}`;
+  }
+  return "";
+}
+
 function menuLinks() {
   const links = [];
   for (const item of props.items) {
-    if (item.to) {
-      links.push(item.to);
+    const to = destination(item);
+    if (to) {
+      links.push(to);
     }
     for (const child of item.children || []) {
       if (child.to) {
@@ -125,6 +146,16 @@ function groupActive(item) {
 }
 .side-head.collapsed { gap: 4px; }
 .side-head.collapsed .fold { margin-left: 0; padding: 0; }
+.later {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 10px;
+  color: var(--nx-text-disabled);
+  font-size: 14px;
+}
+.tag { margin-left: auto; color: var(--nx-text-secondary); font-size: 12px; }
 .icon { width: 20px; text-align: center; flex: none; }
 .children a { padding-left: 38px; }
 .group.open > .group-label { color: var(--nx-product); }

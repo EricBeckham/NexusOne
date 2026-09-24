@@ -1,16 +1,12 @@
 <template>
   <div v-if="tenant">
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>{{ tenant.name }}</h1>
-        <p class="nx-code">{{ tenant.code }} · {{ tenant.id }}</p>
-      </div>
-      <div class="nx-row">
+    <NxPageHeader eyebrow="星域" :title="tenant.name" :description="`${tenant.code} · ${tenant.id}`">
+      <template #actions>
         <NxStatus :label="tenant.status" :tone="tenant.status === 'ENABLED' ? 'success' : 'warning'" />
         <button v-if="tenant.status === 'ENABLED'" class="danger" @click="stop">停用</button>
         <button v-else class="primary" @click="start">启用</button>
-      </div>
-    </div>
+      </template>
+    </NxPageHeader>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <div class="nx-grid" style="grid-template-columns: 2fr 1fr;">
       <div class="nx-card">
@@ -56,6 +52,7 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p1 } from "../../api/client";
 
