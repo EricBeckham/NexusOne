@@ -20,24 +20,24 @@
 - 一个任务一个 PR，只含本任务改动；未跟踪的历史日志文件不要带进去。
 - 页面上不编造数字；没有真实数据时显示「暂无」。
 
-## 现状摘要（main@00c468b）
+## 当前交付摘要（W0–W4 已合并；main@a56e800）
 
-- 只有一个 M0-12 验收壳：`web/src/layout/AppShell.vue` 一条侧栏装下五个产品的全部菜单，品牌写着「M0-12 壳」。
-- 顶栏只有面包屑、平台操作开关、租户切换和会话；缺全局搜索、环境标识、通知、完整用户菜单。
-- 路由已按 `/p1`…`/p5` 和 `meta.product` 分好，但没有按产品切换的框架，也没有各产品首页；`/` 是跨产品验收工作台（`HomeView`）。
-- `web/src/styles/tokens.css` 已有；规范第 45 节的公共组件基本未做（现仅 `NxStatus`、`NxTodo`、`NxSourceBanner`）。
-- P4（`/p4/market`）、P5（`/p5/connect`）只有薄页。
+- `AppShell.vue` 使用共用顶栏、按产品配置的侧栏和产品切换器；产品选择页为 `/`。
+- `/p1`…`/p5` 各自展示星域、星权、星构、星市、星联首页，并由 `meta.product` 选择对应菜单和产品主题。
+- W1 公共组件已合入：`NxPageHeader`、`NxEmpty`、`NxErrorState`、`NxNoPermission`、`NxStatCard`、`NxStatusTag`；开发组件示例仍只在 DEV 路由开放。
+- P1–P5 桌面深链保留；星市首页为 `/p4`、应用目录为 `/p4/market`；星联首页为 `/p5`、接入总览为 `/p5/connect`。
+- H5 (`/m/*`、`web/src/mobile/**`) 与本轮桌面五产品壳分离，明确延后。
 
 ## 任务总览
 
 | 编号 | 任务 | 分支 | 前置 | 建议执行方 | 负责人 | 状态 |
 |---|---|---|---|---|---|---|
-| W0 | 界面框架（共用顶栏 + 产品侧栏 + 产品切换） | `ui/w0-shell` | 无 | 本地 Codex | Cursor | 进行中 |
-| W1 | 公共组件最小集 | `ui/w1-components` | 无 | Cursor | Codex | 已领取 |
-| W2 | P1 星域 + P2 星权挂进侧栏 | `ui/w2-p1-p2` | W0（最好也有 W1） | 空闲者 | Cursor | 进行中 |
-| W3 | P3 星构挂进侧栏 | `ui/w3-p3` | W0 | 空闲者 | Codex | 已领取 |
-| W4 | P4 星市 + P5 星联 | `ui/w4-p4-p5` | W0 | 空闲者 | Codex | 已领取 |
-| W5 | 收尾（文档、截图、清单） | `ui/w5-cleanup` | W2、W3、W4 | 最后收尾者 | | 待领取 |
+| W0 | 界面框架（共用顶栏 + 产品侧栏 + 产品切换） | `ui/w0-shell` | 无 | 本地 Codex | Cursor | 已完成（PR #282） |
+| W1 | 公共组件最小集 | `ui/w1-components` | 无 | Cursor | Codex | 已完成（PR #283） |
+| W2 | P1 星域 + P2 星权挂进侧栏 | `ui/w2-p1-p2` | W0（最好也有 W1） | 空闲者 | Cursor | 已完成（PR #285） |
+| W3 | P3 星构挂进侧栏 | `ui/w3-p3` | W0 | 空闲者 | Codex | 已完成（PR #284） |
+| W4 | P4 星市 + P5 星联 | `ui/w4-p4-p5` | W0 | 空闲者 | Codex | 已完成（PR #286） |
+| W5 | 收尾（文档、截图、清单） | `ui/w5-cleanup` | W2、W3、W4 | 最后收尾者 | Codex | 已完成 |
 
 顺序：W0 与 W1 可同时开；W0 合并后 W2、W3、W4 并行；最后 W5。
 
@@ -56,7 +56,7 @@
 - 新增 `/p1`…`/p5` 五个首页占位，写清是哪个产品。
 - 新增产品选择页，`/` 打开它。
 - 产品颜色由 `data-product` + `tokens.css` 变量驱动。
-- 去掉「M0-12 壳」字样，改为显示当前产品名。
+- 移除旧版 M0-12 品牌文字，当前品牌显示产品名。
 
 验收：
 
@@ -120,11 +120,19 @@
 要做：
 
 - 更新 `web/README` 和路由表。
-- 全仓再搜一遍「M0-12 壳」，确认没有残留。
+- 全仓再搜旧版统一侧栏品牌文案，确认产品界面没有残留。
 - 在 `docs/planning/快进任务人员安排清单_V0.1.md` 加上本波任务和负责人，写明 H5 延后。
 - 五个产品首页各截一张图附在 PR 里。
 
 验收：文档与实际界面一致；截图在 PR 里。
+
+截图（本地预览；缺少业务后端的统计按页面真实的空态/错误态展示）：
+
+- 星域：[p1-xingyu.png](screenshots/w5/p1-xingyu.png)
+- 星权：[p2-xingquan.png](screenshots/w5/p2-xingquan.png)
+- 星构：[p3-xinggou.png](screenshots/w5/p3-xinggou.png)
+- 星市：[p4-xingshi.png](screenshots/w5/p4-xingshi.png)
+- 星联：[p5-xinglian.png](screenshots/w5/p5-xinglian.png)
 
 ## 缺口清单（本波只占位，不实现）
 
@@ -137,6 +145,7 @@
 
 ## 修订记录
 
+- 2026-09-24：Codex 完成 W5（分支 `ui/w5-cleanup`，基线 `origin/main@a56e800`）；更新产品路由文档与领取清单，补五张桌面首页图；H5（`/m/*`、`web/src/mobile/**`）本波延后。
 - 2026-09-24：Codex 从 `origin/main@c5a5772` 领取 W4，分支 `ui/w4-p4-p5`，工作树 `C:\Users\Administrator\.codex\worktrees\w4-p4-p5\NexusOne`。
 - 2026-09-24：Codex 从 `origin/main@83bc784` 领取 W3，分支 `ui/w3-p3`，工作树 `C:\Users\Administrator\.codex\worktrees\w3-p3\NexusOne`。
 - 2026-09-24：Codex 从 `origin/main@7e12898` 领取 W1，分支 `ui/w1-components`，工作树 `C:\Users\Administrator\.codex\worktrees\w1-components\NexusOne`。
