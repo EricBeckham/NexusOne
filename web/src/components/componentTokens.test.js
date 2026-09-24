@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 
 const components = [
   "NxPageHeader.vue",
+  "NxKpiRow.vue",
+  "NxPanelCard.vue",
+  "NxChartPlaceholder.vue",
   "NxEmpty.vue",
   "NxErrorState.vue",
   "NxNoPermission.vue",
