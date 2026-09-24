@@ -69,6 +69,29 @@
           <span>差异化策略 <strong>{{ matrix.differentiatedPolicy ? "是" : "否" }}</strong></span>
         </div>
         <p v-if="matrix?.completenessNote" class="completeness-note">{{ matrix.completenessNote }}</p>
+        <div v-if="matrix" class="matrix-browser" data-testid="resource-action-matrix">
+          <label class="matrix-search"><span>筛选资源、操作或主体</span><input v-model="matrixSearch" type="search" placeholder="输入接口返回的名称" data-testid="matrix-search" /></label>
+          <p class="nx-muted matrix-note">交叉格仅展示当前策略快照返回的授权；空格表示接口没有返回匹配的授权单元。</p>
+          <div v-if="!matrixResources.length" class="matrix-empty" role="status">暂无匹配的资源 / 操作授权</div>
+          <div v-else class="table-scroll matrix-scroll">
+            <table class="nx-table matrix-table" data-testid="resource-action-table">
+              <thead><tr><th class="resource-heading">Resource</th><th v-for="action in matrixActions" :key="action">{{ action }}</th></tr></thead>
+              <tbody><tr v-for="resource in matrixResources" :key="resource">
+                <th scope="row" class="resource-name">{{ resource }}</th>
+                <td v-for="action in matrixActions" :key="`${resource}:${action}`" :data-testid="`matrix-cell-${resource}-${action}`">
+                  <ul v-if="matrixGrants(resource, action).length" class="matrix-grants">
+                    <li v-for="grant in matrixGrants(resource, action)" :key="grant.id" class="matrix-grant">
+                      <strong class="effect" :class="grant.effect === 'DENY' ? 'deny' : 'grant'">{{ grant.effect || '暂无效果' }}</strong>
+                      <span class="principal">{{ grant.principalType || '暂无主体类型' }} · {{ grant.principalId || '暂无主体 ID' }}</span>
+                      <small>范围：{{ grant.scopeKind || '暂无' }}</small>
+                    </li>
+                  </ul>
+                  <span v-else class="matrix-unset">—</span>
+                </td>
+              </tr></tbody>
+            </table>
+          </div>
+        </div>
         <NxEmpty v-if="!loading && !matrix" title="暂无权限矩阵" description="服务端尚未返回当前租户的策略矩阵。" />
       </section>
 
@@ -295,6 +318,7 @@ const matrix = ref(null);
 const roles = ref([]);
 const assignments = ref([]);
 const grants = ref([]);
+const matrixSearch = ref("");
 const roleForm = reactive({ code: "", name: "" });
 const assignmentForm = reactive({ principalType: "", principalId: "", roleId: "" });
 const grantForm = reactive({
@@ -328,6 +352,19 @@ const fieldRows = computed(() => grants.value.flatMap((grant) =>
     rule,
   })),
 ));
+
+const matrixCells = computed(() => Array.isArray(matrix.value?.cells) ? matrix.value.cells : grants.value);
+const matchingMatrixCells = computed(() => {
+  const term = matrixSearch.value.trim().toLocaleLowerCase();
+  if (!term) return matrixCells.value;
+  return matrixCells.value.filter((cell) => [cell.resource, cell.action, cell.principalType, cell.principalId]
+    .some((value) => String(value || "").toLocaleLowerCase().includes(term)));
+});
+const matrixResources = computed(() => [...new Set(matchingMatrixCells.value.map((cell) => cell.resource).filter(Boolean))].sort());
+const matrixActions = computed(() => [...new Set(matchingMatrixCells.value.map((cell) => cell.action).filter(Boolean))].sort());
+function matrixGrants(resource, action) {
+  return matchingMatrixCells.value.filter((cell) => cell.resource === resource && cell.action === action);
+}
 
 function newFieldRule() {
   return { name: "", visible: true, editable: false, mask: "NONE", secondAuthorization: false };
@@ -498,6 +535,20 @@ watch(() => session.contextId, load);
 .matrix-summary span { color: var(--nx-text-secondary); }
 .matrix-summary strong { color: var(--nx-text-primary); }
 .completeness-note { margin: 0; color: var(--nx-text-secondary); }
+.matrix-browser { display: grid; gap: var(--nx-space-3); }
+.matrix-search { display: grid; gap: var(--nx-space-1); max-width: 420px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); }
+.matrix-search input { min-height: 38px; padding: var(--nx-space-2) var(--nx-space-3); color: var(--nx-text-primary); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 6px; }
+.matrix-note { margin: 0; }
+.matrix-scroll { max-height: 560px; border: 1px solid var(--nx-divider); border-radius: var(--nx-radius-sm); }
+.matrix-table { min-width: 680px; border-collapse: separate; border-spacing: 0; }
+.matrix-table th,.matrix-table td { min-width: 180px; padding: var(--nx-space-3); text-align: left; vertical-align: top; border-right: 1px solid var(--nx-divider); border-bottom: 1px solid var(--nx-divider); }
+.matrix-table thead th { position: sticky; top: 0; z-index: 1; color: var(--nx-text-secondary); background: var(--nx-bg-sidebar); }
+.matrix-table .resource-heading,.matrix-table .resource-name { position: sticky; left: 0; z-index: 2; min-width: 160px; color: var(--nx-text-primary); background: var(--nx-surface); font-weight: 600; }
+.matrix-table .resource-heading { z-index: 3; background: var(--nx-bg-sidebar); }
+.matrix-grants { display: grid; gap: var(--nx-space-2); margin: 0; padding: 0; list-style: none; }
+.matrix-grant { display: grid; justify-items: start; gap: var(--nx-space-1); padding: var(--nx-space-2); background: var(--nx-bg-sidebar); border-radius: var(--nx-radius-sm); }
+.effect { padding: 2px 6px; border-radius: 999px; font-size: var(--nx-font-size-xs); }.effect.grant { color: var(--nx-success); background: color-mix(in srgb, var(--nx-success) 12%, transparent); }.effect.deny { color: var(--nx-danger); background: color-mix(in srgb, var(--nx-danger) 12%, transparent); }
+.principal { max-width: 240px; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--nx-font-size-xs); }.matrix-grant small,.matrix-unset,.matrix-empty { color: var(--nx-text-secondary); }.matrix-unset { display: inline-block; padding: var(--nx-space-1); }.matrix-empty { padding: var(--nx-space-5); text-align: center; }
 .field-rules { display: grid; grid-column: 1 / -1; gap: var(--nx-space-3); }
 .field-rule { display: grid; grid-template-columns: minmax(150px, 2fr) minmax(120px, 1fr) repeat(3, auto) auto; align-items: end; gap: var(--nx-space-3); padding-bottom: var(--nx-space-3); border-bottom: 1px solid var(--nx-border); }
 .check-field { display: flex; align-items: center; gap: var(--nx-space-1); min-height: 38px; white-space: nowrap; }

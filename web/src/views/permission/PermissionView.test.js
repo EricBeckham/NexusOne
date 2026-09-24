@@ -74,7 +74,9 @@ describe("P2 permissions management", () => {
     mocks.matrix.mockResolvedValue({
       roles: [role],
       assignments: [assignment],
-      cells: [cell],
+      cells: [cell, { ...cell, id: "deny-cell-from-api", effect: "DENY", principalId: "other-role-from-api" }, {
+        ...cell, id: "other-resource-cell", resource: "other-resource-from-api", action: "delete-from-api",
+      }],
       differentiatedPolicy: true,
       completenessNote: "Completeness from API",
     });
@@ -97,6 +99,22 @@ describe("P2 permissions management", () => {
     expect(mocks.roles).toHaveBeenCalledOnce();
     expect(mocks.assignments).toHaveBeenCalledOnce();
     expect(wrapper.get('[data-testid="permission-tab-datascope"]').attributes("href")).toBe("/p2/permissions/datascope");
+  });
+
+  it("renders returned grants as a searchable Resource × Action matrix without inventing codes", async () => {
+    const wrapper = await mountPermission("/p2/permissions/matrix");
+    const table = wrapper.get('[data-testid="resource-action-table"]');
+    expect(table.text()).toContain("resource-from-api");
+    expect(table.text()).toContain("action-from-api");
+    expect(table.text()).toContain("other-resource-from-api");
+    expect(table.text()).toContain("delete-from-api");
+    const grantCell = wrapper.get('[data-testid="matrix-cell-resource-from-api-action-from-api"]');
+    expect(grantCell.text()).toContain("GRANT");
+    expect(grantCell.text()).toContain("DENY");
+    expect(wrapper.get('[data-testid="matrix-cell-resource-from-api-delete-from-api"]').text()).toContain("—");
+    await wrapper.get('[data-testid="matrix-search"]').setValue("other-role-from-api");
+    expect(wrapper.get('[data-testid="resource-action-table"]').text()).toContain("other-role-from-api");
+    expect(wrapper.get('[data-testid="resource-action-table"]').text()).not.toContain("GRANT");
   });
 
   it("requires a server-issued TenantContext and does not load tenant policy without one", async () => {
