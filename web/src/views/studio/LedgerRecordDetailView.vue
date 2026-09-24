@@ -1,12 +1,10 @@
 <template>
   <div v-if="ledger && record">
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>{{ ledger.name }} · 记录详情</h1>
-        <p class="nx-code">{{ record.id }}</p>
-      </div>
-      <router-link class="ghost" :to="`/p3/ledgers/${ledger.id}`">返回记录列表</router-link>
-    </div>
+    <NxPageHeader :title="`${ledger.name} · 记录详情`" :description="record.id">
+      <template #actions>
+        <router-link class="ghost" :to="`/p3/ledgers/${ledger.id}`">返回记录列表</router-link>
+      </template>
+    </NxPageHeader>
     <NxSourceBanner body="GET /api/v1/p3/ledgers/{ledgerId}/records/{recordId}；服务端按 TenantContext、PermissionEngine 与 DataScope 返回详情。" />
     <div class="nx-card" data-testid="record-detail">
       <dl class="detail-grid">
@@ -23,6 +21,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
 

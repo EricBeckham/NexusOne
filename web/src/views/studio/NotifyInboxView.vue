@@ -1,12 +1,8 @@
 <template>
   <div>
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>站内通知</h1>
-        <p>Live <code>GET /api/v1/notifications</code>。G18 审批通过 Outbox <code>notify.inbox</code> 投递。需要已签发 TenantContext。</p>
-      </div>
-      <button class="ghost" type="button" @click="reload">刷新</button>
-    </div>
+    <NxPageHeader title="站内通知" description="查看当前租户的审批通知并跳转到对应业务记录。">
+      <template #actions><button class="ghost" type="button" @click="reload">刷新</button></template>
+    </NxPageHeader>
     <NxSourceBanner body="M0-10。列表为空不一定是故障：dispatcher 未投递或尚未走 submit-start。" />
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
     <p v-if="error" class="nx-error">{{ error }}</p>
@@ -56,6 +52,7 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { notify } from "../../api/client";

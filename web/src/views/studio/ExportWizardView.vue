@@ -1,14 +1,6 @@
 <template>
   <div>
-    <div class="nx-page-header">
-      <h1>导出向导</h1>
-      <p>
-        G4 leftover：<code>POST /api/v1/p3/exports/wizard/begin</code> 与
-        <code>/complete</code> 把 <code>p3.export.begun</code> /
-        <code>p3.export.completed</code>（或 deny）写入同一哈希链。
-        不是产品导出 UI，不宣称产品 G4 关闭。
-      </p>
-    </div>
+    <NxPageHeader title="导出向导" description="引导创建并完成受权限保护的导出任务，操作结果写入同一审计链。" />
     <NxSourceBanner body="复用 ReportSurfaceGuard + AuthorizedExport。桌面台账 / 表单 / 待办 / 报表 / dump 页未改。AuditPort 同事务入链未改。" />
     <div class="nx-card" style="margin-bottom:16px;" data-testid="g4-export-wizard-decision">
       <h3>Decision</h3>
@@ -41,6 +33,7 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { NxPageHeader } from "../../components";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { perm } from "../../api/client";
 import { p3 } from "../../api/p3";

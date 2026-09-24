@@ -1,20 +1,14 @@
 <template>
   <div v-if="form">
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>{{ form.name }}</h1>
-        <p>
-          Draft / Published / Running 必须分开。G18 填报走
-          <code>POST /api/v1/p3/path/submit-start</code>
-          （物理台账行 + Flowable），不是只写 form_submission。
-        </p>
-      </div>
-      <div class="nx-row">
-        <NxStatus :label="form.draft_status" tone="warning" />
-        <NxStatus :label="`Running v${form.running_version || 0}`" tone="success" />
-        <router-link class="ghost" to="/p3/forms">返回列表</router-link>
-      </div>
-    </div>
+    <NxPageHeader :title="form.name" description="分别管理草稿、已发布和运行版本；填报会写入台账并启动审批。">
+      <template #actions>
+        <div class="nx-row">
+          <NxStatus :label="form.draft_status" tone="warning" />
+          <NxStatus :label="`Running v${form.running_version || 0}`" tone="success" />
+          <router-link class="ghost" to="/p3/forms">返回列表</router-link>
+        </div>
+      </template>
+    </NxPageHeader>
     <NxSourceBanner body="Live M0-07 validate / publish。填报默认 submit-start，并带 Idempotency-Key（G3 重复提交不写第二行）。G5 回滚由服务端事务覆盖。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
@@ -126,6 +120,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";

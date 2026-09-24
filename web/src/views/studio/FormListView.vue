@@ -1,14 +1,12 @@
 <template>
   <div>
-    <div class="nx-page-header nx-row" style="justify-content:space-between;">
-      <div>
-        <h1>表单</h1>
-        <p>创建 DRAFT，再 Validate / Publish。填报走 <code>/api/v1/p3/path/submit-start</code>，不是只写 form_submission。</p>
-      </div>
-      <button class="primary" type="button" data-testid="form-create-toggle" @click="showCreate = !showCreate">
-        {{ showCreate ? "收起创建" : "创建表单" }}
-      </button>
-    </div>
+    <NxPageHeader title="表单" description="创建、校验并发布表单；运行版本可直接填报并启动审批。">
+      <template #actions>
+        <button class="primary" type="button" data-testid="form-create-toggle" @click="showCreate = !showCreate">
+          {{ showCreate ? "收起创建" : "创建表单" }}
+        </button>
+      </template>
+    </NxPageHeader>
     <NxSourceBanner body="Live GET /api/v1/p3/forms。创建绑定所选台账的 field_code。G5 由模块测试覆盖。" />
     <form v-if="showCreate" class="nx-card" style="margin-bottom:16px;" data-testid="form-create-form" @submit.prevent="onCreate">
       <h3>创建表单</h3>
@@ -71,6 +69,7 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
