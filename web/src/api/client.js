@@ -220,4 +220,12 @@ export const notify = {
 /** M0-11 hash chain, read-only by trace. Tenant-filtered. Never X-Tenant-Id. */
 export const audit = {
   byTrace: (traceId) => api(`/api/v1/audit/traces/${encodeURIComponent(traceId)}`),
+  platformEvents: (filters = {}) => {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
+    }
+    const suffix = query.toString() ? `?${query}` : "";
+    return api(`/api/v1/audit/events${suffix}`, { platform: true, auth: false });
+  },
 };
