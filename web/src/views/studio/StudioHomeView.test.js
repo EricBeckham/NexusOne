@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 
-const mocks = vi.hoisted(() => ({ health: vi.fn() }));
+const mocks = vi.hoisted(() => ({ health: vi.fn(), listApplications: vi.fn() }));
 
 vi.mock("../../api/client", () => ({ p2: { health: mocks.health } }));
+vi.mock("../../api/p3", () => ({ p3: { listApplications: mocks.listApplications } }));
 vi.mock("../../api/session", () => ({
   session: {
     tenantId: "tenant-w3",
@@ -32,7 +33,11 @@ async function mountHome() {
 }
 
 describe("W3 Studio home", () => {
-  beforeEach(() => mocks.health.mockReset());
+  beforeEach(() => {
+    mocks.health.mockReset();
+    mocks.listApplications.mockReset();
+    mocks.listApplications.mockResolvedValue({ items: [] });
+  });
 
   it("moves the P3 shortcuts and live session context into the product home", async () => {
     mocks.health.mockResolvedValue({ status: "UP" });
@@ -53,6 +58,26 @@ describe("W3 Studio home", () => {
     expect(wrapper.text()).toContain("tenant-w3");
     expect(wrapper.text()).toContain("builder@nexus.test");
     expect(wrapper.text()).toContain("IAM health: UP");
+    expect(wrapper.text()).toContain("暂无");
+    expect(wrapper.text()).not.toContain("发布成功率");
+    expect(wrapper.text()).not.toContain("待办总数");
+  });
+
+  it("lists applications returned by the API and counts only that list", async () => {
+    mocks.health.mockResolvedValue({ status: "UP" });
+    mocks.listApplications.mockResolvedValue({
+      items: [
+        { id: "app-1", app_code: "crm", display_name: "客户", kind: "CUSTOM", status: "ACTIVE" },
+        { id: "app-2", app_code: "hr", display_name: "人事", kind: "CUSTOM", status: "ACTIVE" },
+      ],
+    });
+    const wrapper = await mountHome();
+    expect(wrapper.text()).toContain("crm");
+    expect(wrapper.text()).toContain("客户");
+    expect(wrapper.text()).toContain("CUSTOM");
+    expect(wrapper.get("[data-testid='nx-stat-card'] .value").text()).toBe("2");
+    const rowLinks = wrapper.findAll(".row-links a").map((link) => link.attributes("href"));
+    expect(rowLinks).toEqual(["/p3/ledgers", "/p3/forms", "/p3/ledgers", "/p3/forms"]);
   });
 
   it("offers a retry when the health probe fails", async () => {
