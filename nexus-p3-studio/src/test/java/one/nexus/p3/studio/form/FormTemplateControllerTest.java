@@ -28,6 +28,8 @@ class FormTemplateControllerTest {
                 .thenThrow(new DomainException(ErrorCode.CONTEXT_PLATFORM_REQUIRED, "platform context required"));
         when(isolation.requirePlatformContext("form-template.update", PlatformDuty.SYSTEM_ADMIN))
                 .thenThrow(new DomainException(ErrorCode.DUTY_DENIED, "platform duty required"));
+        when(isolation.requirePlatformContext("form-template.validate", PlatformDuty.SYSTEM_ADMIN))
+                .thenThrow(new DomainException(ErrorCode.DUTY_DENIED, "platform duty required"));
         FormTemplateController controller = new FormTemplateController(isolation, service);
 
         assertEquals(ErrorCode.CONTEXT_PLATFORM_REQUIRED, assertThrows(DomainException.class, controller::list).errorCode());
@@ -37,6 +39,8 @@ class FormTemplateControllerTest {
                 assertThrows(DomainException.class, () -> controller.get(UUID.randomUUID())).errorCode());
         assertEquals(ErrorCode.DUTY_DENIED,
                 assertThrows(DomainException.class, () -> controller.update(UUID.randomUUID(), write)).errorCode());
+        assertEquals(ErrorCode.DUTY_DENIED,
+                assertThrows(DomainException.class, () -> controller.validate(UUID.randomUUID())).errorCode());
         verifyNoInteractions(service);
     }
 }
