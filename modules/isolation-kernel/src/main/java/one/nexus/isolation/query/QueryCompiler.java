@@ -60,7 +60,7 @@ public final class QueryCompiler {
         if (context == null) {
             throw auditor.reject(IsolationErrorCode.MISSING_CONTEXT, null, "missing context");
         }
-        Identifiers.require(input.table());
+        Identifiers.requireTable(input.table());
         TableDescriptor table = registry.require(input.table());
         validateColumns(input, table, context);
         QueryAst injected = TenantInjector.inject(input, table, context, auditor);
@@ -280,7 +280,7 @@ public final class QueryCompiler {
             QueryJoin join,
             AccessContext context
     ) {
-        Identifiers.require(join.table());
+        Identifiers.requireTable(join.table());
         Identifiers.require(join.alias());
         TableDescriptor joined = aliases.get(join.alias());
         if (joined == null) {
@@ -296,8 +296,10 @@ public final class QueryCompiler {
         for (JoinOn on : join.on()) {
             requireJoinSide(aliases, on.leftAlias(), on.leftColumn(), context);
             requireJoinSide(aliases, on.rightAlias(), on.rightColumn(), context);
-            if (!on.leftAlias().equals(query.table()) && !on.leftAlias().equals(join.alias())
-                    && !on.rightAlias().equals(query.table()) && !on.rightAlias().equals(join.alias())) {
+            String primaryAlias = Identifiers.tableAlias(query.table());
+            if (!on.leftAlias().equals(query.table()) && !on.leftAlias().equals(primaryAlias)
+                    && !on.leftAlias().equals(join.alias()) && !on.rightAlias().equals(query.table())
+                    && !on.rightAlias().equals(primaryAlias) && !on.rightAlias().equals(join.alias())) {
                 throw auditor.reject(IsolationErrorCode.CROSS_TENANT_JOIN, context, "join must reference its tables");
             }
         }
@@ -324,7 +326,7 @@ public final class QueryCompiler {
         if (depth > QuerySubquery.MAX_NESTING) {
             throw new IllegalArgumentException("subquery nesting exceeds max depth");
         }
-        Identifiers.require(subquery.table());
+        Identifiers.requireTable(subquery.table());
         Identifiers.require(subquery.alias());
         TableDescriptor existing = scope.get(subquery.alias());
         if (existing != null && !subquery.alias().equals(subquery.table()) && !existing.name().equals(subquery.table())) {
@@ -434,6 +436,10 @@ public final class QueryCompiler {
     private Map<String, TableDescriptor> aliases(QueryAst query, TableDescriptor primary, AccessContext context) {
         Map<String, TableDescriptor> aliases = new LinkedHashMap<>();
         aliases.put(primary.name(), primary);
+        String primaryAlias = Identifiers.tableAlias(primary.name());
+        if (!primaryAlias.equals(primary.name())) {
+            aliases.put(primaryAlias, primary);
+        }
         for (QueryJoin join : query.joins()) {
             Identifiers.require(join.alias());
             if (aliases.containsKey(join.alias())) {

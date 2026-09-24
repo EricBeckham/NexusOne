@@ -23,9 +23,19 @@ public class MarketController {
     @PostMapping("/versions/{id}/unpublish") AppVersion unpublish(@PathVariable UUID id){return service.transition(id,VersionStatus.UNPUBLISHED);}
     @PostMapping("/skus") @ResponseStatus(HttpStatus.CREATED)
     Sku sku(@RequestBody CreateSku request){return service.defineSku(request.code(),request.appId(),request.name(),request.entitlements());}
+    @GetMapping("/apps") List<AppPackage> apps(){return service.apps();}
+    @GetMapping("/apps/{appId}") AppPackage app(@PathVariable UUID appId){return service.getApp(appId);}
+    @GetMapping("/apps/{appId}/versions") List<AppVersion> versions(@PathVariable UUID appId){return service.versions(appId);}
+    @GetMapping("/versions/{id}") AppVersion version(@PathVariable UUID id){return service.getVersion(id);}
+    @GetMapping("/skus") List<Sku> skus(){return service.skus();}
+    @GetMapping("/skus/{code}") Sku sku(@PathVariable String code){return service.getSku(code);}
     @GetMapping("/catalog") List<CatalogItem> catalog(){return service.catalog();}
     @PostMapping("/tenants/{tenantId}/installations") @ResponseStatus(HttpStatus.CREATED)
     Installation install(@PathVariable UUID tenantId,@RequestBody Install request){return service.subscribeAndInstall(tenantId,request.skuCode(),request.versionId());}
+    @GetMapping("/subscriptions") List<Subscription> subscriptions(){return service.subscriptions();}
+    @GetMapping("/subscriptions/{id}") Subscription subscription(@PathVariable UUID id){return service.getSubscription(id);}
+    @GetMapping("/installations") List<Installation> installations(){return service.installations();}
+    @GetMapping("/installations/{id}") Installation installationRead(@PathVariable UUID id){return service.getInstallation(id);}
     @PostMapping("/installations/{id}/upgrade") Installation upgrade(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/rollback") Installation rollback(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/uninstall") Installation uninstall(@PathVariable UUID id){return service.uninstall(id);}

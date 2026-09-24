@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.sql.Timestamp;
+import java.time.Instant;
 import one.nexus.isolation.IsolationKernel;
 import one.nexus.isolation.api.Actor;
 import one.nexus.isolation.api.AuthenticatedMembership;
@@ -15,6 +17,7 @@ import one.nexus.isolation.api.QueryAst;
 import one.nexus.isolation.api.QueryJoin;
 import one.nexus.isolation.api.QueryOr;
 import one.nexus.isolation.api.QueryPage;
+import one.nexus.isolation.api.QueryRange;
 import one.nexus.isolation.api.QuerySort;
 import one.nexus.isolation.api.QuerySubquery;
 import one.nexus.isolation.api.RenderedSql;
@@ -41,6 +44,15 @@ class QueryCompilerTest {
         registry.registerTenant("ledger_entry", "p3", 1, "id", "tenant_id", "title", "deleted_at");
         registry.registerTenant("ledger_line", "p3", 1, "id", "tenant_id", "entry_id", "amount");
         registry.registerTenant("ledger_note", "p3", 1, "id", "tenant_id", "line_id", "body");
+        registry.registerTenant("market.installation", "p4", 1, "id", "tenant_id", "app_id", "version_id");
+        registry.registerTenant(
+                "integration.webhook_delivery",
+                "p5",
+                1,
+                "id",
+                "tenant_id",
+                "status",
+                "next_attempt_at");
         registry.registerPlatform("platform_metric", "p1", 1, "id", "count");
         registry.freeze();
         return IsolationKernel.create(registry, Set.of("ops.summary"), sink);
@@ -74,6 +86,86 @@ class QueryCompilerTest {
         assertEquals("2", nullable.parameters().get(0));
         assertEquals(null, nullable.parameters().get(1));
         assertEquals("alpha", nullable.parameters().get(2));
+    }
+
+    @Test
+    void safelyQuotesSchemaQualifiedTenantTables() {
+        IsolationKernel kernel = kernel(new CollectingAuditSink());
+        TenantContext alpha = alpha(kernel);
+
+        RenderedSql read = kernel.compiler().compile(
+                QueryAst.select("market.installation", List.of("id", "app_id"), map("id", "install-1")), alpha);
+
+        assertEquals(
+                "SELECT \"id\", \"app_id\" FROM \"market\".\"installation\" WHERE \"id\" = ? AND \"tenant_id\" = ?",
+                read.sql());
+        assertEquals(List.of("install-1", "alpha"), read.parameters());
+        assertEquals("market.installation", read.plan().table());
+        assertTrue(read.plan().tenantRequired());
+    }
+
+    @Test
+    void schemaQualifiedTenantTablesKeepSafeAliasesInJoinsAndSubqueries() {
+        IsolationKernel kernel = kernel(new CollectingAuditSink());
+        TenantContext alpha = alpha(kernel);
+
+        RenderedSql joined = kernel.compiler().compile(
+                QueryAst.select(
+                        "ledger_entry",
+                        List.of("ledger_entry.id", "installation.version_id"),
+                        Map.of(),
+                        List.of(QueryJoin.inner(
+                                "market.installation",
+                                "installation",
+                                List.of(new JoinOn("ledger_entry", "id", "installation", "app_id"))))),
+                alpha);
+        assertEquals(
+                "SELECT \"ledger_entry\".\"id\", \"installation\".\"version_id\" FROM "
+                        + "\"ledger_entry\" \"ledger_entry\" INNER JOIN \"market\".\"installation\" \"installation\""
+                        + " ON \"ledger_entry\".\"id\" = \"installation\".\"app_id\""
+                        + " AND \"installation\".\"tenant_id\" = ? WHERE \"ledger_entry\".\"tenant_id\" = ?",
+                joined.sql());
+        assertEquals(List.of("alpha", "alpha"), joined.parameters());
+
+        RenderedSql subquery = kernel.compiler().compile(
+                QueryAst.select("ledger_entry", List.of("id"), Map.of())
+                        .withSubqueries(List.of(
+                                QuerySubquery.in("id", "market.installation", "app_id", Map.of()))),
+                alpha);
+        assertEquals(
+                "SELECT \"id\" FROM \"ledger_entry\" WHERE \"tenant_id\" = ? AND \"id\" IN "
+                        + "(SELECT \"app_id\" FROM \"market\".\"installation\" \"installation\""
+                        + " WHERE \"installation\".\"tenant_id\" = ?)",
+                subquery.sql());
+        assertEquals(List.of("alpha", "alpha"), subquery.parameters());
+    }
+
+    @Test
+    void rendersParameterizedRangeFiltersAlongsideTenantAndPageGuards() {
+        IsolationKernel kernel = kernel(new CollectingAuditSink());
+        TenantContext alpha = alpha(kernel);
+        Instant deadline = Instant.parse("2026-09-24T00:00:00Z");
+
+        RenderedSql query = kernel.compiler().compile(
+                QueryAst.select(
+                                "integration.webhook_delivery",
+                                List.of("id", "status", "next_attempt_at"),
+                                map(
+                                        "status", List.of("PENDING", "RETRY"),
+                                        "next_attempt_at", QueryRange.lte(deadline)))
+                        .withSorts(List.of(QuerySort.asc("next_attempt_at")))
+                        .withPage(QueryPage.of(20, 0)),
+                alpha);
+
+        assertEquals(
+                "SELECT \"id\", \"status\", \"next_attempt_at\" FROM "
+                        + "\"integration\".\"webhook_delivery\" "
+                        + "WHERE \"status\" IN (?, ?) AND \"next_attempt_at\" <= ? AND \"tenant_id\" = ? "
+                        + "ORDER BY \"next_attempt_at\" ASC LIMIT ? OFFSET ?",
+                query.sql());
+        assertEquals(
+                List.of("PENDING", "RETRY", Timestamp.from(deadline), "alpha", 20, 0),
+                query.parameters());
     }
 
     @Test

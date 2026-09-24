@@ -6,9 +6,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import one.nexus.isolation.api.AccessContext;
+import one.nexus.isolation.api.TenantContext;
+import one.nexus.isolation.context.AccessContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import one.nexus.p1.domain.EntitlementPayload;
 import one.nexus.p1.domain.EntitlementProjection;
 import one.nexus.p1.port.TenantRepository;
@@ -77,6 +82,7 @@ public class MarketService {
 
     @Transactional
     public Installation subscribeAndInstall(UUID tenantId, String skuCode, UUID versionId) {
+        assertTenant(requireTenantId(), tenantId);
         tenants.findById(tenantId).orElseThrow(() -> new IllegalArgumentException("tenant not found"));
         Sku sku = market.sku(skuCode).orElseThrow(() -> new IllegalArgumentException("sku not found"));
         AppVersion version = version(versionId);
@@ -121,8 +127,72 @@ public class MarketService {
     }
 
     @Transactional(readOnly = true) public List<CatalogItem> catalog() { return market.catalog(); }
+    @Transactional(readOnly = true) public List<AppPackage> apps() { return market.apps(); }
+    @Transactional(readOnly = true) public AppPackage getApp(UUID id) {
+        return market.app(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "app not found"));
+    }
+    @Transactional(readOnly = true) public List<AppVersion> versions(UUID appId) {
+        getApp(appId);
+        return market.versions(appId);
+    }
+    @Transactional(readOnly = true) public AppVersion getVersion(UUID id) {
+        return market.version(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "version not found"));
+    }
+    @Transactional(readOnly = true) public List<Sku> skus() { return market.skus(); }
+    @Transactional(readOnly = true) public Sku getSku(String code) {
+        return market.sku(code).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "sku not found"));
+    }
+    @Transactional(readOnly = true) public List<Subscription> subscriptions() {
+        UUID tenantId = requireTenantId();
+        List<Subscription> rows = market.subscriptions();
+        rows.forEach(row -> assertTenant(tenantId, row.tenantId()));
+        return rows;
+    }
+    @Transactional(readOnly = true) public Subscription getSubscription(UUID id) {
+        UUID tenantId = requireTenantId();
+        Subscription row = market.subscriptionForCurrentTenant(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "subscription not found"));
+        assertTenant(tenantId, row.tenantId());
+        return row;
+    }
+    @Transactional(readOnly = true) public List<Installation> installations() {
+        UUID tenantId = requireTenantId();
+        List<Installation> rows = market.installations();
+        rows.forEach(row -> assertTenant(tenantId, row.tenantId()));
+        return rows;
+    }
+    @Transactional(readOnly = true) public Installation getInstallation(UUID id) {
+        UUID tenantId = requireTenantId();
+        Installation row = market.installationForCurrentTenant(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found"));
+        assertTenant(tenantId, row.tenantId());
+        return row;
+    }
+
     private AppPackage app(UUID id) { return market.app(id).orElseThrow(() -> new IllegalArgumentException("app not found")); }
     private AppVersion version(UUID id) { return market.version(id).orElseThrow(() -> new IllegalArgumentException("version not found")); }
-    private Installation installation(UUID id) { return market.installation(id).orElseThrow(() -> new IllegalArgumentException("installation not found")); }
+    private Installation installation(UUID id) {
+        UUID tenantId = requireTenantId();
+        Installation row = market.installationForCurrentTenant(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installation not found"));
+        assertTenant(tenantId, row.tenantId());
+        return row;
+    }
+    private static UUID requireTenantId() {
+        AccessContext context = AccessContextHolder.currentOrNull();
+        if (!(context instanceof TenantContext tenant)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "TenantContext is required");
+        }
+        try {
+            return UUID.fromString(tenant.tenantId());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "TenantContext has an invalid tenant id");
+        }
+    }
+    private static void assertTenant(UUID expected, UUID actual) {
+        if (!expected.equals(actual)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "tenant scope mismatch");
+        }
+    }
     private static void requireText(String value, String field) { if (value == null || value.isBlank()) throw new IllegalArgumentException(field + " required"); }
 }

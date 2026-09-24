@@ -10,6 +10,13 @@ import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Set;
+import one.nexus.isolation.IsolationKernel;
+import one.nexus.isolation.api.Actor;
+import one.nexus.isolation.api.AuthenticatedMembership;
+import one.nexus.isolation.audit.CollectingAuditSink;
+import one.nexus.isolation.context.AccessContextHolder;
+import one.nexus.isolation.query.TableRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import one.nexus.p1.domain.EntitlementPayload;
@@ -48,15 +55,27 @@ class MarketServiceTest {
                 EntitlementProjection.fromDefaultPack(tenantId, "DEFAULT", "1",
                         EntitlementPayload.defaultPack(1, 1), NOW)));
 
-        Installation installation = service.subscribeAndInstall(tenantId, sku.code(), published.id());
+        IsolationKernel isolation = IsolationKernel.create(
+                new TableRegistry().freeze(), Set.of(), new CollectingAuditSink());
+        var context = isolation.tenants().issue(
+                new AuthenticatedMembership(
+                        Actor.person("market-test-person"),
+                        tenantId.toString(),
+                        tenantId.toString(),
+                        Set.of(tenantId.toString())),
+                "market-test-trace");
+        AccessContextHolder.call(context, () -> {
+            Installation installation = service.subscribeAndInstall(tenantId, sku.code(), published.id());
 
-        assertThat(installation.status()).isEqualTo(InstallationStatus.INSTALLED);
-        ArgumentCaptor<EntitlementProjection> projection = ArgumentCaptor.forClass(EntitlementProjection.class);
-        verify(tenants).updateProjection(projection.capture());
-        assertThat(projection.getValue().source()).isEqualTo(ProjectionSource.SUBSCRIPTION);
-        assertThat(projection.getValue().skuCode()).isEqualTo("LEAVE_TEAM");
-        assertThat(projection.getValue().payload().entitlements().get("apps").quota()).isEqualTo(10);
-        assertThat(projection.getValue().version()).isEqualTo(2);
-        verify(market).saveInstallation(any());
+            assertThat(installation.status()).isEqualTo(InstallationStatus.INSTALLED);
+            ArgumentCaptor<EntitlementProjection> projection = ArgumentCaptor.forClass(EntitlementProjection.class);
+            verify(tenants).updateProjection(projection.capture());
+            assertThat(projection.getValue().source()).isEqualTo(ProjectionSource.SUBSCRIPTION);
+            assertThat(projection.getValue().skuCode()).isEqualTo("LEAVE_TEAM");
+            assertThat(projection.getValue().payload().entitlements().get("apps").quota()).isEqualTo(10);
+            assertThat(projection.getValue().version()).isEqualTo(2);
+            verify(market).saveInstallation(any());
+            return null;
+        });
     }
 }

@@ -16,7 +16,31 @@ public final class Identifiers {
         return name;
     }
 
+    public static String requireTable(String name) {
+        if (name == null) {
+            throw new IsolationException(IsolationErrorCode.INVALID_IDENTIFIER, "missing-trace");
+        }
+        String[] parts = name.split("\\.", -1);
+        if (parts.length > 2) {
+            throw new IsolationException(IsolationErrorCode.INVALID_IDENTIFIER, "missing-trace");
+        }
+        for (String part : parts) {
+            require(part);
+        }
+        return name;
+    }
+
     public static String quote(String name) {
         return '"' + require(name) + '"';
+    }
+
+    public static String quoteTable(String name) {
+        String[] parts = requireTable(name).split("\\.");
+        return java.util.Arrays.stream(parts).map(Identifiers::quote).collect(java.util.stream.Collectors.joining("."));
+    }
+
+    public static String tableAlias(String name) {
+        String[] parts = requireTable(name).split("\\.");
+        return parts[parts.length - 1];
     }
 }

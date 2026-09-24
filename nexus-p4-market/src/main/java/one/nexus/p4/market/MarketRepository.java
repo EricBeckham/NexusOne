@@ -11,9 +11,15 @@ public interface MarketRepository {
     void saveSku(Sku sku);
     void saveSubscription(Subscription subscription);
     void saveInstallation(Installation installation);
+    List<AppPackage> apps();
     Optional<AppPackage> app(UUID id);
+    List<AppVersion> versions(UUID appId);
     Optional<AppVersion> version(UUID id);
+    List<Sku> skus();
     Optional<Sku> sku(String code);
-    Optional<Installation> installation(UUID id);
+    List<Installation> installations();
+    Optional<Installation> installationForCurrentTenant(UUID id);
+    List<Subscription> subscriptions();
+    Optional<Subscription> subscriptionForCurrentTenant(UUID id);
     List<CatalogItem> catalog();
 }

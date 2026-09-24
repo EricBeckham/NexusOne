@@ -20,6 +20,12 @@ public class ConnectController {
     @PostMapping("/webhooks") @ResponseStatus(HttpStatus.CREATED) WebhookSubscription subscribe(@RequestBody SubscriptionRequest r){return service.subscribe(r.name(),r.endpoint(),r.eventTypes());}
     @PostMapping("/events") Map<String,Integer> publish(@RequestBody EventRequest r){return Map.of("enqueued",service.publish(r.eventId(),r.eventType(),r.payload()));}
     @PostMapping("/webhooks/dispatch") List<WebhookDelivery> dispatch(@RequestParam(defaultValue="20")int limit){return service.dispatchDue(limit);}
+    @GetMapping("/clients") List<ApiClientView> clients(){return service.clients();}
+    @GetMapping("/clients/{id}") ApiClientView clientDetails(@PathVariable UUID id){return service.client(id);}
+    @GetMapping("/webhooks") List<WebhookSubscription> webhooks(){return service.subscriptions();}
+    @GetMapping("/webhooks/{id}") WebhookSubscription webhook(@PathVariable UUID id){return service.subscription(id);}
+    @GetMapping("/webhooks/{id}/deliveries") List<WebhookDeliveryView> deliveries(@PathVariable UUID id){return service.deliveries(id);}
+    @GetMapping("/call-logs") List<ApiCallLog> callLogs(){return service.callLogs();}
     @GetMapping("/connectors") List<ConnectorDefinition> connectors(){return service.connectors();}
     @PostMapping("/connectors/{code}/run") ConnectorRun run(@PathVariable String code){return service.runConnector(code);}
     @GetMapping("/connector-runs") List<ConnectorRun> runs(){return service.runs();}
