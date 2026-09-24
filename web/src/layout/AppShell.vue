@@ -62,7 +62,7 @@ for (const path of REQUIRED_SHELL_LINKS) {
 }
 .shell.collapsed { --nx-sidebar: var(--nx-sidebar-collapsed); }
 .shell.collapsed .side { padding-left: 8px; padding-right: 8px; }
-.shell.platform { background: var(--nx-warning-light); }
+.shell.platform { background: var(--nx-bg-page); }
 .side {
   background: var(--nx-bg-sidebar);
   border-right: 1px solid var(--nx-border);

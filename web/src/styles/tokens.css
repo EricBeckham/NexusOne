@@ -21,10 +21,17 @@
   --nx-danger-light: #fff0ef;
   --nx-info: #2e90fa;
   --nx-info-light: #eef6ff;
+  --nx-chart-blue: #2e78ff;
+  --nx-chart-green: #20b26b;
+  --nx-chart-purple: #7a5af8;
+  --nx-chart-orange: #ff8a34;
+  --nx-chart-red: #f04438;
+  --nx-chart-cyan: #16bfd6;
   --nx-product: #246bfd;
   --nx-product-light: #eef5ff;
   --nx-shadow-card: 0 4px 16px rgba(31, 56, 88, 0.06);
   --nx-shadow-popover: 0 10px 32px rgba(31, 56, 88, 0.14);
+  --nx-shadow-dialog: 0 20px 60px rgba(15, 38, 72, 0.22);
   --nx-radius: 12px;
   --nx-radius-sm: 8px;
   --nx-radius-pill: 999px;
@@ -42,6 +49,7 @@
   --nx-font-size-sm: 13px;
   --nx-font-size-md: 14px;
   --nx-font-size-lg: 20px;
+  --nx-font-size-page-title: 28px;
   --nx-font-size-stat: 28px;
   --nx-sidebar: 200px;
   --nx-sidebar-collapsed: 64px;
@@ -51,9 +59,9 @@
 
 [data-product="p1"] { --nx-product: #246bfd; --nx-product-light: #eef5ff; }
 [data-product="p2"] { --nx-product: #6d5cf6; --nx-product-light: #f3f0ff; }
-[data-product="p3"] { --nx-product: #2475ff; --nx-product-light: #eef5ff; }
+[data-product="p3"] { --nx-product: #2475ff; --nx-product-light: #eef5ff; --nx-product-secondary: #13a77a; }
 [data-product="p4"] { --nx-product: #ff7a1a; --nx-product-light: #fff4eb; }
-[data-product="p5"] { --nx-product: #1687ff; --nx-product-light: #e8f6ff; }
+[data-product="p5"] { --nx-product: #1687ff; --nx-product-light: #e8f6ff; --nx-product-secondary: #18afc8; }
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
@@ -74,8 +82,14 @@ a { color: var(--nx-primary); text-decoration: none; }
   box-shadow: var(--nx-shadow-card);
   padding: 20px;
 }
+.nx-dialog {
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  box-shadow: var(--nx-shadow-dialog);
+}
 .nx-page-header { margin-bottom: 16px; }
-.nx-page-header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 650; }
+.nx-page-header h1 { margin: 0 0 4px; font-size: var(--nx-font-size-page-title); font-weight: 700; }
 .nx-page-header p { margin: 0; color: var(--nx-text-secondary); }
 .nx-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .nx-grid { display: grid; gap: 16px; }

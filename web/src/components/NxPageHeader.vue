@@ -37,8 +37,8 @@ defineProps({
 h1 {
   margin: var(--nx-space-0);
   color: var(--nx-text-primary);
-  font-size: var(--nx-font-size-lg);
-  font-weight: 650;
+  font-size: var(--nx-font-size-page-title);
+  font-weight: 700;
 }
 .description {
   margin: var(--nx-space-1) var(--nx-space-0) var(--nx-space-0);
