@@ -11,8 +11,10 @@ vi.mock("../../api/p3", () => ({
     getProcessDefinition: vi.fn(),
     listProcessDrafts: vi.fn(),
     getProcessDraft: vi.fn(),
+    getProcessPublication: vi.fn(),
     saveProcessDraft: vi.fn(),
     validateProcessDraft: vi.fn(),
+    publishProcessDraft: vi.fn(),
   },
 }));
 
@@ -41,6 +43,7 @@ async function mountAt(path) {
   await router.push(path);
   const wrapper = mount(ProcessViewerView, { global: { plugins: [router] } });
   await flushPromises();
+  wrapper.router = router;
   return wrapper;
 }
 
@@ -50,8 +53,10 @@ describe("process viewer", () => {
     p3.getProcessDefinition.mockReset();
     p3.listProcessDrafts.mockReset().mockResolvedValue([]);
     p3.getProcessDraft.mockReset();
+    p3.getProcessPublication.mockReset();
     p3.saveProcessDraft.mockReset();
     p3.validateProcessDraft.mockReset();
+    p3.publishProcessDraft.mockReset();
   });
 
   it("edits a published definition only as a draft and saves it for reopening", async () => {
@@ -103,12 +108,46 @@ describe("process viewer", () => {
     await wrapper.get("[data-testid='process-validate']").trigger("click");
     await flushPromises();
     expect(wrapper.get("[data-testid='process-validation']").text()).toContain("校验通过");
+    expect(wrapper.find("[data-testid='process-publish']").exists()).toBe(true);
+    await wrapper.get("[data-testid='process-publish']").trigger("click");
+    expect(wrapper.get("[data-testid='process-publish-confirm']").text()).toContain("确认发布流程");
+    await wrapper.get("[data-testid='process-publish-cancel']").trigger("click");
+    expect(p3.publishProcessDraft).not.toHaveBeenCalled();
+    p3.publishProcessDraft.mockResolvedValue({ key: "nexusSequentialApproval", version: 3 });
+    await wrapper.get("[data-testid='process-publish']").trigger("click");
+    await wrapper.get("[data-testid='process-publish-confirm-submit']").trigger("click");
+    await flushPromises();
+    expect(p3.publishProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");
+    expect(wrapper.get("[data-testid='process-publication']").text()).toContain("最近发布版本 v3");
 
     const reopened = await mountAt("/p3/workflow/nexusSequentialApproval");
     expect(p3.getProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");
     expect(reopened.get("[data-testid='process-canvas']").text()).toContain("已修改但尚未保存");
     await reopened.findAll("[data-testid='process-node']")[1].trigger("click");
     expect(reopened.get("[data-testid='node-assignee']").element.value).toBe("${manager}");
+  });
+
+  it("shows the server error without a false published state and preserves the deep link", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([definition]);
+    p3.listProcessDrafts.mockResolvedValue([{ key: "nexusSequentialApproval", name: "Approval" }]);
+    p3.getProcessDraft.mockResolvedValue({
+      key: "nexusSequentialApproval",
+      name: "Approval",
+      bpmn_xml: '<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="nexusSequentialApproval"><startEvent id="start"/><userTask id="task" name="Review" flowable:assignee="${assignee}"/><endEvent id="end"/><sequenceFlow id="one" sourceRef="start" targetRef="task"/><sequenceFlow id="two" sourceRef="task" targetRef="end"/></process></definitions>',
+    });
+    p3.getProcessPublication.mockRejectedValue(Object.assign(new Error("not published"), { status: 404 }));
+    p3.validateProcessDraft.mockResolvedValue({ valid: true, errors: [] });
+    p3.publishProcessDraft.mockRejectedValue(new Error("Flowable unavailable"));
+    const wrapper = await mountAt("/p3/workflow/nexusSequentialApproval");
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    await wrapper.get("[data-testid='process-publish']").trigger("click");
+    await wrapper.get("[data-testid='process-publish-confirm-submit']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='process-publish-error']").text()).toContain("Flowable unavailable");
+    expect(wrapper.find("[data-testid='process-publication']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='process-publish-confirm']").exists()).toBe(true);
+    expect(wrapper.router.currentRoute.value.fullPath).toBe("/p3/workflow/nexusSequentialApproval");
   });
 
   it("creates a new basic draft without inventing server-side records before save", async () => {
