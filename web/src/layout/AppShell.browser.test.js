@@ -52,7 +52,8 @@ describe("W0 product shell", () => {
     expect(wrapper.text()).toContain("星域");
     expect(wrapper.text()).toContain("Nexus Tenant");
     expect(wrapper.text()).toContain("租户列表");
-    expect(wrapper.text()).toContain("后续");
+    expect(wrapper.text()).toContain("租户关系");
+    expect(wrapper.html()).toContain('href="/p1/relations"');
     expect(wrapper.text()).not.toContain("用户");
     expect(wrapper.text()).not.toMatch(new RegExp(["M0-12", "壳"].join("\\s+")));
 
