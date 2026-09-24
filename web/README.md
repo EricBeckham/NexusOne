@@ -1,6 +1,6 @@
-# NexusOne Web (M0-12 + G15 H5 mobile)
+# NexusOne Web — Five-product desktop shell + separate G15 H5 mobile
 
-Vue 3 shell for tenant admin, org/identity, permission snapshot, and **P3 台账 / 表单 / 待办 / 通知 / 审计**.
+Vue 3 desktop shell for five products: **星域** tenant administration, **星权** identity and permissions, **星构** studio, **星市** app catalog, and **星联** integrations. The shared product shell provides each product's own navigation, color, header, and home page.
 G15 adds a **separate** mobile tree under `src/mobile/` (`/m/login`, `/m/callback`, `/m/p3/home`, `/m/p3/files`, `/m/p3/forms`, `/m/p3/lists`, `/m/p3/todos`, `/m/p3/query`, `/m/p3/notifications`, `/m/host`, `/m/host-harness`, `/m/mp-webview-harness`, `/m/app-webview-harness`, `/m/wx-dt-harness`, `/m/native-bridge-harness`, `/m/wx-dt-prod-gap-harness`, `/m/native-bridge-honesty-harness`). Desktop ledger / form / todo pages are unchanged. F014 host messages are accepted on the **mobile browser** (postMessage + iframe harness). A **simulated** 小程序 web-view parent reuses the same HostBridgePort channels. `/m/wx-dt-harness` is a WeChat / DingTalk **production-host contract stub** (same channels + allowlist); production is **not** accepted. `/m/wx-dt-prod-gap-harness` is the production mini-program **acceptance-gap honesty stub** — not production验收 vs #117/#132/#151. `/m/app-webview-harness` is a **web** simulation of APP WebView channels on the same envelope — not a native package. `/m/native-bridge-harness` is an iOS WK / Android JS **native-bridge stub** — not a store-ready IPA/APK. `/m/native-bridge-honesty-harness` is the native-bridge **honesty leftover** beyond #151 — stub contract PASS, IPA/APK SKIP, not production accept. F010 runtime pages reuse the same live P3 / notify APIs. H5 list/detail/form/todo reads and writes call `POST /api/v1/permission/check` on the same PermissionEngine as desktop ([docs/g2-h5-permission.md](../docs/g2-h5-permission.md)). This is **not** a full G15 close — APP WebView store-ready native package / WeChat/DingTalk production stay open. Mobile-browser PKCE leftover is [docs/g15-h5-pkce-browser.md](../docs/g15-h5-pkce-browser.md). See [docs/g15-h5-mobile.md](../docs/g15-h5-mobile.md), [docs/g15-f010-h5-runtime.md](../docs/g15-f010-h5-runtime.md), [docs/g15-miniprogram-webview.md](../docs/g15-miniprogram-webview.md), [docs/g15-app-webview-host.md](../docs/g15-app-webview-host.md), [docs/g15-wx-dt-prod-host.md](../docs/g15-wx-dt-prod-host.md), [docs/g15-native-bridge-stub.md](../docs/g15-native-bridge-stub.md), [docs/g15-native-bridge-honesty.md](../docs/g15-native-bridge-honesty.md), [docs/g15-wx-dt-prod-gap-honesty.md](../docs/g15-wx-dt-prod-gap-honesty.md), [docs/g15-wx-dt-native-bridge-honesty.md](../docs/g15-wx-dt-native-bridge-honesty.md), and [docs/g15-wx-dt-native-bridge-remainder.md](../docs/g15-wx-dt-native-bridge-remainder.md).
 
 - Tenant / org pages talk to merged **M0-03** and **M0-04** HTTP APIs.
@@ -80,6 +80,21 @@ MOCK adapters are removed. The UI always calls live HTTP. Missing TenantContext 
 Do **not** set `VITE_NEXUS_P3_USE_MOCK` (retired). Do **not** send `X-Tenant-Id`.
 
 ## Pages
+
+### Desktop product routes
+
+`/` is the product picker. Each `/pN` route is that product's home and is wrapped in the shared desktop shell. Existing deep links remain available.
+
+| Product | Home | Available routes |
+|---|---|---|
+| 星域 · Nexus Tenant | `/p1` | `/p1/tenants`, `/p1/tenants/new`, `/p1/tenants/:id` |
+| 星权 · Nexus IAM | `/p2` | `/p2/persons`, `/p2/org`, `/p2/positions`, `/p2/permissions/:kind?`, `/p2/mfa/enroll`, `/p2/mfa/recovery`, `/p2/mfa/email` |
+| 星构 · Nexus Studio | `/p3` | `/p3/ledgers`, `/p3/ledgers/:id`, `/p3/ledgers/:id/records/:recordId`, `/p3/forms`, `/p3/forms/:id`, `/p3/todos`, `/p3/todos/:id`, `/p3/notifications`, `/p3/audit`, `/p3/reports`, `/p3/dumps`, `/p3/exports/wizard` |
+| 星市 · Nexus Market | `/p4` | `/p4/market` (app catalog) |
+| 星联 · Nexus Connect | `/p5` | `/p5/connect` (integration overview) |
+| Authentication | — | `/login`, `/callback` (outside the product shell) |
+
+H5 remains a separate `/m/*` surface under `src/mobile/`; this web-shell wave updates desktop only. See the H5 route table below.
 
 | Route | API | Notes |
 |---|---|---|

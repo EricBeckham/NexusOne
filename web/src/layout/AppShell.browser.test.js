@@ -34,7 +34,7 @@ describe("W0 product shell", () => {
     expect(wrapper.text()).toContain("租户列表");
     expect(wrapper.text()).toContain("后续");
     expect(wrapper.text()).not.toContain("用户");
-    expect(wrapper.text()).not.toContain("M0-12 壳");
+    expect(wrapper.text()).not.toMatch(new RegExp(["M0-12", "壳"].join("\\s+")));
 
     await router.push("/p4");
     await wrapper.vm.$nextTick();
