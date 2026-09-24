@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.HashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -85,6 +87,28 @@ public class FormTemplateDraftService {
         return getWithoutGuard(id);
     }
 
+    @Transactional
+    public ValidationResult validateDraft(UUID id) {
+        PlatformContext platform = isolation.requirePlatformContext("form-template.validate", PlatformDuty.SYSTEM_ADMIN);
+        Integer exists = jdbc.query("SELECT 1 FROM platform.form_template WHERE id = ? FOR UPDATE",
+                rs -> rs.next() ? rs.getInt(1) : null, id);
+        if (exists == null) throw notFound();
+        TemplateView template = getWithoutGuard(id);
+        List<ValidationError> errors = FormTemplateDraftValidator.validate(template.fields());
+        Instant now = clock.now();
+        String outcome = errors.isEmpty() ? AuditEvent.OUTCOME_ACCEPTED : AuditEvent.OUTCOME_REJECTED;
+        String status = errors.isEmpty() ? "VALIDATED" : template.status();
+        if (errors.isEmpty()) {
+            jdbc.update("UPDATE platform.form_template SET status = 'VALIDATED', updated_at = ?, version = version + 1 WHERE id = ?",
+                    now, id);
+        }
+        audit.append(new AuditEvent(UUID.randomUUID(), "platform.form_template.validated", AuditEvent.VERSION, now,
+                null, platform.actor().subjectId(), platform.actorHomeTenantId(), true, platform.reason(),
+                platform.traceId(), platform.traceId(), null, outcome, "form_template", id.toString(),
+                Map.of("field_count", template.fields().size(), "error_count", errors.size())));
+        return new ValidationResult(id, errors.isEmpty(), status, errors);
+    }
+
     private void replaceFields(UUID templateId, List<FieldWrite> fields, Instant now) {
         jdbc.update("DELETE FROM platform.form_template_field WHERE template_id = ?", templateId);
         for (int position = 0; position < fields.size(); position++) {
@@ -159,6 +183,8 @@ public class FormTemplateDraftService {
     public record FieldView(UUID id, String key, String label, String type, boolean required, JsonNode options, int position) { }
     public record TemplateView(UUID id, String code, String name, String description, String status,
             UUID runningVersionId, Instant createdAt, Instant updatedAt, long version, List<FieldView> fields) { }
+    public record ValidationError(UUID fieldId, String fieldKey, String code, String message) { }
+    public record ValidationResult(UUID templateId, boolean valid, String status, List<ValidationError> errors) { }
 
     private static final class TemplateRow {
         private final UUID id, runningVersionId;

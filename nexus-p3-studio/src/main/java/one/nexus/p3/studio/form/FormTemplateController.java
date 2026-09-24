@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,5 +48,11 @@ public class FormTemplateController {
             @PathVariable UUID id, @RequestBody FormTemplateDraftService.TemplateWrite request) {
         isolation.requirePlatformContext("form-template.update", PlatformDuty.SYSTEM_ADMIN);
         return templates.update(id, request);
+    }
+
+    @PostMapping("/{id}/validate")
+    public FormTemplateDraftService.ValidationResult validate(@PathVariable UUID id) {
+        isolation.requirePlatformContext("form-template.validate", PlatformDuty.SYSTEM_ADMIN);
+        return templates.validateDraft(id);
     }
 }
