@@ -11,6 +11,7 @@ vi.mock("../../api/client", () => ({
     createFormTemplate: vi.fn(),
     updateFormTemplate: vi.fn(),
     validateFormTemplate: vi.fn(),
+    publishFormTemplate: vi.fn(),
   },
 }));
 
@@ -36,6 +37,7 @@ describe("form template editor", () => {
     p1.createFormTemplate.mockReset();
     p1.updateFormTemplate.mockReset();
     p1.validateFormTemplate.mockReset();
+    p1.publishFormTemplate.mockReset();
   });
 
   it("shows an empty field list and keeps validate and publish disabled", async () => {
@@ -132,7 +134,7 @@ describe("form template editor", () => {
     });
     const wrapper = await mountAt("/p1/form-templates/tpl-1");
     expect(wrapper.get("[data-testid='template-validate']").attributes("disabled")).toBeUndefined();
-    expect(wrapper.get("[data-testid='template-publish']").attributes("disabled")).toBeDefined();
+    expect(wrapper.get("[data-testid='template-publish']").attributes("disabled")).toBeUndefined();
     await wrapper.get("[data-testid='template-validate']").trigger("click");
     await flushPromises();
     const errors = wrapper.findAll("[data-testid='field-error']").map((node) => node.text());
@@ -154,7 +156,38 @@ describe("form template editor", () => {
     expect(wrapper.get("[data-testid='template-validate-ok']").text()).toBe("校验通过");
     expect(wrapper.get("[data-testid='template-status']").text()).toContain("已校验");
     expect(wrapper.find("[data-testid='field-error']").exists()).toBe(false);
-    expect(wrapper.get("[data-testid='template-publish']").attributes("disabled")).toBeDefined();
+    expect(wrapper.get("[data-testid='template-publish']").attributes("disabled")).toBeUndefined();
+  });
+
+  it("confirms publish, shows the version, and keeps the server failure text", async () => {
+    p1.formTemplate.mockResolvedValue({
+      id: "tpl-1",
+      code: "leave",
+      name: "请假",
+      status: "VALIDATED",
+      fields: [{ key: "reason", label: "事由", type: "TEXT", required: true, options: null }],
+    });
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    await wrapper.get("[data-testid='template-publish']").trigger("click");
+    expect(wrapper.get("[data-testid='template-publish-confirm']").text()).toContain("确认发布");
+    expect(p1.publishFormTemplate).not.toHaveBeenCalled();
+    await wrapper.get("[data-testid='template-publish-cancel']").trigger("click");
+    expect(wrapper.find("[data-testid='template-publish-confirm']").exists()).toBe(false);
+
+    p1.publishFormTemplate.mockRejectedValueOnce(new Error("publish requires VALIDATED template status"));
+    await wrapper.get("[data-testid='template-publish']").trigger("click");
+    await wrapper.get("[data-testid='template-publish-submit']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='template-publish-error']").text()).toBe("publish requires VALIDATED template status");
+    expect(wrapper.find("[data-testid='template-publish-version']").exists()).toBe(false);
+
+    p1.publishFormTemplate.mockResolvedValueOnce({ templateId: "tpl-1", versionId: "ver-1", version: 2 });
+    await wrapper.get("[data-testid='template-publish']").trigger("click");
+    await wrapper.get("[data-testid='template-publish-submit']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='template-publish-version']").text()).toBe("已发布版本 2");
+    expect(wrapper.get("[data-testid='template-status']").text()).toContain("已发布");
+    expect(wrapper.router.currentRoute.value.fullPath).toBe("/p1/form-templates/tpl-1");
   });
 
   it("shows the server error text", async () => {

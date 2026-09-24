@@ -23,13 +23,14 @@
       <button class="ghost" type="button" data-testid="template-validate" :disabled="creating || validating" @click="validate">
         {{ validating ? "校验中…" : "校验" }}
       </button>
-      <button class="ghost" type="button" data-testid="template-publish" disabled>发布</button>
+      <button class="ghost" type="button" data-testid="template-publish" :disabled="creating || publishing" @click="openPublish">发布</button>
     </div>
     <p v-if="validation?.valid" class="ok" data-testid="template-validate-ok">校验通过</p>
+    <p v-if="publishedVersion != null" class="ok" data-testid="template-publish-version">已发布版本 {{ publishedVersion }}</p>
+    <p v-if="publishError" class="field-error" role="alert" data-testid="template-publish-error">{{ publishError }}</p>
     <ul v-if="formErrors.length" class="errors" data-testid="template-validate-errors">
       <li v-for="(message, index) in formErrors" :key="index">{{ message }}</li>
     </ul>
-    <p class="nx-muted">发布在后续步骤开放。</p>
   </section>
 
   <div class="editor">
@@ -87,6 +88,19 @@
       </fieldset>
     </section>
   </div>
+
+  <div v-if="publishConfirm" class="confirm-backdrop" data-testid="template-publish-confirm">
+    <section class="confirm-dialog nx-card" role="dialog" aria-modal="true" aria-labelledby="template-publish-title">
+      <h2 id="template-publish-title">确认发布？</h2>
+      <p>发布后生成不可变版本，已订阅租户不会自动升级。</p>
+      <div class="confirm-actions">
+        <button type="button" class="ghost" data-testid="template-publish-cancel" :disabled="publishing" @click="publishConfirm = false">取消</button>
+        <button type="button" class="primary" data-testid="template-publish-submit" :disabled="publishing" @click="publish">
+          {{ publishing ? "发布中…" : "确认发布" }}
+        </button>
+      </div>
+    </section>
+  </div>
 </template>
 
 <script setup>
@@ -119,6 +133,10 @@ const traceId = ref("");
 const saving = ref(false);
 const validating = ref(false);
 const validation = ref(null);
+const publishing = ref(false);
+const publishConfirm = ref(false);
+const publishError = ref("");
+const publishedVersion = ref(null);
 
 function statusLabel(value) {
   return ({ DRAFT: "草稿", VALIDATED: "已校验", PUBLISHED: "已发布", ARCHIVED: "已归档" })[value] || value || "暂无";
@@ -223,8 +241,33 @@ async function load() {
   }
 }
 
+function openPublish() {
+  if (creating.value || publishing.value) return;
+  publishError.value = "";
+  publishConfirm.value = true;
+}
+
+async function publish() {
+  if (creating.value || publishing.value) return;
+  publishing.value = true;
+  publishError.value = "";
+  try {
+    const result = await p1.publishFormTemplate(route.params.id);
+    publishedVersion.value = result?.version ?? null;
+    status.value = "PUBLISHED";
+    publishConfirm.value = false;
+  } catch (err) {
+    publishError.value = err?.message || "发布失败";
+    publishConfirm.value = false;
+  } finally {
+    publishing.value = false;
+  }
+}
+
 async function reload() {
   validation.value = null;
+  publishError.value = "";
+  publishedVersion.value = null;
   await load();
 }
 
@@ -255,6 +298,8 @@ async function save() {
       ? await p1.createFormTemplate(payload())
       : await p1.updateFormTemplate(route.params.id, payload());
     validation.value = null;
+    publishError.value = "";
+    publishedVersion.value = null;
     applyTemplate(saved);
     if (creating.value && saved?.id) {
       await router.replace(`/p1/form-templates/${saved.id}`);
@@ -279,6 +324,10 @@ onMounted(load);
 .field { display: grid; gap: 8px; margin: 12px 0; padding-top: 12px; border-top: 1px solid var(--nx-border, #e5eaf2); }
 .check { display: flex; gap: 8px; align-items: center; }
 .ok { margin: 0; color: var(--nx-success, #18794e); font-weight: 700; }
+.confirm-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 48%); }
+.confirm-dialog { width: min(100%, 440px); display: grid; gap: 12px; }
+.confirm-dialog h2, .confirm-dialog p { margin: 0; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .errors, .field-error { margin: 0; color: var(--nx-danger, #b42318); }
 .errors { padding-left: 18px; }
 .options { display: grid; gap: 8px; }
