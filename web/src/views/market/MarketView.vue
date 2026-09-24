@@ -1,61 +1,83 @@
 <template>
-  <div>
-    <NxPageHeader title="应用目录" description="发现已审核发布的应用，为当前租户选择 SKU 并安装。">
-      <template #actions><button class="ghost" type="button" @click="load">刷新目录</button></template>
+  <main class="market-page">
+    <NxPageHeader eyebrow="P4 · NEXUS MARKET" title="应用目录" description="发现已审核发布的应用，为当前租户选择 SKU 并安装。">
+      <template #actions><button class="ghost" type="button" :disabled="loading" @click="load">刷新目录</button></template>
     </NxPageHeader>
-    <div class="nx-row" style="margin-bottom:16px">
-      <span class="nx-muted">{{ items.length }} 个可用版本</span>
-    </div>
-    <p v-if="loading" class="nx-muted">正在加载…</p>
-    <p v-if="error" class="nx-error">{{ error }}</p>
-    <div v-if="!loading && !items.length" class="nx-card empty">暂无已发布应用</div>
-    <div class="nx-grid catalog">
-      <article v-for="item in items" :key="item.version.id" class="nx-card app-card">
-        <div class="badge">{{ item.app.code }}</div>
-        <h2>{{ item.app.name }}</h2>
-        <p>{{ item.app.summary || "暂无简介" }}</p>
-        <p class="nx-muted">版本 {{ item.version.version }}</p>
-        <div class="sku-list">
-          <button v-for="sku in item.skus" :key="sku.code" class="ghost" type="button" @click="install(sku.code, item.version.id)">
-            安装 {{ sku.name || sku.code }}
-          </button>
-        </div>
-      </article>
-    </div>
-  </div>
+
+    <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
+    <template v-else>
+      <section class="catalog-toolbar nx-card" aria-label="目录筛选">
+        <label class="search-field"><span>搜索应用</span><input v-model="search" type="search" placeholder="应用名称、编码、简介或 SKU" data-testid="catalog-search" /></label>
+        <p class="result-count" aria-live="polite">{{ loading ? "正在加载目录…" : `共 ${visibleItems.length} 个可用版本` }}</p>
+      </section>
+      <div v-if="loading" class="nx-card loading" role="status">正在加载应用目录…</div>
+      <NxEmpty v-else-if="!visibleItems.length" :title="items.length ? '没有匹配的应用' : '暂无已发布应用'" :description="items.length ? '请调整搜索词后重试。' : '应用审核并发布后，会出现在这里。'" />
+      <section v-else class="catalog-grid" aria-label="已发布应用目录" data-testid="catalog-grid">
+        <article v-for="item in visibleItems" :key="item.version.id" class="app-card">
+          <header class="card-header">
+            <div class="app-logo" role="img" aria-label="应用标识占位"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></div>
+            <div class="app-identity"><h2>{{ item.app.name || '暂无应用名称' }}</h2><span class="app-code">{{ item.app.code || '暂无编码' }}</span></div>
+            <NxStatusTag status="PUBLISHED" label="已发布" tone="success" />
+          </header>
+          <p class="summary">{{ item.app.summary || "暂无简介" }}</p>
+          <div class="version-row"><span>版本</span><strong>{{ item.version.version || '暂无' }}</strong></div>
+          <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span>{{ item.skus?.length || 0 }}</span></div>
+            <NxEmpty v-if="!item.skus?.length" title="暂无 SKU" description="当前版本没有可安装的 SKU。" compact />
+            <div v-else class="sku-list"><button v-for="sku in item.skus" :key="sku.code" class="install-button" type="button" :disabled="installing === sku.code" @click="install(sku.code, item.version.id)">{{ installing === sku.code ? '安装中…' : `安装 ${sku.name || sku.code}` }}</button></div>
+          </div>
+        </article>
+      </section>
+    </template>
+  </main>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
-import { NxPageHeader } from "../../components";
+import { computed, onMounted, ref } from "vue";
+import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 
-const items = ref([]);
-const loading = ref(false);
-const error = ref("");
+const items = ref([]); const loading = ref(true); const error = ref(""); const search = ref(""); const installing = ref("");
+const visibleItems = computed(() => {
+  const term = search.value.trim().toLocaleLowerCase();
+  if (!term) return items.value;
+  return items.value.filter((item) => [item.app?.name, item.app?.code, item.app?.summary, item.version?.version, ...(item.skus || []).flatMap((sku) => [sku.name, sku.code])]
+    .some((value) => String(value || "").toLocaleLowerCase().includes(term)));
+});
 
 async function load() {
   loading.value = true; error.value = "";
   try { items.value = (await p4.catalog()) || []; }
-  catch (err) { error.value = err.message; }
+  catch (err) { error.value = err.message || "应用目录暂时不可用"; }
   finally { loading.value = false; }
 }
-
 async function install(skuCode, versionId) {
   if (!session.tenantId) { error.value = "请先建立租户会话"; return; }
-  try { await p4.install(session.tenantId, { skuCode, versionId }); alert("安装完成，订阅权益已投影"); }
-  catch (err) { error.value = err.message; }
+  installing.value = skuCode; error.value = "";
+  try { await p4.install(session.tenantId, { skuCode, versionId }); window.alert("安装完成，订阅权益已投影"); }
+  catch (err) { error.value = err.message || "安装失败"; }
+  finally { installing.value = ""; }
 }
-
 onMounted(load);
 </script>
 
 <style scoped>
-.catalog { grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); }
-.app-card { min-height: 210px; display:flex; flex-direction:column; gap:8px; }
-.app-card h2,.app-card p { margin:0; }
-.badge { align-self:flex-start; padding:3px 8px; border-radius:999px; background:var(--nx-primary-light); color:var(--nx-product); font-size:12px; }
-.sku-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; }
-.empty { text-align:center; padding:48px; }
+.market-page { display: grid; gap: var(--nx-space-4); }
+.catalog-toolbar { display: flex; align-items: end; gap: var(--nx-space-4); box-shadow: none; }
+.search-field { display: grid; flex: 1; gap: var(--nx-space-1); max-width: 560px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.search-field input { width: 100%; min-height: 40px; padding: var(--nx-space-2) var(--nx-space-3); color: var(--nx-text-primary); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; }
+.result-count { margin: 0; color: var(--nx-text-secondary); white-space: nowrap; }
+.catalog-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,300px),1fr)); gap: var(--nx-space-4); align-items: stretch; }
+.app-card { display: flex; min-width: 0; flex-direction: column; gap: var(--nx-space-4); padding: var(--nx-space-5); background: var(--nx-surface); border: 1px solid var(--nx-border); border-radius: 12px; box-shadow: var(--nx-shadow-card); }
+.card-header { display: flex; align-items: center; gap: var(--nx-space-3); min-width: 0; }
+.app-logo { display: grid; flex: 0 0 48px; width: 48px; height: 48px; place-items: center; color: var(--nx-product); background: var(--nx-primary-light); border: 1px solid var(--nx-border); border-radius: 12px; }
+.app-logo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.app-identity { flex: 1; min-width: 0; }.app-identity h2 { margin: 0; overflow: hidden; color: var(--nx-text-primary); font-size: var(--nx-font-size-md); text-overflow: ellipsis; white-space: nowrap; }
+.app-code { display: block; margin-top: var(--nx-space-1); color: var(--nx-text-secondary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--nx-font-size-xs); }
+.summary { min-height: 42px; margin: 0; color: var(--nx-text-secondary); line-height: 1.5; }
+.version-row { display: flex; justify-content: space-between; padding: var(--nx-space-3) 0; color: var(--nx-text-secondary); border-top: 1px solid var(--nx-divider); border-bottom: 1px solid var(--nx-divider); font-size: var(--nx-font-size-sm); }.version-row strong { color: var(--nx-text-primary); }
+.sku-section { display: grid; gap: var(--nx-space-3); margin-top: auto; }.sku-heading { display: flex; align-items: center; justify-content: space-between; }.sku-heading h3 { margin: 0; font-size: var(--nx-font-size-sm); }.sku-heading span { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.sku-list { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }.install-button,.ghost { min-height: 36px; padding: 0 var(--nx-space-3); color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; cursor: pointer; }.install-button:hover,.ghost:hover { color: var(--nx-product); border-color: var(--nx-product); }.install-button:disabled,.ghost:disabled { opacity: .55; cursor: not-allowed; }
+.loading { padding: var(--nx-space-6); color: var(--nx-text-secondary); }
+@media(max-width:640px) { .catalog-toolbar { align-items: stretch; flex-direction: column; }.result-count { align-self: flex-start; } }
 </style>
