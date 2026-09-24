@@ -16,7 +16,8 @@ import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * Demo-path bootstrap: role {@code tenant_member} with ledger/form read+write ALL,
- * process.task read/approve/reject, and process.instance start/withdraw, assigned to
+ * process.task read/approve/reject, process.instance start/withdraw, and
+ * process.definition read/write, assigned to
  * the current person id
  * (M0-05 {@code IamSubjectDirectory} uses personId as userId; position
  * {@code TENANT_ADMIN} codes do not match).
@@ -46,7 +47,9 @@ public class TenantMemberGrantSeeder {
             new String[] {"process.task", "approve"},
             new String[] {"process.task", "reject"},
             new String[] {"process.instance", "start"},
-            new String[] {"process.instance", "withdraw"});
+            new String[] {"process.instance", "withdraw"},
+            new String[] {"process.definition", "read"},
+            new String[] {"process.definition", "write"});
 
     private final PermissionModule permission;
     private final ConcurrentHashMap<UUID, Object> locks = new ConcurrentHashMap<>();

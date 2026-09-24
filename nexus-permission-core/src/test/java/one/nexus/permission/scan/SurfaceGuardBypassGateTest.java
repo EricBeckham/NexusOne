@@ -123,6 +123,7 @@ class SurfaceGuardBypassGateTest {
         assertTrue(SurfaceGuardBypassAllowlist.UNGUARDED_P3_LEFTOVER_PATHS.isEmpty());
         assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("SurfaceGuard"));
         assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("TodoSurfaceGuard"));
+        assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("ProcessDefinitionSurfaceGuard"));
         assertFalse(
                 SurfaceGuardBypassAllowlist.PRODUCT_SOURCE_ROOTS.contains("poc"),
                 "poc is not a product source root");

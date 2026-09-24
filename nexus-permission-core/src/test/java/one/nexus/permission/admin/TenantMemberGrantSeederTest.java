@@ -66,6 +66,8 @@ class TenantMemberGrantSeederTest {
         assertTrue(module.service().decide("process.task", "reject").allowed());
         assertTrue(module.service().decide("process.instance", "start").allowed());
         assertTrue(module.service().decide("process.instance", "withdraw").allowed());
+        assertTrue(module.service().decide("process.definition", "read").allowed());
+        assertTrue(module.service().decide("process.definition", "write").allowed());
         assertTrue(policies.listAssignments(tenant).stream()
                 .noneMatch(item -> "TENANT_ADMIN".equals(item.principalId())));
     }
