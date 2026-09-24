@@ -32,10 +32,17 @@ public class MarketController {
     @GetMapping("/catalog") List<CatalogItem> catalog(){return service.catalog();}
     @PostMapping("/tenants/{tenantId}/installations") @ResponseStatus(HttpStatus.CREATED)
     Installation install(@PathVariable UUID tenantId,@RequestBody Install request){return service.subscribeAndInstall(tenantId,request.skuCode(),request.versionId());}
+    @PostMapping("/tenants/{tenantId}/subscriptions") @ResponseStatus(HttpStatus.CREATED)
+    Installation selfSubscribe(@PathVariable UUID tenantId,@RequestBody Install request){
+        return service.subscribeProduct(tenantId,request.skuCode(),request.versionId());
+    }
     @GetMapping("/subscriptions") List<Subscription> subscriptions(){return service.subscriptions();}
     @GetMapping("/subscriptions/{id}") Subscription subscription(@PathVariable UUID id){return service.getSubscription(id);}
     @GetMapping("/installations") List<Installation> installations(){return service.installations();}
     @GetMapping("/installations/{id}") Installation installationRead(@PathVariable UUID id){return service.getInstallation(id);}
+    @GetMapping("/installations/{id}/product-pin") InstallationProductPin installationProductPin(@PathVariable UUID id){
+        return service.installationProductPin(id);
+    }
     @PostMapping("/installations/{id}/upgrade") Installation upgrade(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/rollback") Installation rollback(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/uninstall") Installation uninstall(@PathVariable UUID id){return service.uninstall(id);}

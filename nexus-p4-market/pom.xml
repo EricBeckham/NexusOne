@@ -22,6 +22,10 @@
     </dependency>
     <dependency>
       <groupId>one.nexus</groupId>
+      <artifactId>nexus-p2-iam</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>one.nexus</groupId>
       <artifactId>nexus-p3-studio</artifactId>
     </dependency>
     <dependency>
