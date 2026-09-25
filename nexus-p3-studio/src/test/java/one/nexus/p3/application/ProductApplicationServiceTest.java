@@ -19,11 +19,11 @@ import one.nexus.p3.flow.SequentialApprovalService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.jdbc.core.JdbcTemplate;
+import one.nexus.p3.port.ProductApplicationStore;
 import tools.jackson.databind.ObjectMapper;
 
 class ProductApplicationServiceTest {
-    private final JdbcTemplate jdbc = mock(JdbcTemplate.class);
+    private final ProductApplicationStore store = mock(ProductApplicationStore.class);
     private final PinnedProductApplicationValidationService validation = mock(PinnedProductApplicationValidationService.class);
     private final SequentialApprovalService approvals = mock(SequentialApprovalService.class);
     @SuppressWarnings("unchecked")
@@ -31,7 +31,7 @@ class ProductApplicationServiceTest {
     @SuppressWarnings("unchecked")
     private final ObjectProvider<ApprovalCommentStore> comments = mock(ObjectProvider.class);
     private final ProductApplicationService service = new ProductApplicationService(
-            jdbc, new ObjectMapper(), validation, approvals, audit, comments);
+            store, new ObjectMapper(), validation, approvals, audit, comments);
 
     @AfterEach void clearContexts() {
         AccessContextHolder.clear();
@@ -57,6 +57,6 @@ class ProductApplicationServiceTest {
                 () -> service.create(installationId, new ObjectMapper().readTree("{\"name\":\"\"}")));
 
         verify(validation).validate(org.mockito.ArgumentMatchers.eq(installationId), org.mockito.ArgumentMatchers.any());
-        verifyNoInteractions(jdbc, approvals);
+        verifyNoInteractions(store, approvals);
     }
 }

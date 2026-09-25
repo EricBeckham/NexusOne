@@ -22,7 +22,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
+import one.nexus.p3.port.ProductApplicationStore;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -30,7 +30,7 @@ class ProductApplicationCrossTenantTest {
     private final UUID tenantA = UUID.randomUUID();
     private final UUID tenantB = UUID.randomUUID();
     private final UUID installationB = UUID.randomUUID();
-    private final JdbcTemplate jdbc = mock(JdbcTemplate.class);
+    private final ProductApplicationStore store = mock(ProductApplicationStore.class);
     private final PinnedProductApplicationValidationService validation = mock(PinnedProductApplicationValidationService.class);
     private final SequentialApprovalService approvals = mock(SequentialApprovalService.class);
     @SuppressWarnings("unchecked")
@@ -51,13 +51,13 @@ class ProductApplicationCrossTenantTest {
         when(validation.validate(eq(installationB), any()))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found"));
         ProductApplicationService service = new ProductApplicationService(
-                jdbc, new ObjectMapper(), validation, approvals, audit, comments);
+                store, new ObjectMapper(), validation, approvals, audit, comments);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> service.create(installationB, new ObjectMapper().readTree("{\"title\":\"cross-tenant\"}")));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         verify(validation).validate(eq(installationB), any());
-        verifyNoInteractions(jdbc, approvals);
+        verifyNoInteractions(store, approvals);
     }
 }

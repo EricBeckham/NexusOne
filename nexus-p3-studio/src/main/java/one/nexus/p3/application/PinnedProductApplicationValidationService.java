@@ -12,9 +12,9 @@ import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.domain.Model;
+import one.nexus.p3.port.ProductApplicationStore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,14 +26,14 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 @ConditionalOnBean({IdentityRepository.class, FileObjectRepository.class})
 public class PinnedProductApplicationValidationService {
-    private final JdbcTemplate jdbc;
+    private final ProductApplicationStore store;
     private final ObjectMapper mapper;
     private final IdentityRepository identities;
     private final FileObjectRepository files;
 
-    public PinnedProductApplicationValidationService(JdbcTemplate jdbc, ObjectMapper mapper,
+    public PinnedProductApplicationValidationService(ProductApplicationStore store, ObjectMapper mapper,
             IdentityRepository identities, FileObjectRepository files) {
-        this.jdbc = jdbc;
+        this.store = store;
         this.mapper = mapper;
         this.identities = identities;
         this.files = files;
@@ -42,17 +42,10 @@ public class PinnedProductApplicationValidationService {
     @Transactional(readOnly = true)
     public ValidationResult validate(UUID installationId, JsonNode values) {
         UUID tenantId = currentTenantId();
-        PinnedVersion pin = jdbc.query("""
-                SELECT p.form_template_version_id, p.product_definition_id
-                  FROM market.installation_product_pin p
-                  JOIN market.installation i ON i.id=p.installation_id
-                 WHERE p.installation_id=? AND i.tenant_id=? AND i.status='INSTALLED'
-                """, rs -> rs.next() ? new PinnedVersion(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class)) : null,
-                installationId, tenantId);
-        if (pin == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found");
-        String snapshot = jdbc.query("SELECT fields_snapshot::text FROM platform.form_template_version WHERE id=?",
-                rs -> rs.next() ? rs.getString(1) : null, pin.formTemplateVersionId());
-        if (snapshot == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "pinned form template snapshot is missing");
+        ProductApplicationStore.InstalledPin pin = store.findInstalledPin(tenantId, installationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found"));
+        String snapshot = store.formTemplateSnapshot(pin.formTemplateVersionId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "pinned form template snapshot is missing"));
         List<ProductApplicationValuesValidator.Field> fields = parseFields(snapshot);
         List<ProductApplicationValuesValidator.FieldError> errors = ProductApplicationValuesValidator.validate(
                 tenantId, fields, values, new ProductApplicationValuesValidator.TenantValueOwnership() {
@@ -100,7 +93,6 @@ public class PinnedProductApplicationValidationService {
         catch (IllegalArgumentException ex) { throw new ResponseStatusException(HttpStatus.FORBIDDEN,"invalid tenant context"); }
     }
 
-    private record PinnedVersion(UUID formTemplateVersionId, UUID productDefinitionId) { }
     public record ValidationResult(UUID installationId, UUID productDefinitionId, UUID formTemplateVersionId,
             boolean valid, List<ProductApplicationValuesValidator.FieldError> errors) { }
 }
