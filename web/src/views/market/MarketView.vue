@@ -33,11 +33,13 @@
         <article v-for="item in visibleItems" :key="item.version.id" class="app-card">
           <header class="card-header">
             <div class="app-logo" role="img" aria-label="应用标识占位"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></div>
-            <div class="app-identity"><h2>{{ item.app.name || '暂无应用名称' }}</h2><span class="app-code">{{ item.app.code || '暂无编码' }}</span></div>
-            <NxStatusTag status="PUBLISHED" label="已发布" tone="success" />
+            <div class="app-identity">
+              <h2 :title="item.app.name">{{ item.app.name || '暂无应用名称' }}</h2>
+              <p class="app-meta"><code>{{ item.app.code || '暂无编码' }}</code><span aria-hidden="true">·</span><span data-testid="catalog-version">版本 {{ item.version.version || '暂无' }}</span></p>
+            </div>
+            <NxStatus class="card-badge" :label="cardBadge(item).label" :tone="cardBadge(item).tone" data-testid="catalog-card-badge" />
           </header>
-          <p class="summary">{{ item.app.summary || "暂无简介" }}</p>
-          <div class="version-row"><span>版本</span><strong>{{ item.version.version || '暂无' }}</strong></div>
+          <p class="summary" :title="item.app.summary">{{ item.app.summary || "暂无简介" }}</p>
           <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span data-testid="catalog-sku-count">{{ catalogSkus(item).length }} 个</span></div>
             <NxEmpty v-if="!catalogSkus(item).length" title="暂无 SKU" description="当前版本没有可安装的 SKU。" compact />
             <ul v-else class="sku-list">
@@ -49,13 +51,13 @@
                   <div v-if="sku.entitlements.length" class="sku-chips"><span v-for="chip in sku.entitlements" :key="chip">{{ chip }}</span></div>
                 </div>
                 <div v-if="subscribedSkus.has(sku.code)" class="subscribed" data-testid="catalog-subscribed">
-                  <span class="subscribed-chip">已开通</span>
-                  <router-link class="install-button" to="/p4/installations">前往我的已开通</router-link>
+                  <NxStatus label="已开通" tone="success" />
+                  <router-link class="nx-btn nx-btn--text" to="/p4/installations">前往我的已开通</router-link>
                 </div>
                 <button
                   v-else
-                  class="install-button"
-                  :class="{ ready: sku.code && sku.definition }"
+                  class="install-button nx-btn nx-btn--sm"
+                  :class="sku.code && sku.definition ? ['ready', 'nx-btn--primary'] : 'nx-btn--default'"
                   type="button"
                   data-testid="catalog-subscribe"
                   :aria-label="`订阅开通 ${sku.name || sku.code}`"
@@ -74,7 +76,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxFilterBar, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxFilterBar, NxPageHeader, NxSkeleton } from "../../components";
+import NxStatus from "../../components/NxStatus.vue";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 import { catalogSkus } from "./catalogSku";
@@ -100,6 +103,14 @@ async function loadSubscriptions() {
     subscribedSkus.value = new Set(); // Unknown: keep offering subscribe; the 409 alert still explains duplicates.
   }
 }
+// Q7: the corner badge says what the tenant can do with the app — every catalog entry is already published.
+function cardBadge(item) {
+  const skus = catalogSkus(item);
+  if (skus.some((sku) => subscribedSkus.value.has(sku.code))) return { label: "已开通", tone: "success" };
+  if (skus.some((sku) => sku.code && sku.definition)) return { label: "可开通", tone: "info" };
+  return { label: "暂不可开通", tone: "neutral" };
+}
+
 const search = ref(typeof route.query.q === "string" ? route.query.q : "");
 const visibleItems = computed(() => {
   const term = search.value.trim().toLocaleLowerCase();
@@ -147,17 +158,18 @@ onMounted(load);
 .market-page { display: grid; gap: var(--nx-space-4); }
 .catalog-skeleton { display: grid; gap: var(--nx-space-3); }
 .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,300px),1fr)); gap: var(--nx-space-4); align-items: stretch; }
-.app-card { display: flex; min-width: 0; flex-direction: column; gap: var(--nx-space-4); padding: var(--nx-space-5); background: var(--nx-surface); border: 1px solid var(--nx-border); border-radius: 12px; box-shadow: var(--nx-shadow-card); }
-.card-header { display: flex; align-items: center; gap: var(--nx-space-3); min-width: 0; }
-.app-logo { display: grid; flex: 0 0 48px; width: 48px; height: 48px; place-items: center; color: var(--nx-product); background: var(--nx-primary-light); border: 1px solid var(--nx-border); border-radius: 12px; }
-.app-logo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; }
-.app-identity { flex: 1; min-width: 0; }.app-identity h2 { margin: 0; overflow: hidden; color: var(--nx-text-primary); font-size: var(--nx-font-size-md); text-overflow: ellipsis; white-space: nowrap; }
-.app-code { display: block; margin-top: var(--nx-space-1); color: var(--nx-text-secondary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--nx-font-size-xs); }
-.summary { min-height: 42px; margin: 0; color: var(--nx-text-secondary); line-height: 1.5; }
-.version-row { display: flex; justify-content: space-between; padding: var(--nx-space-3) 0; color: var(--nx-text-secondary); border-top: 1px solid var(--nx-divider); border-bottom: 1px solid var(--nx-divider); font-size: var(--nx-font-size-sm); }.version-row strong { color: var(--nx-text-primary); }
-.sku-section { display: grid; gap: var(--nx-space-3); margin-top: auto; }.sku-heading { display: flex; align-items: center; justify-content: space-between; }.sku-heading h3 { margin: 0; font-size: var(--nx-font-size-sm); }.sku-heading span { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.app-card { display: flex; min-width: 0; flex-direction: column; gap: var(--nx-space-3); padding: var(--nx-space-4); background: var(--nx-surface); border: 1px solid var(--nx-border); border-radius: 12px; box-shadow: var(--nx-shadow-card); }
+.card-header { display: flex; align-items: flex-start; gap: var(--nx-space-3); min-width: 0; }
+.card-badge { flex: none; }
+.app-logo { display: grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; color: var(--nx-product); background: var(--nx-product-light, var(--nx-primary-light)); border-radius: 10px; }
+.app-logo svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.app-identity { flex: 1; min-width: 0; }.app-identity h2 { margin: 0; overflow: hidden; color: var(--nx-text-primary); font-size: 16px; font-weight: 600; line-height: 24px; text-overflow: ellipsis; white-space: nowrap; }
+.app-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 0; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.app-meta code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--nx-font-size-xs); }
+.summary { display: -webkit-box; margin: 0; overflow: hidden; color: var(--nx-text-regular); font-size: var(--nx-font-size-sm); line-height: 1.5; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sku-section { display: grid; gap: var(--nx-space-2); margin-top: auto; padding-top: var(--nx-space-3); border-top: 1px solid var(--nx-divider); }.sku-heading { display: flex; align-items: center; justify-content: space-between; }.sku-heading h3 { margin: 0; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); font-weight: 500; }.sku-heading span { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .sku-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--nx-space-2); }
-.sku-item { display: flex; align-items: center; justify-content: space-between; gap: var(--nx-space-3); padding: var(--nx-space-3); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
+.sku-item { display: flex; align-items: center; justify-content: space-between; gap: var(--nx-space-3); padding: var(--nx-space-2) var(--nx-space-3); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
 .sku-meta { display: grid; gap: 4px; min-width: 0; }
 .sku-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nx-space-2); }
 .sku-title strong { color: var(--nx-text-primary); font-size: var(--nx-font-size-sm); }
@@ -170,11 +182,9 @@ onMounted(load);
 .sku-item { flex-wrap: wrap; }
 .sku-item .sku-meta { flex: 1 1 200px; }
 .sku-item .install-button { flex: none; display: inline-flex; align-items: center; text-decoration: none; }
-/* The one primary action on a subscribable SKU (N1); disabled / unbound SKUs stay outlined. */
-.install-button.ready:not(:disabled) { color: #fff; background: var(--nx-product); border-color: var(--nx-product); font-weight: 600; }
-.install-button.ready:not(:disabled):hover { color: #fff; background: var(--nx-product); border-color: var(--nx-product); filter: brightness(0.93); }
+/* The one primary action on a subscribable SKU (N1) uses O3 .nx-btn--primary; unbound SKUs stay .nx-btn--default. */
+.install-button.ready:not(:disabled):hover { filter: brightness(0.93); }
 .subscribed { display: flex; flex: none; align-items: center; gap: var(--nx-space-2); }
-.subscribed-chip { padding: 2px 10px; border-radius: var(--nx-radius-pill); font-size: var(--nx-font-size-xs); font-weight: 600; color: var(--nx-success); background: var(--nx-success-light); }
 .subscribe-failure { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); padding: var(--nx-space-3) var(--nx-space-4); border: 1px solid color-mix(in srgb, var(--nx-danger) 30%, white); border-left: 4px solid var(--nx-danger); border-radius: var(--nx-radius-sm); background: var(--nx-danger-light); }
 .failure-body { display: grid; gap: 4px; min-width: 0; }
 .failure-body strong { color: var(--nx-danger); }
@@ -182,6 +192,6 @@ onMounted(load);
 .failure-body .server-message { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); overflow-wrap: anywhere; }
 .failure-body code { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .failure-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }
-.failure-actions .primary { min-height: 36px; padding: 0 var(--nx-space-3); border-radius: 8px; }.install-button,.ghost { min-height: 36px; padding: 0 var(--nx-space-3); color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; cursor: pointer; }.install-button:hover,.ghost:hover { color: var(--nx-product); border-color: var(--nx-product); }.install-button:disabled,.ghost:disabled { opacity: .55; cursor: not-allowed; }
+.ghost:hover:not(:disabled), .nx-btn--default:hover:not(:disabled) { color: var(--nx-product); border-color: var(--nx-product); }
 .loading { padding: var(--nx-space-6); color: var(--nx-text-secondary); }
 </style>

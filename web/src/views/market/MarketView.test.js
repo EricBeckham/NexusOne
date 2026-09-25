@@ -44,7 +44,10 @@ describe("P4 catalog V11", () => {
   it("renders published catalog cards and filters without category data", async () => {
     const wrapper = await mountCatalog();
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("星辰 CRM");
-    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("已发布");
+    // Q7: the corner badge is what the tenant can do (all entries are published); version sits in the title meta.
+    expect(wrapper.findAll('[data-testid="catalog-card-badge"]').map((node) => node.text())).toEqual(["可开通", "暂不可开通"]);
+    expect(wrapper.findAll('[data-testid="catalog-version"]').map((node) => node.text())).toEqual(["版本 1.2.0", "版本 2.0.0"]);
+    expect(wrapper.get(".app-identity h2").text()).toBe("星辰 CRM");
     expect(wrapper.get(".app-logo").attributes("aria-label")).toBe("应用标识占位");
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("暂无 SKU");
     expect(wrapper.text()).not.toContain("分类");
@@ -97,11 +100,13 @@ describe("P4 catalog V11", () => {
     expect(sku.find('[data-testid="catalog-subscribe"]').exists()).toBe(false);
     expect(sku.get('[data-testid="catalog-subscribed"]').text()).toContain("已开通");
     expect(sku.get('[data-testid="catalog-subscribed"] a').attributes("href")).toBe("/p4/installations");
+    expect(subscribed.get('[data-testid="catalog-card-badge"]').text()).toBe("已开通");
     subscribed.unmount();
 
     mocks.subscriptions.mockResolvedValue([{ id: "sub-1", sku_code: "basic", status: "CANCELLED" }]);
     const open = await mountCatalog();
     expect(open.get('[data-testid="catalog-subscribe"]').classes()).toContain("ready");
+    expect(open.get('[data-testid="catalog-subscribe"]').classes()).toContain("nx-btn--primary");
     open.unmount();
 
     mocks.subscriptions.mockRejectedValue(new Error("TenantContext is required"));
