@@ -104,6 +104,42 @@ describe("P4 catalog V11", () => {
     expect(mocks.subscribe).not.toHaveBeenCalled();
   });
 
+  it("keeps the catalog on a subscribe failure, explains it, and retries the same SKU", async () => {
+    mocks.subscribe.mockRejectedValueOnce(Object.assign(new Error("catalog SKU has no product definition"), {
+      status: 404, code: "CORE.API.0002", traceId: "trace-h6",
+    }));
+    const wrapper = await mountCatalog();
+    await wrapper.get('[data-testid="catalog-subscribe"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="catalog-grid"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nx-error-state"]').exists()).toBe(false);
+    const failure = wrapper.get('[data-testid="subscribe-failure"]');
+    expect(failure.text()).toContain("订阅开通失败：基础版");
+    expect(failure.get('[data-testid="subscribe-failure-hint"]').text()).toContain("绑定产品定义");
+    expect(failure.get('[data-testid="subscribe-failure-server"]').text()).toContain("catalog SKU has no product definition");
+    expect(failure.get('[data-testid="subscribe-failure-trace"]').text()).toContain("trace-h6");
+    expect(wrapper.text()).not.toContain("Internal error");
+
+    mocks.subscribe.mockResolvedValueOnce({ id: "install-1" });
+    await failure.get('[data-testid="subscribe-retry"]').trigger("click");
+    await flushPromises();
+    expect(mocks.subscribe).toHaveBeenCalledTimes(2);
+    expect(mocks.subscribe).toHaveBeenLastCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
+    expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
+  });
+
+  it("links a duplicate subscription to 我的已开通 without a retry button", async () => {
+    mocks.subscribe.mockRejectedValueOnce(Object.assign(new Error("tenant already has an active subscription for this SKU"), { status: 409 }));
+    const wrapper = await mountCatalog();
+    await wrapper.get('[data-testid="catalog-subscribe"]').trigger("click");
+    await flushPromises();
+    const failure = wrapper.get('[data-testid="subscribe-failure"]');
+    expect(failure.find('[data-testid="subscribe-retry"]').exists()).toBe(false);
+    expect(failure.get("a").attributes("href")).toBe("/p4/installations");
+    await failure.get('[data-testid="subscribe-dismiss"]').trigger("click");
+    expect(wrapper.find('[data-testid="subscribe-failure"]').exists()).toBe(false);
+  });
+
   it("shows empty and the server failure text", async () => {
     mocks.catalog.mockResolvedValueOnce([]);
     const empty = await mountCatalog();
