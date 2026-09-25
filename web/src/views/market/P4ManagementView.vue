@@ -102,8 +102,8 @@ const apps = ref([]); const skus = ref([]); const subscriptions = ref([]); const
 const versionsByApp = reactive({}); const selectedApp = ref(null); const versions = ref([]);
 const targets = reactive({}); const loading = ref(true); const error = ref(""); const notice = ref(""); const busyId = ref("");
 const section = computed(() => ({ "p4-packages": "packages", "p4-skus": "skus", "p4-subscriptions": "subscriptions", "p4-installations": "installations" })[route.name] || "packages");
-const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "Product / SKU", to: "/p4/skus" }, { label: "订阅", to: "/p4/subscriptions" }, { label: "我的已开通", to: "/p4/installations" }];
-const titles = { packages: ["应用包", "浏览应用包、版本与发布状态；未提供的包内容或声明保持明确空态。"], skus: ["Product / SKU", "Product 对应应用，SKU 单独维护权益与配额定义。"], subscriptions: ["订阅", "查看当前租户的订阅周期、状态与关联安装。"], installations: ["我的已开通", "无支付、即时开通后的产品记录。升级仍提交到已发布版本。"] };
+const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "商品与 SKU", to: "/p4/skus" }, { label: "订阅", to: "/p4/subscriptions" }, { label: "我的已开通", to: "/p4/installations" }];
+const titles = { packages: ["应用包", "浏览应用包、版本与发布状态；未提供的包内容或声明保持明确空态。"], skus: ["商品与 SKU", "Product 对应应用，SKU 单独维护权益与配额定义。"], subscriptions: ["订阅", "查看当前租户的订阅周期、状态与关联安装。"], installations: ["我的已开通", "无支付、即时开通后的产品记录。升级仍提交到已发布版本。"] };
 const title = computed(() => titles[section.value][0]); const description = computed(() => titles[section.value][1]);
 const upgradeSteps = ["Precheck", "Dependency", "Schema Expand/Migrate", "Config", "Switch", "Verify"];
 

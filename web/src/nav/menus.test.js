@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { PRODUCTS } from "./products";
 import { NAV_BY_PRODUCT, collectLinks, menuDepth, navFor } from "./index";
 
@@ -59,20 +59,36 @@ describe("product shell menus", () => {
 
     expect(links).toEqual([
       "/p3",
-      "/p3/ledgers",
-      "/p3/forms",
       "/p3/todos",
-      "/p3/reports",
-      "/p3/dumps",
-      "/p3/exports/wizard",
+      "/p3/forms",
+      "/p3/ledgers",
       "/p3/notifications",
-      "/p3/audit",
       "/p3/workflow",
       "/p3/publish-center",
+      "/p3/reports",
+      "/p3/exports/wizard",
+      "/p3/dumps",
+      "/p3/audit",
     ]);
     expect(links.every((link) => link === "/p3" || link.startsWith("/p3/"))).toBe(true);
     expect(items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([]);
     expect(items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
+  });
+
+  it("groups every product menu into contiguous titled sections after 首页 (O8)", () => {
+    for (const [id, items] of Object.entries(NAV_BY_PRODUCT)) {
+      expect(items[0].section, id).toBeUndefined();
+      const seen = [];
+      for (const item of items.slice(1)) {
+        if (!item.section) continue;
+        if (seen.at(-1) !== item.section) {
+          expect(seen, `${id} ${item.section} is split`).not.toContain(item.section);
+          seen.push(item.section);
+        }
+      }
+      expect(seen.length, id).toBeGreaterThanOrEqual(1);
+    }
+    expect([...new Set(navFor("p4").map((item) => item.section).filter(Boolean))]).toEqual(["目录与开通", "商品配置"]);
   });
 
   it("keeps P4 and P5 navigation product-scoped with only implemented links", () => {
@@ -81,12 +97,12 @@ describe("product shell menus", () => {
     const p4Links = collectLinks(p4Items);
     const p5Links = collectLinks(p5Items);
 
-    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/packages", "/p4/skus", "/p4/product-definitions", "/p4/subscriptions", "/p4/installations", "/p4/entitlements"]);
+    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/installations", "/p4/subscriptions", "/p4/packages", "/p4/skus", "/p4/product-definitions", "/p4/entitlements"]);
     expect(p5Links).toEqual(["/p5", "/p5/connect", "/p5/apis", "/p5/clients", "/p5/webhooks", "/p5/connectors", "/p5/credentials", "/p5/call-logs"]);
     expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
     expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
     expect(p4Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([
-      "运营分析（后续）",
+      "运营分析",
     ]);
     expect(p5Items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([]);
     expect(p4Items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
