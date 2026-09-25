@@ -124,7 +124,7 @@
                 <code class="field-key" :class="{ missing: !field.key }">{{ field.key || "未设置 key" }}</code>
               </div>
               <div class="control" aria-hidden="true"><FieldControl :field="field" /></div>
-              <p v-for="(message, messageIndex) in fieldErrors(field)" :key="messageIndex" class="field-error" data-testid="field-error">{{ message }}</p>
+              <p v-for="(message, messageIndex) in fieldErrors(field)" :key="messageIndex" class="nx-field-error" data-testid="field-error">{{ message }}</p>
             </div>
             <div class="card-actions">
               <button type="button" class="icon-btn" data-testid="move-up" aria-label="上移" title="上移" :disabled="index === 0" @click.stop="shift(index, -1)">
@@ -151,12 +151,12 @@
 
       <div v-show="tab === 'field'" data-testid="field-properties" role="tabpanel">
         <template v-if="selected">
-          <label class="nx-field"><span>名称<em class="req" aria-hidden="true">*</em></span><input v-model="selected.label" data-testid="field-label" maxlength="160" required :aria-invalid="!!localFieldError(selected, 'label')" />
-            <small v-if="localFieldError(selected, 'label')" class="field-error" data-testid="field-label-error">{{ localFieldError(selected, "label") }}</small>
+          <label class="nx-field"><span>名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="selected.label" data-testid="field-label" maxlength="160" required :aria-invalid="!!localFieldError(selected, 'label')" />
+            <small v-if="localFieldError(selected, 'label')" class="nx-field-error" data-testid="field-label-error">{{ localFieldError(selected, "label") }}</small>
           </label>
-          <label class="nx-field"><span>字段 key<em class="req" aria-hidden="true">*</em></span>
+          <label class="nx-field"><span>字段 key<em class="nx-req" aria-hidden="true">*</em></span>
             <input v-model="selected.key" class="nx-code" data-testid="field-key" maxlength="80" required :aria-invalid="!!localFieldError(selected, 'key')" />
-            <small v-if="localFieldError(selected, 'key')" class="field-error" data-testid="field-key-error">{{ localFieldError(selected, "key") }}</small>
+            <small v-if="localFieldError(selected, 'key')" class="nx-field-error" data-testid="field-key-error">{{ localFieldError(selected, "key") }}</small>
             <small class="hint">小写字母开头，仅小写字母、数字、下划线；同一模板内唯一</small>
           </label>
           <label class="nx-field">类型
@@ -182,7 +182,7 @@
               <NxIcon name="plus" :size="16" />添加选项
             </button>
           </div>
-          <p v-for="(message, messageIndex) in fieldErrors(selected)" :key="`e${messageIndex}`" class="field-error" data-testid="field-prop-error">{{ message }}</p>
+          <p v-for="(message, messageIndex) in fieldErrors(selected)" :key="`e${messageIndex}`" class="nx-field-error" data-testid="field-prop-error">{{ message }}</p>
           <button class="ghost small remove" type="button" data-testid="remove-selected" @click="removeField(fields.indexOf(selected))">
             <NxIcon name="trash" :size="16" />删除此字段
           </button>
@@ -194,11 +194,11 @@
       </div>
 
       <div v-show="tab === 'template'" role="tabpanel" data-testid="template-settings">
-        <label class="nx-field"><span>编码<em class="req" aria-hidden="true">*</em></span><input v-model="code" class="nx-code" data-testid="template-code" maxlength="80" required :aria-invalid="!!templateErrors.code" />
-          <small v-if="templateErrors.code" class="field-error" data-testid="template-code-error">{{ templateErrors.code }}</small>
+        <label class="nx-field"><span>编码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="code" class="nx-code" data-testid="template-code" maxlength="80" required :aria-invalid="!!templateErrors.code" />
+          <small v-if="templateErrors.code" class="nx-field-error" data-testid="template-code-error">{{ templateErrors.code }}</small>
         </label>
-        <label class="nx-field"><span>名称<em class="req" aria-hidden="true">*</em></span><input v-model="name" data-testid="template-name" maxlength="160" required :aria-invalid="!!templateErrors.name" />
-          <small v-if="templateErrors.name" class="field-error" data-testid="template-name-error">{{ templateErrors.name }}</small>
+        <label class="nx-field"><span>名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="name" data-testid="template-name" maxlength="160" required :aria-invalid="!!templateErrors.name" />
+          <small v-if="templateErrors.name" class="nx-field-error" data-testid="template-name-error">{{ templateErrors.name }}</small>
         </label>
         <label class="nx-field">说明<textarea v-model="description" data-testid="template-description" rows="3" /></label>
       </div>
@@ -661,7 +661,6 @@ onMounted(load);
   color: var(--nx-danger);
   background: var(--nx-danger-light);
 }
-.field-error { margin: 4px 0 0; color: var(--nx-danger); font-size: var(--nx-font-size-sm); }
 
 .designer {
   display: grid;
@@ -772,9 +771,7 @@ onMounted(load);
 .card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
 .field-name { font-weight: 600; color: var(--nx-text-primary); }
 .field-name em { color: var(--nx-danger); font-style: normal; margin-left: 2px; }
-.req { color: var(--nx-danger); font-style: normal; margin-left: 2px; }
 .invalid-count { color: var(--nx-danger); }
-[aria-invalid="true"] { border-color: var(--nx-danger); }
 .type-chip {
   display: inline-flex;
   align-items: center;

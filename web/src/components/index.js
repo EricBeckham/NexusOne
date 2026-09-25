@@ -11,3 +11,5 @@ export { default as NxPageHeader } from "./NxPageHeader.vue";
 export { default as NxRequestAlert } from "./NxRequestAlert.vue";
 export { default as NxStatCard } from "./NxStatCard.vue";
 export { default as NxStatusTag } from "./NxStatusTag.vue";
+/** O4: shared required / field-error class names for Q/R reuse. */
+export { FORM_FIELD_CLASSES, FORM_FIELD_EXAMPLE } from "../styles/formField.js";
