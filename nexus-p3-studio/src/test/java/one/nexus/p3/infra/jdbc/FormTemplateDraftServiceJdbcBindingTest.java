@@ -58,7 +58,8 @@ class FormTemplateDraftServiceJdbcBindingTest {
         IsolationGuard isolation = mock(IsolationGuard.class);
         when(isolation.requirePlatformContext(anyString(), any())).thenReturn(new PlatformContext(true, "i4",
                 new Actor(UUID.randomUUID(), null, "platform-admin", Set.of(PlatformDuty.SYSTEM_ADMIN)), "trace-i4", null));
-        service = new FormTemplateDraftService(jdbc, JsonMapper.builder().build(), isolation, mock(AuditPort.class), () -> NOW);
+        service = new FormTemplateDraftService(jdbc, JsonMapper.builder().build(), isolation, mock(AuditPort.class),
+                () -> NOW, new one.nexus.p1.config.P1Properties());
     }
 
     @Test

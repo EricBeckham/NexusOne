@@ -26,7 +26,8 @@ class ProductDefinitionServiceTest {
     private final ClockPort clock = () -> Instant.parse("2026-09-25T00:00:00Z");
     @SuppressWarnings("unchecked")
     private final ObjectProvider<one.nexus.p3.flow.ProcessDefinitionPublishService> processes = mock(ObjectProvider.class);
-    private final ProductDefinitionService service = new ProductDefinitionService(market, isolation, audit, clock, processes);
+    private final ProductDefinitionService service = new ProductDefinitionService(
+            market, isolation, audit, clock, processes, new one.nexus.p1.config.P1Properties());
     private final UUID versionId = UUID.randomUUID();
 
     private void allowPlatform() {
@@ -45,7 +46,8 @@ class ProductDefinitionServiceTest {
         assertThat(created.status()).isEqualTo("DRAFT");
         assertThat(created.formTemplateVersionId()).isEqualTo(versionId);
         verify(market).saveProductDefinition(created);
-        verify(audit).append(any());
+        verify(audit).append(argThat(event -> event.eventType().equals("platform.product_definition.created")
+                && event.tenantId() != null));
     }
 
     @Test void rejectsUnpublishedFormVersion() {
@@ -71,6 +73,7 @@ class ProductDefinitionServiceTest {
         when(market.productDefinition(definitionId)).thenReturn(Optional.of(definition));
         assertThat(service.bindSku("HR_BASIC", definitionId)).isEqualTo(definition);
         verify(market).bindSkuToProductDefinition("HR_BASIC", definitionId);
-        verify(audit).append(argThat(event -> event.eventType().equals("platform.product_definition.sku_bound")));
+        verify(audit).append(argThat(event -> event.eventType().equals("platform.product_definition.sku_bound")
+                && event.tenantId() != null));
     }
 }

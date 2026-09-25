@@ -17,8 +17,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import one.nexus.bootstrap.NexusOneApplication;
+import one.nexus.p1.config.P1Properties;
 import one.nexus.p1.domain.Actor;
 import one.nexus.p1.domain.PlatformDuty;
+import one.nexus.p1.infra.isolation.DemoPlatformContextFilter;
 import one.nexus.p1.port.AuditPort;
 import one.nexus.p1.port.IsolationGuard;
 import one.nexus.p1.port.PlatformContext;
@@ -54,6 +56,7 @@ class DemoSeedPostgresBootTest {
     @Autowired MarketService market;
     @Autowired MockMvc mvc;
     @Autowired tools.jackson.databind.ObjectMapper mapper;
+    @Autowired AuditPort audit;
     @Autowired @Qualifier("approvalProductDemoSeed") ApplicationRunner approvalSeed;
     @Autowired @Qualifier("p3DemoSeed") ApplicationRunner p3Seed;
 
@@ -85,6 +88,7 @@ class DemoSeedPostgresBootTest {
                 () -> "jdbc:postgresql://127.0.0.1:" + postgres.getPort() + "/postgres");
         registry.add("nexus.iam.jdbc.username", () -> "postgres");
         registry.add("nexus.iam.jdbc.password", () -> "postgres");
+        registry.add("nexus.p1.demo-context.enabled", () -> "true");
     }
 
     @Test
@@ -108,15 +112,22 @@ class DemoSeedPostgresBootTest {
     @Test
     void platformTemplateDraftCreateValidateAndPublishPersistOnPostgres() {
         IsolationGuard isolation = mock(IsolationGuard.class);
-        when(isolation.requirePlatformContext(anyString(), any())).thenReturn(new PlatformContext(true, "i2",
-                new Actor(UUID.randomUUID(), null, "platform-admin", Set.of(PlatformDuty.SYSTEM_ADMIN)), "trace-i2", null));
+        when(isolation.requirePlatformContext(anyString(), any())).thenReturn(new PlatformContext(true, "j1",
+                new Actor(UUID.randomUUID(), null, "platform-admin", Set.of(PlatformDuty.SYSTEM_ADMIN)), "trace-j1", null));
+        P1Properties properties = new P1Properties();
         FormTemplateDraftService templates = new FormTemplateDraftService(
-                jdbc, mapper, isolation, mock(AuditPort.class), Instant::now);
+                jdbc, mapper, isolation, audit, Instant::now, properties);
 
-        var created = templates.create(new FormTemplateDraftService.TemplateWrite("i2_leave", "I2 请假", null,
+        var created = templates.create(new FormTemplateDraftService.TemplateWrite("j1_leave", "J1 请假", null,
                 List.of(new FormTemplateDraftService.FieldWrite("title", "事由", "TEXT", true, null))));
         assertEquals("DRAFT", created.status());
-        templates.update(created.id(), new FormTemplateDraftService.TemplateWrite("i2_leave", "I2 请假单", null,
+        assertEquals(1, count("""
+                SELECT count(*) FROM platform.audit_event
+                WHERE event_type = 'platform.form_template.created' AND resource_id = ? AND tenant_id = ?
+                """, created.id().toString(), properties.getPlatformTenant().getId()),
+                "I9: form_template.created must persist with non-null tenant_id");
+
+        templates.update(created.id(), new FormTemplateDraftService.TemplateWrite("j1_leave", "J1 请假单", null,
                 List.of(new FormTemplateDraftService.FieldWrite("title", "事由", "TEXT", true, null),
                         new FormTemplateDraftService.FieldWrite("days", "天数", "NUMBER", false, null))));
 
@@ -129,6 +140,31 @@ class DemoSeedPostgresBootTest {
         assertEquals(1, count("SELECT count(*) FROM platform.form_template WHERE id = ? AND status = 'PUBLISHED'"
                 + " AND running_version_id = ?", created.id(), published.versionId()));
         assertEquals(2, count("SELECT count(*) FROM platform.form_template_field WHERE template_id = ?", created.id()));
+        assertEquals(1, count("""
+                SELECT count(*) FROM platform.audit_event
+                WHERE event_type = 'platform.form_template.published' AND resource_id = ? AND tenant_id IS NOT NULL
+                """, created.id().toString()));
+    }
+
+    @Test
+    void platformFormTemplateCreateViaHttpPersistsAuditTenantId() throws Exception {
+        MvcResult created = mvc.perform(post("/api/v1/p1/platform/form-templates")
+                        .header(DemoPlatformContextFilter.ACTOR_HEADER, "01900000-0000-7000-8000-0000000000ac")
+                        .header(DemoPlatformContextFilter.REASON_HEADER, "j1-platform-smoke")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"j1_platform_smoke","name":"J1 平台配置复验模板",
+                                 "fields":[{"key":"subject","label":"事项","type":"TEXT","required":true}]}
+                                """))
+                .andReturn();
+        String body = created.getResponse().getContentAsString();
+        assertEquals(200, created.getResponse().getStatus(), body);
+        String id = JsonPath.read(body, "$.id");
+        assertEquals("DRAFT", JsonPath.read(body, "$.status"));
+        assertEquals(1, count("""
+                SELECT count(*) FROM platform.audit_event
+                WHERE event_type = 'platform.form_template.created' AND resource_id = ? AND tenant_id IS NOT NULL
+                """, id), "I9 HTTP save-draft path must not fail on audit_event.tenant_id");
     }
 
     private void assertCatalogSkuContract() throws Exception {
