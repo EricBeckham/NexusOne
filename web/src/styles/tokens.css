@@ -52,6 +52,13 @@
   --nx-control-height-sm: 28px;
   --nx-control-height-lg: 40px;
   --nx-control-radius: 6px;
+  /* §12.1 / Q1: table row density (platform default 48). */
+  --nx-table-row-height: 48px;
+  --nx-table-row-height-compact: 40px;
+  --nx-table-row-height-large: 56px;
+  --nx-table-cell-padding-y: 12px;
+  --nx-table-cell-padding-x: var(--nx-space-3);
+  --nx-table-header-font-size: var(--nx-font-size-xs);
   --nx-state-icon: 48px;
   --nx-font-size-xs: 12px;
   --nx-font-size-sm: 13px;
@@ -124,20 +131,33 @@ a { color: var(--nx-primary); text-decoration: none; }
 .nx-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--nx-surface);
   border: 1px solid var(--nx-border);
-  border-radius: 12px;
+  border-radius: var(--nx-radius);
   overflow: hidden;
 }
-.nx-table th, .nx-table td {
+.nx-table th,
+.nx-table td {
   text-align: left;
-  padding: 10px 12px;
+  height: var(--nx-table-row-height);
+  padding: var(--nx-table-cell-padding-y) var(--nx-table-cell-padding-x);
   border-bottom: 1px solid var(--nx-divider);
+  vertical-align: middle;
 }
 .nx-table th {
   color: var(--nx-text-secondary);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--nx-table-header-font-size);
+  background: var(--nx-bg-sidebar);
+}
+.nx-table tbody tr:hover { background: var(--nx-surface-hover); }
+.nx-table--compact {
+  --nx-table-row-height: var(--nx-table-row-height-compact);
+  --nx-table-cell-padding-y: 8px;
+}
+.nx-table--large {
+  --nx-table-row-height: var(--nx-table-row-height-large);
+  --nx-table-cell-padding-y: 14px;
 }
 
 /*

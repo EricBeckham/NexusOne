@@ -117,9 +117,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .data-note { margin: 0 0 var(--nx-space-3); color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .table-scroll { overflow-x: auto; padding: 0; }
 .nx-table { min-width: 1120px; }
-.nx-table th,.nx-table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--nx-divider); white-space: nowrap; }
-.nx-table th { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); font-weight: 600; background: var(--nx-bg-sidebar); }
-.nx-table tbody tr:hover { background: var(--nx-surface-hover); }
+.nx-table th,.nx-table td { white-space: nowrap; }
 .tenant-name,.text-action { padding: 0; color: var(--nx-primary); background: none; border: 0; font: inherit; cursor: pointer; }
 .tenant-name { font-weight: 600; }
 .actions-cell { display: flex; gap: var(--nx-space-3); }
