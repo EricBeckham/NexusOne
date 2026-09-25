@@ -31,7 +31,18 @@
     </NxPageHeader>
     <p class="nx-muted later-note">顺序审批：审批节点按从上到下的顺序依次流转，可增删、拖拽排序；不支持分支与并行。发布前须保存并通过校验。</p>
     <NxErrorState
-      v-if="error"
+      v-if="error && signInRequired"
+      title="需要登录租户账号"
+      description="流程与草稿按租户读取：当前没有登录的租户会话。请先以租户账号登录（演示：林晓），再回到流程设计器。"
+      :trace-id="error.traceId || ''"
+      data-testid="process-signin-required"
+    >
+      <template #action>
+        <router-link class="primary" to="/login" data-testid="process-signin-link">去登录</router-link>
+      </template>
+    </NxErrorState>
+    <NxErrorState
+      v-else-if="error"
       title="流程定义没有加载"
       :description="error.message || '请稍后重试'"
       :trace-id="error.traceId || ''"
@@ -294,6 +305,8 @@ const validationError = ref(null);
 const selectedId = ref("");
 const error = ref(null);
 const loading = ref(false);
+// No tenant session: process APIs answer 401 P2.IAM.UNAUTHORIZED "missing bearer token" (M2); retrying cannot help.
+const signInRequired = computed(() => Number(error.value?.status) === 401 || error.value?.code === "P2.IAM.UNAUTHORIZED");
 const canPublish = computed(() => isPersistedDraft.value && !dirty.value && validationResult.value?.valid === true && !publishing.value);
 
 const graph = computed(() => layoutDefinition(definition.value || {}));
