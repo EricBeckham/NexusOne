@@ -29,6 +29,11 @@ public class ProductApplicationController {
         return applications.listMine();
     }
 
+    @GetMapping("/installations/{installationId}/form")
+    public ProductApplicationService.FormSnapshot form(@PathVariable UUID installationId) {
+        return applications.form(installationId);
+    }
+
     @PostMapping("/installations/{installationId}")
     @ResponseStatus(HttpStatus.CREATED)
     public ProductApplicationService.ProductApplicationView create(

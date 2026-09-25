@@ -1,9 +1,11 @@
 package one.nexus.p3.application;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import tools.jackson.core.JacksonException;
 import one.nexus.audit.AuditCaptures;
 import one.nexus.audit.AuditPort;
 import one.nexus.common.id.UuidV7;
@@ -69,6 +71,30 @@ public class ProductApplicationService {
                         commentFor(iamTenant.tenantId(), rs.getObject("process_instance_id", UUID.class)),
                         rs.getTimestamp("created_at").toInstant()),
                 iamTenant.tenantId(), iamTenant.personId());
+    }
+
+    @Transactional(readOnly = true)
+    public FormSnapshot form(UUID installationId) {
+        TenantContext accessTenant = requireAccessTenant();
+        one.nexus.p2.kernel.TenantContext iamTenant = TenantContextHolder.get();
+        if (iamTenant == null || !accessTenant.tenantId().equals(iamTenant.tenantId().toString())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "matching tenant context is required");
+        }
+        Pin pin = jdbc.query("""
+                SELECT p.form_template_version_id
+                  FROM market.installation_product_pin p
+                  JOIN market.installation i ON i.id = p.installation_id
+                 WHERE p.installation_id = ? AND i.tenant_id = ? AND i.status = 'INSTALLED'
+                """, rs -> rs.next() ? new Pin(true, rs.getObject(1, UUID.class)) : new Pin(false, null),
+                installationId, iamTenant.tenantId());
+        if (pin == null || !pin.found()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found");
+        }
+        if (pin.versionId() == null) return new FormSnapshot(installationId, null, List.of());
+        String snapshot = jdbc.query("SELECT fields_snapshot::text FROM platform.form_template_version WHERE id = ?",
+                rs -> rs.next() ? rs.getString(1) : null, pin.versionId());
+        if (snapshot == null || snapshot.isBlank()) return new FormSnapshot(installationId, pin.versionId(), List.of());
+        return new FormSnapshot(installationId, pin.versionId(), parseFormFields(snapshot));
     }
 
     @Transactional
@@ -166,6 +192,31 @@ public class ProductApplicationService {
     public record ProductApplicationView(UUID id, UUID tenantId, UUID installationId, UUID productDefinitionId,
             UUID formTemplateVersionId, UUID processInstanceId, String status, Instant createdAt) { }
     public record ProductApplicationSummary(UUID id, UUID installationId, String status, String comment, Instant createdAt) { }
+    public record FormSnapshot(UUID installationId, UUID formTemplateVersionId, List<FormField> fields) { }
+    public record FormField(String key, String label, String type, boolean required, List<String> options) { }
+    private record Pin(boolean found, UUID versionId) { }
+
+    private List<FormField> parseFormFields(String snapshot) {
+        try {
+            JsonNode array = mapper.readTree(snapshot);
+            if (array == null || !array.isArray()) return List.of();
+            List<FormField> fields = new ArrayList<>();
+            for (JsonNode node : array) {
+                List<String> options = new ArrayList<>();
+                JsonNode choices = node.get("options");
+                if (choices != null && choices.isArray()) for (JsonNode choice : choices) {
+                    if (choice.isTextual()) options.add(choice.asText());
+                    else if (choice.isObject() && choice.path("value").isTextual()) options.add(choice.path("value").asText());
+                }
+                String key = node.path("key").asText("");
+                fields.add(new FormField(key, node.path("label").asText(key), node.path("type").asText("TEXT"),
+                        node.path("required").asBoolean(false), List.copyOf(options)));
+            }
+            return List.copyOf(fields);
+        } catch (JacksonException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "pinned form template snapshot is missing");
+        }
+    }
     private record PinnedProcess(String key, Integer version) { }
     public static final class InvalidProductApplicationException extends RuntimeException {
         private final java.util.List<ProductApplicationValuesValidator.FieldError> errors;
