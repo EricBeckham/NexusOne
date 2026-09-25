@@ -63,5 +63,10 @@ class P4DemoSeedConfigurationTest {
                     "demo rows must not grant a tenant subscription or installation");
         }
         assertTrue(sql.getAllValues().get(1).contains("'PUBLISHED'"));
+        String sku = sql.getAllValues().get(2);
+        assertTrue(sku.contains("\"projects\""), "sku entitlements must be a map of EntitlementSpec");
+        assertTrue(sku.contains("\"enabled\":true") && sku.contains("\"quota\":20"));
+        assertTrue(!sku.contains("\"demo\":true,\"entitlements\""),
+                "wrapped demo entitlements cannot be read by the catalog");
     }
 }
