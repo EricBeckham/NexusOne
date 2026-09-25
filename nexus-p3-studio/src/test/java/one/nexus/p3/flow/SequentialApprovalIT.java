@@ -233,11 +233,14 @@ class SequentialApprovalIT {
                         .header("X-Nexus-Context-Id", adminB.contextId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
-
         String todoId = extract(mvc.perform(get("/api/v1/todos/pending")
                         .header("Authorization", "Bearer " + reviewer.session.token)
                         .header("X-Nexus-Context-Id", reviewer.session.contextId))
                 .andReturn().getResponse().getContentAsString(), "id");
+        mvc.perform(post("/api/v1/process/tasks/" + todoId + "/approve")
+                        .header("Authorization", "Bearer " + adminB.token)
+                        .header("X-Nexus-Context-Id", adminB.contextId))
+                .andExpect(status().isNotFound());
 
         mvc.perform(post("/api/v1/process/tasks/" + todoId + "/approve")
                         .header("Authorization", "Bearer " + adminA.token)
