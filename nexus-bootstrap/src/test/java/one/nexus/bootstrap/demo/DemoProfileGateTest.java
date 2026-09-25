@@ -46,6 +46,8 @@ class DemoProfileGateTest {
         assertFalse(app.contains("profiles:\n    active: demo"));
         assertTrue(demo.contains("禁止连生产"));
         assertTrue(demo.contains("enabled: true"));
+        assertTrue(demo.contains("简单审批产品种子"));
+        assertFalse(demo.contains("本卡不插入业务行"));
         assertTrue(doc.contains("禁止连生产"));
         assertTrue(doc.contains("默认关闭"));
         assertTrue(doc.contains("清理"));
