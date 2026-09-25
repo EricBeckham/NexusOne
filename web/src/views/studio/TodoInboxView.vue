@@ -11,10 +11,10 @@
         @click="switchBox(item.id)"
       >{{ item.label }}</button>
     </div>
-    <div class="nx-field filter">
-      <label for="todo-filter">筛选</label>
-      <input id="todo-filter" v-model="query" placeholder="单号 / 任务名" />
-    </div>
+    <NxFilterBar label="待办筛选" testid="todo-filter" class="todo-filter" @reset="query = ''">
+      <label class="nx-filter-field">关键词<input id="todo-filter" v-model="query" type="search" placeholder="单号 / 任务名" data-testid="todo-filter-input" /></label>
+      <template #summary>{{ loading ? "正在加载…" : `共 ${filtered.length} 条` }}</template>
+    </NxFilterBar>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-grid inbox-layout">
@@ -42,11 +42,15 @@
             v-for="row in filtered"
             :key="row.id"
             :class="{ pick: selected?.id === row.id }"
+            :aria-selected="selected?.id === row.id"
+            tabindex="0"
+            data-testid="todo-row"
             @click="open(row.id)"
+            @keydown.enter.prevent="open(row.id)"
           >
-            <td>{{ row.title }}</td>
-            <td class="nx-code">{{ row.biz_no }}</td>
-            <td>{{ formatTime(row.arrived_at) }}</td>
+            <td class="cell-title">{{ row.title || "未命名" }}</td>
+            <td class="nx-code cell-code">{{ row.biz_no || "暂无" }}</td>
+            <td class="cell-time">{{ formatTime(row.arrived_at) }}</td>
             <td><NxStatus :label="rowStatus(row).label" :tone="rowStatus(row).tone" /></td>
 
           </tr>
@@ -73,9 +77,9 @@
             <p :class="{ 'nx-muted': !selected.comment }">{{ selected.comment || "暂无意见" }}</p>
           </div>
           <div v-if="box === 'inbox'" class="nx-field"><label>意见</label><textarea v-model="comment" rows="3" data-testid="todo-comment" /></div>
-          <div class="nx-row">
-            <button v-if="box === 'inbox'" class="primary" type="button" data-testid="todo-approve" :disabled="busy" @click="act('approve')">同意</button>
-            <button v-if="box === 'inbox'" class="danger" type="button" data-testid="todo-reject" :disabled="busy" @click="act('reject')">驳回</button>
+          <div class="nx-row detail-actions">
+            <button v-if="box === 'inbox'" class="nx-btn nx-btn--primary" type="button" data-testid="todo-approve" :disabled="busy" @click="act('approve')">同意</button>
+            <button v-if="box === 'inbox'" class="nx-btn nx-btn--danger" type="button" data-testid="todo-reject" :disabled="busy" @click="act('reject')">驳回</button>
             <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" data-testid="todo-withdraw" :disabled="busy" @click="act('withdraw')">撤回</button>
           </div>
           <p v-if="devNotes && session.lastTraceId" class="nx-muted" data-testid="todo-last-trace" style="margin-top:8px;">
@@ -90,9 +94,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxPageHeader, NxSkeleton } from "../../components";
+import { NxEmpty, NxFilterBar, NxPageHeader, NxSkeleton } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p3 } from "../../api/p3";
 import { session } from "../../api/session";
@@ -113,7 +117,8 @@ const box = ref(route.query.box || "inbox");
 const rows = ref([]);
 const selected = ref(null);
 const comment = ref("");
-const query = ref("");
+// §11: the keyword lives in the URL (?q=) next to ?box= so a reload keeps the filter.
+const query = ref(typeof route.query.q === "string" ? route.query.q : "");
 const error = ref("");
 const notice = ref("");
 const busy = ref(false);
@@ -205,11 +210,21 @@ onMounted(async () => {
 function switchBox(next) {
   box.value = next;
   selected.value = null;
-  router.replace({ path: "/p3/todos", query: { box: next } });
+  const q = query.value.trim();
+  router.replace({ path: "/p3/todos", query: q ? { box: next, q } : { box: next } });
   reload().catch((err) => {
     error.value = err.message;
   });
 }
+
+watch(query, (value) => {
+  const q = value.trim();
+  if ((typeof route.query.q === "string" ? route.query.q : "") === q) return;
+  const next = { ...route.query };
+  if (q) next.q = q;
+  else delete next.q;
+  router.replace({ query: next });
+});
 
 async function open(id) {
   try {
@@ -246,10 +261,16 @@ async function act(kind) {
 </script>
 
 <style scoped>
-tr { cursor: pointer; }
+/* Q10: rows on the Q1 density tokens (nx-table); the selected row carries a product-color bar. */
+.todo-filter { margin-bottom: var(--nx-space-4); }
+tbody tr { cursor: pointer; }
 tbody tr:hover td { background: var(--nx-surface-hover); }
-tr.pick td { background: var(--nx-primary-light); }
-.filter { max-width: 280px; }
+tbody tr:focus-visible { outline: 2px solid var(--nx-primary-light); outline-offset: -2px; }
+tr.pick td { background: var(--nx-product-light, var(--nx-primary-light)); }
+tr.pick td:first-child { box-shadow: inset 3px 0 0 var(--nx-product, var(--nx-primary)); }
+.cell-title { color: var(--nx-text-primary); font-weight: 500; }
+.cell-code, .cell-time { color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); white-space: nowrap; }
+.detail-actions { gap: var(--nx-space-2); }
 .todo-skeleton { display: grid; gap: var(--nx-space-2); }
 .inbox-layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
 .detail { position: sticky; top: 16px; display: grid; gap: 12px; }
