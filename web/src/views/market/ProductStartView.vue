@@ -214,7 +214,6 @@ async function submit() {
 .product-context strong { color: var(--nx-text-primary); }
 .product-version { padding: 1px 8px; border-radius: var(--nx-radius-pill); font-size: var(--nx-font-size-xs); color: var(--nx-product); background: var(--nx-product-light); }
 .submit-failure { max-width: 720px; box-sizing: border-box; margin-bottom: 16px; }
-.start-form .nx-field { margin-bottom: 20px; }
 .start-form .nx-field input,
 .start-form .nx-field select,
 .start-form .nx-field textarea { width: 100%; min-height: 36px; }
