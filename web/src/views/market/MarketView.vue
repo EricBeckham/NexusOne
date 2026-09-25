@@ -37,7 +37,7 @@
               <h2 :title="item.app.name">{{ item.app.name || '暂无应用名称' }}</h2>
               <p class="app-meta"><code>{{ item.app.code || '暂无编码' }}</code><span aria-hidden="true">·</span><span data-testid="catalog-version">版本 {{ item.version.version || '暂无' }}</span></p>
             </div>
-            <NxStatus class="card-badge" :label="cardBadge(item).label" :tone="cardBadge(item).tone" data-testid="catalog-card-badge" />
+            <NxStatusTag class="card-badge" :label="cardBadge(item).label" :tone="cardBadge(item).tone" data-testid="catalog-card-badge" />
           </header>
           <p class="summary" :title="item.app.summary">{{ item.app.summary || "暂无简介" }}</p>
           <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span data-testid="catalog-sku-count">{{ catalogSkus(item).length }} 个</span></div>
@@ -51,7 +51,7 @@
                   <div v-if="sku.entitlements.length" class="sku-chips"><span v-for="chip in sku.entitlements" :key="chip">{{ chip }}</span></div>
                 </div>
                 <div v-if="subscribedSkus.has(sku.code)" class="subscribed" data-testid="catalog-subscribed">
-                  <NxStatus label="已开通" tone="success" />
+                  <NxStatusTag status="INSTALLED" label="已开通" tone="success" />
                   <router-link class="nx-btn nx-btn--text" to="/p4/installations">前往我的已开通</router-link>
                 </div>
                 <button
@@ -76,8 +76,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxFilterBar, NxPageHeader, NxSkeleton } from "../../components";
-import NxStatus from "../../components/NxStatus.vue";
+import { NxEmpty, NxErrorState, NxFilterBar, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 import { catalogSkus } from "./catalogSku";

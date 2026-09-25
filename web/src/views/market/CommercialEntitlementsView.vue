@@ -14,8 +14,8 @@
         <h2>{{ show(item.skuName) }}</h2>
         <dl>
           <div><dt>SKU</dt><dd>{{ show(item.skuCode) }}</dd></div>
-          <div><dt>订阅状态</dt><dd>{{ statusLabel(item.subscriptionStatus) }}</dd></div>
-          <div><dt>安装状态</dt><dd>{{ statusLabel(item.installationStatus) }}</dd></div>
+          <div><dt>订阅状态</dt><dd><NxStatusTag :status="item.subscriptionStatus || ''" :label="statusLabel(item.subscriptionStatus)" /></dd></div>
+          <div><dt>安装状态</dt><dd><NxStatusTag :status="item.installationStatus || ''" :label="statusLabel(item.installationStatus)" /></dd></div>
         </dl>
         <h3>权益项</h3>
         <p v-if="!item.lines.length" class="nx-muted">暂无权益项</p>
@@ -39,8 +39,8 @@
         <tbody>
           <tr v-for="row in listed" :key="row.subscriptionId || row.skuCode">
             <td>{{ show(row.skuName) }}<div class="nx-muted">{{ show(row.skuCode) }}</div></td>
-            <td>{{ statusLabel(row.subscriptionStatus) }}</td>
-            <td>{{ statusLabel(row.installationStatus) }}</td>
+            <td><NxStatusTag :status="row.subscriptionStatus || ''" :label="statusLabel(row.subscriptionStatus)" /></td>
+            <td><NxStatusTag :status="row.installationStatus || ''" :label="statusLabel(row.installationStatus)" /></td>
             <td>{{ row.lines.length ? row.lines.map((line) => line.key).join("、") : "暂无" }}</td>
             <td><router-link v-if="row.subscriptionId" :to="`/p4/entitlements/${row.subscriptionId}`">查看</router-link><template v-else>暂无</template></td>
           </tr>
@@ -53,7 +53,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 
 const route = useRoute();

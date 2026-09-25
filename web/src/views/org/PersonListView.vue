@@ -20,7 +20,7 @@
           <tr v-for="row in rows" :key="row.id">
             <td><button class="person-name" type="button" @click="openDrawer(row)">{{ displayName(row) }}</button><small>{{ row.employee_no || row.employeeNo || row.email || '暂无账号信息' }}</small></td>
             <td>详情中查看</td><td>详情中查看</td><td>暂无</td>
-            <td><NxStatus :label="row.status || '暂无'" :tone="row.status === 'ACTIVE' ? 'success' : 'neutral'" /></td>
+            <td><NxStatusTag :status="row.status || ''" :label="row.status || '暂无'" :tone="row.status === 'ACTIVE' ? 'success' : 'neutral'" /></td>
             <td>暂无</td><td>暂无</td>
             <td><button class="text-action" type="button" @click="openDrawer(row)">详情</button></td>
           </tr>
@@ -43,7 +43,7 @@
             <dt>邮箱</dt><dd>{{ value(detail?.email) }}</dd><dt>电话</dt><dd>{{ value(detail?.phone) }}</dd>
             <dt>人员 ID</dt><dd class="nx-code">{{ value(detail?.id) }}</dd><dt>租户 ID</dt><dd class="nx-code">{{ value(detail?.tenant_id || detail?.tenantId) }}</dd>
             <dt>入职日期</dt><dd>{{ value(detail?.hired_on || detail?.hiredOn) }}</dd>
-            <dt>人员状态</dt><dd><NxStatus :label="detail?.status || '暂无'" :tone="detail?.status === 'ACTIVE' ? 'success' : 'neutral'" /></dd>
+            <dt>人员状态</dt><dd><NxStatusTag :status="detail?.status || ''" :label="detail?.status || '暂无'" :tone="detail?.status === 'ACTIVE' ? 'success' : 'neutral'" /></dd>
           </dl></section>
           <section class="detail-section"><h3>任职</h3>
             <p v-if="employmentError" class="nx-error">{{ employmentError }}</p>
@@ -66,8 +66,7 @@
 
 <script setup>
 import { onMounted, onUnmounted, reactive, ref } from "vue";
-import { NxEmpty, NxErrorState, NxPageHeader } from "../../components";
-import NxStatus from "../../components/NxStatus.vue";
+import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
 import { p2 } from "../../api/client";
 import { ensureContext, session } from "../../api/session";
 
