@@ -22,6 +22,7 @@ async function mountInbox(query = "") {
     routes: [
       { path: "/p3/todos", component: TodoInboxView },
       { path: "/p3/audit", component: { template: "<div />" } },
+      { path: "/p4/installations", component: { template: "<div />" } },
     ],
   });
   await router.push(`/p3/todos${query}`);
@@ -60,10 +61,15 @@ describe("todo comment and my requests", () => {
 
   it("shows my request status and comment without a withdraw control", async () => {
     const wrapper = await mountInbox();
+    expect(wrapper.get("[data-testid='todo-empty']").text()).toContain("暂无待办");
+    expect(wrapper.text()).not.toContain("submit-start");
+    expect(wrapper.find("[data-testid='todo-table']").exists()).toBe(false);
     const requests = wrapper.findAll("button").find((button) => button.text() === "我的申请");
     await requests.trigger("click");
     await flushPromises();
-    expect(wrapper.text()).toContain("暂无");
+    expect(wrapper.get("[data-testid='todo-empty']").text()).toContain("暂无");
+    expect(wrapper.text()).toContain("从已开通产品发起后");
+    expect(wrapper.get("[data-testid='todo-empty'] a").attributes("href")).toBe("/p4/installations");
 
     mocks.listProductApplications.mockResolvedValue({
       items: [{ id: "app-1", title: "产品申请", biz_no: "app-1", status: "APPROVED", comment: "可以", arrived_at: "2026-01-02" }],
