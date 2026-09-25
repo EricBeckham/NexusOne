@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 
-const mocks = vi.hoisted(() => ({ catalog: vi.fn(), subscribe: vi.fn() }));
+const mocks = vi.hoisted(() => ({ catalog: vi.fn(), subscribe: vi.fn(), subscriptions: vi.fn(), session: { tenantId: "tenant-1", contextId: "" } }));
 vi.mock("../../api/client", () => ({ p4: mocks }));
-vi.mock("../../api/session", () => ({ session: { tenantId: "tenant-1" } }));
+vi.mock("../../api/session", () => ({ session: mocks.session }));
 
 import MarketView from "./MarketView.vue";
 
@@ -88,6 +88,29 @@ describe("P4 catalog V11", () => {
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("基础版");
   });
 
+  it("makes subscribe the primary action and shows 已开通 for a SKU the tenant already has (N1)", async () => {
+    mocks.session.contextId = "ctx-1";
+    // Real /api/v1/p4/subscriptions wire shape (SNAKE_CASE).
+    mocks.subscriptions.mockResolvedValue([{ id: "sub-1", tenant_id: "tenant-1", sku_code: "basic", status: "ACTIVE" }]);
+    const subscribed = await mountCatalog();
+    const sku = subscribed.get('[data-testid="catalog-sku"]');
+    expect(sku.find('[data-testid="catalog-subscribe"]').exists()).toBe(false);
+    expect(sku.get('[data-testid="catalog-subscribed"]').text()).toContain("已开通");
+    expect(sku.get('[data-testid="catalog-subscribed"] a').attributes("href")).toBe("/p4/installations");
+    subscribed.unmount();
+
+    mocks.subscriptions.mockResolvedValue([{ id: "sub-1", sku_code: "basic", status: "CANCELLED" }]);
+    const open = await mountCatalog();
+    expect(open.get('[data-testid="catalog-subscribe"]').classes()).toContain("ready");
+    open.unmount();
+
+    mocks.subscriptions.mockRejectedValue(new Error("TenantContext is required"));
+    const unknown = await mountCatalog();
+    expect(unknown.find('[data-testid="catalog-subscribe"]').exists()).toBe(true);
+    expect(unknown.find('[data-testid="nx-error-state"]').exists()).toBe(false);
+    mocks.session.contextId = "";
+  });
+
   it("marks a SKU without a product definition as not subscribable instead of letting subscribe 404", async () => {
     mocks.catalog.mockResolvedValue([
       {
@@ -100,6 +123,7 @@ describe("P4 catalog V11", () => {
     expect(wrapper.get('[data-testid="catalog-sku-unbound"]').text()).toContain("未绑定产品定义");
     const button = wrapper.get('[data-testid="catalog-subscribe"]');
     expect(button.attributes("disabled")).toBeDefined();
+    expect(button.classes()).not.toContain("ready");
     await button.trigger("click");
     expect(mocks.subscribe).not.toHaveBeenCalled();
   });
