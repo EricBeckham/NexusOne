@@ -117,14 +117,44 @@ class DemoSeedPostgresBootTest {
         String tenantId = JsonPath.read(session, "$.tenant_id");
         String contextId = JsonPath.read(session, "$.context_id");
         assertEquals(P1DemoSeedConfiguration.TENANT_ID.toString(), tenantId);
-        MvcResult subscribed = mvc.perform(post("/api/v1/p4/tenants/" + tenantId + "/subscriptions")
+
+        jdbc.update("DELETE FROM market.sku_product_binding WHERE sku_code = ?",
+                ApprovalProductDemoSeedConfiguration.SKU_CODE);
+        assertBusinessError(subscribe(token, tenantId, contextId), 404,
+                "P4.MARKET.0001", "catalog SKU has no product definition");
+        approvalSeed.run(new DefaultApplicationArguments());
+
+        MvcResult subscribed = subscribe(token, tenantId, contextId);
+        assertEquals(201, subscribed.getResponse().getStatus(), subscribed.getResponse().getContentAsString());
+        assertBusinessError(subscribe(token, tenantId, contextId), 409,
+                "P4.MARKET.0003", "tenant already has an active subscription for this SKU");
+
+        String zhouToken = StubIdentityProvider.token(
+                "demo-seed:p2:zhou", "zhou.ran@demo.invalid", "demo-zhou", "周然");
+        String zhouSession = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"access_token\":\"" + zhouToken + "\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertBusinessError(subscribe(zhouToken, tenantId, JsonPath.read(zhouSession, "$.context_id")), 403,
+                "P4.MARKET.0002", "tenant administrator role is required");
+    }
+
+    private MvcResult subscribe(String token, String tenantId, String contextId) throws Exception {
+        return mvc.perform(post("/api/v1/p4/tenants/" + tenantId + "/subscriptions")
                         .header("Authorization", "Bearer " + token)
                         .header("X-Nexus-Context-Id", contextId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"sku_code\":\"" + ApprovalProductDemoSeedConfiguration.SKU_CODE
                                 + "\",\"version_id\":\"" + ApprovalProductDemoSeedConfiguration.APP_VERSION_ID + "\"}"))
                 .andReturn();
-        assertEquals(201, subscribed.getResponse().getStatus(), subscribed.getResponse().getContentAsString());
+    }
+
+    private static void assertBusinessError(MvcResult result, int status, String code, String message) throws Exception {
+        String body = result.getResponse().getContentAsString();
+        assertEquals(status, result.getResponse().getStatus(), body);
+        assertEquals(code, JsonPath.read(body, "$.code"));
+        assertEquals(message, JsonPath.read(body, "$.message"));
     }
 
     private void assertSeeded() {
