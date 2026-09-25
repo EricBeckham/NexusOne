@@ -53,13 +53,15 @@
           </tr>
         </tbody>
       </table>
-      <nav class="pagination" aria-label="审计结果分页">
-        <span>第 {{ result.page }} 页 / {{ pageCount }} 页</span>
-        <div>
-          <button class="ghost" type="button" :disabled="loading || result.page <= 1" @click="goPage(result.page - 1)">上一页</button>
-          <button class="ghost" type="button" :disabled="loading || result.page >= pageCount" @click="goPage(result.page + 1)">下一页</button>
-        </div>
-      </nav>
+      <NxListFooter
+        :page="result.page"
+        :page-count="pageCount"
+        :total="result.total"
+        :loading="loading"
+        aria-label="审计结果分页"
+        @prev="goPage(result.page - 1)"
+        @next="goPage(result.page + 1)"
+      />
     </div>
     <p v-else-if="loading" class="loading-note" role="status">正在检索审计事件…</p>
   </NxPanelCard>
@@ -91,7 +93,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { audit } from "../../api/client";
-import { NxEmpty, NxErrorState, NxPageHeader, NxPanelCard } from "../../components";
+import { NxEmpty, NxErrorState, NxListFooter, NxPageHeader, NxPanelCard } from "../../components";
 
 const PAGE_SIZE = 20;
 const route = useRoute();
@@ -267,8 +269,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .result-pill { display: inline-flex; padding: 3px 8px; border-radius: 999px; color: #58677c; background: #edf1f6; font-size: 12px; white-space: nowrap; }
 .result-pill[data-result="ACCEPTED"] { color: #18794e; background: #e7f7ee; }
 .result-pill[data-result="REJECTED"] { color: #b42318; background: #fff0ee; }
-.pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 14px; color: var(--nx-text-secondary); font-size: 13px; }
-.pagination > div { display: flex; gap: 8px; }
 .drawer-backdrop { position: fixed; z-index: 1200; inset: 0; display: flex; justify-content: flex-end; background: rgb(12 25 45 / 38%); }
 .drawer { width: min(520px, 100%); height: 100%; box-sizing: border-box; overflow-y: auto; padding: 26px; background: var(--nx-surface, #fff); box-shadow: -12px 0 36px rgb(20 37 63 / 16%); }
 .drawer-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--nx-border); }
@@ -281,5 +281,5 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .privacy-note { margin-top: 20px; padding: 12px; color: var(--nx-text-secondary); background: var(--nx-bg-soft, #f5f8fc); border-radius: 8px; font-size: 12px; line-height: 1.6; }
 .loading-note { padding: 24px 0; color: var(--nx-text-secondary); text-align: center; }
 @media (max-width: 900px) { .filters { grid-template-columns: repeat(2, minmax(140px, 1fr)); } }
-@media (max-width: 560px) { .filters { grid-template-columns: 1fr; } .pagination { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 560px) { .filters { grid-template-columns: 1fr; } }
 </style>
