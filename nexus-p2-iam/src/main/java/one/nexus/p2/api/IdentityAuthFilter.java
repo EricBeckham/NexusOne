@@ -88,7 +88,9 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
             return false;
         }
         String provided = request.getHeader(HEADER_BOOTSTRAP);
-        return expected.equals(provided);
+        return provided != null && java.security.MessageDigest.isEqual(
+                expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                provided.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     static boolean isIamPath(String path) {

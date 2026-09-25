@@ -1,0 +1,36 @@
+# 生产形 profile：启动时加 --spring.profiles.active=prod。
+# ProductionProfileGuard 会在启动时校验，不满足直接拒绝启动。说明见 docs/planning/L12_生产profile硬化.md
+# 本文件不含任何密钥。必须注入：NEXUS_DB_URL / NEXUS_DB_USER / NEXUS_DB_PASSWORD、NEXUS_CRYPTO_MASTER_KEY、
+# NEXUS_IAM_KEYCLOAK_ISSUER / NEXUS_IAM_KEYCLOAK_CLIENT_ID / NEXUS_IAM_KEYCLOAK_CLIENT_SECRET / NEXUS_IAM_KEYCLOAK_REDIRECT_URI。
+nexus:
+  demo:
+    enabled: false
+    environment: prod
+  p1:
+    demo-context:
+      enabled: false
+  p3:
+    demo-context: false
+  studio:
+    demo-context: false
+    seed-demo-metadata: false
+  files:
+    demo-context: false
+  notify:
+    demo-context: false
+  crypto:
+    key-source: env
+  iam:
+    idp: ${NEXUS_IAM_IDP:keycloak}
+    persistence: ${NEXUS_IAM_PERSISTENCE:jdbc}
+  permission:
+    persistence: ${NEXUS_PERMISSION_PERSISTENCE:jdbc}
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+  info:
+    env:
+      enabled: false
