@@ -50,6 +50,8 @@ describe("todo comment and my requests", () => {
     await wrapper.get("tbody tr").trigger("click");
     await flushPromises();
     expect(wrapper.text()).not.toContain("仅本页");
+    expect(wrapper.text()).not.toContain("意见字段 API 未提供");
+    expect(wrapper.text()).toContain("意见一起提交 path API");
     await wrapper.get('[data-testid="todo-comment"]').setValue("同意这条");
     await wrapper.get('[data-testid="todo-approve"]').trigger("click");
     await flushPromises();

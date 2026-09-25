@@ -1,7 +1,7 @@
 <template>
   <div>
     <NxPageHeader title="待办" description="集中查看我的待办、已办和我发起的流程，并完成同意、驳回或撤回。" />
-    <NxSourceBanner body="同意或驳回会把意见一并提交。我的申请展示进行中、通过、驳回和意见。" />
+    <NxSourceBanner body="Live M0-08 + G18 path。GET /api/v1/p3/todos。同意/驳回与意见一起提交 path API，并写入流程任务评论。" />
     <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
     <div class="nx-tabs">
       <button
