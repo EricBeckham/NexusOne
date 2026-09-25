@@ -236,7 +236,9 @@ public class FormTemplateDraftService {
     public record FieldView(UUID id, String key, String label, String type, boolean required, JsonNode options, int position) { }
     public record TemplateView(UUID id, String code, String name, String description, String status,
             UUID runningVersionId, Instant createdAt, Instant updatedAt, long version, List<FieldView> fields) { }
+    /** Wire names (SNAKE_CASE): field_id, field_key, code, message. field_key locates the canvas card (N6). */
     public record ValidationError(UUID fieldId, String fieldKey, String code, String message) { }
+    /** Wire names: template_id, valid, status, errors. */
     public record ValidationResult(UUID templateId, boolean valid, String status, List<ValidationError> errors) { }
     public record PublishResult(UUID templateId, UUID versionId, int version, Instant publishedAt, List<FieldView> fields) { }
 

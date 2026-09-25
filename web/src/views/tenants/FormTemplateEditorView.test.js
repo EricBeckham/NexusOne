@@ -231,6 +231,37 @@ describe("form template designer", () => {
     expect(wrapper.find("[data-testid='field-error']").exists()).toBe(false);
   });
 
+  it("pins field errors when the validate API returns only snake_case field_key (N6)", async () => {
+    p1.formTemplate.mockResolvedValue({
+      id: "tpl-1",
+      code: "leave",
+      name: "请假",
+      status: "DRAFT",
+      fields: [
+        { key: "Reason", label: "事由", type: "TEXT", required: false, options: null },
+        { key: "category", label: "类别", type: "SELECT", required: false, options: [] },
+      ],
+    });
+    p1.validateFormTemplate.mockResolvedValueOnce({
+      template_id: "tpl-1",
+      valid: false,
+      status: "DRAFT",
+      errors: [
+        { field_id: "f1", field_key: "Reason", code: "field.key.invalid", message: "字段 key 须以小写字母开头，只能包含小写字母、数字和下划线" },
+        { field_key: "category", code: "field.options.required", message: "单选字段至少需要一个选项" },
+        { field_key: null, code: "fields.required", message: "至少需要一个字段" },
+      ],
+    });
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    await wrapper.get("[data-testid='template-validate']").trigger("click");
+    await flushPromises();
+    expect(wrapper.findAll("[data-testid='field-error']").map((node) => node.text())).toEqual([
+      "字段 key 须以小写字母开头，只能包含小写字母、数字和下划线",
+      "单选字段至少需要一个选项",
+    ]);
+    expect(wrapper.get("[data-testid='template-validate-errors']").text()).toContain("至少需要一个字段");
+  });
+
   it("confirms publish, shows the version, and keeps the server failure text", async () => {
     p1.formTemplate.mockResolvedValue({ ...LEAVE, status: "VALIDATED", fields: [LEAVE.fields[0]] });
     const wrapper = await mountAt("/p1/form-templates/tpl-1");
