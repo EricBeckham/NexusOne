@@ -55,6 +55,13 @@ public final class ProductionProfileGuard {
         if ("always".equals(value(env, "management.endpoint.health.show-details", "never"))) {
             violations.add("management.endpoint.health.show-details must not be always");
         }
+        for (String endpoint : value(env, "management.endpoints.web.exposure.include", "health").split(",")) {
+            String name = endpoint.trim();
+            if (!name.isEmpty() && !"health".equals(name)) {
+                violations.add("management.endpoints.web.exposure.include must be health only; actuator has no "
+                        + "authentication, so '" + name + "' would be anonymous");
+            }
+        }
         return violations;
     }
 
