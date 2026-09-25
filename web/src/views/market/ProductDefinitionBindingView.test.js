@@ -8,16 +8,29 @@ import { p3 } from "../../api/p3";
 
 vi.mock("../../api/client", () => ({
   p1: { formTemplates: vi.fn() },
-  p4: { productDefinitions: vi.fn(), createProductDefinition: vi.fn(), updateProductDefinition: vi.fn() },
+  p4: {
+    productDefinitions: vi.fn(), createProductDefinition: vi.fn(), updateProductDefinition: vi.fn(),
+    bindProductDefinitionSku: vi.fn(), skus: vi.fn(), catalog: vi.fn(),
+  },
 }));
 vi.mock("../../api/p3", () => ({
   p3: { listProcessDrafts: vi.fn(), getProcessPublication: vi.fn() },
 }));
 
+// Real wire shapes: the product mapper is SNAKE_CASE (pinned by PlatformBindingWireNamingTest).
+const PUBLISHED_TEMPLATE = { id: "tpl-2", code: "leave", name: "请假", status: "PUBLISHED", running_version_id: "ver-9" };
+const DEFINITION = {
+  id: "def-1", code: "hr-basic", name: "HR 基础版", status: "DRAFT",
+  form_template_version_id: "ver-9", process_definition_key: "leave_flow", process_definition_version: 3,
+};
+
 async function mountPage() {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: "/p4/product-definitions", component: ProductDefinitionBindingView }],
+    routes: [
+      { path: "/p4/product-definitions", component: ProductDefinitionBindingView },
+      { path: "/:rest(.*)*", component: { template: "<div />" } },
+    ],
   });
   await router.push("/p4/product-definitions");
   const wrapper = mount(ProductDefinitionBindingView, { global: { plugins: [router] } });
@@ -25,80 +38,130 @@ async function mountPage() {
   return wrapper;
 }
 
+function publishedProcess() {
+  p3.listProcessDrafts.mockResolvedValue([{ key: "leave_flow" }, { key: "draft_only" }]);
+  p3.getProcessPublication.mockImplementation(async (key) => {
+    if (key === "draft_only") throw new Error("not found");
+    return { key: "leave_flow", name: "请假审批", version: 3 };
+  });
+}
+
 describe("product definition binding page", () => {
   beforeEach(() => {
-    p1.formTemplates.mockReset();
-    p3.listProcessDrafts.mockReset();
-    p3.getProcessPublication.mockReset();
-    p4.productDefinitions.mockReset();
-    p4.createProductDefinition.mockReset();
-    p4.updateProductDefinition.mockReset();
+    for (const fn of [...Object.values(p1), ...Object.values(p4), ...Object.values(p3)]) fn.mockReset();
     p4.productDefinitions.mockResolvedValue([]);
+    p4.skus.mockResolvedValue([]);
+    p4.catalog.mockResolvedValue([]);
     p1.formTemplates.mockResolvedValue([]);
     p3.listProcessDrafts.mockResolvedValue([]);
   });
 
-  it("shows 暂无 and the permission note without a tenant count", async () => {
+  it("guides an empty platform to publish a template and a process first", async () => {
     const wrapper = await mountPage();
-    expect(wrapper.text()).toContain("暂无");
+    expect(wrapper.text()).toContain("暂无产品定义");
     expect(wrapper.get("[data-testid='definition-permission']").text()).toContain("租户成员可发起");
+    expect(wrapper.get("[data-testid='journey-template']").attributes("data-done")).toBe("false");
+    expect(wrapper.get("[data-testid='definition-template-empty'] a").attributes("href")).toBe("/p1/form-templates");
+    expect(wrapper.get("[data-testid='definition-process-empty'] a").attributes("href")).toBe("/p3/workflow");
+    expect(wrapper.get("[data-testid='definition-save']").attributes("disabled")).toBeDefined();
     expect(wrapper.text()).not.toContain("已绑定租户");
   });
 
-  it("saves a published template version and process version", async () => {
+  it("reads snake_case templates, saves with snake_case keys, and offers the SKU binding next", async () => {
     p1.formTemplates.mockResolvedValue([
-      { id: "tpl-1", code: "leave", name: "请假", status: "DRAFT", runningVersionId: null },
-      { id: "tpl-2", code: "leave", name: "请假", status: "PUBLISHED", runningVersionId: "ver-9" },
+      { id: "tpl-1", code: "leave", name: "请假", status: "DRAFT", running_version_id: null },
+      PUBLISHED_TEMPLATE,
     ]);
-    p3.listProcessDrafts.mockResolvedValue([{ key: "leave_flow" }, { key: "draft_only" }]);
-    p3.getProcessPublication.mockImplementation(async (key) => {
-      if (key === "draft_only") throw new Error("not found");
-      return { key: "leave_flow", name: "请假审批", version: 3 };
-    });
-    p4.createProductDefinition.mockResolvedValue({ id: "def-1", code: "hr-basic", status: "DRAFT" });
+    publishedProcess();
+    p4.createProductDefinition.mockResolvedValue({ ...DEFINITION });
 
     const wrapper = await mountPage();
     const templateOptions = wrapper.get("[data-testid='definition-template']").findAll("option").map((item) => item.text());
     expect(templateOptions.join(" ")).toContain("请假");
-    expect(templateOptions.join(" ")).not.toContain("DRAFT");
+    expect(templateOptions).toHaveLength(2);
     expect(wrapper.get("[data-testid='definition-process']").text()).toContain("版本 3");
+    expect(wrapper.get("[data-testid='journey-template']").attributes("data-done")).toBe("true");
 
     await wrapper.get("[data-testid='definition-code']").setValue("hr-basic");
     await wrapper.get("[data-testid='definition-name']").setValue("HR 基础版");
     await wrapper.get("[data-testid='definition-template']").setValue("ver-9");
     await wrapper.get("[data-testid='definition-process']").setValue("leave_flow");
-    await wrapper.get("form").trigger("submit");
+    p4.productDefinitions.mockResolvedValue([DEFINITION]);
+    await wrapper.get("form[data-testid='product-definition-form']").trigger("submit");
     await flushPromises();
 
     expect(p4.createProductDefinition).toHaveBeenCalledWith({
       code: "hr-basic",
       name: "HR 基础版",
       description: null,
-      formTemplateVersionId: "ver-9",
-      processDefinitionKey: "leave_flow",
-      processDefinitionVersion: 3,
-      defaultPermissionPack: { summary: "租户成员可发起；审批人来自表单中的成员字段，且必须是本租户成员。" },
+      form_template_version_id: "ver-9",
+      process_definition_key: "leave_flow",
+      process_definition_version: 3,
+      default_permission_pack: { summary: "租户成员可发起；审批人来自表单中的成员字段，且必须是本租户成员。" },
     });
     expect(wrapper.get("[data-testid='definition-saved']").text()).toBe("已保存 hr-basic");
+    const list = wrapper.get("[data-testid='product-definition-list']");
+    expect(list.text()).toContain("请假");
+    expect(list.text()).toContain("草稿");
+    expect(list.text()).toContain("leave_flow · 版本 3");
+    expect(list.text()).toContain("未绑定");
+    await wrapper.get("[data-testid='notice-bind']").trigger("click");
+    expect(wrapper.get("[data-testid='bind-panel']").text()).toContain("HR 基础版");
   });
 
-  it("shows the server failure text", async () => {
-    p1.formTemplates.mockResolvedValue([
-      { id: "tpl-2", code: "leave", name: "请假", status: "PUBLISHED", runningVersionId: "ver-9" },
-    ]);
+  it("binds a SKU, warns before rebinding, and shows the result", async () => {
+    p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
+    publishedProcess();
+    p4.productDefinitions.mockResolvedValue([DEFINITION, { ...DEFINITION, id: "def-2", code: "hr-pro", name: "HR 专业版" }]);
+    p4.skus.mockResolvedValue([{ code: "hr.std", name: "标准版", app_id: "app-1" }, { code: "hr.pro", name: "专业版", app_id: "app-1" }]);
+    p4.catalog.mockResolvedValue([{ app: { id: "app-1" }, version: { id: "v1" }, skus: [
+      { code: "hr.pro", name: "专业版", product_definition: { id: "def-2", code: "hr-pro", name: "HR 专业版" } },
+    ] }]);
+
+    const wrapper = await mountPage();
+    expect(wrapper.get("[data-testid='journey-sku']").attributes("data-done")).toBe("true");
+    expect(wrapper.get("[data-testid='product-definition-list']").text()).toContain("专业版");
+    await wrapper.get("[data-testid='bind-open-hr-basic']").trigger("click");
+    await wrapper.get("[data-testid='bind-sku']").setValue("hr.pro");
+    expect(wrapper.get("[data-testid='bind-rebind-warning']").text()).toContain("HR 专业版");
+    await wrapper.get("[data-testid='bind-sku']").setValue("hr.std");
+    expect(wrapper.find("[data-testid='bind-rebind-warning']").exists()).toBe(false);
+
+    p4.bindProductDefinitionSku.mockResolvedValue({ ...DEFINITION });
+    p4.catalog.mockResolvedValue([{ app: { id: "app-1" }, version: { id: "v1" }, skus: [
+      { code: "hr.std", name: "标准版", product_definition: { id: "def-1", code: "hr-basic", name: "HR 基础版" } },
+    ] }]);
+    await wrapper.get("[data-testid='bind-panel']").trigger("submit");
+    await flushPromises();
+    expect(p4.bindProductDefinitionSku).toHaveBeenCalledWith("def-1", "hr.std");
+    expect(wrapper.find("[data-testid='bind-panel']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='binding-notice']").text()).toContain("已把 SKU hr.std 绑定到「HR 基础版」");
+    expect(wrapper.get("[data-testid='binding-notice'] a").attributes("href")).toBe("/p4/market");
+  });
+
+  it("shows the server failure text for save and bind", async () => {
+    p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
     p3.listProcessDrafts.mockResolvedValue([{ key: "leave_flow" }]);
     p3.getProcessPublication.mockResolvedValue({ key: "leave_flow", name: "请假审批", version: 1 });
     p4.createProductDefinition.mockRejectedValue(new Error("form template version is not published or does not exist"));
+    p4.productDefinitions.mockResolvedValue([DEFINITION]);
+    p4.skus.mockResolvedValue([{ code: "hr.std", name: "标准版" }]);
+    p4.bindProductDefinitionSku.mockRejectedValue(new Error("sku not found"));
 
     const wrapper = await mountPage();
     await wrapper.get("[data-testid='definition-code']").setValue("hr-basic");
     await wrapper.get("[data-testid='definition-name']").setValue("HR 基础版");
     await wrapper.get("[data-testid='definition-template']").setValue("ver-9");
     await wrapper.get("[data-testid='definition-process']").setValue("leave_flow");
-    await wrapper.get("form").trigger("submit");
+    await wrapper.get("form[data-testid='product-definition-form']").trigger("submit");
     await flushPromises();
-
     expect(wrapper.get("[data-testid='definition-save-error']").text())
       .toBe("form template version is not published or does not exist");
+
+    await wrapper.get("[data-testid='bind-open-hr-basic']").trigger("click");
+    await wrapper.get("[data-testid='bind-sku']").setValue("hr.std");
+    await wrapper.get("[data-testid='bind-panel']").trigger("submit");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='bind-error']").text()).toBe("sku not found");
   });
 });

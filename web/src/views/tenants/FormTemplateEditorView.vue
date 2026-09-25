@@ -24,6 +24,7 @@
     <span v-if="dirty" class="dirty" data-testid="template-dirty">有未保存的修改<template v-if="!creating">；校验与发布针对已保存的草稿</template></span>
     <span v-if="validation?.valid" class="ok" data-testid="template-validate-ok">校验通过</span>
     <span v-if="publishedVersion != null" class="ok" data-testid="template-publish-version">已发布版本 {{ publishedVersion }}</span>
+    <router-link v-if="publishedVersion != null" to="/p4/product-definitions" data-testid="template-next-bind">下一步：绑定到产品</router-link>
     <span v-if="publishError" class="field-error" role="alert" data-testid="template-publish-error">{{ publishError }}</span>
   </section>
   <ul v-if="formErrors.length" class="errors" data-testid="template-validate-errors">
