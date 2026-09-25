@@ -110,7 +110,7 @@ const iconsByItem = {
   persons: "users", org: "network", positions: "briefcase", permissions: "key", "identity-integrations": "shield", security: "shield",
   totp: "phone", recovery: "key", email: "mail", ledgers: "table", forms: "file", todos: "check",
   reports: "chart", dumps: "archive", exports: "download", notifications: "bell", "workflow-designer": "workflow",
-  "publish-center": "upload", market: "grid", packages: "package", skus: "tag", subscriptions: "card",
+  "publish-center": "upload", market: "grid", packages: "package", skus: "tag", "product-definitions": "workflow", subscriptions: "card",
   "install-upgrade": "arrowUp", entitlements: "gift", operations: "chart", connect: "plug", apis: "code",
   "api-clients": "code", webhooks: "webhook", connectors: "network", credentials: "key", "call-logs": "clock",
 };

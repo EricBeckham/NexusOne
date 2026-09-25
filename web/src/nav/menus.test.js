@@ -81,7 +81,7 @@ describe("product shell menus", () => {
     const p4Links = collectLinks(p4Items);
     const p5Links = collectLinks(p5Items);
 
-    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/packages", "/p4/skus", "/p4/subscriptions", "/p4/installations", "/p4/entitlements"]);
+    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/packages", "/p4/skus", "/p4/product-definitions", "/p4/subscriptions", "/p4/installations", "/p4/entitlements"]);
     expect(p5Links).toEqual(["/p5", "/p5/connect", "/p5/apis", "/p5/clients", "/p5/webhooks", "/p5/connectors", "/p5/credentials", "/p5/call-logs"]);
     expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
     expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
