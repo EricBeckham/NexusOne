@@ -29,7 +29,7 @@
         </button>
       </template>
     </NxPageHeader>
-    <p class="nx-muted later-note">当前仅支持开始、用户任务、结束节点的基础编辑与结构校验；发布前必须保存并通过校验。</p>
+    <p class="nx-muted later-note">顺序审批：审批节点按从上到下的顺序依次流转，可增删、拖拽排序；不支持分支与并行。发布前须保存并通过校验。</p>
     <NxErrorState
       v-if="error"
       title="流程定义没有加载"
@@ -55,11 +55,106 @@
         </button>
       </aside>
       <section class="nx-card canvas" data-testid="process-canvas">
-        <h2>{{ showText(definition?.name) }}</h2>
-        <p class="nx-muted">来源 {{ showText(definition?.source) }} · {{ showText(definition?.resource) }}</p>
+        <header class="canvas-head">
+          <div>
+            <h2>{{ showText(definition?.name) }}</h2>
+            <p class="nx-muted">{{ isEditing ? "可编辑草稿" : "已发布只读" }}<template v-if="definition?.resource"> · {{ definition.resource }}</template></p>
+          </div>
+          <span v-if="definition && sequence.sequential" class="mode-chip" data-testid="flow-mode">顺序审批 · {{ sequence.steps.length }} 个审批节点</span>
+        </header>
         <NxEmpty v-if="definition && !graph.nodes.length" compact title="暂无节点" />
+        <ol
+          v-else-if="definition && sequence.sequential"
+          class="flow"
+          :class="{ editing: isEditing }"
+          data-testid="flow-steps"
+          @dragover.prevent
+          @dragleave="onFlowDragLeave"
+          @drop.prevent="onStepDrop"
+        >
+          <li
+            v-if="sequence.start"
+            class="terminal start"
+            :class="{ current: selectedId === sequence.start.id }"
+            data-testid="process-node"
+            role="button"
+            tabindex="0"
+            @click="selectedId = sequence.start.id"
+            @keydown.enter.prevent="selectedId = sequence.start.id"
+          >
+            <span class="terminal-icon"><NxIcon name="play" :size="14" /></span>
+            <span><strong>{{ showText(sequence.start.name || "开始") }}</strong><small>发起人提交申请</small></span>
+          </li>
+          <template v-for="(step, index) in sequence.steps" :key="step.id">
+            <li class="connector" aria-hidden="false">
+              <span class="line" />
+              <button v-if="isEditing" type="button" class="insert" data-testid="insert-step" :aria-label="`在第 ${index + 1} 个节点前插入审批节点`" title="插入审批节点" @click="insertStep(index)">
+                <NxIcon name="plus" :size="14" />
+              </button>
+            </li>
+            <li v-if="dropIndex === index" class="drop-line" data-testid="step-drop-indicator" aria-hidden="true" />
+            <li
+              class="step"
+              :class="{ current: selectedId === step.id, dragging: draggingId === step.id, invalid: nodeErrors(step.id).length }"
+              :draggable="isEditing"
+              data-testid="process-node"
+              role="button"
+              tabindex="0"
+              :aria-label="`第 ${index + 1} 个审批节点 ${step.name || ''}`"
+              @click="selectedId = step.id"
+              @keydown.enter.self.prevent="selectedId = step.id"
+              @dragstart="onStepDragStart($event, step)"
+              @dragend="endStepDrag"
+              @dragover.prevent.stop="onStepDragOver($event, index)"
+              @drop.prevent.stop="onStepDrop"
+            >
+              <span v-if="isEditing" class="grip" aria-hidden="true"><NxIcon name="grip" :size="18" /></span>
+              <span class="num">{{ index + 1 }}</span>
+              <span class="step-body">
+                <strong>{{ step.name || "未命名审批节点" }}</strong>
+                <span class="assignee" :class="{ missing: !step.assignee }">
+                  <NxIcon name="user" :size="14" />{{ step.assignee ? assigneeLabel(step.assignee) : "未设置审批人" }}
+                </span>
+                <span v-for="(message, messageIndex) in nodeErrors(step.id)" :key="messageIndex" class="step-error" data-testid="step-error">{{ message }}</span>
+              </span>
+              <span v-if="isEditing" class="step-actions">
+                <button type="button" class="icon-btn" data-testid="step-up" aria-label="上移" title="上移" :disabled="index === 0" @click.stop="moveStep(index, index - 1)"><NxIcon name="arrowUp" :size="16" /></button>
+                <button type="button" class="icon-btn" data-testid="step-down" aria-label="下移" title="下移" :disabled="index === sequence.steps.length - 1" @click.stop="moveStep(index, index + 2)"><NxIcon name="arrowDown" :size="16" /></button>
+                <button type="button" class="icon-btn danger-hover" data-testid="step-remove" aria-label="删除审批节点" title="删除" :disabled="sequence.steps.length === 1" @click.stop="removeStep(index)"><NxIcon name="trash" :size="16" /></button>
+              </span>
+            </li>
+          </template>
+          <li v-if="dropIndex === sequence.steps.length" class="drop-line" data-testid="step-drop-indicator" aria-hidden="true" />
+          <li class="connector">
+            <span class="line" />
+            <button v-if="isEditing" type="button" class="insert" data-testid="insert-step" aria-label="在末尾添加审批节点" title="添加审批节点" @click="insertStep(sequence.steps.length)">
+              <NxIcon name="plus" :size="14" />
+            </button>
+          </li>
+          <li
+            v-if="sequence.end"
+            class="terminal end"
+            :class="{ current: selectedId === sequence.end.id }"
+            data-testid="process-node"
+            role="button"
+            tabindex="0"
+            @click="selectedId = sequence.end.id"
+            @keydown.enter.prevent="selectedId = sequence.end.id"
+          >
+            <span class="terminal-icon"><NxIcon name="check" :size="14" /></span>
+            <span><strong>{{ showText(sequence.end.name || "结束") }}</strong><small>全部通过后结束，结果回写申请</small></span>
+          </li>
+          <li v-else class="terminal end missing-end"><span class="terminal-icon"><NxIcon name="check" :size="14" /></span><span><strong>结束</strong><small>编辑时自动补齐</small></span></li>
+        </ol>
+        <button v-if="definition && sequence.sequential && isEditing" type="button" class="ghost add-step" data-testid="add-step" @click="insertStep(sequence.steps.length)">
+          <NxIcon name="plus" :size="16" />添加审批节点
+        </button>
+        <p v-if="definition && graph.nodes.length && !sequence.sequential" class="nonsequential" data-testid="process-nonsequential">
+          此流程{{ sequence.reason }}，顺序编辑器不支持，仅可查看。
+        </p>
         <svg
-          v-else-if="definition"
+          v-if="definition && graph.nodes.length && !sequence.sequential"
+          class="graph"
           :viewBox="`0 0 ${graph.width} ${graph.height}`"
           :width="graph.width"
           :height="graph.height"
@@ -101,17 +196,20 @@
           <dd>{{ showText(selected.type) }}</dd>
           <template v-if="selected.type === 'userTask'">
             <dt>审批人引用</dt>
-            <dd v-if="isEditing"><input v-model="selected.assignee" data-testid="node-assignee" aria-label="审批人引用" placeholder="例如 ${assignee}" /></dd>
-            <dd v-else>{{ showText(selected.assignee) }}</dd>
+            <dd v-if="isEditing">
+              <input v-model="selected.assignee" data-testid="node-assignee" aria-label="审批人引用" placeholder="例如 ${assignee}" />
+              <span class="presets">
+                <button v-for="preset in ASSIGNEE_PRESETS" :key="preset.value" type="button" class="preset"
+                  :class="{ active: selected.assignee === preset.value }" data-testid="assignee-preset"
+                  @click="selected.assignee = preset.value">{{ preset.label }}</button>
+              </span>
+              <small class="preset-hint">目前发起时只选一位审批人；多个节点都用它时会由同一人依次审批。</small>
+            </dd>
+            <dd v-else>{{ selected.assignee ? assigneeLabel(selected.assignee) : "暂无" }}</dd>
           </template>
         </dl>
         <p v-else class="nx-muted">暂无</p>
-        <div v-if="isEditing" class="node-actions" data-testid="node-actions">
-          <h3>添加节点</h3>
-          <button type="button" class="ghost" @click="addNode('startEvent')">开始</button>
-          <button type="button" class="ghost" @click="addNode('userTask')">用户任务</button>
-          <button type="button" class="ghost" @click="addNode('endEvent')">结束</button>
-        </div>
+        <p v-if="isEditing && selected && nodeErrors(selected.id).length" class="step-error" data-testid="node-error">{{ nodeErrors(selected.id).join("；") }}</p>
         <section v-if="validationResult" class="validation-result" data-testid="process-validation" :data-valid="validationResult.valid">
           <strong>{{ validationResult.valid ? "校验通过" : "校验未通过" }}</strong>
           <p v-if="validationResult.valid" class="nx-muted">当前草稿满足基础结构要求。</p>
@@ -133,6 +231,7 @@
         <p v-if="publishError" class="publish-error" role="alert" data-testid="process-publish-error">
           发布失败：{{ publishError.message || "服务端未能发布此流程" }}
         </p>
+        <template v-if="!sequence.sequential">
         <h3>相关连线</h3>
         <ul v-if="selectedFlows.length">
           <li v-for="flow in selectedFlows" :key="flow.id || `${flow.source_ref}-${flow.target_ref}`">
@@ -141,6 +240,7 @@
           </li>
         </ul>
         <p v-else class="nx-muted">暂无</p>
+        </template>
       </aside>
     </div>
     <div v-if="publishConfirm" class="confirm-backdrop" data-testid="process-publish-confirm-backdrop">
@@ -162,9 +262,17 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader } from "../../components";
+import NxIcon from "../../icons/NxIcon.vue";
 import { p3 } from "../../api/p3";
-import { addDraftNode, createBlankDraft, parseDraftXml, serializeDraftXml } from "./processDraft";
+import { insertAt, moveToGap } from "../../utils/listMove";
+import { createBlankDraft, parseDraftXml, serializeDraftXml } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
+import { fromSequence, newStep, toSequence } from "./sequentialFlow";
+
+// Only `assignee` is set as a process variable at start (SequentialApprovalService); offer nothing else.
+const ASSIGNEE_PRESETS = [
+  { value: "${assignee}", label: "发起时选择的审批人" },
+];
 
 const route = useRoute();
 const router = useRouter();
@@ -188,6 +296,9 @@ const loading = ref(false);
 const canPublish = computed(() => isPersistedDraft.value && !dirty.value && validationResult.value?.valid === true && !publishing.value);
 
 const graph = computed(() => layoutDefinition(definition.value || {}));
+const sequence = computed(() => toSequence(definition.value || {}));
+const draggingId = ref("");
+const dropIndex = ref(null);
 const selected = computed(() => definition.value?.nodes?.find((node) => node.id === selectedId.value) || null);
 const selectedFlows = computed(() => {
   const id = selectedId.value;
@@ -284,15 +395,82 @@ function editAsDraft() {
   isDraft.value = true;
   isEditing.value = true;
   isPersistedDraft.value = false;
+  if (sequence.value.sequential) definition.value = fromSequence(definition.value, sequence.value.steps);
   dirty.value = true;
   validationResult.value = null;
 }
 
-function addNode(type) {
-  if (!definition.value) return;
-  const existingIds = new Set(definition.value.nodes.map((node) => node.id));
-  definition.value = addDraftNode(definition.value, type);
-  selectedId.value = definition.value.nodes.find((node) => !existingIds.has(node.id))?.id || selectedId.value;
+function setSteps(steps) {
+  definition.value = fromSequence(definition.value, steps);
+}
+
+function insertStep(index) {
+  if (!definition.value || !sequence.value.sequential) return;
+  const step = newStep(definition.value);
+  setSteps(insertAt(sequence.value.steps, index, step));
+  selectedId.value = step.id;
+}
+
+function removeStep(index) {
+  const steps = sequence.value.steps;
+  if (steps.length <= 1) return;
+  const removed = steps[index];
+  setSteps(steps.filter((_, i) => i !== index));
+  if (removed?.id === selectedId.value) selectedId.value = sequence.value.steps[Math.min(index, sequence.value.steps.length - 1)]?.id || "";
+}
+
+function moveStep(from, gap) {
+  const steps = sequence.value.steps;
+  const moved = moveToGap(steps, from, gap);
+  if (moved !== steps) setSteps(moved);
+}
+
+function onStepDragStart(event, step) {
+  if (!isEditing.value) return;
+  draggingId.value = step.id;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    try {
+      event.dataTransfer.setData("text/plain", step.id);
+    } catch {
+      // In-memory drag state is authoritative.
+    }
+  }
+}
+
+function onStepDragOver(event, index) {
+  if (!draggingId.value) return;
+  const rect = event.currentTarget.getBoundingClientRect();
+  const before = rect.height > 0 && event.clientY < rect.top + rect.height / 2;
+  dropIndex.value = before ? index : index + 1;
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+}
+
+function onFlowDragLeave(event) {
+  if (!event.currentTarget.contains(event.relatedTarget)) dropIndex.value = null;
+}
+
+function onStepDrop() {
+  const id = draggingId.value;
+  const gap = dropIndex.value;
+  endStepDrag();
+  if (!id || gap == null) return;
+  moveStep(sequence.value.steps.findIndex((step) => step.id === id), gap);
+}
+
+function endStepDrag() {
+  draggingId.value = "";
+  dropIndex.value = null;
+}
+
+function nodeErrors(id) {
+  const errors = validationResult.value?.errors;
+  if (!Array.isArray(errors)) return [];
+  return errors.filter((item) => item?.node_id === id || item?.nodeId === id).map((item) => item.message).filter(Boolean);
+}
+
+function assigneeLabel(value) {
+  return ASSIGNEE_PRESETS.find((preset) => preset.value === value)?.label || value;
 }
 
 function editableType(type) {
@@ -400,7 +578,7 @@ watch(() => route.params.key, reload, { immediate: true });
 .item.current { border-color: var(--nx-product); }
 .item span, .props li span, .type { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .canvas { overflow: auto; }
-svg { display: block; min-width: 100%; }
+svg.graph { display: block; min-width: 100%; }
 line { stroke: var(--nx-border-strong, var(--nx-border)); stroke-width: 1.5; }
 .node { cursor: pointer; }
 .node rect { fill: var(--nx-surface); stroke: var(--nx-border); }
@@ -411,6 +589,156 @@ text { fill: var(--nx-text-primary); font-size: 13px; }
 .props dd { margin: 0; overflow-wrap: anywhere; }
 .props ul { margin: 0; padding-left: 1.1em; display: grid; gap: var(--nx-space-2); }
 .props li { display: grid; }
+.canvas-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); }
+.canvas-head p { margin: 4px 0 0; font-size: var(--nx-font-size-xs); }
+.mode-chip {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: var(--nx-radius-pill);
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+  color: var(--nx-product);
+  background: var(--nx-product-light);
+}
+.flow {
+  list-style: none;
+  margin: 0 auto;
+  padding: var(--nx-space-4);
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: var(--nx-radius);
+  background: var(--nx-bg-page);
+}
+.terminal {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+  align-self: center;
+  min-width: 240px;
+  padding: 8px 16px 8px 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-pill);
+  background: var(--nx-surface);
+  cursor: pointer;
+}
+.terminal strong, .step-body strong { display: block; color: var(--nx-text-primary); font-size: var(--nx-font-size-md); }
+.terminal small { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.terminal-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--nx-success);
+}
+.terminal.end .terminal-icon { background: var(--nx-text-secondary); }
+.terminal.current, .step.current { border-color: var(--nx-product); box-shadow: 0 0 0 3px var(--nx-product-light); }
+.missing-end { opacity: 0.6; cursor: default; }
+.connector { position: relative; display: grid; place-items: center; height: 36px; }
+.connector .line { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: var(--nx-border-strong); }
+.connector .line::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -4px;
+  border: 5px solid transparent;
+  border-top-color: var(--nx-border-strong);
+  border-bottom: 0;
+}
+.insert {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 50%;
+  background: var(--nx-surface);
+  color: var(--nx-text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+.flow:hover .insert, .insert:focus-visible { opacity: 1; }
+.insert:hover { color: var(--nx-product); border-color: var(--nx-product); }
+.step {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--nx-space-3);
+  padding: 12px;
+  border: 1px solid var(--nx-border);
+  border-left: 3px solid var(--nx-product);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface);
+  box-shadow: var(--nx-shadow-card);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+.flow:not(.editing) .step { grid-template-columns: auto minmax(0, 1fr); }
+.step:focus-visible, .terminal:focus-visible { outline: 2px solid var(--nx-product); outline-offset: 2px; }
+.step.invalid { border-color: var(--nx-danger); border-left-color: var(--nx-danger); }
+.step.dragging { opacity: 0.4; }
+.grip { color: var(--nx-text-disabled); cursor: grab; }
+.num {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: var(--nx-font-size-xs);
+  font-weight: 700;
+  color: var(--nx-product);
+  background: var(--nx-product-light);
+}
+.step-body { display: grid; gap: 4px; min-width: 0; }
+.assignee { display: inline-flex; align-items: center; gap: 4px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); }
+.assignee.missing { color: var(--nx-warning); }
+.step-error { color: var(--nx-danger); font-size: var(--nx-font-size-sm); margin: 0; }
+.step-actions { display: flex; gap: 2px; opacity: 0.55; transition: opacity 0.15s; }
+.step:hover .step-actions, .step.current .step-actions, .step:focus-within .step-actions { opacity: 1; }
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nx-text-secondary);
+  cursor: pointer;
+}
+.icon-btn:hover:not(:disabled) { color: var(--nx-product); background: var(--nx-product-light); }
+.icon-btn.danger-hover:hover:not(:disabled) { color: var(--nx-danger); background: var(--nx-danger-light); }
+.icon-btn:disabled { color: var(--nx-text-disabled); cursor: not-allowed; }
+.drop-line { height: 3px; margin: 2px 0; border-radius: 2px; background: var(--nx-product); }
+.add-step { display: flex; align-items: center; gap: 4px; margin: var(--nx-space-3) auto 0; }
+.nonsequential {
+  margin: 0 0 var(--nx-space-3);
+  padding: 8px 12px;
+  border-radius: var(--nx-radius-sm);
+  color: var(--nx-warning);
+  background: var(--nx-warning-light);
+  font-size: var(--nx-font-size-sm);
+}
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.preset {
+  padding: 2px 10px;
+  border: 1px solid var(--nx-border-strong);
+  border-radius: var(--nx-radius-pill);
+  background: var(--nx-surface);
+  color: var(--nx-text-regular);
+  font-size: var(--nx-font-size-xs);
+  cursor: pointer;
+}
+.preset.active, .preset:hover { border-color: var(--nx-product); color: var(--nx-product); background: var(--nx-product-light); }
+.preset-hint { display: block; margin-top: 6px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.props input { width: 100%; box-sizing: border-box; border: 1px solid var(--nx-border-strong); border-radius: 6px; padding: 6px 8px; font: inherit; }
 @media (max-width: 960px) {
   .shell { grid-template-columns: 1fr; }
 }

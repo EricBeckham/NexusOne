@@ -52,7 +52,11 @@ describe("todo comment and my requests", () => {
     await flushPromises();
     expect(wrapper.text()).not.toContain("仅本页");
     expect(wrapper.text()).not.toContain("意见字段 API 未提供");
-    expect(wrapper.text()).toContain("意见一起提交 path API");
+    expect(wrapper.text()).not.toContain("path API");
+    expect(wrapper.get("tbody tr").text()).toContain("待处理");
+    expect(wrapper.get("tbody tr").text()).not.toContain("PENDING");
+    expect(wrapper.text()).toContain("流程实例");
+    expect(wrapper.text()).not.toContain("instance inst-1");
     await wrapper.get('[data-testid="todo-comment"]').setValue("同意这条");
     await wrapper.get('[data-testid="todo-approve"]').trigger("click");
     await flushPromises();
@@ -67,7 +71,7 @@ describe("todo comment and my requests", () => {
     const requests = wrapper.findAll("button").find((button) => button.text() === "我的申请");
     await requests.trigger("click");
     await flushPromises();
-    expect(wrapper.get("[data-testid='todo-empty']").text()).toContain("暂无");
+    expect(wrapper.get("[data-testid='todo-empty']").text()).toContain("暂无申请");
     expect(wrapper.text()).toContain("从已开通产品发起后");
     expect(wrapper.get("[data-testid='todo-empty'] a").attributes("href")).toBe("/p4/installations");
 

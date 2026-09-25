@@ -1,8 +1,7 @@
 <template>
   <div>
-    <NxPageHeader title="待办" description="集中查看我的待办、已办和我发起的流程，并完成同意、驳回或撤回。" />
-    <NxSourceBanner body="Live M0-08 + G18 path。GET /api/v1/p3/todos。同意/驳回与意见一起提交 path API，并写入流程任务评论。" />
-    <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
+    <NxPageHeader title="待办" description="集中查看我的待办、已办、我发起的流程和我的申请，并完成同意、驳回或撤回。" />
+    <p v-if="!session.contextId" class="nx-error">还没有进入租户。请先登录并切换到要办理的租户。</p>
     <div class="nx-tabs">
       <button
         v-for="item in boxes"
@@ -12,13 +11,13 @@
         @click="switchBox(item.id)"
       >{{ item.label }}</button>
     </div>
-    <div class="nx-field" style="max-width:280px;">
-      <label>筛选</label>
-      <input v-model="query" placeholder="单号 / 任务名" />
+    <div class="nx-field filter">
+      <label for="todo-filter">筛选</label>
+      <input id="todo-filter" v-model="query" placeholder="单号 / 任务名" />
     </div>
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
-    <div class="nx-grid" style="grid-template-columns: 1fr 360px;">
+    <div class="nx-grid inbox-layout">
       <NxEmpty v-if="!filtered.length" :title="emptyCopy.title" :description="emptyCopy.description" data-testid="todo-empty">
         <template v-if="emptyCopy.to" #action>
           <router-link class="primary" :to="emptyCopy.to">{{ emptyCopy.action }}</router-link>
@@ -43,17 +42,21 @@
             <td>{{ row.title }}</td>
             <td class="nx-code">{{ row.biz_no }}</td>
             <td>{{ row.arrived_at }}</td>
-            <td><NxStatus :label="box === 'requests' ? applicationStatus(row.status) : row.status" :tone="tone(row.status)" /></td>
+            <td><NxStatus :label="box === 'requests' ? applicationStatus(row.status) : statusLabel(row.status)" :tone="tone(row.status)" /></td>
           </tr>
         </tbody>
       </table>
-      <div class="nx-card">
-        <h3>办理</h3>
+      <div class="nx-card detail">
+        <h3>{{ box === 'inbox' ? "办理" : "详情" }}</h3>
         <template v-if="selected">
-          <p><strong>{{ selected.title }}</strong></p>
-          <p class="nx-muted">{{ selected.process }} · {{ selected.biz_no }}</p>
-          <p class="nx-muted">instance {{ selected.instance_id }}</p>
-          <p v-if="selected.approval_status" class="nx-muted">approval_status {{ selected.approval_status }}</p>
+          <p class="detail-title"><strong>{{ selected.title }}</strong></p>
+          <dl class="detail-meta">
+            <dt>流程</dt><dd>{{ selected.process || "暂无" }}</dd>
+            <dt>业务单号</dt><dd class="nx-code">{{ selected.biz_no || "暂无" }}</dd>
+            <dt v-if="selected.approval_status">审批状态</dt>
+            <dd v-if="selected.approval_status"><NxStatus :label="statusLabel(selected.approval_status)" :tone="tone(selected.approval_status)" /></dd>
+            <dt>流程实例</dt><dd class="nx-code instance">{{ selected.instance_id || "暂无" }}</dd>
+          </dl>
           <router-link
             v-if="selected.ledger_id && selected.record_id"
             :to="`/p3/ledgers/${selected.ledger_id}/records/${selected.record_id}`"
@@ -71,7 +74,7 @@
             <router-link :to="`/p3/audit?trace=${encodeURIComponent(session.lastTraceId)}`">{{ session.lastTraceId }}</router-link>
           </p>
         </template>
-        <p v-else class="nx-muted">选择一条待办。转办 / 会签不在 M0。</p>
+        <p v-else class="nx-muted">从左侧列表选择一条记录查看详情。</p>
       </div>
     </div>
   </div>
@@ -82,7 +85,6 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
-import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
 import { session } from "../../api/session";
 
@@ -117,7 +119,7 @@ const emptyCopy = computed(() => {
   }
   if (box.value === "requests") {
     return {
-      title: "暂无",
+      title: "暂无申请",
       description: "从已开通产品发起后，进行中、通过和驳回会显示在这里。",
       to: "/p4/installations",
       action: "前往我的已开通",
@@ -145,6 +147,23 @@ function applicationStatus(status) {
   if (value === "APPROVED") return "通过";
   if (value === "REJECTED") return "驳回";
   return status || "进行中";
+}
+
+const STATUS_LABELS = {
+  PENDING: "待处理",
+  CREATED: "待处理",
+  RUNNING: "进行中",
+  IN_APPROVAL: "审批中",
+  APPROVE: "已同意",
+  APPROVED: "已通过",
+  REJECT: "已驳回",
+  REJECTED: "已驳回",
+  WITHDRAWN: "已撤回",
+  DONE: "已办结",
+};
+
+function statusLabel(status) {
+  return STATUS_LABELS[String(status || "").toUpperCase()] || status || "暂无";
 }
 
 function isPending(row) {
@@ -210,5 +229,20 @@ async function act(kind) {
 
 <style scoped>
 tr { cursor: pointer; }
+tbody tr:hover td { background: var(--nx-surface-hover); }
 tr.pick td { background: var(--nx-primary-light); }
+.filter { max-width: 280px; }
+.inbox-layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+.detail { position: sticky; top: 16px; display: grid; gap: 12px; }
+.detail h3, .detail p { margin: 0; }
+.detail-title { font-size: var(--nx-font-size-md); }
+.detail-meta { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px 12px; margin: 0; font-size: var(--nx-font-size-sm); }
+.detail-meta dt { color: var(--nx-text-secondary); }
+.detail-meta dd { margin: 0; overflow-wrap: anywhere; }
+.detail-meta .instance { color: var(--nx-text-secondary); }
+.detail textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+@media (max-width: 1100px) {
+  .inbox-layout { grid-template-columns: 1fr; }
+  .detail { position: static; }
+}
 </style>

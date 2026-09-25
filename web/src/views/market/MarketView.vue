@@ -1,6 +1,6 @@
 <template>
   <main class="market-page">
-    <NxPageHeader eyebrow="P4 · NEXUS MARKET" title="应用目录" description="无支付。选择 SKU 后即时开通，成功后进入我的已开通。">
+    <NxPageHeader eyebrow="P4 · 星市" title="应用目录" description="无支付。选择 SKU 后即时开通，成功后进入我的已开通。">
       <template #actions><button class="ghost" type="button" :disabled="loading" @click="load">刷新目录</button></template>
     </NxPageHeader>
 
