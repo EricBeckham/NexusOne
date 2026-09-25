@@ -81,8 +81,11 @@ describe("todo comment and my requests", () => {
     await requests.trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("通过");
+    expect(wrapper.get("thead").text()).toContain("提交时间");
+    expect(wrapper.get("thead").text()).toContain("申请编号");
     await wrapper.get("tbody tr").trigger("click");
     await flushPromises();
+    expect(wrapper.get('[data-testid="application-comment"]').text()).toContain("审批意见");
     expect(wrapper.get('[data-testid="application-comment"]').text()).toContain("可以");
     expect(wrapper.find('[data-testid="todo-withdraw"]').exists()).toBe(false);
   });
