@@ -9,9 +9,11 @@ vi.mock("../../api/session", () => ({ session: { tenantId: "tenant-1" } }));
 
 import MarketView from "./MarketView.vue";
 
-// Real GET /api/v1/p4/catalog SKU shape: CatalogSku { sku, product_definition } in SNAKE_CASE.
+// GET /api/v1/p4/catalog exposes stable subscription fields directly on each SKU entry.
 const BOUND_BASIC = {
-  sku: { code: "basic", app_id: "app-1", name: "基础版", entitlements: { approval: { enabled: true, quota: 10, attributes: {} } } },
+  code: "basic",
+  name: "基础版",
+  entitlements: { approval: { enabled: true, quota: 10, attributes: {} } },
   product_definition: { id: "pd-1", code: "crm_basic", name: "CRM 基础审批", status: "PUBLISHED" },
 };
 
@@ -91,7 +93,7 @@ describe("P4 catalog V11", () => {
       {
         app: { id: "app-1", name: "演示数据 · 简单审批", code: "demo_simple_approval" },
         version: { id: "v1", version: "1.0.0", status: "PUBLISHED" },
-        skus: [{ sku: { code: "demo.simple-approval", name: "演示数据 · 标准", entitlements: {} } }],
+        skus: [{ code: "demo.simple-approval", name: "演示数据 · 标准", entitlements: {} }],
       },
     ]);
     const wrapper = await mountCatalog();

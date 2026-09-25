@@ -1,10 +1,9 @@
 /**
- * GET /api/v1/p4/catalog returns each SKU as `CatalogSku { sku, product_definition }` (SNAKE_CASE,
- * `product_definition` omitted when the SKU is not bound). Subscribe needs that binding
- * (`subscribeProduct` 404s without it), so an unbound SKU is shown as not subscribable.
+ * GET /api/v1/p4/catalog exposes code/name/entitlements directly on each SKU.
+ * The nested fallback keeps the UI tolerant while older demo hosts roll forward.
  */
 export function catalogSku(entry) {
-  const sku = entry?.sku || {};
+  const sku = entry?.sku || entry || {};
   return {
     code: sku.code || "",
     name: sku.name || "",

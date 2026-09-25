@@ -2,6 +2,7 @@ package one.nexus.bootstrap.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -77,6 +78,7 @@ class DemoSeedPostgresBootTest {
         var names = market.catalog().stream().map(item -> item.app().name()).toList();
         assertTrue(names.contains("演示数据 · 简单审批"), "catalog must list the simple-approval demo product");
         assertTrue(names.contains("星河项目协作"), "catalog must list the P4 demo app");
+        assertCatalogSkuContract();
         int quotaUsed = count("SELECT coalesce(sum(used_value), 0) FROM platform.quota WHERE tenant_id = ?",
                 P1DemoSeedConfiguration.TENANT_ID);
         approvalSeed.run(new DefaultApplicationArguments());
@@ -86,6 +88,16 @@ class DemoSeedPostgresBootTest {
         assertEquals(quotaUsed, count("SELECT coalesce(sum(used_value), 0) FROM platform.quota WHERE tenant_id = ?",
                 P1DemoSeedConfiguration.TENANT_ID), "re-running the P3 seed must not consume quota twice");
         subscribeAsLin();
+    }
+
+    private void assertCatalogSkuContract() throws Exception {
+        String catalog = mvc.perform(get("/api/v1/p4/catalog"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        java.util.List<String> codes = JsonPath.read(catalog, "$..skus[*].code");
+        java.util.List<String> names = JsonPath.read(catalog, "$..skus[*].name");
+        assertTrue(codes.contains(ApprovalProductDemoSeedConfiguration.SKU_CODE));
+        assertTrue(names.contains("演示数据 · 标准"));
     }
 
     private void subscribeAsLin() throws Exception {

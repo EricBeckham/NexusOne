@@ -143,7 +143,7 @@ public class JdbcMarketRepository implements MarketRepository {
                 Sku sku = mapSku(skuRow,rowNum);
                 UUID productId = uuid(skuRow,"pd_id");
                 ProductDefinition definition = productId == null ? null : mapProductDefinitionColumns(skuRow);
-                return new CatalogSku(sku, definition);
+                return new CatalogSku(sku.code(), sku.name(), sku.entitlements(), definition);
             }).list();
             return new CatalogItem(a,v,skus);
         }).list();
