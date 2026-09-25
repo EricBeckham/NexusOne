@@ -1,7 +1,7 @@
 <template>
   <main>
     <NxPageHeader
-      eyebrow="P4 · NEXUS MARKET"
+      eyebrow="P4 · 星市"
       title="星市工作台"
       description="浏览已发布应用。无支付，订阅后即时开通。"
     >

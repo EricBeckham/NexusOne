@@ -73,8 +73,8 @@ describe("process viewer", () => {
     await wrapper.get("[data-testid='process-edit-copy']").trigger("click");
     await wrapper.get("[data-testid='node-name']").setValue("审批单据");
     await wrapper.get("[data-testid='node-assignee']").setValue("${manager}");
-    await wrapper.get("[data-testid='node-actions'] button:nth-of-type(2)").trigger("click");
-    expect(wrapper.get("[data-testid='process-canvas']").text()).toContain("新用户任务");
+    await wrapper.get("[data-testid='add-step']").trigger("click");
+    expect(wrapper.get("[data-testid='process-canvas']").text()).toContain("审批节点 2");
     p3.saveProcessDraft.mockImplementation(async (key, body) => {
       persisted = { key, name: body.name, bpmn_xml: body.bpmn_xml };
       return { key, name: body.name };
@@ -158,6 +158,92 @@ describe("process viewer", () => {
     expect(p3.saveProcessDraft).not.toHaveBeenCalled();
     expect(wrapper.get("[data-testid='draft-name']").element.value).toBe("新流程草稿");
     expect(wrapper.find("[data-testid='process-validate']").exists()).toBe(false);
+  });
+
+  it("edits a sequential draft: insert, drag reorder, keyboard moves, delete, and saves a straight chain", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    const stepNames = () => wrapper.findAll(".step .step-body strong").map((node) => node.text());
+    expect(wrapper.get("[data-testid='flow-mode']").text()).toContain("1 个审批节点");
+    expect(wrapper.get("[data-testid='step-remove']").attributes("disabled")).toBeDefined();
+
+    await wrapper.get("[data-testid='add-step']").trigger("click");
+    await wrapper.findAll("[data-testid='insert-step']")[0].trigger("click");
+    expect(stepNames()).toEqual(["审批节点 3", "审批", "审批节点 2"]);
+    expect(wrapper.get("[data-testid='node-name']").element.value).toBe("审批节点 3");
+
+    const transfer = () => ({ setData: vi.fn(), effectAllowed: "", dropEffect: "" });
+    const steps = wrapper.findAll(".step");
+    await steps[0].trigger("dragstart", { dataTransfer: transfer() });
+    expect(steps[0].classes()).toContain("dragging");
+    await steps[2].trigger("dragover", { dataTransfer: transfer() });
+    expect(wrapper.findAll("[data-testid='step-drop-indicator']")).toHaveLength(1);
+    await steps[2].trigger("drop", { dataTransfer: transfer() });
+    expect(stepNames()).toEqual(["审批", "审批节点 2", "审批节点 3"]);
+    expect(wrapper.find("[data-testid='step-drop-indicator']").exists()).toBe(false);
+
+    await wrapper.findAll("[data-testid='step-up']")[2].trigger("click");
+    expect(stepNames()).toEqual(["审批", "审批节点 3", "审批节点 2"]);
+    await wrapper.findAll("[data-testid='step-remove']")[0].trigger("click");
+    expect(stepNames()).toEqual(["审批节点 3", "审批节点 2"]);
+
+    await wrapper.findAll(".step")[0].trigger("click");
+    await wrapper.get("[data-testid='assignee-preset']").trigger("click");
+    expect(wrapper.get("[data-testid='node-assignee']").element.value).toBe("${assignee}");
+    expect(wrapper.findAll(".step")[0].text()).toContain("发起时选择的审批人");
+    expect(wrapper.findAll(".step")[1].text()).toContain("未设置审批人");
+
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    const xml = p3.saveProcessDraft.mock.calls[0][1].bpmn_xml;
+    const flows = [...xml.matchAll(/sourceRef="([^"]+)" targetRef="([^"]+)"/g)].map((match) => `${match[1]}>${match[2]}`);
+    expect(flows).toEqual(["start>approve_3", "approve_3>approve_2", "approve_2>end"]);
+  });
+
+  it("marks validation errors on the step they belong to", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([definition]);
+    p3.listProcessDrafts.mockResolvedValue([{ key: "nexusSequentialApproval", name: "Approval" }]);
+    p3.getProcessDraft.mockResolvedValue({
+      key: "nexusSequentialApproval",
+      name: "Approval",
+      bpmn_xml: '<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="nexusSequentialApproval"><startEvent id="start"/><userTask id="task" name="Review"/><endEvent id="end"/><sequenceFlow id="one" sourceRef="start" targetRef="task"/><sequenceFlow id="two" sourceRef="task" targetRef="end"/></process></definitions>',
+    });
+    p3.getProcessPublication.mockRejectedValue(Object.assign(new Error("not published"), { status: 404 }));
+    p3.validateProcessDraft.mockResolvedValue({
+      valid: false,
+      errors: [{ code: "USER_TASK_ASSIGNEE_REQUIRED", message: "用户任务必须填写审批人引用", node_id: "task" }],
+    });
+    const wrapper = await mountAt("/p3/workflow/nexusSequentialApproval");
+    expect(wrapper.get("[data-testid='process-validate']").attributes("disabled")).toBeUndefined();
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".step").classes()).toContain("invalid");
+    expect(wrapper.get("[data-testid='step-error']").text()).toBe("用户任务必须填写审批人引用");
+  });
+
+  it("keeps branching definitions view-only in the graph", async () => {
+    const branched = {
+      key: "branchy",
+      name: "Branchy",
+      source: "classpath",
+      nodes: [
+        { id: "start", name: "Start", type: "startEvent" },
+        { id: "gate", name: "Gate", type: "exclusiveGateway" },
+        { id: "a", name: "A", type: "userTask" },
+      ],
+      flows: [
+        { id: "f1", source_ref: "start", target_ref: "gate", condition: null },
+        { id: "f2", source_ref: "gate", target_ref: "a", condition: "${ok}" },
+      ],
+    };
+    p3.listProcessDefinitions.mockResolvedValue([branched]);
+    p3.getProcessDefinition.mockResolvedValue(branched);
+    const wrapper = await mountAt("/p3/workflow/branchy");
+    expect(wrapper.get("[data-testid='process-nonsequential']").text()).toContain("仅可查看");
+    expect(wrapper.find("[data-testid='flow-steps']").exists()).toBe(false);
+    expect(wrapper.find("svg").exists()).toBe(true);
   });
 
   it("shows an empty state when the catalog has no definitions", async () => {

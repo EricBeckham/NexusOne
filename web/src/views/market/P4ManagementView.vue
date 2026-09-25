@@ -1,7 +1,7 @@
 <template>
   <main class="p4-management">
     <NxPageHeader eyebrow="P4 · 星市" :title="title" :description="description">
-      <template #actions><router-link class="ghost" to="/p4/market">应用目录</router-link><button class="primary" type="button" :disabled="loading" @click="load">刷新</button></template>
+      <template #actions><router-link class="ghost" to="/p4/market">应用目录</router-link><button class="ghost" type="button" :disabled="loading" @click="load">刷新</button></template>
     </NxPageHeader>
 
     <nav class="p4-tabs" aria-label="星市管理分区">
@@ -70,7 +70,7 @@
           <div class="installation-summary"><div><span class="eyebrow">{{ appById(installation.appId)?.code || installation.appId }}</span><h3>{{ appById(installation.appId)?.name || "应用" }}</h3><code>{{ installation.id }}</code></div><NxStatusTag :status="installation.status" :label="installation.status" /><router-link v-if="installation.status === 'INSTALLED'" class="primary" :to="`/p4/installations/${installation.id}/start`" data-testid="start-application">发起</router-link></div>
           <div class="stepper" aria-label="升级步骤"><span v-for="step in upgradeSteps" :key="step">{{ step }}</span></div>
           <div class="upgrade-facts"><p><span>当前版本</span><strong>{{ versionLabel(installation.versionId) }}</strong></p><p><span>兼容范围</span><strong>暂无数据</strong></p><p><span>Schema 变更</span><strong>暂无数据</strong></p><p><span>数据迁移</span><strong>暂无数据</strong></p><p><span>回滚能力</span><strong>服务端未提供独立回滚说明</strong></p></div>
-          <form class="upgrade-form" @submit.prevent="upgrade(installation)"><label>目标版本<select v-model="targets[installation.id]" required><option value="">请选择已发布版本</option><option v-for="version in publishedVersions(installation.appId)" :key="version.id" :value="version.id">{{ version.version }}</option></select></label><button class="primary" type="submit" :disabled="busyId === installation.id || !targets[installation.id]">{{ busyId === installation.id ? "提交中…" : "提交升级" }}</button></form>
+          <form class="upgrade-form" @submit.prevent="upgrade(installation)"><label>目标版本<select v-model="targets[installation.id]" required><option value="">请选择已发布版本</option><option v-for="version in publishedVersions(installation.appId)" :key="version.id" :value="version.id">{{ version.version }}</option></select></label><button class="ghost" type="submit" :disabled="busyId === installation.id || !targets[installation.id]">{{ busyId === installation.id ? "提交中…" : "提交升级" }}</button></form>
           <small class="nx-muted">更新时间 {{ formatDate(installation.updatedAt) }}</small>
         </article></div>
       </section>
