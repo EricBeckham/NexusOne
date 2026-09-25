@@ -19,8 +19,10 @@
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-grid inbox-layout">
       <NxEmpty v-if="!filtered.length" :title="emptyCopy.title" :description="emptyCopy.description" data-testid="todo-empty">
-        <template v-if="emptyCopy.to" #action>
-          <router-link class="primary" :to="emptyCopy.to">{{ emptyCopy.action }}</router-link>
+        <template v-if="emptyCopy.to || emptyCopy.box || emptyCopy.clear" #action>
+          <router-link v-if="emptyCopy.to" class="primary" :to="emptyCopy.to" data-testid="todo-empty-action">{{ emptyCopy.action }}</router-link>
+          <button v-else-if="emptyCopy.box" class="primary" type="button" data-testid="todo-empty-action" @click="switchBox(emptyCopy.box)">{{ emptyCopy.action }}</button>
+          <button v-else class="ghost" type="button" data-testid="todo-empty-action" @click="query = ''">{{ emptyCopy.action }}</button>
         </template>
       </NxEmpty>
       <table v-else class="nx-table" data-testid="todo-table">
@@ -117,8 +119,9 @@ const filtered = computed(() => {
 });
 
 const emptyCopy = computed(() => {
+  // Every empty state gives a reason and a next step (M4).
   if (query.value.trim() && rows.value.length) {
-    return { title: "没有匹配项", description: "请调整筛选词后重试。", to: "", action: "" };
+    return { title: "没有匹配项", description: "没有单号或任务名包含这个筛选词。", clear: true, action: "清空筛选" };
   }
   if (box.value === "requests") {
     return {
@@ -129,12 +132,17 @@ const emptyCopy = computed(() => {
     };
   }
   if (box.value === "done") {
-    return { title: "暂无已办", description: "同意或驳回后，办结项会出现在这里。", to: "", action: "" };
+    return { title: "暂无已办", description: "在「我的待办」同意或驳回后，办结项会出现在这里。", box: "inbox", action: "查看我的待办" };
   }
   if (box.value === "initiated") {
-    return { title: "暂无我发起", description: "从已发布流程发起后，记录会出现在这里。", to: "", action: "" };
+    return { title: "暂无我发起", description: "从「我的已开通」发起申请后，进行中的流程会出现在这里。", to: "/p4/installations", action: "去发起申请" };
   }
-  return { title: "暂无待办", description: "当前租户还没有待你处理的申请。", to: "", action: "" };
+  return {
+    title: "暂无待办",
+    description: "有人发起申请并选你为审批人后，待办会出现在这里；你也可以从「我的已开通」发起申请。",
+    to: "/p4/installations",
+    action: "去发起申请",
+  };
 });
 
 function tone(status) {
