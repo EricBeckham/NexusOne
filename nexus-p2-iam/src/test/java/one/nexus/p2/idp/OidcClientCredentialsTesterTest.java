@@ -81,6 +81,27 @@ class OidcClientCredentialsTesterTest {
     }
 
     @Test
+    void treatsSpecialPurposeIpv4AsNonPublic() throws Exception {
+        for (String address : new String[] {"0.1.2.3", "192.0.0.8", "198.18.0.1", "198.19.255.254",
+                "240.0.0.1", "255.255.255.255"}) {
+            assertTrue(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName(address)), address);
+        }
+        assertFalse(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName("198.20.0.1")));
+        assertFalse(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName("192.0.1.1")));
+    }
+
+    @Test
+    void checksTheIpv4InsideNat64SixToFourAndCompatibleIpv6() throws Exception {
+        for (String address : new String[] {"64:ff9b::a9fe:a9fe", "64:ff9b::7f00:1", "2002:0a00:0001::1",
+                "2002:a9fe:a9fe::", "::a00:1", "64:ff9b:1::cb00:7105", "2001:0:4136:e378::1"}) {
+            assertTrue(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName(address)), address);
+        }
+        assertFalse(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName("64:ff9b::cb00:7105")));
+        assertFalse(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName("2002:cb00:7105::1")));
+        assertFalse(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName("2606:4700::1111")));
+    }
+
+    @Test
     void formUrlEncodesSecretBytesTheSameWayAsTheFormEncoder() {
         byte[] secret = "p@ss word/字*ok".getBytes(StandardCharsets.UTF_8);
         String expected = URLEncoder.encode(new String(secret, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
