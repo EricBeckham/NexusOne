@@ -44,6 +44,9 @@
   --nx-space-6: 24px;
   --nx-space-8: 32px;
   --nx-space-10: 40px;
+  /* §2.4 / O2: vertical rhythm between form fields (label+control blocks). */
+  --nx-form-field-gap: var(--nx-space-5);
+  --nx-form-label-gap: var(--nx-space-2);
   --nx-state-icon: 48px;
   --nx-font-size-xs: 12px;
   --nx-font-size-sm: 13px;
@@ -80,7 +83,7 @@ a { color: var(--nx-primary); text-decoration: none; }
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius);
   box-shadow: var(--nx-shadow-card);
-  padding: 20px;
+  padding: var(--nx-space-5);
 }
 .nx-dialog {
   background: var(--nx-surface);
@@ -88,18 +91,20 @@ a { color: var(--nx-primary); text-decoration: none; }
   border-radius: var(--nx-radius);
   box-shadow: var(--nx-shadow-dialog);
 }
-.nx-page-header { margin-bottom: 16px; }
-.nx-page-header h1 { margin: 0 0 4px; font-size: var(--nx-font-size-page-title); font-weight: 700; }
+.nx-page-header { margin-bottom: var(--nx-space-4); }
+.nx-page-header h1 { margin: 0 0 var(--nx-space-1); font-size: var(--nx-font-size-page-title); font-weight: 700; }
 .nx-page-header p { margin: 0; color: var(--nx-text-secondary); }
-.nx-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-.nx-grid { display: grid; gap: 16px; }
+.nx-row { display: flex; gap: var(--nx-space-3); flex-wrap: wrap; align-items: center; }
+.nx-grid { display: grid; gap: var(--nx-space-4); }
 .nx-grid.kpi { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-.nx-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.nx-field label { color: var(--nx-text-secondary); font-size: 12px; }
+/* O2: one shared vertical field rhythm — do not override margin-bottom per page. */
+.nx-field { display: flex; flex-direction: column; gap: var(--nx-form-label-gap); margin-bottom: var(--nx-form-field-gap); }
+.nx-field:last-child { margin-bottom: 0; }
+.nx-field label, .nx-field > span:first-child { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .nx-field input, .nx-field select, .nx-field textarea {
   border: 1px solid var(--nx-border-strong);
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: var(--nx-space-2) 10px;
   color: var(--nx-text-primary);
   background: #fff;
 }
@@ -107,7 +112,7 @@ a { color: var(--nx-primary); text-decoration: none; }
   outline: 2px solid var(--nx-primary-light);
   border-color: var(--nx-primary);
 }
-.nx-error { color: var(--nx-danger); font-size: 13px; }
+.nx-error { color: var(--nx-danger); font-size: var(--nx-font-size-sm); }
 .nx-muted { color: var(--nx-text-secondary); }
 .nx-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 
