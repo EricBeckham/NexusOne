@@ -11,6 +11,21 @@
         <button class="ghost" type="button" data-testid="catalog-reset" @click="resetSearch">重置</button>
         <p class="result-count" aria-live="polite">{{ loading ? "正在加载目录…" : `共 ${visibleItems.length} 个可用版本` }}</p>
       </section>
+      <section v-if="failure" class="subscribe-failure" role="alert" data-testid="subscribe-failure">
+        <div class="failure-body">
+          <strong>订阅开通失败<template v-if="failure.skuLabel">：{{ failure.skuLabel }}</template></strong>
+          <p data-testid="subscribe-failure-hint">{{ failure.hint }}</p>
+          <p v-if="failure.serverMessage" class="server-message" data-testid="subscribe-failure-server">服务端信息：{{ failure.serverMessage }}<template v-if="failure.code">（{{ failure.code }}）</template></p>
+          <code v-if="failure.traceId" data-testid="subscribe-failure-trace">追踪号 {{ failure.traceId }}</code>
+        </div>
+        <div class="failure-actions">
+          <router-link v-if="failure.action" class="ghost" :to="failure.action.to">{{ failure.action.label }}</router-link>
+          <button v-if="failure.retryable && failure.skuCode" class="primary" type="button" data-testid="subscribe-retry" :disabled="Boolean(installing)" @click="subscribe(failure.skuCode, failure.versionId, failure.skuLabel)">
+            {{ installing ? "开通中…" : "重试开通" }}
+          </button>
+          <button class="ghost" type="button" data-testid="subscribe-dismiss" @click="failure = null">关闭</button>
+        </div>
+      </section>
       <div v-if="loading" class="nx-card loading" role="status">正在加载应用目录…</div>
       <NxEmpty v-else-if="!visibleItems.length" :title="items.length ? '没有匹配的应用' : '暂无'" :description="items.length ? '请调整搜索词后重试。' : '应用审核并发布后，会出现在这里。'" />
       <section v-else class="catalog-grid" aria-label="已发布应用目录" data-testid="catalog-grid">
@@ -38,7 +53,7 @@
                   data-testid="catalog-subscribe"
                   :aria-label="`订阅开通 ${sku.name || sku.code}`"
                   :disabled="!sku.code || !sku.definition || installing === sku.code"
-                  @click="subscribe(sku.code, item.version.id)"
+                  @click="subscribe(sku.code, item.version.id, sku.name || sku.code)"
                 >{{ installing === sku.code ? "开通中…" : "订阅开通" }}</button>
               </li>
             </ul>
@@ -56,11 +71,13 @@ import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../componen
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 import { catalogSkus } from "./catalogSku";
+import { describeSubscribeError } from "./subscribeError";
 
 const route = useRoute();
 const router = useRouter();
 
 const items = ref([]); const loading = ref(true); const error = ref(""); const installing = ref("");
+const failure = ref(null);
 const search = ref(typeof route.query.q === "string" ? route.query.q : "");
 const visibleItems = computed(() => {
   const term = search.value.trim().toLocaleLowerCase();
@@ -75,14 +92,19 @@ async function load() {
   catch (err) { error.value = err.message || "应用目录暂时不可用"; }
   finally { loading.value = false; }
 }
-async function subscribe(skuCode, versionId) {
-  if (!session.tenantId) { error.value = "请先建立租户会话"; return; }
-  installing.value = skuCode; error.value = "";
+async function subscribe(skuCode, versionId, skuLabel = "") {
+  if (!session.tenantId) {
+    failure.value = { hint: "请先登录并进入租户后再开通。", serverMessage: "", code: "", traceId: "", retryable: false, action: null, skuLabel };
+    return;
+  }
+  installing.value = skuCode; failure.value = null;
   try {
     await p4.subscribe(session.tenantId, { sku_code: skuCode, version_id: versionId });
     await router.push("/p4/installations");
-  } catch (err) { error.value = err.message || "订阅开通失败"; }
-  finally { installing.value = ""; }
+  } catch (err) {
+    // A subscribe failure must not replace the catalog: keep it visible and offer a real retry.
+    failure.value = { ...describeSubscribeError(err), skuCode, versionId, skuLabel };
+  } finally { installing.value = ""; }
 }
 function resetSearch() {
   search.value = "";
@@ -126,7 +148,15 @@ onMounted(load);
 .sku-warn { color: var(--nx-warning); }
 .sku-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .sku-chips span { padding: 1px 8px; border-radius: var(--nx-radius-pill); font-size: var(--nx-font-size-xs); color: var(--nx-product); background: var(--nx-product-light); }
-.sku-item .install-button { flex: none; }.install-button,.ghost { min-height: 36px; padding: 0 var(--nx-space-3); color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; cursor: pointer; }.install-button:hover,.ghost:hover { color: var(--nx-product); border-color: var(--nx-product); }.install-button:disabled,.ghost:disabled { opacity: .55; cursor: not-allowed; }
+.sku-item .install-button { flex: none; }
+.subscribe-failure { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); padding: var(--nx-space-3) var(--nx-space-4); border: 1px solid color-mix(in srgb, var(--nx-danger) 30%, white); border-left: 4px solid var(--nx-danger); border-radius: var(--nx-radius-sm); background: var(--nx-danger-light); }
+.failure-body { display: grid; gap: 4px; min-width: 0; }
+.failure-body strong { color: var(--nx-danger); }
+.failure-body p { margin: 0; color: var(--nx-text-regular); font-size: var(--nx-font-size-sm); }
+.failure-body .server-message { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); overflow-wrap: anywhere; }
+.failure-body code { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.failure-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }
+.failure-actions .primary { min-height: 36px; padding: 0 var(--nx-space-3); border-radius: 8px; }.install-button,.ghost { min-height: 36px; padding: 0 var(--nx-space-3); color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; cursor: pointer; }.install-button:hover,.ghost:hover { color: var(--nx-product); border-color: var(--nx-product); }.install-button:disabled,.ghost:disabled { opacity: .55; cursor: not-allowed; }
 .loading { padding: var(--nx-space-6); color: var(--nx-text-secondary); }
 @media(max-width:640px) { .catalog-toolbar { align-items: stretch; flex-direction: column; }.result-count { align-self: flex-start; } }
 </style>

@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -32,6 +33,31 @@ public class ApiExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleMissing(NoResourceFoundException ex) {
         return body(404, ErrorCode.API_NOT_FOUND, "Resource not found", Map.of());
+    }
+
+    /**
+     * Services throw {@link ResponseStatusException} for deliberate 4xx outcomes (e.g. catalog SKU
+     * without a product definition). Keep that status and reason instead of the 500 catch-all below.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleStatus(ResponseStatusException ex) {
+        int status = ex.getStatusCode().value();
+        if (status >= 500) log.error("response status error", ex);
+        String reason = ex.getReason();
+        String message = reason == null || reason.isBlank()
+                ? HttpStatus.valueOf(status).getReasonPhrase()
+                : reason;
+        return body(status, codeFor(status), message, Map.of());
+    }
+
+    private static ErrorCode codeFor(int status) {
+        return switch (status) {
+            case 401, 403 -> ErrorCode.API_FORBIDDEN;
+            case 404 -> ErrorCode.API_NOT_FOUND;
+            case 409 -> ErrorCode.API_CONFLICT;
+            case 422 -> ErrorCode.API_UNPROCESSABLE;
+            default -> status >= 500 ? ErrorCode.API_INTERNAL : ErrorCode.API_BAD_REQUEST;
+        };
     }
 
     @ExceptionHandler(Exception.class)
