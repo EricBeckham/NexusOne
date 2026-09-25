@@ -13,9 +13,10 @@ vi.mock("../../api/session", () => ({ session: mocks.session }));
 
 import P4ManagementView from "./P4ManagementView.vue";
 
-const app = { id: "app-1", code: "crm", name: "CRM", summary: "客户管理", createdAt: "2026-01-01T00:00:00Z" };
-const version = { id: "version-1", appId: "app-1", version: "1.0.0", status: "PUBLISHED", releaseNotes: "首发" };
-const sku = { code: "crm-pro", appId: "app-1", name: "专业版", entitlements: { reports: { enabled: true, quota: 20, attributes: {} } } };
+// Real wire shapes: the product mapper is SNAKE_CASE.
+const app = { id: "app-1", code: "crm", name: "CRM", summary: "客户管理", created_at: "2026-01-01T00:00:00Z" };
+const version = { id: "version-1", app_id: "app-1", version: "1.0.0", status: "PUBLISHED", release_notes: "首发" };
+const sku = { code: "crm-pro", app_id: "app-1", name: "专业版", entitlements: { reports: { enabled: true, quota: 20, attributes: {} } } };
 
 async function mountPage(path) {
   const routes = [
@@ -53,18 +54,20 @@ describe("P4 management subpages", () => {
   });
 
   it("lists subscriptions and installations from tenant-context APIs and submits a selected upgrade", async () => {
-    mocks.subscriptions.mockResolvedValue([{ id: "sub-1", tenantId: "tenant-1", skuCode: "crm-pro", status: "ACTIVE", startedAt: "2026-01-01T00:00:00Z" }]);
+    mocks.subscriptions.mockResolvedValue([{ id: "sub-1", tenant_id: "tenant-1", sku_code: "crm-pro", status: "ACTIVE", started_at: "2026-01-01T00:00:00Z" }]);
     const subscriptions = await mountPage("/p4/subscriptions");
     expect(mocks.subscriptions).toHaveBeenCalledOnce(); expect(subscriptions.text()).toContain("专业版");
     subscriptions.unmount();
 
-    mocks.installations.mockResolvedValue([{ id: "install-1", tenantId: "tenant-1", appId: "app-1", versionId: "version-1", status: "INSTALLED" }]);
+    mocks.installations.mockResolvedValue([{ id: "install-1", tenant_id: "tenant-1", app_id: "app-1", version_id: "version-1", status: "INSTALLED", updated_at: "2026-01-02T03:04:05Z" }]);
     const installations = await mountPage("/p4/installations");
     expect(installations.text()).toContain("我的已开通");
     expect(installations.get('[data-testid="installation-status"]').text()).toBe("已开通");
     expect(installations.get('[data-testid="start-application"]').text()).toBe("发起申请");
     expect(installations.get('[data-testid="installation-upgrade"]').attributes("open")).toBeUndefined();
     expect(installations.text()).toContain("当前版本 1.0.0");
+    expect(installations.get(".installation-identity h3").text()).toBe("CRM");
+    expect(installations.text()).not.toContain("未命名应用");
     await installations.get("select").setValue("version-1");
     await installations.get("form").trigger("submit"); await flushPromises();
     expect(mocks.installations).toHaveBeenCalled(); expect(mocks.upgrade).toHaveBeenCalledWith("install-1", "version-1");

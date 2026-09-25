@@ -107,21 +107,31 @@ const titles = { packages: ["应用包", "浏览应用包、版本与发布状�
 const title = computed(() => titles[section.value][0]); const description = computed(() => titles[section.value][1]);
 const upgradeSteps = ["Precheck", "Dependency", "Schema Expand/Migrate", "Config", "Switch", "Verify"];
 
+// The product's JSON is SNAKE_CASE (app_id, version_id, sku_code, updated_at…); this page reads camelCase.
+const camelKey = (key) => key.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+function camelRow(row) {
+  if (!row || typeof row !== "object") return row;
+  const out = { ...row };
+  for (const [key, value] of Object.entries(row)) if (key.includes("_") && !(camelKey(key) in out)) out[camelKey(key)] = value;
+  return out;
+}
+const camelRows = (rows) => (Array.isArray(rows) ? rows : []).map(camelRow);
+
 async function load() {
   loading.value = true; error.value = ""; notice.value = "";
   try {
     const [appRows, skuRows] = await Promise.all([p4.apps(), p4.skus()]);
-    apps.value = appRows || []; skus.value = skuRows || [];
-    await Promise.all(apps.value.map(async (app) => { versionsByApp[app.id] = (await p4.versions(app.id)) || []; }));
+    apps.value = camelRows(appRows); skus.value = camelRows(skuRows);
+    await Promise.all(apps.value.map(async (app) => { versionsByApp[app.id] = camelRows(await p4.versions(app.id)); }));
     if (section.value === "packages" && apps.value.length && !selectedApp.value) await selectApp(apps.value[0]);
     if (session.contextId && ["subscriptions", "installations"].includes(section.value)) {
       const [subs, installs] = await Promise.all([p4.subscriptions(), p4.installations()]);
-      subscriptions.value = subs || []; installations.value = installs || [];
+      subscriptions.value = camelRows(subs); installations.value = camelRows(installs);
     }
   } catch (err) { error.value = err.message || "星市数据暂时不可用"; }
   finally { loading.value = false; }
 }
-async function selectApp(app) { selectedApp.value = app; versions.value = versionsByApp[app.id] || await p4.versions(app.id) || []; }
+async function selectApp(app) { selectedApp.value = app; versions.value = versionsByApp[app.id] || camelRows(await p4.versions(app.id)); }
 const skusFor = (app) => skus.value.filter((sku) => sku.appId === app.id);
 const skuByCode = (code) => skus.value.find((sku) => sku.code === code);
 const appForSku = (code) => { const sku = skuByCode(code); return sku ? appById(sku.appId) : null; };
