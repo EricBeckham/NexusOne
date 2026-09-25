@@ -37,7 +37,12 @@ describe("todo inbox visual standard (Q10)", () => {
   beforeEach(() => {
     for (const fn of Object.values(mocks)) fn.mockReset();
     mocks.listTodos.mockResolvedValue({ items: ROWS });
-    mocks.getTodo.mockImplementation(async (id) => ROWS.find((row) => row.id === id));
+    // Like the live API: an unknown id (e.g. a product application) is a 404, and the view falls back to the list row.
+    mocks.getTodo.mockImplementation(async (id) => {
+      const row = ROWS.find((item) => item.id === id);
+      if (!row) throw Object.assign(new Error("todo not found"), { status: 404 });
+      return row;
+    });
     mocks.listProductApplications.mockResolvedValue({ items: [] });
   });
 
@@ -71,5 +76,38 @@ describe("todo inbox visual standard (Q10)", () => {
     expect(wrapper.get("[data-testid='todo-row'].pick").attributes("aria-selected")).toBe("true");
     expect(wrapper.get("[data-testid='todo-approve']").classes()).toContain("nx-btn--primary");
     expect(wrapper.get("[data-testid='todo-reject']").classes()).toContain("nx-btn--danger");
+  });
+
+  it("gives 我发起 its own headers, short references and a secondary 撤回 (Q11)", async () => {
+    const started = { id: "inst-9", title: "demoSimpleApproval", process: "demoSimpleApproval", biz_no: "product-application:01a0daf7-6532-7339-8c16-be477184001b", status: "RUNNING", instance_id: "inst-9", arrived_at: "2026-01-04" };
+    mocks.listTodos.mockResolvedValue({ items: [started] });
+    mocks.getTodo.mockResolvedValue(started);
+    const wrapper = await mountAt("/p3/todos?box=initiated");
+    expect(wrapper.findAll("thead th").map((th) => th.text()).slice(0, 3)).toEqual(["流程", "业务单号", "发起时间"]);
+    const no = wrapper.get("[data-testid='todo-row-no']");
+    expect(no.text()).toBe("01a0daf7…");
+    expect(no.attributes("title")).toBe(started.biz_no);
+    await wrapper.get("[data-testid='todo-row']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".detail").text()).toContain(started.biz_no);
+    expect(wrapper.get("[data-testid='todo-withdraw']").classes()).toContain("nx-btn--default");
+    expect(wrapper.find("[data-testid='todo-approve']").exists()).toBe(false);
+  });
+
+  it("shows 我的申请 with application headers and an application-shaped detail (Q11)", async () => {
+    mocks.listProductApplications.mockResolvedValue({
+      items: [{ id: "app-1", title: "产品申请", biz_no: "01a0daf7-6532-7339-8c16-be477184001b", status: "APPROVED", comment: "可以", arrived_at: "2026-01-02" }],
+    });
+    const wrapper = await mountAt("/p3/todos?box=requests");
+    expect(wrapper.findAll("thead th").map((th) => th.text()).slice(0, 3)).toEqual(["申请", "申请编号", "提交时间"]);
+    expect(wrapper.get("[data-testid='todo-row-no']").text()).toBe("01a0daf7…");
+    await wrapper.get("[data-testid='todo-row']").trigger("click");
+    await flushPromises();
+    const meta = wrapper.get("[data-testid='request-detail-meta']");
+    expect(meta.text()).toContain("申请编号");
+    expect(meta.text()).toContain("已通过");
+    expect(wrapper.get(".detail").text()).not.toContain("流程实例");
+    expect(wrapper.get("[data-testid='application-comment']").text()).toContain("可以");
+    expect(wrapper.find(".detail-actions").exists()).toBe(false);
   });
 });
