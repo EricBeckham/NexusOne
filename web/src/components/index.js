@@ -4,6 +4,7 @@ export { default as NxFilterBar } from "./NxFilterBar.vue";
 export { default as NxChartPlaceholder } from "./NxChartPlaceholder.vue";
 export { default as NxHealthList } from "./NxHealthList.vue";
 export { default as NxKpiRow } from "./NxKpiRow.vue";
+export { default as NxListFooter } from "./NxListFooter.vue";
 export { default as NxNoPermission } from "./NxNoPermission.vue";
 export { default as NxPanelCard } from "./NxPanelCard.vue";
 export { default as NxActivityTimeline } from "./NxActivityTimeline.vue";
