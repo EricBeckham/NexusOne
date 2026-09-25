@@ -76,6 +76,16 @@ class PublishedTemplateVersionsTest {
     }
 
     @Test
+    void firstBootOnAnEmptyDatabaseSeedsTheDemoProcessDraft() {
+        // J3 breakpoint B: the K20 runner (@Order(100)) used to start before the P1 tenant seed, so its
+        // tenant-guarded draft insert wrote nothing and the product-definition page had no process to offer.
+        assertEquals(1, jdbc.queryForObject("""
+                SELECT count(*) FROM business_meta.process_definition_draft
+                 WHERE tenant_id = ? AND process_key = ?""", Integer.class,
+                P1DemoSeedConfiguration.TENANT_ID, ApprovalProductDemoSeedConfiguration.PROCESS_KEY));
+    }
+
+    @Test
     void seededAndNewlyPublishedTemplatesExposeRunningVersionIds() throws Exception {
         String seeded = mvc.perform(platform(get("/api/v1/p1/platform/form-templates")))
                 .andReturn().getResponse().getContentAsString();
