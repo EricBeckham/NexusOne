@@ -14,11 +14,11 @@ describe("tenant subscribe HTTP", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("posts self-subscribe without a client tenant header", async () => {
-    await p4.subscribe("tenant 1", { skuCode: "basic", versionId: "ver-1" });
+    await p4.subscribe("tenant 1", { sku_code: "basic", version_id: "ver-1" });
     const [path, init] = fetch.mock.calls[0];
     expect(path).toBe("/api/v1/p4/tenants/tenant%201/subscriptions");
     expect(init.method).toBe("POST");
-    expect(JSON.parse(init.body)).toEqual({ skuCode: "basic", versionId: "ver-1" });
+    expect(JSON.parse(init.body)).toEqual({ sku_code: "basic", version_id: "ver-1" });
     expect(init.headers["X-Tenant-Id"]).toBeUndefined();
   });
 });

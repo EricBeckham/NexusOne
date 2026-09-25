@@ -72,6 +72,8 @@ class MarketServiceTest {
             verify(tenants).updateProjection(projection.capture());
             assertThat(projection.getValue().source()).isEqualTo(ProjectionSource.SUBSCRIPTION);
             assertThat(projection.getValue().skuCode()).isEqualTo("LEAVE_TEAM");
+            assertThat(projection.getValue().packCode()).isEqualTo("LEAVE_TEAM");
+            assertThat(projection.getValue().packVersion()).isEqualTo("1");
             assertThat(projection.getValue().payload().entitlements().get("apps").quota()).isEqualTo(10);
             assertThat(projection.getValue().version()).isEqualTo(2);
             verify(market).saveInstallation(any());
