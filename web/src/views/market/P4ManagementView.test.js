@@ -59,6 +59,7 @@ describe("P4 management subpages", () => {
 
     mocks.installations.mockResolvedValue([{ id: "install-1", tenantId: "tenant-1", appId: "app-1", versionId: "version-1", status: "INSTALLED" }]);
     const installations = await mountPage("/p4/installations");
+    expect(installations.text()).toContain("我的已开通");
     await installations.get("select").setValue("version-1");
     await installations.get("form").trigger("submit"); await flushPromises();
     expect(mocks.installations).toHaveBeenCalled(); expect(mocks.upgrade).toHaveBeenCalledWith("install-1", "version-1");

@@ -204,6 +204,7 @@ export const p4 = {
   createProductDefinition: (body) => api("/api/v1/p4/product-definitions", { method: "POST", body, platform: true, auth: false }),
   updateProductDefinition: (id, body) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   install: (tenantId, body) => api(`/api/v1/p4/tenants/${tenantId}/installations`, { method: "POST", body }),
+  subscribe: (tenantId, body) => api(`/api/v1/p4/tenants/${encodeURIComponent(tenantId)}/subscriptions`, { method: "POST", body }),
   upgrade: (installationId, versionId) => api(`/api/v1/p4/installations/${installationId}/upgrade`, { method: "POST", body: { versionId } }),
   uninstall: (installationId) => api(`/api/v1/p4/installations/${installationId}/uninstall`, { method: "POST", body: {} }),
 };

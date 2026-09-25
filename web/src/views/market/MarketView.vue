@@ -1,6 +1,6 @@
 <template>
   <main class="market-page">
-    <NxPageHeader eyebrow="P4 · NEXUS MARKET" title="应用目录" description="发现已审核发布的应用，为当前租户选择 SKU 并安装。">
+    <NxPageHeader eyebrow="P4 · NEXUS MARKET" title="应用目录" description="无支付。选择 SKU 后即时开通，成功后进入我的已开通。">
       <template #actions><button class="ghost" type="button" :disabled="loading" @click="load">刷新目录</button></template>
     </NxPageHeader>
 
@@ -11,7 +11,7 @@
         <p class="result-count" aria-live="polite">{{ loading ? "正在加载目录…" : `共 ${visibleItems.length} 个可用版本` }}</p>
       </section>
       <div v-if="loading" class="nx-card loading" role="status">正在加载应用目录…</div>
-      <NxEmpty v-else-if="!visibleItems.length" :title="items.length ? '没有匹配的应用' : '暂无已发布应用'" :description="items.length ? '请调整搜索词后重试。' : '应用审核并发布后，会出现在这里。'" />
+      <NxEmpty v-else-if="!visibleItems.length" :title="items.length ? '没有匹配的应用' : '暂无'" :description="items.length ? '请调整搜索词后重试。' : '应用审核并发布后，会出现在这里。'" />
       <section v-else class="catalog-grid" aria-label="已发布应用目录" data-testid="catalog-grid">
         <article v-for="item in visibleItems" :key="item.version.id" class="app-card">
           <header class="card-header">
@@ -23,7 +23,7 @@
           <div class="version-row"><span>版本</span><strong>{{ item.version.version || '暂无' }}</strong></div>
           <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span>{{ item.skus?.length || 0 }}</span></div>
             <NxEmpty v-if="!item.skus?.length" title="暂无 SKU" description="当前版本没有可安装的 SKU。" compact />
-            <div v-else class="sku-list"><button v-for="sku in item.skus" :key="sku.code" class="install-button" type="button" :disabled="installing === sku.code" @click="install(sku.code, item.version.id)">{{ installing === sku.code ? '安装中…' : `安装 ${sku.name || sku.code}` }}</button></div>
+            <div v-else class="sku-list"><button v-for="sku in item.skus" :key="sku.code" class="install-button" type="button" :disabled="installing === sku.code" @click="subscribe(sku.code, item.version.id)">{{ installing === sku.code ? '开通中…' : `订阅开通 ${sku.name || sku.code}` }}</button></div>
           </div>
         </article>
       </section>
@@ -33,9 +33,12 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
+
+const router = useRouter();
 
 const items = ref([]); const loading = ref(true); const error = ref(""); const search = ref(""); const installing = ref("");
 const visibleItems = computed(() => {
@@ -51,11 +54,13 @@ async function load() {
   catch (err) { error.value = err.message || "应用目录暂时不可用"; }
   finally { loading.value = false; }
 }
-async function install(skuCode, versionId) {
+async function subscribe(skuCode, versionId) {
   if (!session.tenantId) { error.value = "请先建立租户会话"; return; }
   installing.value = skuCode; error.value = "";
-  try { await p4.install(session.tenantId, { skuCode, versionId }); window.alert("安装完成，订阅权益已投影"); }
-  catch (err) { error.value = err.message || "安装失败"; }
+  try {
+    await p4.subscribe(session.tenantId, { skuCode, versionId });
+    await router.push("/p4/installations");
+  } catch (err) { error.value = err.message || "订阅开通失败"; }
   finally { installing.value = ""; }
 }
 onMounted(load);

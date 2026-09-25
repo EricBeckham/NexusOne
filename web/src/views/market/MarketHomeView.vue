@@ -3,7 +3,7 @@
     <NxPageHeader
       eyebrow="P4 · NEXUS MARKET"
       title="星市工作台"
-      description="浏览已审核发布的应用版本，并为当前租户安装所需 SKU。"
+      description="浏览已发布应用。无支付，订阅后即时开通。"
     >
       <template #actions>
         <router-link class="primary" to="/p4/market">打开应用目录</router-link>
