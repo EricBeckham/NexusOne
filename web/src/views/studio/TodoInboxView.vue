@@ -31,9 +31,9 @@
       <table v-else class="nx-table" data-testid="todo-table">
         <thead>
           <tr>
-            <th>{{ box === "requests" ? "申请" : "流程" }}</th>
-            <th>{{ box === "requests" ? "申请编号" : "业务单号" }}</th>
-            <th>{{ box === "requests" ? "提交时间" : "到达" }}</th>
+            <th>{{ columns.name }}</th>
+            <th>{{ columns.no }}</th>
+            <th>{{ columns.time }}</th>
             <th>状态</th>
           </tr>
         </thead>
@@ -49,7 +49,7 @@
             @keydown.enter.prevent="open(row.id)"
           >
             <td class="cell-title">{{ row.title || "未命名" }}</td>
-            <td class="nx-code cell-code">{{ row.biz_no || "暂无" }}</td>
+            <td class="nx-code cell-code" :title="row.biz_no || undefined" data-testid="todo-row-no">{{ shortRef(row.biz_no) }}</td>
             <td class="cell-time">{{ formatTime(row.arrived_at) }}</td>
             <td><NxStatus :label="rowStatus(row).label" :tone="rowStatus(row).tone" /></td>
 
@@ -60,12 +60,17 @@
         <h3>{{ box === 'inbox' ? "办理" : "详情" }}</h3>
         <template v-if="selected">
           <p class="detail-title"><strong>{{ selected.title }}</strong></p>
-          <dl class="detail-meta">
+          <dl v-if="box === 'requests'" class="detail-meta" data-testid="request-detail-meta">
+            <dt>申请编号</dt><dd class="nx-code">{{ selected.biz_no || "暂无" }}</dd>
+            <dt>提交时间</dt><dd>{{ formatTime(selected.arrived_at) }}</dd>
+            <dt>状态</dt><dd><NxStatus :label="rowStatus(selected).label" :tone="rowStatus(selected).tone" /></dd>
+          </dl>
+          <dl v-else class="detail-meta">
             <dt>流程</dt><dd>{{ selected.process || "暂无" }}</dd>
             <dt>业务单号</dt><dd class="nx-code">{{ selected.biz_no || "暂无" }}</dd>
             <dt v-if="selected.approval_status">审批状态</dt>
             <dd v-if="selected.approval_status"><NxStatus :label="statusLabel(selected.approval_status)" :tone="tone(selected.approval_status)" /></dd>
-            <dt>流程实例</dt><dd class="nx-code instance">{{ selected.instance_id || "暂无" }}</dd>
+            <dt v-if="selected.instance_id">流程实例</dt><dd v-if="selected.instance_id" class="nx-code instance">{{ selected.instance_id }}</dd>
           </dl>
           <router-link
             v-if="selected.ledger_id && selected.record_id"
@@ -77,10 +82,10 @@
             <p :class="{ 'nx-muted': !selected.comment }">{{ selected.comment || "暂无意见" }}</p>
           </div>
           <div v-if="box === 'inbox'" class="nx-field"><label>意见</label><textarea v-model="comment" rows="3" data-testid="todo-comment" /></div>
-          <div class="nx-row detail-actions">
+          <div v-if="box === 'inbox' || (box === 'initiated' && isPending(selected))" class="nx-row detail-actions">
             <button v-if="box === 'inbox'" class="nx-btn nx-btn--primary" type="button" data-testid="todo-approve" :disabled="busy" @click="act('approve')">同意</button>
             <button v-if="box === 'inbox'" class="nx-btn nx-btn--danger" type="button" data-testid="todo-reject" :disabled="busy" @click="act('reject')">驳回</button>
-            <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" data-testid="todo-withdraw" :disabled="busy" @click="act('withdraw')">撤回</button>
+            <button v-if="box === 'initiated' && isPending(selected)" class="nx-btn nx-btn--default" type="button" data-testid="todo-withdraw" :disabled="busy" @click="act('withdraw')">撤回</button>
           </div>
           <p v-if="devNotes && session.lastTraceId" class="nx-muted" data-testid="todo-last-trace" style="margin-top:8px;">
             最近 trace
@@ -172,6 +177,24 @@ function rowStatus(row) {
   return todoStatus(row.status, box.value === "requests" ? "进行中" : "暂无");
 }
 
+
+// Q11: headers per box; 我发起 rows carry the instance start (created_at / started_at), so it reads 发起时间.
+const COLUMNS = {
+  inbox: { name: "任务", no: "业务单号", time: "到达时间" },
+  done: { name: "任务", no: "业务单号", time: "到达时间" },
+  initiated: { name: "流程", no: "业务单号", time: "发起时间" },
+  requests: { name: "申请", no: "申请编号", time: "提交时间" },
+};
+const columns = computed(() => COLUMNS[box.value] || COLUMNS.inbox);
+
+// Long references (product-application:<uuid>) are shortened in the table; the title and the detail keep the full value.
+function shortRef(value) {
+  const text = String(value || "");
+  if (!text) return "暂无";
+  if (text.length <= 20) return text;
+  const tail = text.includes(":") ? text.slice(text.lastIndexOf(":") + 1) : text;
+  return `${tail.slice(0, 8)}…`;
+}
 
 function formatTime(value) {
   if (!value) return "暂无";
