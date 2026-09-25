@@ -75,7 +75,7 @@
             <button v-if="box === 'inbox'" class="danger" type="button" data-testid="todo-reject" :disabled="busy" @click="act('reject')">驳回</button>
             <button v-if="box === 'initiated' && isPending(selected)" class="ghost" type="button" data-testid="todo-withdraw" :disabled="busy" @click="act('withdraw')">撤回</button>
           </div>
-          <p v-if="session.lastTraceId" class="nx-muted" style="margin-top:8px;">
+          <p v-if="devNotes && session.lastTraceId" class="nx-muted" data-testid="todo-last-trace" style="margin-top:8px;">
             最近 trace
             <router-link :to="`/p3/audit?trace=${encodeURIComponent(session.lastTraceId)}`">{{ session.lastTraceId }}</router-link>
           </p>
@@ -94,6 +94,9 @@ import NxStatus from "../../components/NxStatus.vue";
 import { p3 } from "../../api/p3";
 import { session } from "../../api/session";
 import { todoStatus } from "./todoStatus";
+import { devNotesEnabled } from "../../utils/devNotes";
+
+const devNotes = devNotesEnabled();
 
 const route = useRoute();
 const router = useRouter();

@@ -78,7 +78,7 @@
         <header class="canvas-head">
           <div>
             <h2>{{ showText(definition?.name) }}</h2>
-            <p class="nx-muted">{{ isEditing ? "可编辑草稿" : "已发布只读" }}<template v-if="definition?.resource"> · {{ definition.resource }}</template></p>
+            <p class="nx-muted">{{ isEditing ? "可编辑草稿" : "已发布只读" }}<template v-if="devNotes && definition?.resource"> · {{ definition.resource }}</template></p>
           </div>
           <span v-if="definition && sequence.sequential" class="mode-chip" data-testid="flow-mode">顺序审批 · {{ sequence.steps.length }} 个审批节点</span>
         </header>
@@ -305,12 +305,15 @@ import { insertAt, moveToGap } from "../../utils/listMove";
 import { createBlankDraft, parseDraftXml, serializeDraftXml } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
 import { fromSequence, newStep, toSequence } from "./sequentialFlow";
+import { devNotesEnabled } from "../../utils/devNotes";
 
 // Only `assignee` is set as a process variable at start (SequentialApprovalService); offer nothing else.
 const ASSIGNEE_PRESETS = [
   { value: "${assignee}", label: "发起时选择的审批人" },
 ];
 
+// The classpath resource path is a developer note (O9).
+const devNotes = devNotesEnabled();
 const route = useRoute();
 const router = useRouter();
 const definitions = ref([]);
