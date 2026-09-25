@@ -35,7 +35,7 @@ These modules may use JDBC for **platform / catalog / identity** tables. They ar
 | `nexus-p4-market` | `market.*` 应用目录、版本、SKU、订阅与安装元数据 | `p4/market/infra/jdbc/` |
 | `nexus-p5-connect` | `integration.*` 内部 API、Webhook 投递与连接器运行元数据 | `p5/connect/infra/jdbc/` |
 | `nexus-crypto-core` | `platform.secret_ciphertext` 密文信封（`JdbcEncryptedSecretAdapter` 与 `LocalThenEnvSecretPort.durableSystem`）；不是租户 AST 表 | 仅这两个源文件 |
-| `nexus-bootstrap` | `platform.runtime_meta` health；平台只读审计检索与服务状态探测；local/demo 种子（不查租户物理表） | `RuntimeMetaController`、`PlatformAuditSearchService`、`PlatformServiceStatusService`、`P1`–`P5DemoSeedConfiguration` |
+| `nexus-bootstrap` | `platform.runtime_meta` health；平台只读审计检索与服务状态探测；local/demo 种子（不查租户物理表） | `RuntimeMetaController`、`PlatformAuditSearchService`、`PlatformServiceStatusService`、`P1`–`P5DemoSeedConfiguration`、`ApprovalProductDemoSeedConfiguration` |
 
 **Not allowlisted** (must stay JDBC-free): `nexus-common`, `nexus-data-core`, `nexus-expression-core`, `nexus-cache-core`. `nexus-crypto-core` 其余类仍不得使用 JDBC。P4/P5 仅各自的 `infra/jdbc` 可访问自有 `market.*` / `integration.*` 元数据；Application / API / domain / path packages inside allowlisted modules are also JDBC-free.
 

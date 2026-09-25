@@ -104,7 +104,8 @@ public final class QueryCompilerBypassAllowlist {
                             "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P2DemoSeedConfiguration.java",
                             "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P3DemoSeedConfiguration.java",
                             "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P4DemoSeedConfiguration.java",
-                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P5DemoSeedConfiguration.java")));
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/P5DemoSeedConfiguration.java",
+                            "nexus-bootstrap/src/main/java/one/nexus/bootstrap/demo/ApprovalProductDemoSeedConfiguration.java")));
 
     /**
      * Files that may mention tenant physical / Query AST table identifiers
