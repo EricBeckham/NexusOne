@@ -90,7 +90,9 @@ public class FileIsolationFilter extends OncePerRequestFilter {
             return AccessContextHolder.currentOrNull() != null;
         }
         String provided = request.getHeader(HEADER_BOOTSTRAP);
-        return expected.equals(provided);
+        return provided != null && java.security.MessageDigest.isEqual(
+                expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                provided.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private static void unauthorized(HttpServletResponse response, String trace) throws IOException {

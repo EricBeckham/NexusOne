@@ -23,6 +23,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.ObjectMapper;
 
@@ -50,8 +51,12 @@ public class IdentityConfiguration {
         return new StubIdentityProvider();
     }
 
+    /**
+     * {@code nexus.iam.jdbc.migrate=false} skips this module's own Flyway run. The monolith sets it
+     * because its main Flyway already applies {@code classpath:db/migration}, including {@code iam}.
+     */
     @Bean
-    IdentityRepository identityRepository(IamProperties properties) {
+    IdentityRepository identityRepository(IamProperties properties, Environment env) {
         if ("jdbc".equalsIgnoreCase(properties.persistence())) {
             DataSource dataSource = DataSourceBuilder.create()
                     .url(properties.jdbc().url())
@@ -59,14 +64,16 @@ public class IdentityConfiguration {
                     .password(properties.jdbc().password())
                     .driverClassName("org.postgresql.Driver")
                     .build();
-            Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .schemas("iam")
-                    .defaultSchema("iam")
-                    .createSchemas(true)
-                    .load()
-                    .migrate();
+            if (env.getProperty("nexus.iam.jdbc.migrate", Boolean.class, true)) {
+                Flyway.configure()
+                        .dataSource(dataSource)
+                        .locations("classpath:db/migration")
+                        .schemas("iam")
+                        .defaultSchema("iam")
+                        .createSchemas(true)
+                        .load()
+                        .migrate();
+            }
             return new JdbcIdentityRepository(new JdbcTemplate(dataSource));
         }
         return new InMemoryIdentityRepository();
