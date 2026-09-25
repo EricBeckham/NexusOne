@@ -106,20 +106,50 @@ describe("provisioned product start form", () => {
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p3/todos?box=requests");
   });
 
-  it("shows the server failure text", async () => {
+  it("shows the server failure text and places snake_case field errors under their field", async () => {
     mocks.productApplicationForm.mockResolvedValue({ fields: [{ key: "title", label: "事由", type: "TEXT", required: true, options: [] }] });
-    const failure = new Error("application values do not match the pinned form template");
-    failure.body = { errors: [{ fieldKey: "title", code: "field.required", message: "A value is required" }] };
+    // Real wire shape: ProductApplicationController returns FieldError records through the SNAKE_CASE mapper.
+    const failure = Object.assign(new Error("application values do not match the pinned form template"), { status: 422 });
+    failure.body = { message: failure.message, errors: [{ field_key: "title", code: "field.required", message: "A value is required" }] };
     mocks.createProductApplication.mockRejectedValue(failure);
     const wrapper = await mountStart();
     await wrapper.get("#field-title").setValue("请假");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
-    expect(wrapper.get('[data-testid="start-error"]').text()).toBe("application values do not match the pinned form template");
+    const alert = wrapper.get('[data-testid="start-submit-failure"]');
+    expect(alert.get('[data-testid="nx-request-alert-hint"]').text()).toContain("按字段下方的提示修改");
+    expect(alert.get('[data-testid="nx-request-alert-server"]').text()).toContain("application values do not match the pinned form template");
+    expect(alert.find('[data-testid="nx-request-alert-retry"]').exists()).toBe(false);
     expect(wrapper.get("[data-testid='field-error-title']").text()).toBe("A value is required");
+    expect(wrapper.find("[data-testid='start-field-errors']").exists()).toBe(false);
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations/install-1/start");
     await wrapper.get("[data-testid='start-cancel']").trigger("click");
     await flushPromises();
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
+  });
+
+  it("explains an opaque 500, shows the trace id, and retries with the same values", async () => {
+    mocks.productApplicationForm.mockResolvedValue({ fields: [{ key: "title", label: "事由", type: "TEXT", required: true, options: [] }] });
+    mocks.createProductApplication.mockRejectedValueOnce(Object.assign(new Error("Internal error"), {
+      status: 500, code: "CORE.API.0099", traceId: "trace-h10",
+    }));
+    const wrapper = await mountStart();
+    await wrapper.get("#field-title").setValue("请假");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    const alert = wrapper.get('[data-testid="start-submit-failure"]');
+    expect(alert.text()).toContain("提交失败，已填写的内容已保留");
+    expect(alert.get('[data-testid="nx-request-alert-hint"]').text()).toContain("可以稍后重试");
+    expect(alert.get('[data-testid="nx-request-alert-trace"]').text()).toContain("trace-h10");
+    expect(alert.text()).toContain("CORE.API.0099");
+    expect(wrapper.text()).not.toContain("Internal error");
+    expect(wrapper.get("#field-title").element.value).toBe("请假");
+
+    mocks.createProductApplication.mockResolvedValueOnce({ id: "app-1" });
+    await alert.get('[data-testid="nx-request-alert-retry"]').trigger("click");
+    await flushPromises();
+    expect(mocks.createProductApplication).toHaveBeenCalledTimes(2);
+    expect(mocks.createProductApplication).toHaveBeenLastCalledWith("install-1", { title: "请假" });
+    expect(wrapper.router.currentRoute.value.fullPath).toBe("/p3/todos?box=requests");
   });
 });

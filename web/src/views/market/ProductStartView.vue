@@ -2,6 +2,22 @@
   <main class="start-page">
     <NxPageHeader eyebrow="P4 · 星市" title="发起申请" description="按已开通时钉住的模板填写。无支付。提交后进入我的申请。" />
     <p v-if="error" class="nx-error" data-testid="start-error">{{ error }}</p>
+    <NxRequestAlert
+      v-if="submitFailure"
+      class="submit-failure"
+      title="提交失败，已填写的内容已保留"
+      :error="submitFailure"
+      retry-label="重试提交"
+      busy-label="提交中…"
+      :busy="busy"
+      data-testid="start-submit-failure"
+      @retry="submit"
+      @dismiss="submitFailure = null"
+    >
+      <template v-if="submitFailure.status === 404" #actions>
+        <button class="ghost" type="button" @click="cancel">返回我的已开通</button>
+      </template>
+    </NxRequestAlert>
     <ul v-if="unmatchedErrors.length" class="field-errors" data-testid="start-field-errors">
       <li v-for="item in unmatchedErrors" :key="`${item.fieldKey}-${item.code}`">{{ item.message }}</li>
     </ul>
@@ -52,8 +68,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxPageHeader } from "../../components";
+import { NxEmpty, NxPageHeader, NxRequestAlert } from "../../components";
 import { p2 } from "../../api/client";
+import { describeRequestError } from "../../utils/requestError";
 import { p3 } from "../../api/p3";
 import { files, readAsBase64 } from "../../api/files";
 
@@ -66,6 +83,7 @@ const loading = ref(true);
 const busy = ref(false);
 const error = ref("");
 const fieldErrors = ref([]);
+const submitFailure = ref(null);
 
 const unmatchedErrors = computed(() => {
   const keys = new Set(fields.value.map((field) => field.key));
@@ -126,16 +144,39 @@ function cancel() {
   router.push("/p4/installations");
 }
 
+const SUBMIT_HINTS = {
+  match: [
+    { status: 422, includes: "pinned form template", hint: "有字段未通过校验，请按字段下方的提示修改后重新提交。" },
+    { status: 422, includes: "PERSON field", hint: "请在表单中选择审批人（成员字段）后再提交。" },
+    { status: 409, includes: "pinned approval process", hint: "该产品没有可用的审批流程，请联系平台管理员重新绑定后再发起。" },
+  ],
+  hints: {
+    404: "这个已开通产品不存在或已不属于当前租户，请回到「我的已开通」重新进入。",
+    403: "当前账号不能在这个租户发起申请，请确认已切换到正确的租户。",
+    server: "服务端暂时无法提交申请；已填写的内容已保留，可以稍后重试。如持续失败，请把追踪号提供给管理员。",
+  },
+};
+
+// Field errors are FieldError(fieldKey, code, message) records; the product JSON is SNAKE_CASE (field_key).
+function normalizeFieldErrors(errors) {
+  return (Array.isArray(errors) ? errors : []).map((item) => ({
+    fieldKey: item?.field_key ?? item?.fieldKey ?? "",
+    code: item?.code || "",
+    message: item?.message || "",
+  }));
+}
+
 async function submit() {
   busy.value = true;
   error.value = "";
+  submitFailure.value = null;
   fieldErrors.value = [];
   try {
     await p3.createProductApplication(route.params.id, values());
     await router.push({ path: "/p3/todos", query: { box: "requests" } });
   } catch (err) {
-    error.value = err.message || "提交失败";
-    fieldErrors.value = Array.isArray(err.body?.errors) ? err.body.errors : [];
+    submitFailure.value = describeRequestError(err, SUBMIT_HINTS);
+    fieldErrors.value = normalizeFieldErrors(err.body?.errors);
   } finally {
     busy.value = false;
   }
@@ -144,6 +185,7 @@ async function submit() {
 
 <style scoped>
 .start-form { max-width: 720px; }
+.submit-failure { max-width: 720px; box-sizing: border-box; margin-bottom: 16px; }
 .start-form .nx-field { margin-bottom: 20px; }
 .start-form .nx-field input,
 .start-form .nx-field select,
