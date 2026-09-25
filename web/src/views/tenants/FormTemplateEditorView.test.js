@@ -320,6 +320,8 @@ describe("form template designer", () => {
 
   it("explains a missing-fields save error and retries a failed validate", async () => {
     const wrapper = await mountAt("/p1/form-templates/new");
+    await wrapper.get("[data-testid='template-code']").setValue("leave");
+    await wrapper.get("[data-testid='template-name']").setValue("请假");
     p1.createFormTemplate.mockRejectedValueOnce(Object.assign(new Error("code, name, and fields are required"), { status: 400, code: "CORE.API.0001" }));
     await wrapper.get("[data-testid='template-save']").trigger("click");
     await flushPromises();
@@ -340,6 +342,63 @@ describe("form template designer", () => {
     expect(editing.find("[data-testid='template-action-failure']").exists()).toBe(false);
   });
 
+  it("marks required inputs with a red star and places missing values next to their input before saving (N3)", async () => {
+    const wrapper = await mountAt("/p1/form-templates/new");
+    for (const id of ["template-code", "template-name"]) {
+      expect(wrapper.get(`[data-testid='${id}']`).element.closest("label").querySelector("em.req").textContent).toBe("*");
+    }
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    expect(p1.createFormTemplate).not.toHaveBeenCalled();
+    expect(wrapper.get("[data-testid='tab-template']").classes()).toContain("active");
+    expect(wrapper.get("[data-testid='template-code-error']").text()).toBe("请填写模板编码");
+    expect(wrapper.get("[data-testid='template-name-error']").text()).toBe("请填写模板名称");
+    expect(wrapper.get("[data-testid='template-code']").attributes("aria-invalid")).toBe("true");
+    expect(wrapper.get("[data-testid='template-draft-invalid']").text()).toContain("2 处");
+
+    // Errors clear as the user fixes them; a blank field label then points at the field card and its property.
+    await wrapper.get("[data-testid='template-code']").setValue("leave");
+    await wrapper.get("[data-testid='template-name']").setValue("请假");
+    expect(wrapper.find("[data-testid='template-code-error']").exists()).toBe(false);
+    await wrapper.get("[data-testid='add-field']").trigger("click");
+    await wrapper.get("[data-testid='field-label']").setValue(" ");
+    await wrapper.get("[data-testid='tab-template']").trigger("click");
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    expect(p1.createFormTemplate).not.toHaveBeenCalled();
+    expect(wrapper.get("[data-testid='tab-field']").classes()).toContain("active");
+    expect(wrapper.get("[data-testid='field-label']").element.closest("label").querySelector("em.req")).not.toBeNull();
+    expect(wrapper.get("[data-testid='field-label-error']").text()).toBe("请填写字段名称");
+    expect(wrapper.get("[data-testid='template-field']").classes()).toContain("invalid");
+    expect(wrapper.get("[data-testid='field-error']").text()).toBe("请填写字段名称");
+  });
+
+  it("locks save, validate and publish while any of them is in flight (N3)", async () => {
+    p1.formTemplate.mockResolvedValue({ ...LEAVE });
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    let finish;
+    p1.updateFormTemplate.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    for (const id of ["template-save", "template-validate", "template-publish"]) {
+      expect(wrapper.get(`[data-testid='${id}']`).attributes("disabled")).toBeDefined();
+    }
+    expect(wrapper.get("[data-testid='template-save']").text()).toBe("保存中…");
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    expect(p1.updateFormTemplate).toHaveBeenCalledTimes(1);
+    finish({ ...LEAVE });
+    await flushPromises();
+    expect(wrapper.get("[data-testid='template-validate']").attributes("disabled")).toBeUndefined();
+
+    let validated;
+    p1.validateFormTemplate.mockReturnValueOnce(new Promise((resolve) => { validated = resolve; }));
+    await wrapper.get("[data-testid='template-validate']").trigger("click");
+    expect(wrapper.get("[data-testid='template-save']").attributes("disabled")).toBeDefined();
+    expect(wrapper.get("[data-testid='template-publish']").attributes("disabled")).toBeDefined();
+    validated({ valid: true, status: "VALIDATED", errors: [] });
+    await flushPromises();
+    expect(wrapper.get("[data-testid='template-save']").attributes("disabled")).toBeUndefined();
+  });
   it("shows the server error text", async () => {
     p1.formTemplate.mockRejectedValue(Object.assign(new Error("form template not found"), { traceId: "trace-9" }));
     const wrapper = await mountAt("/p1/form-templates/missing");
