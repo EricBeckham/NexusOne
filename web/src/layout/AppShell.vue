@@ -8,16 +8,21 @@
         :collapsed="collapsed"
         @toggle="collapsed = !collapsed"
       />
-      <div v-else class="picker-brand">
-        <strong>NexusOne</strong>
-        <div class="nx-muted">选择产品</div>
+      <div v-else class="picker-brand" data-testid="shell-brand">
+        <span class="brand-mark" aria-hidden="true">星</span>
+        <div v-if="!collapsed">
+          <strong>星枢</strong>
+          <div class="brand-en">NexusOne · 选择产品</div>
+        </div>
       </div>
       <ProductSwitcher :current-id="productId" :collapsed="collapsed" />
     </aside>
     <div class="main">
       <GlobalHeader />
       <section class="content">
-        <router-view />
+        <div class="content-inner">
+          <router-view />
+        </div>
       </section>
     </div>
   </div>
@@ -72,7 +77,23 @@ for (const path of REQUIRED_SHELL_LINKS) {
   height: 100vh;
   overflow: auto;
 }
-.picker-brand { min-height: 72px; display: flex; flex-direction: column; justify-content: center; }
+.picker-brand { min-height: 72px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+.picker-brand strong { display: block; font-size: 16px; }
+.brand-en { color: var(--nx-text-secondary); font-size: 12px; }
+.brand-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--nx-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
 .main { display: flex; flex-direction: column; min-width: 0; }
 .content { padding: 24px; }
+/* Spec §3.1: desktop design width 1440–1920, master ≈1586px; wider screens center the page instead of stretching it. */
+.content-inner { max-width: var(--nx-content-max, 1600px); margin: 0 auto; }
 </style>

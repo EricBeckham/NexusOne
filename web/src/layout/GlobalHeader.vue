@@ -1,7 +1,14 @@
 <template>
   <header class="top" :class="{ platform: session.platformMode }">
     <div class="lead">
-      <div class="crumb">{{ crumb }}</div>
+      <nav class="crumb" aria-label="面包屑" data-testid="shell-crumb">
+        <template v-if="crumb.product">
+          <router-link v-if="crumb.page" class="crumb-product" :to="crumb.product.home">{{ crumb.product.name }}</router-link>
+          <span v-else class="crumb-page" aria-current="page">{{ crumb.product.name }}</span>
+          <span v-if="crumb.page" class="crumb-sep" aria-hidden="true">/</span>
+        </template>
+        <span v-if="crumb.page" class="crumb-page" aria-current="page">{{ crumb.page }}</span>
+      </nav>
       <span v-if="session.platformMode" class="platform-flag">平台视图 · 跨租户</span>
     </div>
     <label class="search">
@@ -10,10 +17,11 @@
       <input
         ref="searchEl"
         type="search"
-        placeholder="搜索，暂无"
+        placeholder="全局搜索（即将开放）"
         readonly
         aria-disabled="true"
       />
+      <kbd class="hotkey" aria-hidden="true">Ctrl K</kbd>
     </label>
     <div class="actions">
       <span class="env" :data-tone="env.tone">
@@ -22,8 +30,10 @@
       </span>
       <router-link class="notify" to="/p3/notifications"><NxIcon name="bell" :size="18" /><span>通知</span></router-link>
       <div class="user">
-        <button type="button" class="user-btn" @click="open = !open">
-          {{ session.displayName || "未登录" }}
+        <button type="button" class="user-btn" :aria-expanded="open" data-testid="shell-user" @click="open = !open">
+          <span class="avatar" aria-hidden="true">{{ initial }}</span>
+          <span class="user-name">{{ session.displayName || "未登录" }}</span>
+          <NxIcon name="chevronDown" :size="14" />
         </button>
         <div v-if="open" class="menu">
           <p><span>用户名</span><strong>{{ session.displayName || "未登录" }}</strong></p>
@@ -62,11 +72,15 @@ const router = useRouter();
 const open = ref(false);
 const searchEl = ref(null);
 
+// Product › page; a product home whose title is the product name shows once (no "星市 / 星市").
 const crumb = computed(() => {
   const product = productById(route.meta.product);
-  const title = route.meta.title || "NexusOne";
-  return product ? `${product.name} / ${title}` : title;
+  const title = route.meta.title || "";
+  if (!product) return { product: null, page: title || "星枢 NexusOne" };
+  return { product, page: title && title !== product.name ? title : "" };
 });
+
+const initial = computed(() => (session.displayName || "").trim().charAt(0).toUpperCase() || "?");
 
 const env = computed(() => {
   if (import.meta.env.MODE === "test") {
@@ -131,7 +145,11 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 }
 .top.platform { box-shadow: inset 0 -3px 0 var(--nx-warning); }
 .lead { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.crumb { color: var(--nx-text-primary); font-weight: 600; white-space: nowrap; }
+.crumb { display: flex; align-items: center; gap: 8px; font-size: 14px; white-space: nowrap; min-width: 0; }
+.crumb-product { color: var(--nx-text-secondary); }
+.crumb-product:hover { color: var(--nx-product); }
+.crumb-sep { color: var(--nx-text-disabled); }
+.crumb-page { color: var(--nx-text-primary); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 .platform-flag {
   color: var(--nx-warning);
   background: var(--nx-warning-light);
@@ -140,13 +158,24 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
   font-size: 12px;
   white-space: nowrap;
 }
-.search { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--nx-text-secondary); }
+.search { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--nx-text-secondary); }
+.hotkey {
+  margin-left: -64px;
+  padding: 1px 6px;
+  border: 1px solid var(--nx-border);
+  border-radius: 4px;
+  background: var(--nx-surface);
+  color: var(--nx-text-secondary);
+  font: 12px/18px var(--nx-font-mono, monospace);
+  pointer-events: none;
+}
 .search input {
   width: min(420px, 100%);
   min-width: 240px;
   border: 1px solid var(--nx-border-strong);
   border-radius: 6px;
-  padding: 6px 10px;
+  height: 34px;
+  padding: 0 72px 0 10px;
   background: var(--nx-bg-page);
   color: var(--nx-text-secondary);
 }
@@ -157,7 +186,33 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .env[data-tone="test"] i { background: var(--nx-warning); }
 .notify { display: inline-flex; align-items: center; gap: 6px; color: var(--nx-text-regular); font-size: 13px; }
 .user { position: relative; }
-.user-btn, .link {
+.user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 8px 0 4px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--nx-text-primary);
+  cursor: pointer;
+  font-size: 14px;
+}
+.user-btn:hover { background: var(--nx-bg-page); }
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--nx-product-light, var(--nx-info-light));
+  color: var(--nx-product, var(--nx-primary));
+  font-weight: 600;
+  font-size: 13px;
+}
+.user-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link {
   background: none;
   border: 0;
   color: var(--nx-primary);

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @vitest-environment happy-dom
  */
 import { describe, expect, it } from "vitest";
@@ -110,6 +110,25 @@ describe("W0 product shell", () => {
     expect(wrapper.text()).toContain("测试环境");
   });
 
+  it("shows a product › page breadcrumb without repeating the product on its home (O7)", async () => {
+    const router = await boot("/p3/ledgers/ledger-1");
+    const wrapper = mount(AppShell, { global: { plugins: [router] } });
+    const crumb = () => wrapper.get("[data-testid='shell-crumb']");
+    expect(crumb().get("a").text()).toBe("星构");
+    expect(crumb().get("a").attributes("href")).toBe("/p3");
+    expect(crumb().get("[aria-current='page']").text()).toBe("台账详情");
+
+    await router.push("/p4");
+    await wrapper.vm.$nextTick();
+    expect(crumb().text()).toBe("星市");
+    expect(crumb().find("a").exists()).toBe(false);
+
+    await router.push("/");
+    await wrapper.vm.$nextTick();
+    expect(crumb().text()).toBe("产品选择");
+    expect(wrapper.get("[data-testid='shell-brand']").text()).toContain("星枢");
+    expect(wrapper.find(".content > .content-inner").exists()).toBe(true);
+  });
   it("does not wrap login or callback in the product frame", async () => {
     const loginRouter = await boot("/login");
     const login = mount(App, { global: { plugins: [loginRouter] } });
