@@ -13,7 +13,7 @@ import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.p2.domain.IdentityRepository;
 import one.nexus.p2.domain.Model;
 import one.nexus.p3.port.ProductApplicationStore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,15 +24,18 @@ import tools.jackson.databind.ObjectMapper;
 
 /** Loads the tenant-owned K12a pin and invokes the pure pinned-snapshot validator. */
 @Service
-@ConditionalOnBean({IdentityRepository.class, FileObjectRepository.class})
 public class PinnedProductApplicationValidationService {
     private final ProductApplicationStore store;
     private final ObjectMapper mapper;
-    private final IdentityRepository identities;
-    private final FileObjectRepository files;
+    private final ObjectProvider<IdentityRepository> identities;
+    private final ObjectProvider<FileObjectRepository> files;
 
+    /**
+     * Identity and file repositories are optional so the service always wires (K15b depends on it).
+     * Without one, PERSON / ATTACHMENT values fail closed: ownership cannot be proven, so they are rejected.
+     */
     public PinnedProductApplicationValidationService(ProductApplicationStore store, ObjectMapper mapper,
-            IdentityRepository identities, FileObjectRepository files) {
+            ObjectProvider<IdentityRepository> identities, ObjectProvider<FileObjectRepository> files) {
         this.store = store;
         this.mapper = mapper;
         this.identities = identities;
@@ -50,11 +53,13 @@ public class PinnedProductApplicationValidationService {
         List<ProductApplicationValuesValidator.FieldError> errors = ProductApplicationValuesValidator.validate(
                 tenantId, fields, values, new ProductApplicationValuesValidator.TenantValueOwnership() {
                     @Override public boolean personBelongsToTenant(UUID tenant, UUID personId) {
-                        return identities.findPerson(tenant,personId)
+                        IdentityRepository repository = identities.getIfAvailable();
+                        return repository != null && repository.findPerson(tenant,personId)
                                 .filter(person -> person.status()==Model.PersonStatus.ACTIVE).isPresent();
                     }
                     @Override public boolean fileBelongsToTenant(UUID tenant, UUID fileId) {
-                        return files.find(fileId).filter(file -> tenant.equals(file.tenantId())
+                        FileObjectRepository repository = files.getIfAvailable();
+                        return repository != null && repository.find(fileId).filter(file -> tenant.equals(file.tenantId())
                                 && file.status()==FileStatus.UPLOADED).isPresent();
                     }
                 });
