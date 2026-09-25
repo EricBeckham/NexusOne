@@ -107,7 +107,7 @@ public class FormTemplateDraftService {
                     sqlTimestamp(now), id);
         }
         audit.append(new AuditEvent(UUID.randomUUID(), "platform.form_template.validated", AuditEvent.VERSION, now,
-                null, platform.actor().subjectId(), platform.actorHomeTenantId(), true, platform.reason(),
+                platform.actorHomeTenantId(), platform.actor().subjectId(), platform.actorHomeTenantId(), true, platform.reason(),
                 platform.traceId(), platform.traceId(), null, outcome, "form_template", id.toString(),
                 Map.of("field_count", template.fields().size(), "error_count", errors.size())));
         return new ValidationResult(id, errors.isEmpty(), status, errors);
@@ -144,7 +144,7 @@ public class FormTemplateDraftService {
                  WHERE id = ?
                 """, versionId, sqlTimestamp(publishedAt), id);
         audit.append(new AuditEvent(UUID.randomUUID(), "platform.form_template.published", AuditEvent.VERSION,
-                publishedAt, null, platform.actor().subjectId(), platform.actorHomeTenantId(), true,
+                publishedAt, platform.actorHomeTenantId(), platform.actor().subjectId(), platform.actorHomeTenantId(), true,
                 platform.reason(), platform.traceId(), platform.traceId(), null, AuditEvent.OUTCOME_ACCEPTED,
                 "form_template", id.toString(), Map.of("version_id", versionId.toString(), "version", nextVersion)));
         return new PublishResult(id, versionId, nextVersion, publishedAt, template.fields());
@@ -187,8 +187,10 @@ public class FormTemplateDraftService {
 
     private void appendAudit(PlatformContext platform, String action, UUID id, String code) {
         Instant now = clock.now();
+        // platform.audit_event.tenant_id is NOT NULL: platform-scope events are recorded under the operator's home
+        // (platform) tenant, same as every audit write in this class.
         audit.append(new AuditEvent(UUID.randomUUID(), "platform.form_template." + action, AuditEvent.VERSION, now,
-                null, platform.actor().subjectId(), platform.actorHomeTenantId(), true, platform.reason(),
+                platform.actorHomeTenantId(), platform.actor().subjectId(), platform.actorHomeTenantId(), true, platform.reason(),
                 platform.traceId(), platform.traceId(), null, AuditEvent.OUTCOME_ACCEPTED,
                 "form_template", id.toString(), Map.of("code", code)));
     }

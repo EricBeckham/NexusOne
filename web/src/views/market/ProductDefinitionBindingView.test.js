@@ -139,6 +139,24 @@ describe("product definition binding page", () => {
     expect(wrapper.get("[data-testid='binding-notice'] a").attributes("href")).toBe("/p4/market");
   });
 
+  it("explains unpublished templates and keeps the page when process drafts need a tenant", async () => {
+    p1.formTemplates.mockResolvedValue([
+      { id: "tpl-1", code: "leave", name: "请假", status: "DRAFT", running_version_id: null },
+      { id: "tpl-3", code: "trip", name: "出差", status: "VALIDATED", running_version_id: null },
+    ]);
+    p3.listProcessDrafts.mockRejectedValue(Object.assign(new Error("TenantContext is required"), { status: 403 }));
+    p4.productDefinitions.mockResolvedValue([DEFINITION]);
+
+    const wrapper = await mountPage();
+    expect(wrapper.find("[data-testid='nx-error-state']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='product-definition-list']").text()).toContain("HR 基础版");
+    expect(wrapper.get("[data-testid='definition-template-empty']").text()).toContain("有 2 个模板还是草稿或仅通过校验");
+    expect(wrapper.get("[data-testid='definition-process-unavailable']").text()).toContain("没有租户身份");
+    expect(wrapper.find("[data-testid='definition-process-empty']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='journey-process']").text()).toContain("需要租户身份才能读取");
+    expect(wrapper.text()).not.toContain("TenantContext is required");
+  });
+
   it("shows the server failure text for save and bind", async () => {
     p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
     p3.listProcessDrafts.mockResolvedValue([{ key: "leave_flow" }]);

@@ -85,7 +85,7 @@ public class ProductDefinitionService {
         market.bindSkuToProductDefinition(skuCode, productDefinitionId);
         Instant now = clock.now();
         audit.append(new AuditEvent(UUID.randomUUID(), "platform.product_definition.sku_bound", AuditEvent.VERSION,
-                now, null, actor.actor().subjectId(), actor.actorHomeTenantId(), true, actor.reason(), actor.traceId(),
+                now, actor.actorHomeTenantId(), actor.actor().subjectId(), actor.actorHomeTenantId(), true, actor.reason(), actor.traceId(),
                 actor.traceId(), null, AuditEvent.OUTCOME_ACCEPTED, "sku", skuCode,
                 Map.of("product_definition_id", productDefinitionId.toString())));
         return definition;
@@ -119,8 +119,10 @@ public class ProductDefinitionService {
 
     private void append(PlatformContext actor, String action, ProductDefinition definition) {
         Instant now = clock.now();
+        // platform.audit_event.tenant_id is NOT NULL: platform-scope events are recorded under the operator's home
+        // (platform) tenant, same as the sku_bound audit above.
         audit.append(new AuditEvent(UUID.randomUUID(), "platform.product_definition." + action, AuditEvent.VERSION,
-                now, null, actor.actor().subjectId(), actor.actorHomeTenantId(), true, actor.reason(), actor.traceId(),
+                now, actor.actorHomeTenantId(), actor.actor().subjectId(), actor.actorHomeTenantId(), true, actor.reason(), actor.traceId(),
                 actor.traceId(), null, AuditEvent.OUTCOME_ACCEPTED, "product_definition", definition.id().toString(),
                 Map.of("code", definition.code(), "version", definition.version())));
     }
