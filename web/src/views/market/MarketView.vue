@@ -6,11 +6,10 @@
 
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
     <template v-else>
-      <section class="catalog-toolbar" aria-label="目录筛选" data-testid="catalog-filter">
-        <label class="search-field"><span>关键词</span><input v-model="search" type="search" placeholder="应用名称、编码、简介或 SKU" data-testid="catalog-search" /></label>
-        <button class="ghost" type="button" data-testid="catalog-reset" @click="resetSearch">重置</button>
-        <p class="result-count" aria-live="polite">{{ loading ? "正在加载目录…" : `共 ${visibleItems.length} 个可用版本` }}</p>
-      </section>
+      <NxFilterBar label="目录筛选" testid="catalog" data-testid="catalog-filter" @reset="resetSearch">
+        <label class="nx-filter-field wide">关键词<input v-model="search" type="search" placeholder="应用名称、编码、简介或 SKU" data-testid="catalog-search" /></label>
+        <template #summary>{{ loading ? "正在加载目录…" : `共 ${visibleItems.length} 个可用版本` }}</template>
+      </NxFilterBar>
       <section v-if="failure" class="subscribe-failure" role="alert" data-testid="subscribe-failure">
         <div class="failure-body">
           <strong>订阅开通失败<template v-if="failure.skuLabel">：{{ failure.skuLabel }}</template></strong>
@@ -75,7 +74,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxFilterBar, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 import { catalogSkus } from "./catalogSku";
@@ -147,10 +146,6 @@ onMounted(load);
 <style scoped>
 .market-page { display: grid; gap: var(--nx-space-4); }
 .catalog-skeleton { display: grid; gap: var(--nx-space-3); }
-.catalog-toolbar { display: flex; align-items: flex-end; gap: 8px; padding: 0; background: transparent; border: 0; box-shadow: none; }
-.search-field { display: grid; flex: 1; gap: var(--nx-space-1); max-width: 560px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
-.search-field input { width: 100%; min-height: 36px; padding: var(--nx-space-2) var(--nx-space-3); color: var(--nx-text-primary); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 6px; }
-.result-count { margin: 0; color: var(--nx-text-secondary); white-space: nowrap; }
 .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,300px),1fr)); gap: var(--nx-space-4); align-items: stretch; }
 .app-card { display: flex; min-width: 0; flex-direction: column; gap: var(--nx-space-4); padding: var(--nx-space-5); background: var(--nx-surface); border: 1px solid var(--nx-border); border-radius: 12px; box-shadow: var(--nx-shadow-card); }
 .card-header { display: flex; align-items: center; gap: var(--nx-space-3); min-width: 0; }
@@ -189,5 +184,4 @@ onMounted(load);
 .failure-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }
 .failure-actions .primary { min-height: 36px; padding: 0 var(--nx-space-3); border-radius: 8px; }.install-button,.ghost { min-height: 36px; padding: 0 var(--nx-space-3); color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; cursor: pointer; }.install-button:hover,.ghost:hover { color: var(--nx-product); border-color: var(--nx-product); }.install-button:disabled,.ghost:disabled { opacity: .55; cursor: not-allowed; }
 .loading { padding: var(--nx-space-6); color: var(--nx-text-secondary); }
-@media(max-width:640px) { .catalog-toolbar { align-items: stretch; flex-direction: column; }.result-count { align-self: flex-start; } }
 </style>

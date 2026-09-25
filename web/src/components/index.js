@@ -1,5 +1,6 @@
 export { default as NxEmpty } from "./NxEmpty.vue";
 export { default as NxErrorState } from "./NxErrorState.vue";
+export { default as NxFilterBar } from "./NxFilterBar.vue";
 export { default as NxChartPlaceholder } from "./NxChartPlaceholder.vue";
 export { default as NxHealthList } from "./NxHealthList.vue";
 export { default as NxKpiRow } from "./NxKpiRow.vue";
