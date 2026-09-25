@@ -97,7 +97,9 @@
             </option>
           </select>
           <small v-if="loaded && !publishedTemplates.length" class="hint" data-testid="definition-template-empty">
-            还没有已发布的表单模板。<router-link to="/p1/form-templates">去表单模板发布</router-link>
+            <template v-if="unpublishedTemplateCount">有 {{ unpublishedTemplateCount }} 个模板还是草稿或仅通过校验，发布后才会出现在这里。</template>
+            <template v-else>还没有已发布的表单模板。</template>
+            <router-link to="/p1/form-templates">去表单模板发布</router-link>
           </small>
         </label>
         <label>
@@ -108,7 +110,10 @@
               {{ item.name || item.key }} · {{ item.key }} · 版本 {{ item.version }}
             </option>
           </select>
-          <small v-if="loaded && !publishedProcesses.length" class="hint" data-testid="definition-process-empty">
+          <small v-if="loaded && processUnavailable" class="hint" data-testid="definition-process-unavailable">
+            {{ processUnavailable }}
+          </small>
+          <small v-else-if="loaded && !publishedProcesses.length" class="hint" data-testid="definition-process-empty">
             还没有已发布的流程。<router-link to="/p3/workflow">去流程设计器发布</router-link>
           </small>
         </label>
@@ -137,6 +142,8 @@ const permissionNote = "租户成员可发起；审批人来自表单中的成�
 const definitions = ref([]);
 const publishedTemplates = ref([]);
 const publishedProcesses = ref([]);
+const unpublishedTemplateCount = ref(0);
+const processUnavailable = ref("");
 const skus = ref([]);
 const skuBindings = ref({});
 const loaded = ref(false);
@@ -168,7 +175,7 @@ const rebindWarning = computed(() => {
 });
 const journey = computed(() => [
   { id: "template", title: "发布表单模板", detail: `已发布 ${publishedTemplates.value.length} 个`, done: publishedTemplates.value.length > 0, to: "/p1/form-templates", action: "去发布" },
-  { id: "process", title: "发布流程", detail: `已发布 ${publishedProcesses.value.length} 个`, done: publishedProcesses.value.length > 0, to: "/p3/workflow", action: "去发布" },
+  { id: "process", title: "发布流程", detail: processUnavailable.value ? "需要租户身份才能读取" : `已发布 ${publishedProcesses.value.length} 个`, done: publishedProcesses.value.length > 0, to: "/p3/workflow", action: "去发布" },
   { id: "definition", title: "保存产品定义", detail: `已有 ${definitions.value.length} 个`, done: definitions.value.length > 0 },
   { id: "sku", title: "绑定 SKU 上架", detail: boundCount.value ? `已绑定 ${boundCount.value} 个 SKU` : "绑定后租户即可在目录订阅开通", done: boundCount.value > 0 },
 ]);
@@ -250,6 +257,28 @@ function payload() {
   };
 }
 
+function processUnavailableText(err) {
+  const message = String(err?.message || "");
+  if (/tenantcontext|tenant context/i.test(message) || Number(err?.status) === 403) {
+    return "已发布流程按租户读取：当前没有租户身份。请以租户管理员身份登录（演示：林晓）后再选择流程。";
+  }
+  return `流程列表暂时读不到${err?.traceId ? `（追踪号 ${err.traceId}）` : ""}，可稍后刷新重试。`;
+}
+
+async function loadPublishedProcesses(drafts) {
+  const processes = [];
+  for (const draft of Array.isArray(drafts) ? drafts : []) {
+    if (!draft?.key) continue;
+    try {
+      const publication = await p3.getProcessPublication(draft.key);
+      if (publication?.key && publication.version != null) processes.push(publication);
+    } catch {
+      // Unpublished drafts are not selectable.
+    }
+  }
+  return processes;
+}
+
 async function loadBindings() {
   try {
     const [skuRows, catalog] = await Promise.all([p4.skus(), p4.catalog()]);
@@ -274,26 +303,23 @@ async function load() {
   loaded.value = false;
   error.value = "";
   try {
+    // Process drafts are tenant-scoped (a platform operator without a tenant gets "TenantContext is required");
+    // that must not take down templates and definitions, so it is read separately.
+    processUnavailable.value = "";
     const [rows, templates, drafts] = await Promise.all([
       p4.productDefinitions(),
       p1.formTemplates(),
-      p3.listProcessDrafts(),
+      p3.listProcessDrafts().catch((err) => {
+        processUnavailable.value = processUnavailableText(err);
+        return [];
+      }),
     ]);
     definitions.value = (Array.isArray(rows) ? rows : []).map(normalizeDefinition);
-    publishedTemplates.value = (Array.isArray(templates) ? templates : [])
-      .map((item) => ({ ...item, runningVersionId: pick(item, "running_version_id", "runningVersionId") }))
-      .filter((item) => item.status === "PUBLISHED" && item.runningVersionId);
-    const processes = [];
-    for (const draft of Array.isArray(drafts) ? drafts : []) {
-      if (!draft?.key) continue;
-      try {
-        const publication = await p3.getProcessPublication(draft.key);
-        if (publication?.key && publication.version != null) processes.push(publication);
-      } catch {
-        // Unpublished drafts are not selectable.
-      }
-    }
-    publishedProcesses.value = processes;
+    const allTemplates = (Array.isArray(templates) ? templates : [])
+      .map((item) => ({ ...item, runningVersionId: pick(item, "running_version_id", "runningVersionId") }));
+    publishedTemplates.value = allTemplates.filter((item) => item.status === "PUBLISHED" && item.runningVersionId);
+    unpublishedTemplateCount.value = allTemplates.length - publishedTemplates.value.length;
+    publishedProcesses.value = await loadPublishedProcesses(drafts);
     await loadBindings();
   } catch (err) {
     error.value = err.message || "产品定义暂时不可用";
