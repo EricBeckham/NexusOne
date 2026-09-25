@@ -529,6 +529,17 @@ export async function listProductApplications() {
   return wrap({ items, total: items.length });
 }
 
+export async function productApplicationForm(installationId) {
+  return api(`/api/v1/p3/product-applications/installations/${encodeURIComponent(installationId)}/form`);
+}
+
+export async function createProductApplication(installationId, values) {
+  return api(`/api/v1/p3/product-applications/installations/${encodeURIComponent(installationId)}`, {
+    method: "POST",
+    body: { values },
+  });
+}
+
 export async function withdrawTodo(_id, _comment, instanceId) {
   if (!instanceId) {
     const error = new Error("撤回需要 process instance id（TodoView.instance_id）");

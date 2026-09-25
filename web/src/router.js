@@ -64,6 +64,7 @@ const routes = [
   { path: "/p4/product-definitions", name: "p4-product-definitions", component: () => import("./views/market/ProductDefinitionBindingView.vue"), meta: { title: "产品定义", product: "p4" } },
   { path: "/p4/subscriptions", name: "p4-subscriptions", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "订阅", product: "p4" } },
   { path: "/p4/installations", name: "p4-installations", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "我的已开通", product: "p4" } },
+  { path: "/p4/installations/:id/start", name: "p4-installation-start", component: () => import("./views/market/ProductStartView.vue"), meta: { title: "发起申请", product: "p4" } },
   { path: "/p4/entitlements", name: "p4-entitlements", component: () => import("./views/market/CommercialEntitlementsView.vue"), meta: { title: "商业权益", product: "p4" } },
   { path: "/p4/entitlements/:id", name: "p4-entitlement", component: () => import("./views/market/CommercialEntitlementsView.vue"), meta: { title: "商业权益", product: "p4" } },
   { path: "/p5/connect", name: "connect", component: () => import("./views/connect/ConnectView.vue"), meta: { title: "星联", product: "p5" } },
