@@ -172,6 +172,22 @@ class DemoSeedPostgresBootTest {
         assertEquals(201, started.getResponse().getStatus(), body);
         assertEquals("RUNNING", JsonPath.read(body, "$.status"));
         assertEquals(installationId, JsonPath.read(body, "$.installation_id"));
+
+        String applicationId = JsonPath.read(body, "$.id");
+        assertEquals(1, count("""
+                SELECT count(*) FROM business_meta.product_application
+                WHERE id = ? AND tenant_id = ? AND initiator_person_id = ? AND status = 'RUNNING'
+                  AND created_at IS NOT NULL AND updated_at IS NOT NULL AND process_instance_id IS NOT NULL
+                """, java.util.UUID.fromString(applicationId), P1DemoSeedConfiguration.TENANT_ID,
+                P2DemoSeedConfiguration.PERSON_LIN), "start must persist the application row with timestamps");
+
+        String mine = mvc.perform(get("/api/v1/p3/product-applications")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        java.util.List<String> mineIds = JsonPath.read(mine, "$[*].id");
+        assertTrue(mineIds.contains(applicationId), mine);
     }
 
     private static void assertBusinessError(MvcResult result, int status, String code, String message) throws Exception {
