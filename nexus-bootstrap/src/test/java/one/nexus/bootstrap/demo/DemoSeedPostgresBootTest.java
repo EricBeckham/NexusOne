@@ -2,14 +2,28 @@ package one.nexus.bootstrap.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import one.nexus.bootstrap.NexusOneApplication;
+import one.nexus.p1.domain.Actor;
+import one.nexus.p1.domain.PlatformDuty;
+import one.nexus.p1.port.AuditPort;
+import one.nexus.p1.port.IsolationGuard;
+import one.nexus.p1.port.PlatformContext;
 import one.nexus.p2.idp.StubIdentityProvider;
+import one.nexus.p3.infra.jdbc.FormTemplateDraftService;
 import one.nexus.p4.market.MarketService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,6 +53,7 @@ class DemoSeedPostgresBootTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired MarketService market;
     @Autowired MockMvc mvc;
+    @Autowired tools.jackson.databind.ObjectMapper mapper;
     @Autowired @Qualifier("approvalProductDemoSeed") ApplicationRunner approvalSeed;
     @Autowired @Qualifier("p3DemoSeed") ApplicationRunner p3Seed;
 
@@ -88,6 +103,32 @@ class DemoSeedPostgresBootTest {
         assertEquals(quotaUsed, count("SELECT coalesce(sum(used_value), 0) FROM platform.quota WHERE tenant_id = ?",
                 P1DemoSeedConfiguration.TENANT_ID), "re-running the P3 seed must not consume quota twice");
         subscribeAsLin();
+    }
+
+    @Test
+    void platformTemplateDraftCreateValidateAndPublishPersistOnPostgres() {
+        IsolationGuard isolation = mock(IsolationGuard.class);
+        when(isolation.requirePlatformContext(anyString(), any())).thenReturn(new PlatformContext(true, "i2",
+                new Actor(UUID.randomUUID(), null, "platform-admin", Set.of(PlatformDuty.SYSTEM_ADMIN)), "trace-i2", null));
+        FormTemplateDraftService templates = new FormTemplateDraftService(
+                jdbc, mapper, isolation, mock(AuditPort.class), Instant::now);
+
+        var created = templates.create(new FormTemplateDraftService.TemplateWrite("i2_leave", "I2 请假", null,
+                List.of(new FormTemplateDraftService.FieldWrite("title", "事由", "TEXT", true, null))));
+        assertEquals("DRAFT", created.status());
+        templates.update(created.id(), new FormTemplateDraftService.TemplateWrite("i2_leave", "I2 请假单", null,
+                List.of(new FormTemplateDraftService.FieldWrite("title", "事由", "TEXT", true, null),
+                        new FormTemplateDraftService.FieldWrite("days", "天数", "NUMBER", false, null))));
+
+        var validated = templates.validateDraft(created.id());
+        assertTrue(validated.valid(), validated.errors().toString());
+        assertEquals("VALIDATED", validated.status());
+
+        var published = templates.publishDraft(created.id());
+        assertEquals(1, published.version());
+        assertEquals(1, count("SELECT count(*) FROM platform.form_template WHERE id = ? AND status = 'PUBLISHED'"
+                + " AND running_version_id = ?", created.id(), published.versionId()));
+        assertEquals(2, count("SELECT count(*) FROM platform.form_template_field WHERE template_id = ?", created.id()));
     }
 
     private void assertCatalogSkuContract() throws Exception {
