@@ -14,6 +14,7 @@ import one.nexus.isolation.api.Actor;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.p3.flow.ApprovalCommentStore;
 import one.nexus.p3.flow.SequentialApprovalService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -27,8 +28,10 @@ class ProductApplicationServiceTest {
     private final SequentialApprovalService approvals = mock(SequentialApprovalService.class);
     @SuppressWarnings("unchecked")
     private final ObjectProvider<AuditPort> audit = mock(ObjectProvider.class);
+    @SuppressWarnings("unchecked")
+    private final ObjectProvider<ApprovalCommentStore> comments = mock(ObjectProvider.class);
     private final ProductApplicationService service = new ProductApplicationService(
-            jdbc, new ObjectMapper(), validation, approvals, audit);
+            jdbc, new ObjectMapper(), validation, approvals, audit, comments);
 
     @AfterEach void clearContexts() {
         AccessContextHolder.clear();

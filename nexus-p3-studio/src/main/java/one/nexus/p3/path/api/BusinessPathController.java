@@ -45,13 +45,13 @@ public class BusinessPathController {
     }
 
     @PostMapping("/tasks/{todoId}/approve")
-    public Map<String, Object> approve(@PathVariable UUID todoId) {
-        return decisionJson(path.approve(todoId));
+    public Map<String, Object> approve(@PathVariable UUID todoId, @RequestBody(required = false) DecisionBody body) {
+        return decisionJson(path.approve(todoId, commentOf(body)));
     }
 
     @PostMapping("/tasks/{todoId}/reject")
-    public Map<String, Object> reject(@PathVariable UUID todoId) {
-        return decisionJson(path.reject(todoId));
+    public Map<String, Object> reject(@PathVariable UUID todoId, @RequestBody(required = false) DecisionBody body) {
+        return decisionJson(path.reject(todoId, commentOf(body)));
     }
 
     @PostMapping("/instances/{instanceId}/withdraw")
@@ -73,6 +73,13 @@ public class BusinessPathController {
         json.put("process", processJson(view.process()));
         json.put("todo", todoJson(view.todo()));
         return json;
+    }
+
+    /** Optional decision note. Absent, blank, and whitespace-only are the same as no comment. */
+    public record DecisionBody(String comment) {}
+
+    private static String commentOf(DecisionBody body) {
+        return body == null ? null : body.comment();
     }
 
     private static String firstNonBlank(String header, String body) {

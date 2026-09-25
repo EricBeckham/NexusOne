@@ -146,7 +146,7 @@ export function mapTodo(row, box) {
     arrived_at: pick(row, "created_at", "createdAt", "started_at", "startedAt"),
     status: outcome || status,
     box,
-    comment: "",
+    comment: pick(row, "comment") || "",
     record: null,
   });
 }
@@ -485,22 +485,48 @@ function mapDecision(row, box) {
   });
 }
 
-export async function approveTodo(id) {
+function decisionBody(comment) {
+  const note = typeof comment === "string" ? comment.trim() : "";
+  return note ? { comment: note } : {};
+}
+
+function decisionPath(id, action, businessKey) {
+  if (String(businessKey || "").startsWith("product-application:")) {
+    return `/api/v1/process/tasks/${id}/${action}`;
+  }
+  return `/api/v1/p3/path/tasks/${id}/${action}`;
+}
+
+export async function approveTodo(id, comment, businessKey) {
   const traceId = newTraceId();
   rememberTrace(traceId);
   return mapDecision(
-    await api(`/api/v1/p3/path/tasks/${id}/approve`, { method: "POST", body: {}, traceId }),
+    await api(decisionPath(id, "approve", businessKey), { method: "POST", body: decisionBody(comment), traceId }),
     "done",
   );
 }
 
-export async function rejectTodo(id) {
+export async function rejectTodo(id, comment, businessKey) {
   const traceId = newTraceId();
   rememberTrace(traceId);
   return mapDecision(
-    await api(`/api/v1/p3/path/tasks/${id}/reject`, { method: "POST", body: {}, traceId }),
+    await api(decisionPath(id, "reject", businessKey), { method: "POST", body: decisionBody(comment), traceId }),
     "done",
   );
+}
+
+export async function listProductApplications() {
+  const items = asList(await api("/api/v1/p3/product-applications")).map((row) => wrap({
+    id: pick(row, "id"),
+    title: "产品申请",
+    process: "产品申请",
+    biz_no: pick(row, "id"),
+    arrived_at: pick(row, "created_at", "createdAt"),
+    status: pick(row, "status"),
+    comment: pick(row, "comment") || "",
+    installation_id: pick(row, "installation_id", "installationId"),
+  }));
+  return wrap({ items, total: items.length });
 }
 
 export async function withdrawTodo(_id, _comment, instanceId) {

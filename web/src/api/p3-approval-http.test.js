@@ -67,4 +67,16 @@ describe("T3-G approval HTTP contract", () => {
     expect(approved.approval_status).toBe("APPROVED");
     expect(rejected.approval_status).toBe("REJECTED");
   });
+
+  it("sends the comment and uses the process API for a product application", async () => {
+    await approveTodo("todo-1", "  同意这条  ", "product-application:app-1");
+    await rejectTodo("todo-2", "驳回", "ledger-1");
+    const [productPath, productInit] = fetch.mock.calls[0];
+    const [ledgerPath, ledgerInit] = fetch.mock.calls[1];
+    expect(productPath).toBe("/api/v1/process/tasks/todo-1/approve");
+    expect(JSON.parse(productInit.body)).toEqual({ comment: "同意这条" });
+    expect(ledgerPath).toBe("/api/v1/p3/path/tasks/todo-2/reject");
+    expect(JSON.parse(ledgerInit.body)).toEqual({ comment: "驳回" });
+    expect(productInit.headers["X-Tenant-Id"]).toBeUndefined();
+  });
 });

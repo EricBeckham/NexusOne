@@ -37,6 +37,7 @@ export const p3 = {
   listTodos: (...args) => live.listTodos(...args),
   getTodo: (...args) => live.getTodo(...args),
   approveTodo: (...args) => live.approveTodo(...args),
+  listProductApplications: (...args) => live.listProductApplications(...args),
   rejectTodo: (...args) => live.rejectTodo(...args),
   withdrawTodo: (...args) => live.withdrawTodo(...args),
   listBusinessTypes: (...args) => live.listBusinessTypes(...args),
