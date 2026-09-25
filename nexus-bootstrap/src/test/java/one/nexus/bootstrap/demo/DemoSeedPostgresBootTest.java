@@ -126,6 +126,7 @@ class DemoSeedPostgresBootTest {
 
         MvcResult subscribed = subscribe(token, tenantId, contextId);
         assertEquals(201, subscribed.getResponse().getStatus(), subscribed.getResponse().getContentAsString());
+        startAsLin(token, contextId, JsonPath.read(subscribed.getResponse().getContentAsString(), "$.id"));
         assertBusinessError(subscribe(token, tenantId, contextId), 409,
                 "P4.MARKET.0003", "tenant already has an active subscription for this SKU");
 
@@ -148,6 +149,29 @@ class DemoSeedPostgresBootTest {
                         .content("{\"sku_code\":\"" + ApprovalProductDemoSeedConfiguration.SKU_CODE
                                 + "\",\"version_id\":\"" + ApprovalProductDemoSeedConfiguration.APP_VERSION_ID + "\"}"))
                 .andReturn();
+    }
+
+    private void startAsLin(String token, String contextId, String installationId) throws Exception {
+        String form = mvc.perform(get("/api/v1/p3/product-applications/installations/" + installationId + "/form")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        java.util.List<String> fieldKeys = JsonPath.read(form, "$.fields[*].key");
+        assertTrue(fieldKeys.contains("title"));
+        assertTrue(fieldKeys.contains("approver"));
+
+        MvcResult started = mvc.perform(post("/api/v1/p3/product-applications/installations/" + installationId)
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"values\":{\"title\":\"H4 演示发起\","
+                                + "\"approver\":\"" + P2DemoSeedConfiguration.PERSON_ZHOU + "\"}}"))
+                .andReturn();
+        String body = started.getResponse().getContentAsString();
+        assertEquals(201, started.getResponse().getStatus(), body);
+        assertEquals("RUNNING", JsonPath.read(body, "$.status"));
+        assertEquals(installationId, JsonPath.read(body, "$.installation_id"));
     }
 
     private static void assertBusinessError(MvcResult result, int status, String code, String message) throws Exception {
