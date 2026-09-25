@@ -61,6 +61,7 @@ const routes = [
   { path: "/p4/market", name: "market", component: () => import("./views/market/MarketView.vue"), meta: { title: "星市", product: "p4" } },
   { path: "/p4/packages", name: "p4-packages", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "应用包", product: "p4" } },
   { path: "/p4/skus", name: "p4-skus", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "Product / SKU", product: "p4" } },
+  { path: "/p4/product-definitions", name: "p4-product-definitions", component: () => import("./views/market/ProductDefinitionBindingView.vue"), meta: { title: "产品定义", product: "p4" } },
   { path: "/p4/subscriptions", name: "p4-subscriptions", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "订阅", product: "p4" } },
   { path: "/p4/installations", name: "p4-installations", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "安装升级", product: "p4" } },
   { path: "/p4/entitlements", name: "p4-entitlements", component: () => import("./views/market/CommercialEntitlementsView.vue"), meta: { title: "商业权益", product: "p4" } },
