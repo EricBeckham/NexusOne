@@ -26,9 +26,9 @@
       <table v-else class="nx-table" data-testid="todo-table">
         <thead>
           <tr>
-            <th>流程</th>
-            <th>业务单号</th>
-            <th>到达</th>
+            <th>{{ box === "requests" ? "申请" : "流程" }}</th>
+            <th>{{ box === "requests" ? "申请编号" : "业务单号" }}</th>
+            <th>{{ box === "requests" ? "提交时间" : "到达" }}</th>
             <th>状态</th>
           </tr>
         </thead>
@@ -41,7 +41,7 @@
           >
             <td>{{ row.title }}</td>
             <td class="nx-code">{{ row.biz_no }}</td>
-            <td>{{ row.arrived_at }}</td>
+            <td>{{ formatTime(row.arrived_at) }}</td>
             <td><NxStatus :label="box === 'requests' ? applicationStatus(row.status) : statusLabel(row.status)" :tone="tone(row.status)" /></td>
           </tr>
         </tbody>
@@ -62,7 +62,10 @@
             :to="`/p3/ledgers/${selected.ledger_id}/records/${selected.record_id}`"
             data-testid="todo-record-link"
           >查看业务记录</router-link>
-          <p v-if="box === 'requests'" data-testid="application-comment">意见 {{ selected.comment || "暂无" }}</p>
+          <div v-if="box === 'requests'" class="comment-box" data-testid="application-comment">
+            <span class="comment-label">审批意见</span>
+            <p :class="{ 'nx-muted': !selected.comment }">{{ selected.comment || "暂无意见" }}</p>
+          </div>
           <div v-if="box === 'inbox'" class="nx-field"><label>意见</label><textarea v-model="comment" rows="3" data-testid="todo-comment" /></div>
           <div class="nx-row">
             <button v-if="box === 'inbox'" class="primary" type="button" data-testid="todo-approve" :disabled="busy" @click="act('approve')">同意</button>
@@ -162,6 +165,14 @@ const STATUS_LABELS = {
   DONE: "已办结",
 };
 
+function formatTime(value) {
+  if (!value) return "暂无";
+  const text = String(value);
+  if (!text.includes("T")) return text;
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? text : date.toLocaleString("zh-CN", { hour12: false });
+}
+
 function statusLabel(status) {
   return STATUS_LABELS[String(status || "").toUpperCase()] || status || "暂无";
 }
@@ -241,6 +252,9 @@ tr.pick td { background: var(--nx-primary-light); }
 .detail-meta dd { margin: 0; overflow-wrap: anywhere; }
 .detail-meta .instance { color: var(--nx-text-secondary); }
 .detail textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+.comment-box { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
+.comment-box p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-label { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 @media (max-width: 1100px) {
   .inbox-layout { grid-template-columns: 1fr; }
   .detail { position: static; }
