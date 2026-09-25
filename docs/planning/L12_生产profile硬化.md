@@ -69,4 +69,3 @@ java -jar nexus-bootstrap.jar --spring.profiles.active=prod
 | Redis 不支持口令 | 见 L10；必须部署在私有网络 |
 | outbox dispatcher 没有环境变量开关 | 见 L11 §4-5 |
 | 主密钥轮换 / 重新加密工具 | 见 L10、L11 |
-| `.env.example` 中写的是 `NEXUS_PERM_PERSISTENCE`，单体实际读取的是 `NEXUS_PERMISSION_PERSISTENCE` | 本卡在 L10 清单里注明，未改示例文件 |
