@@ -65,6 +65,13 @@ describe("P4 management subpages", () => {
     expect(installations.get('[data-testid="installation-status"]').text()).toBe("已开通");
     expect(installations.get('[data-testid="start-application"]').text()).toBe("发起申请");
     expect(installations.get('[data-testid="installation-upgrade"]').attributes("open")).toBeUndefined();
+    // O11: one Primary per installed-product card; the upgrade submit is secondary and waits for a target version.
+    const card = installations.get(".installation-card");
+    expect(card.findAll(".primary, .nx-btn--primary").map((node) => node.text())).toEqual(["发起申请"]);
+    expect(card.get('[data-testid="upgrade-submit"]').classes()).toContain("nx-btn--default");
+    expect(card.get('[data-testid="upgrade-submit"]').attributes("disabled")).toBeDefined();
+    expect(card.text()).toContain("预检");
+    expect(card.text()).not.toContain("Precheck");
     expect(installations.text()).toContain("当前版本 1.0.0");
     expect(installations.get(".installation-identity h3").text()).toBe("CRM");
     expect(installations.text()).not.toContain("未命名应用");
