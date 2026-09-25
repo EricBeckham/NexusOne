@@ -102,6 +102,19 @@ class PublishedTemplateVersionsTest {
         MvcResult published = mvc.perform(platform(post("/api/v1/p1/platform/form-templates/" + id + "/publish"))).andReturn();
         assertEquals(200, published.getResponse().getStatus(), published.getResponse().getContentAsString());
 
+        // J2: a duplicate code is a readable 409 naming the unique constraint, not an opaque 500.
+        MvcResult duplicate = mvc.perform(platform(post("/api/v1/p1/platform/form-templates"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"i7_leave","name":"重复编码","description":null,
+                                 "fields":[{"key":"reason","label":"事由","type":"TEXT","required":true,"options":null}]}"""))
+                .andReturn();
+        String duplicateBody = duplicate.getResponse().getContentAsString();
+        assertEquals(409, duplicate.getResponse().getStatus(), duplicateBody);
+        assertEquals("CORE.API.0003", JsonPath.read(duplicateBody, "$.code"));
+        assertTrue(JsonPath.<String>read(duplicateBody, "$.message").startsWith("unique constraint violated"), duplicateBody);
+        assertFalse(duplicateBody.contains("重复编码"), "row values must not leak: " + duplicateBody);
+
         String listed = mvc.perform(platform(get("/api/v1/p1/platform/form-templates")))
                 .andReturn().getResponse().getContentAsString();
         List<Map<String, Object>> fresh = JsonPath.read(listed, "$[?(@.code == 'i7_leave')]");

@@ -14,6 +14,9 @@ const DEFAULT_HINTS = {
   409: "操作与当前状态冲突，请刷新后确认。",
   422: "填写内容未通过校验，请按提示修改。",
   server: "服务端暂时无法完成请求，请稍后重试；如持续失败，请把追踪号提供给管理员。",
+  // ApiExceptionHandler: CORE.API.0006 = a database constraint the server itself violated (not a user input error).
+  dataIntegrity: "服务端写入数据时违反了数据库约束，操作已回滚。这是服务端问题，不是填写错误；请把下方服务端信息和追踪号提供给管理员。",
+  duplicate: "与已有数据重复，请修改后重试。",
 };
 
 /**
@@ -29,6 +32,8 @@ export function describeRequestError(err, options = {}) {
   let hint;
   if (specific) hint = specific.hint;
   else if (!status) hint = hints.network;
+  else if (err?.code === "CORE.API.0006") hint = hints.dataIntegrity;
+  else if (status === 409 && message.toLowerCase().startsWith("unique constraint")) hint = hints.duplicate;
   else if (status >= 500) hint = hints.server;
   else hint = hints[status] || hints[400];
   return {

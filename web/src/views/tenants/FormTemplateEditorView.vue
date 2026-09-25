@@ -439,6 +439,11 @@ async function load() {
   }
 }
 
+// I9: the platform audit write can fail (e.g. "not-null constraint violated: platform.audit_event.tenant_id").
+const AUDIT_FAILURE = [
+  { status: 500, includes: "audit_event", hint: "服务端写审计记录失败，本次操作已回滚，画布内容已保留。这是服务端问题，不是填写错误；请把下方服务端信息和追踪号提供给管理员。" },
+];
+
 // Readable hints for the draft API's deliberate errors (FormTemplateDraftService); the server text is kept too.
 const ACTION_ERRORS = {
   save: {
@@ -449,14 +454,17 @@ const ACTION_ERRORS = {
       { status: 400, includes: "each field requires", hint: "每个字段都需要 key、名称和受支持的类型，请在画布中检查后再保存。" },
       { status: 400, includes: "too many fields", hint: "字段数量超过 200 个上限，请删减后再保存。" },
       { status: 400, includes: "invalid field options", hint: "单选字段的选项格式不正确，请检查选项后再保存。" },
+      { status: 409, includes: "unique constraint", hint: "模板编码已被其他模板使用，请在「模板设置」换一个编码后再保存。" },
+      ...AUDIT_FAILURE,
     ],
   },
-  validate: { title: "校验请求失败", retryLabel: "重试校验", match: [] },
+  validate: { title: "校验请求失败", retryLabel: "重试校验", match: [...AUDIT_FAILURE] },
   publish: {
     title: "发布失败",
     retryLabel: "重试发布",
     match: [
       { status: 409, includes: "publish requires VALIDATED", hint: "发布前需要先保存并通过校验；如有未保存的修改，请先保存再校验。" },
+      ...AUDIT_FAILURE,
     ],
   },
 };

@@ -16,6 +16,7 @@ public record ErrorCode(String product, String module, int number) {
     public static final ErrorCode API_CONFLICT = of("CORE", "API", 3);
     public static final ErrorCode API_FORBIDDEN = of("CORE", "API", 4);
     public static final ErrorCode API_UNPROCESSABLE = of("CORE", "API", 5);
+    public static final ErrorCode API_DATA_INTEGRITY = of("CORE", "API", 6);
     public static final ErrorCode API_INTERNAL = of("CORE", "API", 99);
     public static final ErrorCode CTX_MISSING_TENANT = of("CORE", "CTX", 1);
     public static final ErrorCode CTX_INVALID_PLATFORM = of("CORE", "CTX", 2);

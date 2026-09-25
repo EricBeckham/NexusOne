@@ -287,6 +287,37 @@ describe("form template designer", () => {
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p1/form-templates/tpl-new");
   });
 
+  it("shows the I9 audit tenant_id failure explicitly and a duplicate code as a readable conflict", async () => {
+    const wrapper = await mountAt("/p1/form-templates/new");
+    await wrapper.get("[data-testid='template-code']").setValue("i9_platform_smoke");
+    await wrapper.get("[data-testid='template-name']").setValue("I9 平台配置复验模板");
+    await paletteItem(wrapper, "TEXT").trigger("click");
+    p1.createFormTemplate.mockRejectedValueOnce(Object.assign(
+      new Error("not-null constraint violated: platform.audit_event.tenant_id"),
+      { status: 500, code: "CORE.API.0006", traceId: "01a0d885-ac82-7f70-aff3-b24eb39859ae" },
+    ));
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    let failure = wrapper.get("[data-testid='template-action-failure']");
+    expect(failure.get("[data-testid='nx-request-alert-hint']").text()).toContain("服务端写审计记录失败");
+    expect(failure.get("[data-testid='nx-request-alert-server']").text()).toContain("platform.audit_event.tenant_id");
+    expect(failure.get("[data-testid='nx-request-alert-server']").text()).toContain("CORE.API.0006");
+    expect(failure.get("[data-testid='nx-request-alert-trace']").text()).toContain("01a0d885-ac82-7f70-aff3-b24eb39859ae");
+    expect(failure.find("[data-testid='nx-request-alert-retry']").exists()).toBe(true);
+    expect(wrapper.text()).not.toContain("Internal error");
+    expect(wrapper.findAll("[data-testid='template-field']")).toHaveLength(1);
+
+    p1.createFormTemplate.mockRejectedValueOnce(Object.assign(
+      new Error("unique constraint violated: form_template_code_key"), { status: 409, code: "CORE.API.0003" },
+    ));
+    await failure.get("[data-testid='nx-request-alert-retry']").trigger("click");
+    await flushPromises();
+    failure = wrapper.get("[data-testid='template-action-failure']");
+    expect(failure.get("[data-testid='nx-request-alert-hint']").text()).toContain("模板编码已被其他模板使用");
+    expect(failure.get("[data-testid='nx-request-alert-server']").text()).toContain("form_template_code_key");
+    expect(failure.find("[data-testid='nx-request-alert-retry']").exists()).toBe(false);
+  });
+
   it("explains a missing-fields save error and retries a failed validate", async () => {
     const wrapper = await mountAt("/p1/form-templates/new");
     p1.createFormTemplate.mockRejectedValueOnce(Object.assign(new Error("code, name, and fields are required"), { status: 400, code: "CORE.API.0001" }));
