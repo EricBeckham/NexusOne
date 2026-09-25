@@ -46,14 +46,18 @@ public final class OidcClientCredentialsTester implements IdpConnectionTester {
             URI tokenEndpoint = URI.create(tokenEndpointText);
             if (!sameOrigin(issuer, tokenEndpoint) || !safeHttpsPublicOrigin(tokenEndpoint)) return false;
 
-            String credential = new String(secret, StandardCharsets.UTF_8);
-            byte[] body = ("grant_type=client_credentials&client_id=" + form(provider.clientId())
-                    + "&client_secret=" + form(credential)).getBytes(StandardCharsets.UTF_8);
+            byte[] encodedSecret = formUrlEncode(secret);
+            byte[] prefix = ("grant_type=client_credentials&client_id=" + form(provider.clientId())
+                    + "&client_secret=").getBytes(StandardCharsets.UTF_8);
+            byte[] body = new byte[prefix.length + encodedSecret.length];
+            System.arraycopy(prefix, 0, body, 0, prefix.length);
+            System.arraycopy(encodedSecret, 0, body, prefix.length, encodedSecret.length);
+            Arrays.fill(encodedSecret, (byte) 0);
             try {
                 JsonNode tokenResponse = jsonRequest(tokenEndpoint, "POST", body);
                 return tokenResponse != null && !tokenResponse.path("access_token").asText("").isBlank();
             } finally {
-                java.util.Arrays.fill(body, (byte) 0);
+                Arrays.fill(body, (byte) 0);
             }
         } catch (IOException | IllegalArgumentException ex) {
             return false;
@@ -208,6 +212,36 @@ public final class OidcClientCredentialsTester implements IdpConnectionTester {
     private static String form(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
+
+    /** application/x-www-form-urlencoded of raw UTF-8 bytes. Does not allocate a String of the secret. */
+    static byte[] formUrlEncode(byte[] raw) {
+        byte[] encoded = new byte[raw.length * 3];
+        int length = 0;
+        for (byte value : raw) {
+            int b = value & 0xff;
+            if (isFormUnreserved(b)) {
+                encoded[length++] = (byte) b;
+            } else if (b == ' ') {
+                encoded[length++] = '+';
+            } else {
+                encoded[length++] = '%';
+                encoded[length++] = HEX[b >>> 4];
+                encoded[length++] = HEX[b & 0x0f];
+            }
+        }
+        byte[] exact = Arrays.copyOf(encoded, length);
+        Arrays.fill(encoded, (byte) 0);
+        return exact;
+    }
+
+    private static boolean isFormUnreserved(int value) {
+        return (value >= 'a' && value <= 'z')
+                || (value >= 'A' && value <= 'Z')
+                || (value >= '0' && value <= '9')
+                || value == '-' || value == '_' || value == '.' || value == '*';
+    }
+
+    private static final byte[] HEX = "0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
 
     private static String trimSlash(String value) {
         int end = value.length();
