@@ -23,6 +23,7 @@ async function mountPage(path) {
     ["/p4/subscriptions", "p4-subscriptions"], ["/p4/installations", "p4-installations"],
   ].map(([routePath, name]) => ({ path: routePath, name, component: P4ManagementView }));
   routes.push({ path: "/p4/market", component: { template: "<div />" } });
+  routes.push({ path: "/p4/installations/:id/start", component: { template: "<div />" } });
   const router = createRouter({ history: createMemoryHistory(), routes });
   await router.push(path); await router.isReady();
   const wrapper = mount(P4ManagementView, { global: { plugins: [router] } });
