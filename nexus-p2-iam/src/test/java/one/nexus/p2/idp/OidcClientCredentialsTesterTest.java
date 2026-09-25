@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLSocketFactory;
 import org.junit.jupiter.api.Test;
@@ -76,6 +78,22 @@ class OidcClientCredentialsTesterTest {
         assertTrue(OidcClientCredentialsTester.isNonPublic(InetAddress.getByAddress(mappedPrivate)));
         assertFalse(OidcClientCredentialsTester.isNonPublic(InetAddress.getByName("203.0.113.5")));
         assertTrue(OidcClientCredentialsTester.isNonPublic(null));
+    }
+
+    @Test
+    void formUrlEncodesSecretBytesTheSameWayAsTheFormEncoder() {
+        byte[] secret = "p@ss word/字*ok".getBytes(StandardCharsets.UTF_8);
+        String expected = URLEncoder.encode(new String(secret, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        assertEquals(expected, new String(OidcClientCredentialsTester.formUrlEncode(secret), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void rejectsAPrivateIssuerWithoutCallingTheNetwork() {
+        var tester = new OidcClientCredentialsTester(new tools.jackson.databind.ObjectMapper());
+        var provider = new one.nexus.p2.domain.Model.IdpConfiguration(
+                null, null, "OIDC", "local", "client", "https://127.0.0.1/realms/demo",
+                "ACTIVE", null, null, 0, null, null, null, 1);
+        assertFalse(tester.test(provider, "secret".getBytes(StandardCharsets.UTF_8)));
     }
 
     private static SSLSocketFactory recordingFactory(AtomicBoolean delegated) {
