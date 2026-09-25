@@ -57,6 +57,9 @@ public class ApprovalProductDemoSeedConfiguration {
             }
             String datasourceUrl = env.getProperty("spring.datasource.url", "");
             DemoProfileGate.assertAllowed(true, env.getProperty(DemoProfileGate.ENVIRONMENT, "local"), datasourceUrl);
+            // The process draft row references the demo tenant; this runner (@Order(100)) starts before the
+            // un-ordered P1 seed, so on an empty database ensure the tenant exists first (same as the P3 seed).
+            new P1DemoSeedConfiguration().p1DemoSeed(jdbc, env, transaction).run(args);
             transaction.executeWithoutResult(status -> {
                 seedCatalog(jdbc);
                 publishProcess(processes.getIfAvailable());
