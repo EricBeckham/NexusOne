@@ -157,6 +157,20 @@ describe("product definition binding page", () => {
     expect(wrapper.text()).not.toContain("TenantContext is required");
   });
 
+  it("asks an anonymous platform operator to sign in as a tenant when drafts return 401", async () => {
+    p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
+    // Real J3 response without a session: 401 P2.IAM.UNAUTHORIZED "missing bearer token".
+    p3.listProcessDrafts.mockRejectedValue(Object.assign(new Error("missing bearer token"), {
+      status: 401, code: "P2.IAM.UNAUTHORIZED", traceId: "01a0d8c6-4103-7f6c-a3eb-f9d8181966da",
+    }));
+    const wrapper = await mountPage();
+    const hint = wrapper.get("[data-testid='definition-process-unavailable']").text();
+    expect(hint).toContain("当前未登录租户账号");
+    expect(hint).not.toContain("暂时读不到");
+    expect(wrapper.get("[data-testid='journey-process']").text()).toContain("需要租户身份才能读取");
+    expect(wrapper.get("[data-testid='definition-template']").text()).toContain("请假");
+  });
+
   it("shows the server failure text for save and bind", async () => {
     p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
     p3.listProcessDrafts.mockResolvedValue([{ key: "leave_flow" }]);
