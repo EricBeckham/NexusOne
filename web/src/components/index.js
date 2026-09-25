@@ -8,5 +8,6 @@ export { default as NxPanelCard } from "./NxPanelCard.vue";
 export { default as NxActivityTimeline } from "./NxActivityTimeline.vue";
 export { default as NxTodoList } from "./NxTodoList.vue";
 export { default as NxPageHeader } from "./NxPageHeader.vue";
+export { default as NxRequestAlert } from "./NxRequestAlert.vue";
 export { default as NxStatCard } from "./NxStatCard.vue";
 export { default as NxStatusTag } from "./NxStatusTag.vue";
