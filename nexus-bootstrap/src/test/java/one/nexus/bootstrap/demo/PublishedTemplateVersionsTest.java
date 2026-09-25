@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  */
 @SpringBootTest(classes = NexusOneApplication.class)
 @AutoConfigureMockMvc
-class PublishedTemplateVersionsIT {
+class PublishedTemplateVersionsTest {
     private static final String PLATFORM_ACTOR = "01900000-0000-7000-8000-0000000000ac";
     private static EmbeddedPostgres postgres;
 
