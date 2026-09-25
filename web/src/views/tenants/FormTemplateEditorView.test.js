@@ -251,6 +251,7 @@ describe("form template designer", () => {
     await wrapper.get("[data-testid='template-publish-submit']").trigger("click");
     await flushPromises();
     expect(wrapper.get("[data-testid='template-publish-version']").text()).toBe("已发布版本 2");
+    expect(wrapper.get("[data-testid='template-next-bind']").attributes("href")).toBe("/p4/product-definitions");
     expect(wrapper.get("[data-testid='template-status']").text()).toContain("已发布");
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p1/form-templates/tpl-1");
   });

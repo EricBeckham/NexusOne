@@ -119,6 +119,7 @@ describe("process viewer", () => {
     await flushPromises();
     expect(p3.publishProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");
     expect(wrapper.get("[data-testid='process-publication']").text()).toContain("最近发布版本 v3");
+    expect(wrapper.get("[data-testid='process-next-bind']").attributes("href")).toBe("/p4/product-definitions");
 
     const reopened = await mountAt("/p3/workflow/nexusSequentialApproval");
     expect(p3.getProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");

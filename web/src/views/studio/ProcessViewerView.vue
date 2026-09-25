@@ -227,6 +227,7 @@
           <strong>已发布</strong>
           <span v-if="publication.version">最近发布版本 v{{ publication.version }}</span>
           <span v-else>服务端已确认发布</span>
+          <router-link to="/p4/product-definitions" data-testid="process-next-bind">下一步：绑定到产品</router-link>
         </section>
         <p v-if="publishError" class="publish-error" role="alert" data-testid="process-publish-error">
           发布失败：{{ publishError.message || "服务端未能发布此流程" }}
