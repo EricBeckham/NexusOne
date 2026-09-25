@@ -65,6 +65,37 @@ describe("todo comment and my requests", () => {
     expect(wrapper.text()).not.toContain("approval_status=—");
   });
 
+  it("gives every empty box a reason and a next step (M4)", async () => {
+    const wrapper = await mountInbox();
+    const empty = () => wrapper.get("[data-testid='todo-empty']");
+    expect(empty().text()).toContain("选你为审批人后");
+    expect(empty().get("[data-testid='todo-empty-action']").attributes("href")).toBe("/p4/installations");
+    const tab = (label) => wrapper.findAll("button").find((button) => button.text() === label);
+
+    await tab("我发起").trigger("click");
+    await flushPromises();
+    expect(empty().text()).toContain("从「我的已开通」发起申请后");
+    expect(empty().get("[data-testid='todo-empty-action']").text()).toBe("去发起申请");
+
+    await tab("已办").trigger("click");
+    await flushPromises();
+    expect(empty().text()).toContain("暂无已办");
+    await empty().get("[data-testid='todo-empty-action']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".nx-tabs button.active").text()).toBe("我的待办");
+    expect(wrapper.findAll("td").some((cell) => cell.text() === "暂无")).toBe(false);
+  });
+
+  it("offers to clear a filter that matches nothing", async () => {
+    mocks.listTodos.mockResolvedValue({ items: [{ id: "todo-1", title: "审批", biz_no: "product-application:1", status: "PENDING" }] });
+    const wrapper = await mountInbox();
+    await wrapper.get("input").setValue("不存在");
+    expect(wrapper.get("[data-testid='todo-empty']").text()).toContain("没有匹配项");
+    await wrapper.get("[data-testid='todo-empty-action']").trigger("click");
+    expect(wrapper.find("[data-testid='todo-empty']").exists()).toBe(false);
+    expect(wrapper.findAll("tbody tr")).toHaveLength(1);
+  });
+
   it("shows my request status and comment without a withdraw control", async () => {
     const wrapper = await mountInbox();
     expect(wrapper.get("[data-testid='todo-empty']").text()).toContain("暂无待办");
