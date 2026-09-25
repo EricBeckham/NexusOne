@@ -19,7 +19,12 @@
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-grid" style="grid-template-columns: 1fr 360px;">
-      <table class="nx-table" data-testid="todo-table">
+      <NxEmpty v-if="!filtered.length" :title="emptyCopy.title" :description="emptyCopy.description" data-testid="todo-empty">
+        <template v-if="emptyCopy.to" #action>
+          <router-link class="primary" :to="emptyCopy.to">{{ emptyCopy.action }}</router-link>
+        </template>
+      </NxEmpty>
+      <table v-else class="nx-table" data-testid="todo-table">
         <thead>
           <tr>
             <th>流程</th>
@@ -29,9 +34,6 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-if="!filtered.length">
-            <td colspan="4" class="nx-empty">{{ box === "requests" ? "暂无" : "此箱为空。先在已发布表单上 submit-start。" }}</td>
-          </tr>
           <tr
             v-for="row in filtered"
             :key="row.id"
@@ -78,7 +80,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxPageHeader } from "../../components";
+import { NxEmpty, NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
@@ -107,6 +109,27 @@ const filtered = computed(() => {
   return rows.value.filter((row) =>
     [row.title, row.biz_no, row.process].some((part) => String(part || "").includes(q)),
   );
+});
+
+const emptyCopy = computed(() => {
+  if (query.value.trim() && rows.value.length) {
+    return { title: "没有匹配项", description: "请调整筛选词后重试。", to: "", action: "" };
+  }
+  if (box.value === "requests") {
+    return {
+      title: "暂无",
+      description: "从已开通产品发起后，进行中、通过和驳回会显示在这里。",
+      to: "/p4/installations",
+      action: "前往我的已开通",
+    };
+  }
+  if (box.value === "done") {
+    return { title: "暂无已办", description: "同意或驳回后，办结项会出现在这里。", to: "", action: "" };
+  }
+  if (box.value === "initiated") {
+    return { title: "暂无我发起", description: "从已发布流程发起后，记录会出现在这里。", to: "", action: "" };
+  }
+  return { title: "暂无待办", description: "当前租户还没有待你处理的申请。", to: "", action: "" };
 });
 
 function tone(status) {
