@@ -47,7 +47,7 @@ public record EntitlementProjection(
             throw new DomainException(ErrorCode.QUOTA_INVALID, "subscription projection requires sku_code");
         }
         return new EntitlementProjection(
-                tenantId, ProjectionSource.SUBSCRIPTION, null, null,
+                tenantId, ProjectionSource.SUBSCRIPTION, skuCode.trim(), "1",
                 skuCode, subscriptionId, now, payload, now, version);
     }
 }

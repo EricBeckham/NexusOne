@@ -22,6 +22,8 @@ public class P2DemoSeedConfiguration {
     static final UUID POSITION_ENGINEER = UUID.fromString("01900000-0000-7000-8000-000000000208");
     static final UUID EMPLOYMENT_LIN = UUID.fromString("01900000-0000-7000-8000-000000000209");
     static final UUID EMPLOYMENT_ZHOU = UUID.fromString("01900000-0000-7000-8000-000000000210");
+    static final UUID POSITION_TENANT_ADMIN = UUID.fromString("01900000-0000-7000-8000-000000000215");
+    static final UUID EMPLOYMENT_LIN_ADMIN = UUID.fromString("01900000-0000-7000-8000-000000000216");
     static final UUID ROLE_OPERATOR = UUID.fromString("01900000-0000-7000-8000-000000000211");
     static final UUID ASSIGNMENT_LIN = UUID.fromString("01900000-0000-7000-8000-000000000212");
 
@@ -140,6 +142,22 @@ public class P2DemoSeedConfiguration {
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", EMPLOYMENT_ZHOU).param("tenant", TENANT_ID).param("person", PERSON_ZHOU)
                         .param("department", DEPARTMENT_PLATFORM).param("position", POSITION_ENGINEER).update();
+                jdbc.sql("""
+                        INSERT INTO iam.iam_position (
+                          id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
+                        VALUES (:id, :tenant, 'TENANT_ADMIN', '租户管理员', '管理', '演示租户的订阅开通', 'ACTIVE',
+                          timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
+                        ON CONFLICT (id) DO NOTHING
+                        """).param("id", POSITION_TENANT_ADMIN).param("tenant", TENANT_ID).update();
+                jdbc.sql("""
+                        INSERT INTO iam.iam_employment (
+                          id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to,
+                          created_at, updated_at, deleted_at, version)
+                        VALUES (:id, :tenant, :person, :department, :position, 'SECONDARY', 'ACTIVE', DATE '2024-03-12', NULL,
+                          timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
+                        ON CONFLICT (id) DO NOTHING
+                        """).param("id", EMPLOYMENT_LIN_ADMIN).param("tenant", TENANT_ID).param("person", PERSON_LIN)
+                        .param("department", DEPARTMENT_ENGINEERING).param("position", POSITION_TENANT_ADMIN).update();
 
                 jdbc.sql("""
                         INSERT INTO iam.perm_role (

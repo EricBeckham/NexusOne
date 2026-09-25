@@ -2,9 +2,13 @@ package one.nexus.bootstrap.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import one.nexus.bootstrap.NexusOneApplication;
+import one.nexus.p2.idp.StubIdentityProvider;
 import one.nexus.p4.market.MarketService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,20 +18,26 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * P1: empty PostgreSQL 15 + {@code nexus.demo.enabled=true} boots the product with every demo
  * seed (P1–P5, K20) and the K20 seed can run again without duplicating form template fields.
  */
 @SpringBootTest(classes = NexusOneApplication.class)
+@AutoConfigureMockMvc
 class DemoSeedPostgresBootTest {
     private static EmbeddedPostgres postgres;
 
     @Autowired JdbcTemplate jdbc;
     @Autowired MarketService market;
+    @Autowired MockMvc mvc;
     @Autowired @Qualifier("approvalProductDemoSeed") ApplicationRunner approvalSeed;
     @Autowired @Qualifier("p3DemoSeed") ApplicationRunner p3Seed;
 
@@ -53,6 +63,12 @@ class DemoSeedPostgresBootTest {
         registry.add("nexus.execution.worker-enabled", () -> "false");
         registry.add("nexus.execution.quartz-auto-startup", () -> "false");
         registry.add("nexus.cache.mode", () -> "memory");
+        registry.add("nexus.iam.persistence", () -> "jdbc");
+        registry.add("nexus.iam.jdbc.migrate", () -> "false");
+        registry.add("nexus.iam.jdbc.url",
+                () -> "jdbc:postgresql://127.0.0.1:" + postgres.getPort() + "/postgres");
+        registry.add("nexus.iam.jdbc.username", () -> "postgres");
+        registry.add("nexus.iam.jdbc.password", () -> "postgres");
     }
 
     @Test
@@ -69,6 +85,34 @@ class DemoSeedPostgresBootTest {
         assertSeeded();
         assertEquals(quotaUsed, count("SELECT coalesce(sum(used_value), 0) FROM platform.quota WHERE tenant_id = ?",
                 P1DemoSeedConfiguration.TENANT_ID), "re-running the P3 seed must not consume quota twice");
+        subscribeAsLin();
+    }
+
+    private void subscribeAsLin() throws Exception {
+        assertEquals(1, count("""
+                SELECT count(*) FROM iam.iam_employment e
+                JOIN iam.iam_position p ON p.id = e.position_id
+                WHERE e.person_id = ? AND p.code = 'TENANT_ADMIN' AND e.status = 'ACTIVE' AND e.deleted_at IS NULL
+                """, P2DemoSeedConfiguration.PERSON_LIN));
+        String token = StubIdentityProvider.token(
+                "demo-seed:p2:lin", "lin.xiao@demo.invalid", "demo-lin", "林晓");
+        MvcResult login = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"access_token\":\"" + token + "\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String session = login.getResponse().getContentAsString();
+        String tenantId = JsonPath.read(session, "$.tenant_id");
+        String contextId = JsonPath.read(session, "$.context_id");
+        assertEquals(P1DemoSeedConfiguration.TENANT_ID.toString(), tenantId);
+        MvcResult subscribed = mvc.perform(post("/api/v1/p4/tenants/" + tenantId + "/subscriptions")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Nexus-Context-Id", contextId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sku_code\":\"" + ApprovalProductDemoSeedConfiguration.SKU_CODE
+                                + "\",\"version_id\":\"" + ApprovalProductDemoSeedConfiguration.APP_VERSION_ID + "\"}"))
+                .andReturn();
+        assertEquals(201, subscribed.getResponse().getStatus(), subscribed.getResponse().getContentAsString());
     }
 
     private void assertSeeded() {

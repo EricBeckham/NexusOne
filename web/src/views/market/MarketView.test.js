@@ -60,7 +60,7 @@ describe("P4 catalog V11", () => {
     expect(wrapper.get(".install-button").text()).toContain("订阅开通");
     await wrapper.get(".install-button").trigger("click");
     await flushPromises();
-    expect(mocks.subscribe).toHaveBeenCalledWith("tenant-1", { skuCode: "basic", versionId: "v1" });
+    expect(mocks.subscribe).toHaveBeenCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
   });
 

@@ -61,7 +61,7 @@ async function subscribe(skuCode, versionId) {
   if (!session.tenantId) { error.value = "请先建立租户会话"; return; }
   installing.value = skuCode; error.value = "";
   try {
-    await p4.subscribe(session.tenantId, { skuCode, versionId });
+    await p4.subscribe(session.tenantId, { sku_code: skuCode, version_id: versionId });
     await router.push("/p4/installations");
   } catch (err) { error.value = err.message || "订阅开通失败"; }
   finally { installing.value = ""; }

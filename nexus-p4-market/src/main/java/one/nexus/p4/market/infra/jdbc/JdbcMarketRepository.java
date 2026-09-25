@@ -176,7 +176,7 @@ public class JdbcMarketRepository implements MarketRepository {
         return jdbc.sql("""
                 SELECT p.* FROM market.installation_product_pin p JOIN market.installation i ON i.id=p.installation_id
                 WHERE i.id=:installation AND i.tenant_id=:tenant
-                """).param("installation",installationId).param("tenant",currentTenantId())
+                """).param("installation",installationId).param("tenant",UUID.fromString(currentTenantId()))
                 .query((r,n) -> new InstallationProductPin(uuid(r,"installation_id"),uuid(r,"product_definition_id"),
                         uuid(r,"form_template_version_id"),r.getString("process_definition_key"),
                         (Integer)r.getObject("process_definition_version"),instant(r,"pinned_at"))).optional();
@@ -248,7 +248,7 @@ public class JdbcMarketRepository implements MarketRepository {
     private void assertCurrentTenantForInstallation(UUID installationId) {
         String tenantId = currentTenantId();
         Integer count = jdbc.sql("SELECT 1 FROM market.installation WHERE id=:id AND tenant_id=:tenant")
-                .param("id",installationId).param("tenant",tenantId).query(Integer.class).optional().orElse(null);
+                .param("id",installationId).param("tenant",UUID.fromString(tenantId)).query(Integer.class).optional().orElse(null);
         if (count == null) throw new IllegalStateException("installation is outside current tenant scope");
     }
     private static String currentTenantId() {
