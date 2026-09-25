@@ -1,0 +1,36 @@
+/* §10.3 / O4: shared required mark + field-adjacent error. Import once from main.js. */
+
+.nx-req,
+.req {
+  color: var(--nx-danger);
+  font-style: normal;
+  font-weight: 600;
+  margin-left: 2px;
+  text-decoration: none;
+}
+
+.nx-field-error,
+.field-error {
+  display: block;
+  margin: var(--nx-space-1) 0 0;
+  color: var(--nx-danger);
+  font-size: var(--nx-font-size-sm);
+  line-height: 1.4;
+}
+
+.nx-field input[aria-invalid="true"],
+.nx-field select[aria-invalid="true"],
+.nx-field textarea[aria-invalid="true"],
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--nx-danger);
+}
+
+.nx-field-errors,
+.field-errors {
+  margin: 0 0 var(--nx-space-3);
+  padding-left: 18px;
+  color: var(--nx-danger);
+  font-size: var(--nx-font-size-sm);
+}

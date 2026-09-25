@@ -376,7 +376,7 @@ describe("form template designer", () => {
   it("marks required inputs with a red star and places missing values next to their input before saving (N3)", async () => {
     const wrapper = await mountAt("/p1/form-templates/new");
     for (const id of ["template-code", "template-name"]) {
-      expect(wrapper.get(`[data-testid='${id}']`).element.closest("label").querySelector("em.req").textContent).toBe("*");
+      expect(wrapper.get(`[data-testid='${id}']`).element.closest("label").querySelector("em.nx-req").textContent).toBe("*");
     }
     await wrapper.get("[data-testid='template-save']").trigger("click");
     await flushPromises();
@@ -398,7 +398,7 @@ describe("form template designer", () => {
     await flushPromises();
     expect(p1.createFormTemplate).not.toHaveBeenCalled();
     expect(wrapper.get("[data-testid='tab-field']").classes()).toContain("active");
-    expect(wrapper.get("[data-testid='field-label']").element.closest("label").querySelector("em.req")).not.toBeNull();
+    expect(wrapper.get("[data-testid='field-label']").element.closest("label").querySelector("em.nx-req")).not.toBeNull();
     expect(wrapper.get("[data-testid='field-label-error']").text()).toBe("请填写字段名称");
     expect(wrapper.get("[data-testid='template-field']").classes()).toContain("invalid");
     expect(wrapper.get("[data-testid='field-error']").text()).toBe("请填写字段名称");
