@@ -118,16 +118,17 @@ public final class OidcClientCredentialsTester implements IdpConnectionTester {
     static boolean isNonPublic(InetAddress address) {
         if (address == null) return true;
         byte[] raw = address.getAddress();
-        if (raw.length == 16 && isMappedIpv4(raw)) {
+        if (raw.length == 16 && (isTeredo(raw) || isLocalNat64(raw))) return true;
+        if (raw.length == 16 && embedsIpv4(raw)) {
             try {
-                return isNonPublic(InetAddress.getByAddress(Arrays.copyOfRange(raw, 12, 16)));
+                return isNonPublic(InetAddress.getByAddress(embeddedIpv4(raw)));
             } catch (UnknownHostException ex) {
                 return true;
             }
         }
         if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
                 || address.isSiteLocalAddress() || address.isMulticastAddress()
-                || isCarrierGradeNat(raw) || isUniqueLocal(raw)) return true;
+                || isCarrierGradeNat(raw) || isUniqueLocal(raw) || isSpecialPurposeIpv4(raw)) return true;
         return false;
     }
 
@@ -152,12 +153,67 @@ public final class OidcClientCredentialsTester implements IdpConnectionTester {
         return address.length == 16 && (address[0] & 0xfe) == 0xfc;
     }
 
+    /** 0.0.0.0/8 "this network", 192.0.0.0/24 IETF, 198.18.0.0/15 benchmarking, 240.0.0.0/4 reserved + broadcast. */
+    private static boolean isSpecialPurposeIpv4(byte[] address) {
+        if (address.length != 4) return false;
+        int first = address[0] & 0xff;
+        int second = address[1] & 0xff;
+        return first == 0
+                || (first == 192 && second == 0 && (address[2] & 0xff) == 0)
+                || (first == 198 && (second & 0xfe) == 18)
+                || first >= 240;
+    }
+
+    /** IPv6 forms that carry an IPv4 destination: mapped, compatible, NAT64 (RFC 6052 / 8215) and 6to4. */
+    private static boolean embedsIpv4(byte[] address) {
+        return isMappedIpv4(address) || isCompatibleIpv4(address) || isNat64(address) || is6to4(address);
+    }
+
+    private static byte[] embeddedIpv4(byte[] address) {
+        return is6to4(address) ? Arrays.copyOfRange(address, 2, 6) : Arrays.copyOfRange(address, 12, 16);
+    }
+
     private static boolean isMappedIpv4(byte[] address) {
-        if (address.length != 16) return false;
-        for (int index = 0; index < 10; index++) {
+        return leadingZeros(address, 10) && address[10] == (byte) 0xff && address[11] == (byte) 0xff;
+    }
+
+    private static boolean isCompatibleIpv4(byte[] address) {
+        return leadingZeros(address, 12);
+    }
+
+    /** 64:ff9b::/96 well-known NAT64 prefix; the IPv4 destination is the last 32 bits. */
+    private static boolean isNat64(byte[] address) {
+        if (!isNat64Prefix(address)) return false;
+        for (int index = 4; index < 12; index++) {
             if (address[index] != 0) return false;
         }
-        return address[10] == (byte) 0xff && address[11] == (byte) 0xff;
+        return true;
+    }
+
+    /** 64:ff9b:1::/48 local-use NAT64 (RFC 8215); the IPv4 offset depends on local prefix length. */
+    private static boolean isLocalNat64(byte[] address) {
+        return isNat64Prefix(address) && address[4] == 0x00 && address[5] == 0x01;
+    }
+
+    private static boolean isNat64Prefix(byte[] address) {
+        return address[0] == 0x00 && address[1] == 0x64 && address[2] == (byte) 0xff && address[3] == (byte) 0x9b;
+    }
+
+    private static boolean is6to4(byte[] address) {
+        return address[0] == 0x20 && address[1] == 0x02;
+    }
+
+    /** 2001:0000::/32 tunnels to an obfuscated IPv4 server/client; never a plain public IdP origin. */
+    private static boolean isTeredo(byte[] address) {
+        return address[0] == 0x20 && address[1] == 0x01 && address[2] == 0x00 && address[3] == 0x00;
+    }
+
+    private static boolean leadingZeros(byte[] address, int count) {
+        if (address.length != 16) return false;
+        for (int index = 0; index < count; index++) {
+            if (address[index] != 0) return false;
+        }
+        return true;
     }
 
     static final class PublicPeerSslSocketFactory extends SSLSocketFactory {
