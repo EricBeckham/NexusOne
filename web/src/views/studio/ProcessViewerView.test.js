@@ -247,11 +247,69 @@ describe("process viewer", () => {
     expect(wrapper.find("svg").exists()).toBe(true);
   });
 
-  it("shows an empty state when the catalog has no definitions", async () => {
+  it("shows an empty state with a next step when the tenant has no processes (N4)", async () => {
     p3.listProcessDefinitions.mockResolvedValue([]);
     const wrapper = await mountAt("/p3/workflow");
-    expect(wrapper.text()).toContain("暂无流程定义");
+    const empty = wrapper.get("[data-testid='process-empty']");
+    expect(empty.text()).toContain("暂无流程");
+    expect(empty.text()).toContain("新建一个草稿");
     expect(p3.getProcessDefinition).not.toHaveBeenCalled();
+    await wrapper.get("[data-testid='process-empty-new']").trigger("click");
+    expect(wrapper.findAll("[data-testid='process-node']")).toHaveLength(3);
+    expect(wrapper.get("[data-testid='draft-state']").attributes("data-tone")).toBe("warning");
+    expect(wrapper.get("[data-testid='draft-state']").text()).toContain("保存后才能校验和发布");
+  });
+
+  it("says where a draft is between save, validate and publish (N4)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([definition]);
+    p3.listProcessDrafts.mockResolvedValue([{ key: "nexusSequentialApproval", name: "Approval" }]);
+    p3.getProcessDraft.mockResolvedValue({
+      key: "nexusSequentialApproval",
+      name: "Approval",
+      bpmn_xml: '<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="nexusSequentialApproval"><startEvent id="start"/><userTask id="task" name="Review" flowable:assignee="${assignee}"/><endEvent id="end"/><sequenceFlow id="one" sourceRef="start" targetRef="task"/><sequenceFlow id="two" sourceRef="task" targetRef="end"/></process></definitions>',
+    });
+    p3.getProcessPublication.mockRejectedValue(Object.assign(new Error("not published"), { status: 404 }));
+    p3.validateProcessDraft.mockResolvedValue({ valid: true, errors: [] });
+    const wrapper = await mountAt("/p3/workflow/nexusSequentialApproval");
+    const state = () => wrapper.get("[data-testid='draft-state']");
+    expect(state().attributes("data-tone")).toBe("info");
+    expect(state().text()).toContain("下一步「校验草稿」");
+    expect(wrapper.get(".step .step-kind").text()).toBe("第 1 步 · 审批");
+    await wrapper.findAll("[data-testid='process-node']")[1].trigger("click");
+    expect(wrapper.get("[data-testid='node-type']").text()).toBe("审批节点（userTask）");
+
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    expect(state().attributes("data-tone")).toBe("success");
+    expect(state().text()).toContain("可以发布");
+
+    await wrapper.get("[data-testid='node-name']").setValue("复核");
+    expect(state().attributes("data-tone")).toBe("warning");
+    expect(state().text()).toContain("有未保存的修改");
+    expect(wrapper.get("[data-testid='process-validate']").attributes("disabled")).toBeDefined();
+  });
+
+  it("explains a read-only process and one without approval steps (N4)", async () => {
+    const direct = {
+      key: "direct",
+      name: "Direct",
+      source: "classpath",
+      nodes: [
+        { id: "start", name: "Start", type: "startEvent" },
+        { id: "end", name: "End", type: "endEvent" },
+      ],
+      flows: [{ id: "f", source_ref: "start", target_ref: "end", condition: null }],
+    };
+    p3.listProcessDefinitions.mockResolvedValue([direct]);
+    p3.getProcessDefinition.mockResolvedValue(direct);
+    const wrapper = await mountAt("/p3/workflow/direct");
+    expect(wrapper.get("[data-testid='draft-state']").text()).toContain("已发布只读");
+    expect(wrapper.get("[data-testid='flow-steps-empty']").text()).toContain("直接结束");
+    await wrapper.get("[data-testid='process-edit-copy']").trigger("click");
+    expect(wrapper.get("[data-testid='flow-steps-empty']").text()).toContain("添加审批节点");
+    await wrapper.get("[data-testid='add-step']").trigger("click");
+    expect(wrapper.find("[data-testid='flow-steps-empty']").exists()).toBe(false);
+    expect(wrapper.findAll(".step")).toHaveLength(1);
   });
 
   it("asks for a tenant sign-in instead of a retry when there is no session (401)", async () => {

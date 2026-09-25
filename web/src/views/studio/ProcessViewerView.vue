@@ -49,7 +49,16 @@
       retry-label="重试"
       @retry="reload"
     />
-    <NxEmpty v-else-if="!loading && !definition && !definitions.length" title="暂无流程定义" description="类路径里还没有可查看的流程。" />
+    <NxEmpty
+      v-else-if="!loading && !definition && !definitions.length"
+      title="暂无流程"
+      description="这个租户还没有流程或草稿。新建一个草稿，从一个顺序审批节点开始配置。"
+      data-testid="process-empty"
+    >
+      <template #action>
+        <button type="button" class="primary" data-testid="process-empty-new" @click="newDraft">新建草稿</button>
+      </template>
+    </NxEmpty>
     <div v-else class="shell">
       <aside class="nx-card list" data-testid="process-list">
         <h2>流程与草稿</h2>
@@ -73,7 +82,18 @@
           </div>
           <span v-if="definition && sequence.sequential" class="mode-chip" data-testid="flow-mode">顺序审批 · {{ sequence.steps.length }} 个审批节点</span>
         </header>
-        <NxEmpty v-if="definition && !graph.nodes.length" compact title="暂无节点" />
+        <p v-if="draftState" class="draft-state" :data-tone="draftState.tone" data-testid="draft-state">{{ draftState.text }}</p>
+        <NxEmpty
+          v-if="definition && !graph.nodes.length"
+          compact
+          title="暂无节点"
+          :description="isEditing ? '这份草稿没有可解析的节点。新建草稿会从「开始 → 审批 → 结束」起步。' : '这个流程没有可展示的节点。可以新建草稿重新配置。'"
+          data-testid="process-nodes-empty"
+        >
+          <template #action>
+            <button type="button" class="ghost" data-testid="process-nodes-empty-new" @click="newDraft">新建草稿</button>
+          </template>
+        </NxEmpty>
         <ol
           v-else-if="definition && sequence.sequential"
           class="flow"
@@ -122,6 +142,7 @@
               <span v-if="isEditing" class="grip" aria-hidden="true"><NxIcon name="grip" :size="18" /></span>
               <span class="num">{{ index + 1 }}</span>
               <span class="step-body">
+                <small class="step-kind">第 {{ index + 1 }} 步 · 审批</small>
                 <strong>{{ step.name || "未命名审批节点" }}</strong>
                 <span class="assignee" :class="{ missing: !step.assignee }">
                   <NxIcon name="user" :size="14" />{{ step.assignee ? assigneeLabel(step.assignee) : "未设置审批人" }}
@@ -135,6 +156,10 @@
               </span>
             </li>
           </template>
+          <li v-if="!sequence.steps.length" class="steps-empty" data-testid="flow-steps-empty">
+            <strong>还没有审批节点</strong>
+            <small>{{ isEditing ? "点下方「添加审批节点」，申请会按顺序交给每个节点的审批人。" : "此流程发起后会直接结束，不经过审批。" }}</small>
+          </li>
           <li v-if="dropIndex === sequence.steps.length" class="drop-line" data-testid="step-drop-indicator" aria-hidden="true" />
           <li class="connector">
             <span class="line" />
@@ -204,7 +229,7 @@
           <dd v-if="isEditing && editableType(selected.type)"><input v-model="selected.name" data-testid="node-name" aria-label="节点名称" /></dd>
           <dd v-else>{{ showText(selected.name) }}</dd>
           <dt>类型</dt>
-          <dd>{{ showText(selected.type) }}</dd>
+          <dd data-testid="node-type">{{ nodeTypeLabel(selected.type) }}</dd>
           <template v-if="selected.type === 'userTask'">
             <dt>审批人引用</dt>
             <dd v-if="isEditing">
@@ -219,7 +244,7 @@
             <dd v-else>{{ selected.assignee ? assigneeLabel(selected.assignee) : "暂无" }}</dd>
           </template>
         </dl>
-        <p v-else class="nx-muted">暂无</p>
+        <p v-else class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
         <p v-if="isEditing && selected && nodeErrors(selected.id).length" class="step-error" data-testid="node-error">{{ nodeErrors(selected.id).join("；") }}</p>
         <section v-if="validationResult" class="validation-result" data-testid="process-validation" :data-valid="validationResult.valid">
           <strong>{{ validationResult.valid ? "校验通过" : "校验未通过" }}</strong>
@@ -483,6 +508,24 @@ function nodeErrors(id) {
   return errors.filter((item) => item?.node_id === id || item?.nodeId === id).map((item) => item.message).filter(Boolean);
 }
 
+const NODE_TYPES = { startEvent: "开始", userTask: "审批节点", endEvent: "结束" };
+
+function nodeTypeLabel(type) {
+  return NODE_TYPES[type] ? `${NODE_TYPES[type]}（${type}）` : showText(type);
+}
+
+// N4: say where the draft is in 保存 → 校验 → 发布, so a disabled button is never unexplained.
+const draftState = computed(() => {
+  if (!definition.value) return null;
+  if (!isEditing.value) return { tone: "neutral", text: "已发布只读：点「创建可编辑草稿」在副本上修改，原流程不受影响。" };
+  if (!isPersistedDraft.value) return { tone: "warning", text: "未保存的草稿：先「保存草稿」，保存后才能校验和发布。" };
+  if (dirty.value) return { tone: "warning", text: "有未保存的修改：保存后再校验，校验针对已保存的版本。" };
+  if (publication.value && validationResult.value?.valid !== true) return { tone: "success", text: "已保存，并有已发布版本；再次发布前需重新校验。" };
+  if (validationResult.value?.valid === true) return { tone: "success", text: "已保存并校验通过：可以发布。" };
+  if (validationResult.value) return { tone: "danger", text: "校验未通过：按节点上的提示修改，保存后再校验。" };
+  return { tone: "info", text: "已保存：下一步「校验草稿」。" };
+});
+
 function assigneeLabel(value) {
   return ASSIGNEE_PRESETS.find((preset) => preset.value === value)?.label || value;
 }
@@ -559,6 +602,14 @@ watch(() => route.params.key, reload, { immediate: true });
 
 <style scoped>
 .later-note { margin-top: 0; }
+.draft-state { margin: 0 0 var(--nx-space-3); padding: var(--nx-space-2) var(--nx-space-3); border-radius: var(--nx-radius-sm); font-size: var(--nx-font-size-sm); background: var(--nx-info-light); color: var(--nx-info); }
+.draft-state[data-tone="warning"] { background: var(--nx-warning-light); color: var(--nx-warning); }
+.draft-state[data-tone="success"] { background: var(--nx-success-light); color: var(--nx-success); }
+.draft-state[data-tone="danger"] { background: var(--nx-danger-light); color: var(--nx-danger); }
+.draft-state[data-tone="neutral"] { background: var(--nx-divider); color: var(--nx-text-regular); }
+.step-kind { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.steps-empty { display: grid; gap: 4px; justify-items: center; padding: var(--nx-space-4); border: 1px dashed var(--nx-border); border-radius: var(--nx-radius-sm); text-align: center; }
+.steps-empty small { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .shell {
   display: grid;
   grid-template-columns: minmax(min(100%, 200px), 240px) minmax(0, 1fr) minmax(min(100%, 220px), 280px);
