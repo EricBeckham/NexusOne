@@ -17,6 +17,18 @@
   </NxPageHeader>
 
   <NxErrorState v-if="error" :title="error" :trace-id="traceId" retry-label="重试" @retry="reload" />
+  <NxRequestAlert
+    v-if="actionFailure"
+    class="action-failure"
+    :title="actionFailure.title"
+    :error="actionFailure"
+    :retry-label="actionFailure.retryLabel"
+    busy-label="处理中…"
+    :busy="saving || validating || publishing"
+    data-testid="template-action-failure"
+    @retry="retryAction"
+    @dismiss="actionFailure = null"
+  />
 
   <section class="statusbar" aria-live="polite">
     <span class="status-chip" :data-tone="statusTone" data-testid="template-status">状态：{{ statusLabel(status) }}</span>
@@ -25,7 +37,6 @@
     <span v-if="validation?.valid" class="ok" data-testid="template-validate-ok">校验通过</span>
     <span v-if="publishedVersion != null" class="ok" data-testid="template-publish-version">已发布版本 {{ publishedVersion }}</span>
     <router-link v-if="publishedVersion != null" to="/p4/product-definitions" data-testid="template-next-bind">下一步：绑定到产品</router-link>
-    <span v-if="publishError" class="field-error" role="alert" data-testid="template-publish-error">{{ publishError }}</span>
   </section>
   <ul v-if="formErrors.length" class="errors" data-testid="template-validate-errors">
     <li v-for="(message, index) in formErrors" :key="index">{{ message }}</li>
@@ -221,7 +232,8 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p1 } from "../../api/client";
-import { NxErrorState, NxPageHeader } from "../../components";
+import { NxErrorState, NxPageHeader, NxRequestAlert } from "../../components";
+import { describeRequestError } from "../../utils/requestError";
 import NxIcon from "../../icons/NxIcon.vue";
 import FieldControl from "./form-template/FieldControl.vue";
 import {
@@ -255,7 +267,7 @@ const validating = ref(false);
 const validation = ref(null);
 const publishing = ref(false);
 const publishConfirm = ref(false);
-const publishError = ref("");
+const actionFailure = ref(null);
 const publishedVersion = ref(null);
 const selectedUid = ref(null);
 const tab = ref("template");
@@ -427,23 +439,62 @@ async function load() {
   }
 }
 
+// Readable hints for the draft API's deliberate errors (FormTemplateDraftService); the server text is kept too.
+const ACTION_ERRORS = {
+  save: {
+    title: "保存草稿失败，画布内容未丢失",
+    retryLabel: "重试保存",
+    match: [
+      { status: 400, includes: "code, name, and fields are required", hint: "请在「模板设置」填写编码和名称，并至少添加一个字段。" },
+      { status: 400, includes: "each field requires", hint: "每个字段都需要 key、名称和受支持的类型，请在画布中检查后再保存。" },
+      { status: 400, includes: "too many fields", hint: "字段数量超过 200 个上限，请删减后再保存。" },
+      { status: 400, includes: "invalid field options", hint: "单选字段的选项格式不正确，请检查选项后再保存。" },
+    ],
+  },
+  validate: { title: "校验请求失败", retryLabel: "重试校验", match: [] },
+  publish: {
+    title: "发布失败",
+    retryLabel: "重试发布",
+    match: [
+      { status: 409, includes: "publish requires VALIDATED", hint: "发布前需要先保存并通过校验；如有未保存的修改，请先保存再校验。" },
+    ],
+  },
+};
+const COMMON_HINTS = { 404: "模板不存在或已被删除，请返回列表后重新打开。" };
+
+function failAction(action, err) {
+  const spec = ACTION_ERRORS[action];
+  actionFailure.value = {
+    ...describeRequestError(err, { match: spec.match, hints: COMMON_HINTS }),
+    action,
+    title: spec.title,
+    retryLabel: spec.retryLabel,
+  };
+}
+
+function retryAction() {
+  const action = actionFailure.value?.action;
+  if (action === "save") save();
+  else if (action === "validate") validate();
+  else if (action === "publish") publish();
+}
+
 function openPublish() {
   if (creating.value || publishing.value) return;
-  publishError.value = "";
   publishConfirm.value = true;
 }
 
 async function publish() {
   if (creating.value || publishing.value) return;
   publishing.value = true;
-  publishError.value = "";
+  actionFailure.value = null;
   try {
     const result = await p1.publishFormTemplate(route.params.id);
     publishedVersion.value = result?.version ?? null;
     status.value = "PUBLISHED";
     publishConfirm.value = false;
   } catch (err) {
-    publishError.value = err?.message || "发布失败";
+    failAction("publish", err);
     publishConfirm.value = false;
   } finally {
     publishing.value = false;
@@ -452,7 +503,7 @@ async function publish() {
 
 async function reload() {
   validation.value = null;
-  publishError.value = "";
+  actionFailure.value = null;
   publishedVersion.value = null;
   await load();
 }
@@ -460,16 +511,14 @@ async function reload() {
 async function validate() {
   if (creating.value || validating.value) return;
   validating.value = true;
-  error.value = "";
-  traceId.value = "";
+  actionFailure.value = null;
   validation.value = null;
   try {
     const result = await p1.validateFormTemplate(route.params.id);
     validation.value = result;
     if (result?.status) status.value = result.status;
   } catch (err) {
-    error.value = err?.message || "校验失败";
-    traceId.value = err?.traceId || "";
+    failAction("validate", err);
   } finally {
     validating.value = false;
   }
@@ -477,15 +526,13 @@ async function validate() {
 
 async function save() {
   saving.value = true;
-  error.value = "";
-  traceId.value = "";
+  actionFailure.value = null;
   const keepSelectedKey = selected.value?.key;
   try {
     const saved = creating.value
       ? await p1.createFormTemplate(payload())
       : await p1.updateFormTemplate(route.params.id, payload());
     validation.value = null;
-    publishError.value = "";
     publishedVersion.value = null;
     applyTemplate(saved);
     const reselect = keepSelectedKey && fields.value.find((field) => field.key === keepSelectedKey);
@@ -494,8 +541,7 @@ async function save() {
       await router.replace(`/p1/form-templates/${saved.id}`);
     }
   } catch (err) {
-    error.value = err?.message || "保存失败";
-    traceId.value = err?.traceId || "";
+    failAction("save", err);
   } finally {
     saving.value = false;
   }
@@ -508,6 +554,7 @@ onMounted(load);
 </script>
 
 <style scoped>
+.action-failure { margin-bottom: 16px; }
 .statusbar {
   display: flex;
   flex-wrap: wrap;
