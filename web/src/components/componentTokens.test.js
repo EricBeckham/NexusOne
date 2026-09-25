@@ -14,6 +14,7 @@ const components = [
   "NxNoPermission.vue",
   "NxStatCard.vue",
   "NxStatusTag.vue",
+  "NxSkeleton.vue",
 ];
 
 describe("W1 component design tokens", () => {
