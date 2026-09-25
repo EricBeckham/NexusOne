@@ -75,17 +75,21 @@ public class ApprovalProductDemoSeedConfiguration {
         jdbc.sql("""
                 INSERT INTO platform.form_template_field
                   (id, template_id, field_key, label, field_type, required, options, position, created_at, updated_at)
-                VALUES (:id, :template, 'title', '事由', 'TEXT', true, NULL, 0,
-                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00')
-                ON CONFLICT (template_id, field_key) DO NOTHING
+                SELECT :id, :template, 'title', '事由', 'TEXT', true, NULL, 0,
+                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00'
+                 WHERE NOT EXISTS (SELECT 1 FROM platform.form_template_field
+                                    WHERE template_id = :template AND field_key = 'title')
+                ON CONFLICT DO NOTHING
                 """).param("id", UUID.fromString("01900000-0000-7000-8000-000000000511"))
                 .param("template", TEMPLATE_ID).update();
         jdbc.sql("""
                 INSERT INTO platform.form_template_field
                   (id, template_id, field_key, label, field_type, required, options, position, created_at, updated_at)
-                VALUES (:id, :template, 'approver', '审批人', 'PERSON', true, NULL, 1,
-                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00')
-                ON CONFLICT (template_id, field_key) DO NOTHING
+                SELECT :id, :template, 'approver', '审批人', 'PERSON', true, NULL, 1,
+                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00'
+                 WHERE NOT EXISTS (SELECT 1 FROM platform.form_template_field
+                                    WHERE template_id = :template AND field_key = 'approver')
+                ON CONFLICT DO NOTHING
                 """).param("id", UUID.fromString("01900000-0000-7000-8000-000000000512"))
                 .param("template", TEMPLATE_ID).update();
         jdbc.sql("""

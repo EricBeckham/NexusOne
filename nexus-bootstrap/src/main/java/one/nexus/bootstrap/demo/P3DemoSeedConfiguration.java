@@ -7,6 +7,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
+import one.nexus.p1.infra.isolation.IsolationContextHolder;
+import one.nexus.p1.port.IsolationGuard.IsolationSnapshot;
+import one.nexus.p1.port.PlatformContext;
 import one.nexus.p3.port.QuotaHook;
 
 /** Minimal P3 application and draft-ledger metadata for local screenshots; no physical table is created. */
@@ -72,8 +75,17 @@ public class P3DemoSeedConfiguration {
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", STATUS_FIELD_ID).param("tenant", TENANT_ID)
                         .param("ledger", LEDGER_ID).update();
-                quotas.consumeApp(TENANT_ID, "p3.app:" + TENANT_ID + ":demo_studio");
-                quotas.consumeCustomLedger(TENANT_ID, "p3.ledger:" + TENANT_ID + ":project");
+                // Quota consume requires the tenant's own context; a startup runner has none.
+                IsolationSnapshot previous = IsolationContextHolder.get();
+                IsolationContextHolder.set(new IsolationSnapshot(
+                        null, PlatformContext.inactive(), TENANT_ID, "demo-seed-p3"));
+                try {
+                    quotas.consumeApp(TENANT_ID, "p3.app:" + TENANT_ID + ":demo_studio");
+                    quotas.consumeCustomLedger(TENANT_ID, "p3.ledger:" + TENANT_ID + ":project");
+                } finally {
+                    if (previous == null) IsolationContextHolder.clear();
+                    else IsolationContextHolder.set(previous);
+                }
             });
         };
     }
