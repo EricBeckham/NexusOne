@@ -18,6 +18,8 @@
 nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
 ```
 
+可填 env 占位模板（无真实密钥）：[`demo-host-prod.env.template`](demo-host-prod.env.template)。本机构建 JAR 并打印 SHA-256：`scripts/demo-host/build-bootstrap-jar-sha.ps1`（或 `.sh`）。**模板 / 脚本 ≠ 已部署。**
+
 在受控构建机从目标 SHA 构建并保存校验和；不要在演示机上临时修改源码：
 
 ```bash
