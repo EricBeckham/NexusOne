@@ -1,17 +1,20 @@
 <template>
-  <nav class="switcher" aria-label="产品切换">
-    <p v-if="!collapsed">产品</p>
-    <router-link
-      v-for="item in PRODUCTS"
-      :key="item.id"
-      :to="item.home"
-      :title="item.name"
-      :data-product="item.id"
-      :class="{ current: item.id === currentId }"
-    >
-      <span class="mark"><NxIcon :name="item.icon" :size="18" /></span>
-      <span v-if="!collapsed">{{ item.name }}</span>
-    </router-link>
+  <nav class="switcher" :class="{ collapsed }" aria-label="产品切换">
+    <p v-if="!collapsed">切换产品</p>
+    <div class="row">
+      <router-link
+        v-for="item in PRODUCTS"
+        :key="item.id"
+        :to="item.home"
+        :title="item.name"
+        :data-product="item.id"
+        :class="{ current: item.id === currentId }"
+        :aria-current="item.id === currentId ? 'true' : undefined"
+      >
+        <span class="mark"><NxIcon :name="item.icon" :size="18" /></span>
+        <span class="name">{{ item.name }}</span>
+      </router-link>
+    </div>
   </nav>
 </template>
 
@@ -26,34 +29,35 @@ defineProps({
 </script>
 
 <style scoped>
-.switcher { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+/* A compact product row, not a second menu (O8): five marks with short names under a divider. */
+.switcher { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--nx-border); }
 .switcher p {
-  margin: 8px;
-  font-size: 11px;
+  margin: 0 10px 8px;
+  font-size: 12px;
   color: var(--nx-text-secondary);
 }
+.row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; }
 .switcher a {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 10px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 0;
   border-radius: 8px;
-  color: var(--nx-text-regular);
+  color: var(--nx-text-secondary);
+  font-size: 11px;
 }
-.switcher a.current {
-  background: var(--nx-product-light);
-  color: var(--nx-product);
-  font-weight: 600;
-}
+.switcher a:hover { background: var(--nx-bg-page); color: var(--nx-text-primary); }
+.switcher a.current { color: var(--nx-product); font-weight: 600; }
 .mark {
   width: 28px;
   height: 28px;
   border-radius: var(--nx-radius-sm);
   display: grid;
   place-items: center;
-  background: var(--nx-product-light);
-  color: var(--nx-product);
-  flex: none;
+  background: var(--nx-bg-page);
+  color: var(--nx-text-secondary);
 }
+.switcher a.current .mark { background: var(--nx-product-light); color: var(--nx-product); }
+.collapsed .row { grid-template-columns: 1fr; }
+.collapsed .name { display: none; }
 </style>

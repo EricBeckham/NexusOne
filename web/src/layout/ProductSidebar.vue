@@ -10,7 +10,10 @@
     </button>
   </div>
   <nav class="menu" :aria-label="product.name">
-    <template v-for="item in items" :key="item.id">
+    <template v-for="(item, index) in items" :key="item.id">
+      <p v-if="startsSection(index)" class="section" :class="{ collapsed }" data-testid="nav-section">
+        <span v-if="!collapsed">{{ item.section }}</span>
+      </p>
       <router-link v-if="destination(item)" :to="destination(item)" custom v-slot="{ href, navigate }">
         <a :href="href" :title="item.label" :class="{ current: isCurrent(destination(item)) }" @click="navigate">
           <NxIcon class="icon" :name="iconFor(item)" :size="20" />
@@ -100,6 +103,12 @@ function isCurrent(to) {
   return activeTarget() === to;
 }
 
+// Group titles (spec §5): a titled run of items starts wherever `section` changes; collapsed, it is just a divider.
+function startsSection(index) {
+  const section = props.items[index]?.section;
+  return Boolean(section) && section !== props.items[index - 1]?.section;
+}
+
 function groupActive(item) {
   return (item.children || []).some((child) => isCurrent(child.to));
 }
@@ -149,22 +158,36 @@ function iconFor(item) { return iconsByItem[item.id] || "grid"; }
   cursor: pointer;
   font-size: 12px;
 }
+.menu { display: flex; flex-direction: column; gap: 2px; }
 .menu a, .group-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-height: 42px;
   padding: 0 10px;
   border-radius: 8px;
   color: var(--nx-text-regular);
   font-size: 14px;
+  font-weight: 400;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
+.menu a:hover { background: var(--nx-bg-page); color: var(--nx-text-primary); }
+.menu a .icon { color: var(--nx-text-secondary); }
 .menu a.current {
   background: var(--nx-product-light);
   color: var(--nx-product);
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--nx-product);
 }
+.menu a.current .icon { color: var(--nx-product); }
+.section {
+  margin: 14px 10px 4px;
+  color: var(--nx-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+}
+.section.collapsed { height: 1px; margin: 10px 8px; background: var(--nx-border); }
 .side-head.collapsed { gap: 4px; }
 .side-head.collapsed .fold { margin-left: 0; padding: 0; }
 .later {
@@ -176,7 +199,16 @@ function iconFor(item) { return iconsByItem[item.id] || "grid"; }
   color: var(--nx-text-disabled);
   font-size: 14px;
 }
-.tag { margin-left: auto; color: var(--nx-text-secondary); font-size: 12px; }
+.tag {
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--nx-divider);
+  color: var(--nx-text-secondary);
+  font-size: 11px;
+  line-height: 18px;
+}
+.later .icon { color: var(--nx-text-disabled); }
 .icon { width: 20px; text-align: center; flex: none; color: currentColor; }
 .children a { display: flex; align-items: center; gap: 8px; padding-left: 38px; }
 .child-icon { flex: none; color: var(--nx-text-secondary); }

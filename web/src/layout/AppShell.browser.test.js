@@ -129,6 +129,17 @@ describe("W0 product shell", () => {
     expect(wrapper.get("[data-testid='shell-brand']").text()).toContain("星枢");
     expect(wrapper.find(".content > .content-inner").exists()).toBe(true);
   });
+  it("renders section titles and a compact product row, collapsing titles to dividers (O8)", async () => {
+    const router = await boot("/p4");
+    const wrapper = mount(AppShell, { global: { plugins: [router] } });
+    expect(wrapper.findAll("[data-testid='nav-section']").map((node) => node.text())).toEqual(["目录与开通", "商品配置"]);
+    expect(wrapper.get(".later .tag").text()).toBe("后续");
+    expect(wrapper.get(".switcher").text()).toContain("切换产品");
+    expect(wrapper.get(".switcher a[aria-current='true']").attributes("data-product")).toBe("p4");
+    await wrapper.get(".fold").trigger("click");
+    expect(wrapper.findAll("[data-testid='nav-section']").every((node) => node.text() === "")).toBe(true);
+    expect(wrapper.get(".switcher").classes()).toContain("collapsed");
+  });
   it("does not wrap login or callback in the product frame", async () => {
     const loginRouter = await boot("/login");
     const login = mount(App, { global: { plugins: [loginRouter] } });
