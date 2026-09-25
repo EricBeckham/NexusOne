@@ -19,7 +19,7 @@ public class DemoProfileConfiguration {
             String datasourceUrl = env.getProperty("spring.datasource.url", "");
             DemoProfileGate.assertAllowed(enabled, environment, datasourceUrl);
             if (enabled) {
-                log.warn("演示开关已打开。禁止连生产。本进程不插入业务行。");
+                log.warn("演示开关已打开。禁止连生产。演示种子仅允许写入本机数据库。");
             } else {
                 log.info("演示开关默认关闭。");
             }
