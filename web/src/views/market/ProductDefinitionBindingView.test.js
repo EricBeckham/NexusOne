@@ -14,7 +14,7 @@ vi.mock("../../api/client", () => ({
   },
 }));
 vi.mock("../../api/p3", () => ({
-  p3: { listProcessDrafts: vi.fn(), getProcessPublication: vi.fn() },
+  p3: { listProcessDrafts: vi.fn(), listProcessDefinitions: vi.fn(), getProcessPublication: vi.fn() },
 }));
 
 // Real wire shapes: the product mapper is SNAKE_CASE (pinned by PlatformBindingWireNamingTest).
@@ -40,6 +40,9 @@ async function mountPage() {
 
 function publishedProcess() {
   p3.listProcessDrafts.mockResolvedValue([{ key: "leave_flow" }, { key: "draft_only" }]);
+  p3.listProcessDefinitions.mockResolvedValue([
+    { key: "leave_flow", name: "请假审批", source: "tenant-deployment", version: 3 },
+  ]);
   p3.getProcessPublication.mockImplementation(async (key) => {
     if (key === "draft_only") throw new Error("not found");
     return { key: "leave_flow", name: "请假审批", version: 3 };
@@ -54,6 +57,7 @@ describe("product definition binding page", () => {
     p4.catalog.mockResolvedValue([]);
     p1.formTemplates.mockResolvedValue([]);
     p3.listProcessDrafts.mockResolvedValue([]);
+    p3.listProcessDefinitions.mockResolvedValue([]);
   });
 
   it("guides an empty platform to publish a template and a process first", async () => {
@@ -61,8 +65,12 @@ describe("product definition binding page", () => {
     expect(wrapper.text()).toContain("暂无产品定义");
     expect(wrapper.get("[data-testid='definition-permission']").text()).toContain("租户成员可发起");
     expect(wrapper.get("[data-testid='journey-template']").attributes("data-done")).toBe("false");
+    expect(wrapper.get("[data-testid='definition-template-empty']").text()).toContain("下拉已禁用");
     expect(wrapper.get("[data-testid='definition-template-empty'] a").attributes("href")).toBe("/p1/form-templates");
+    expect(wrapper.get("[data-testid='definition-process-empty']").text()).toContain("classpath 只读目录不能直接绑定");
     expect(wrapper.get("[data-testid='definition-process-empty'] a").attributes("href")).toBe("/p3/workflow");
+    expect(wrapper.get("[data-testid='definition-template']").attributes("disabled")).toBeDefined();
+    expect(wrapper.get("[data-testid='definition-process']").attributes("disabled")).toBeDefined();
     expect(wrapper.get("[data-testid='definition-save']").attributes("disabled")).toBeDefined();
     expect(wrapper.text()).not.toContain("已绑定租户");
   });
@@ -145,6 +153,7 @@ describe("product definition binding page", () => {
       { id: "tpl-3", code: "trip", name: "出差", status: "VALIDATED", running_version_id: null },
     ]);
     p3.listProcessDrafts.mockRejectedValue(Object.assign(new Error("TenantContext is required"), { status: 403 }));
+    p3.listProcessDefinitions.mockRejectedValue(Object.assign(new Error("TenantContext is required"), { status: 403 }));
     p4.productDefinitions.mockResolvedValue([DEFINITION]);
 
     const wrapper = await mountPage();
@@ -160,9 +169,11 @@ describe("product definition binding page", () => {
   it("asks an anonymous platform operator to sign in as a tenant when drafts return 401", async () => {
     p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
     // Real J3 response without a session: 401 P2.IAM.UNAUTHORIZED "missing bearer token".
-    p3.listProcessDrafts.mockRejectedValue(Object.assign(new Error("missing bearer token"), {
+    const unauthorized = Object.assign(new Error("missing bearer token"), {
       status: 401, code: "P2.IAM.UNAUTHORIZED", traceId: "01a0d8c6-4103-7f6c-a3eb-f9d8181966da",
-    }));
+    });
+    p3.listProcessDrafts.mockRejectedValue(unauthorized);
+    p3.listProcessDefinitions.mockRejectedValue(unauthorized);
     const wrapper = await mountPage();
     const hint = wrapper.get("[data-testid='definition-process-unavailable']").text();
     expect(hint).toContain("当前未登录租户账号");
@@ -171,9 +182,38 @@ describe("product definition binding page", () => {
     expect(wrapper.get("[data-testid='definition-template']").text()).toContain("请假");
   });
 
+  it("lists a tenant-deployed process even when the draft row is missing (N7 / J3 B)", async () => {
+    p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
+    p3.listProcessDrafts.mockResolvedValue([]);
+    p3.listProcessDefinitions.mockResolvedValue([
+      { key: "classpath_only", name: "Classpath", source: "classpath" },
+      { key: "demoSimpleApproval", name: "演示简单审批", source: "tenant-deployment", tenant_id: "t1" },
+    ]);
+    p3.getProcessPublication.mockImplementation(async (key) => {
+      if (key !== "demoSimpleApproval") throw new Error("not found");
+      return { key: "demoSimpleApproval", name: "演示简单审批", version: 1 };
+    });
+    const wrapper = await mountPage();
+    expect(wrapper.get("[data-testid='definition-process']").text()).toContain("demoSimpleApproval");
+    expect(wrapper.get("[data-testid='definition-process']").text()).toContain("版本 1");
+    expect(wrapper.get("[data-testid='definition-process']").attributes("disabled")).toBeUndefined();
+    expect(wrapper.find("[data-testid='definition-process-empty']").exists()).toBe(false);
+  });
+
+  it("explains unpublished process drafts when the catalog has no tenant deployment", async () => {
+    p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
+    p3.listProcessDrafts.mockResolvedValue([{ key: "draft_only", name: "未发布草稿" }]);
+    p3.listProcessDefinitions.mockResolvedValue([{ key: "classpath_only", name: "Classpath", source: "classpath" }]);
+    p3.getProcessPublication.mockRejectedValue(new Error("not found"));
+    const wrapper = await mountPage();
+    expect(wrapper.get("[data-testid='definition-process-empty']").text()).toContain("有 1 个流程草稿尚未发布");
+    expect(wrapper.get("[data-testid='definition-process']").attributes("disabled")).toBeDefined();
+  });
+
   it("shows the server failure text for save and bind", async () => {
     p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
     p3.listProcessDrafts.mockResolvedValue([{ key: "leave_flow" }]);
+    p3.listProcessDefinitions.mockResolvedValue([{ key: "leave_flow", source: "tenant-deployment" }]);
     p3.getProcessPublication.mockResolvedValue({ key: "leave_flow", name: "请假审批", version: 1 });
     p4.createProductDefinition.mockRejectedValue(new Error("form template version is not published or does not exist"));
     p4.productDefinitions.mockResolvedValue([DEFINITION]);
