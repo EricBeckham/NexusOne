@@ -36,6 +36,7 @@ async function mountStart() {
     history: createMemoryHistory(),
     routes: [
       { path: "/p4/installations/:id/start", component: ProductStartView },
+      { path: "/p4/installations", component: { template: "<div>installations</div>" } },
       { path: "/p3/todos", component: { template: "<div>requests</div>" } },
     ],
   });
@@ -59,6 +60,18 @@ describe("provisioned product start form", () => {
     mocks.productApplicationForm.mockResolvedValue({ fields: [] });
     const wrapper = await mountStart();
     expect(wrapper.text()).toContain("暂无");
+    expect(wrapper.text()).toContain("这个已开通产品没有可填写的模板版本。");
+    expect(wrapper.find("form").exists()).toBe(false);
+    await wrapper.get("[data-testid='start-back']").trigger("click");
+    await flushPromises();
+    expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
+  });
+
+  it("does not pretend the template is empty when loading fails", async () => {
+    mocks.productApplicationForm.mockRejectedValue(new Error("模板暂时不可用"));
+    const wrapper = await mountStart();
+    expect(wrapper.get("[data-testid='start-error']").text()).toBe("模板暂时不可用");
+    expect(wrapper.text()).not.toContain("没有可填写的模板版本");
     expect(wrapper.find("form").exists()).toBe(false);
   });
 
@@ -67,6 +80,9 @@ describe("provisioned product start form", () => {
     mocks.upload.mockResolvedValue({ file_id: "file-1" });
     mocks.createProductApplication.mockResolvedValue({ id: "app-1", status: "RUNNING" });
     const wrapper = await mountStart();
+    expect(wrapper.text()).toContain("P4 · 星市");
+    expect(wrapper.get("[data-testid='start-form']").classes()).toContain("start-form");
+    expect(wrapper.get("label[for='field-title']").text()).toContain("*");
     expect(wrapper.text()).toContain("事由");
     expect(wrapper.text()).toContain("annual");
     expect(wrapper.get('[data-testid="approver-select"]').text()).toContain("审批人 B");
@@ -100,7 +116,10 @@ describe("provisioned product start form", () => {
     await wrapper.get("form").trigger("submit");
     await flushPromises();
     expect(wrapper.get('[data-testid="start-error"]').text()).toBe("application values do not match the pinned form template");
-    expect(wrapper.text()).toContain("A value is required");
+    expect(wrapper.get("[data-testid='field-error-title']").text()).toBe("A value is required");
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations/install-1/start");
+    await wrapper.get("[data-testid='start-cancel']").trigger("click");
+    await flushPromises();
+    expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
   });
 });
