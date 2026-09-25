@@ -1,6 +1,7 @@
 package one.nexus.p3.flow.persist;
 
-import java.sql.Timestamp;
+import static one.nexus.common.time.Utc.sqlTimestamp;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,8 +44,8 @@ public final class JdbcProcessStore {
                 instance.assigneeRef(),
                 instance.flowableInstanceId(),
                 instance.status().name(),
-                ts(instance.startedAt()),
-                ts(instance.endedAt()));
+                sqlTimestamp(instance.startedAt()),
+                sqlTimestamp(instance.endedAt()));
         return instance;
     }
 
@@ -66,8 +67,8 @@ public final class JdbcProcessStore {
                 todo.status().name(),
                 todo.outcome(),
                 todo.actedByPersonId(),
-                ts(todo.actedAt()),
-                ts(todo.createdAt()));
+                sqlTimestamp(todo.actedAt()),
+                sqlTimestamp(todo.createdAt()));
         return todo;
     }
 
@@ -78,7 +79,7 @@ public final class JdbcProcessStore {
                     id, tenant_id, instance_id, todo_id, actor_person_id, action, idempotency_key, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                UuidV7.generate(), tenantId, instanceId, todoId, actorId, action, key, ts(at));
+                UuidV7.generate(), tenantId, instanceId, todoId, actorId, action, key, sqlTimestamp(at));
     }
 
     public List<TodoView> todosForInstance(UUID tenantId, UUID instanceId) {
@@ -168,7 +169,7 @@ public final class JdbcProcessStore {
                 SET status = 'DONE', outcome = ?, acted_by_person_id = ?, acted_at = ?
                 WHERE tenant_id = ? AND id = ?
                 """,
-                outcome, actorId, ts(at), tenantId, todoId);
+                outcome, actorId, sqlTimestamp(at), tenantId, todoId);
     }
 
     public void cancelPending(UUID tenantId, UUID instanceId) {
@@ -188,7 +189,7 @@ public final class JdbcProcessStore {
                 SET status = ?, ended_at = ?
                 WHERE tenant_id = ? AND id = ?
                 """,
-                status.name(), ts(at), tenantId, instanceId);
+                status.name(), sqlTimestamp(at), tenantId, instanceId);
     }
 
     public boolean actionExists(UUID tenantId, String idempotencyKey) {
@@ -230,10 +231,6 @@ public final class JdbcProcessStore {
                 rs.getString("business_key"),
                 ProcessStatus.valueOf(rs.getString("instance_status")),
                 null);
-    }
-
-    private static Timestamp ts(Instant instant) {
-        return instant == null ? null : Timestamp.from(instant);
     }
 
     static String joinIds(List<UUID> ids) {

@@ -1,8 +1,9 @@
 package one.nexus.p4.market.infra.jdbc;
 
+import static one.nexus.common.time.Utc.sqlTimestamp;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,7 +44,7 @@ public class JdbcMarketRepository implements MarketRepository {
                 ON CONFLICT(id) DO UPDATE SET code=:code,name=:name,summary=:summary
                 """)
                 .param("id",a.id()).param("code",a.code()).param("name",a.name()).param("summary",a.summary())
-                .param("at",timestamp(a.createdAt())).update();
+                .param("at",sqlTimestamp(a.createdAt())).update();
     }
     @Override public void saveVersion(AppVersion v) {
         jdbc.sql("""
@@ -52,8 +53,8 @@ public class JdbcMarketRepository implements MarketRepository {
                 status=:status,published_at=:published,release_notes=:notes
                 """)
                 .param("id",v.id()).param("app",v.appId()).param("version",v.version()).param("status",v.status().name())
-                .param("notes",v.releaseNotes()).param("created",timestamp(v.createdAt()))
-                .param("published",timestamp(v.publishedAt())).update();
+                .param("notes",v.releaseNotes()).param("created",sqlTimestamp(v.createdAt()))
+                .param("published",sqlTimestamp(v.publishedAt())).update();
     }
     @Override public void saveSku(Sku s) {
         jdbc.sql("""
@@ -69,7 +70,7 @@ public class JdbcMarketRepository implements MarketRepository {
                 VALUES(:id,:tenant,:sku,:status,:started,:ended) ON CONFLICT(id) DO UPDATE SET status=:status,ended_at=:ended
                 """)
                 .param("id",s.id()).param("tenant",s.tenantId()).param("sku",s.skuCode()).param("status",s.status().name())
-                .param("started",timestamp(s.startedAt())).param("ended",timestamp(s.endedAt())).update();
+                .param("started",sqlTimestamp(s.startedAt())).param("ended",sqlTimestamp(s.endedAt())).update();
     }
     @Override public void saveInstallation(Installation i) {
         assertCurrentTenant(i.tenantId());
@@ -79,8 +80,8 @@ public class JdbcMarketRepository implements MarketRepository {
                 version_id=:version,status=:status,updated_at=:updated
                 """)
                 .param("id",i.id()).param("tenant",i.tenantId()).param("app",i.appId()).param("version",i.versionId())
-                .param("status",i.status().name()).param("installed",timestamp(i.installedAt()))
-                .param("updated",timestamp(i.updatedAt())).update();
+                .param("status",i.status().name()).param("installed",sqlTimestamp(i.installedAt()))
+                .param("updated",sqlTimestamp(i.updatedAt())).update();
     }
     @Override public List<AppPackage> apps() {
         return jdbc.sql("SELECT * FROM market.app_package ORDER BY created_at DESC").query(this::mapApp).list();
@@ -169,7 +170,7 @@ public class JdbcMarketRepository implements MarketRepository {
                 VALUES(:installation,:definition,:form,:processKey,:processVersion,:pinned)
                 """).param("installation",pin.installationId()).param("definition",pin.productDefinitionId())
                 .param("form",pin.formTemplateVersionId()).param("processKey",pin.processDefinitionKey())
-                .param("processVersion",pin.processDefinitionVersion()).param("pinned",timestamp(pin.pinnedAt())).update();
+                .param("processVersion",pin.processDefinitionVersion()).param("pinned",sqlTimestamp(pin.pinnedAt())).update();
     }
     @Override public Optional<InstallationProductPin> installationProductPin(UUID installationId) {
         assertCurrentTenantForInstallation(installationId);
@@ -198,7 +199,7 @@ public class JdbcMarketRepository implements MarketRepository {
                 .param("id",d.id()).param("code",d.code()).param("name",d.name()).param("description",d.description())
                 .param("form",d.formTemplateVersionId()).param("processKey",d.processDefinitionKey())
                 .param("processVersion",d.processDefinitionVersion()).param("pack",write(d.defaultPermissionPack()))
-                .param("status",d.status()).param("created",timestamp(d.createdAt())).param("updated",timestamp(d.updatedAt()))
+                .param("status",d.status()).param("created",sqlTimestamp(d.createdAt())).param("updated",sqlTimestamp(d.updatedAt()))
                 .param("version",d.version()).update();
     }
     @Override public List<ProductDefinition> productDefinitions() {
@@ -259,5 +260,4 @@ public class JdbcMarketRepository implements MarketRepository {
     private String write(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalStateException(e);}}
     private static UUID uuid(ResultSet r,String c)throws SQLException{Object v=r.getObject(c);return v==null?null:(v instanceof UUID u?u:UUID.fromString(v.toString()));}
     private static java.time.Instant instant(ResultSet r,String c)throws SQLException{var t=r.getTimestamp(c);return t==null?null:t.toInstant();}
-    private static Timestamp timestamp(java.time.Instant value){return value==null?null:Timestamp.from(value);}
 }

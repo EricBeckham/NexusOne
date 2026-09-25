@@ -4,12 +4,13 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import one.nexus.common.time.Utc;
 
 public final class JdbcValues {
     private JdbcValues() {}
 
     public static Timestamp timestamp(Instant instant) {
-        return instant == null ? null : Timestamp.from(instant);
+        return Utc.sqlTimestamp(instant);
     }
 
     public static Instant instant(Object value) {
