@@ -9,6 +9,12 @@ vi.mock("../../api/session", () => ({ session: { tenantId: "tenant-1" } }));
 
 import MarketView from "./MarketView.vue";
 
+// Real GET /api/v1/p4/catalog SKU shape: CatalogSku { sku, product_definition } in SNAKE_CASE.
+const BOUND_BASIC = {
+  sku: { code: "basic", app_id: "app-1", name: "基础版", entitlements: { approval: { enabled: true, quota: 10, attributes: {} } } },
+  product_definition: { id: "pd-1", code: "crm_basic", name: "CRM 基础审批", status: "PUBLISHED" },
+};
+
 async function mountCatalog() {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -28,7 +34,7 @@ describe("P4 catalog V11", () => {
   beforeEach(() => {
     mocks.catalog.mockReset(); mocks.subscribe.mockReset();
     mocks.catalog.mockResolvedValue([
-      { app: { id: "app-1", name: "星辰 CRM", code: "crm", summary: "客户关系管理" }, version: { id: "v1", version: "1.2.0", status: "PUBLISHED" }, skus: [{ code: "basic", name: "基础版" }] },
+      { app: { id: "app-1", name: "星辰 CRM", code: "crm", summary: "客户关系管理" }, version: { id: "v1", version: "1.2.0", status: "PUBLISHED" }, skus: [BOUND_BASIC] },
       { app: { id: "app-2", name: "财务平台", code: "finance", summary: "账务与报表" }, version: { id: "v2", version: "2.0.0", status: "PUBLISHED" }, skus: [] },
     ]);
   });
@@ -64,6 +70,38 @@ describe("P4 catalog V11", () => {
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
   });
 
+  it("reads the nested SKU fields instead of rendering undefined", async () => {
+    const wrapper = await mountCatalog();
+    const sku = wrapper.get('[data-testid="catalog-sku"]');
+    expect(wrapper.text()).not.toContain("undefined");
+    expect(sku.get('[data-testid="catalog-sku-name"]').text()).toBe("基础版");
+    expect(sku.text()).toContain("basic");
+    expect(sku.get('[data-testid="catalog-sku-product"]').text()).toContain("CRM 基础审批");
+    expect(sku.text()).toContain("approval · 配额 10");
+    expect(sku.get('[data-testid="catalog-subscribe"]').text()).toBe("订阅开通");
+    expect(sku.get('[data-testid="catalog-subscribe"]').attributes("aria-label")).toBe("订阅开通 基础版");
+    expect(wrapper.get('[data-testid="catalog-sku-count"]').text()).toBe("1 个");
+    await wrapper.get('[data-testid="catalog-search"]').setValue("基础版");
+    await flushPromises();
+    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("基础版");
+  });
+
+  it("marks a SKU without a product definition as not subscribable instead of letting subscribe 404", async () => {
+    mocks.catalog.mockResolvedValue([
+      {
+        app: { id: "app-1", name: "演示数据 · 简单审批", code: "demo_simple_approval" },
+        version: { id: "v1", version: "1.0.0", status: "PUBLISHED" },
+        skus: [{ sku: { code: "demo.simple-approval", name: "演示数据 · 标准", entitlements: {} } }],
+      },
+    ]);
+    const wrapper = await mountCatalog();
+    expect(wrapper.get('[data-testid="catalog-sku-unbound"]').text()).toContain("未绑定产品定义");
+    const button = wrapper.get('[data-testid="catalog-subscribe"]');
+    expect(button.attributes("disabled")).toBeDefined();
+    await button.trigger("click");
+    expect(mocks.subscribe).not.toHaveBeenCalled();
+  });
+
   it("shows empty and the server failure text", async () => {
     mocks.catalog.mockResolvedValueOnce([]);
     const empty = await mountCatalog();
@@ -71,7 +109,7 @@ describe("P4 catalog V11", () => {
     empty.unmount();
 
     mocks.catalog.mockResolvedValueOnce([
-      { app: { id: "app-1", name: "星辰 CRM", code: "crm", summary: "客户关系管理" }, version: { id: "v1", version: "1.2.0", status: "PUBLISHED" }, skus: [{ code: "basic", name: "基础版" }] },
+      { app: { id: "app-1", name: "星辰 CRM", code: "crm", summary: "客户关系管理" }, version: { id: "v1", version: "1.2.0", status: "PUBLISHED" }, skus: [BOUND_BASIC] },
     ]);
     mocks.subscribe.mockRejectedValueOnce(new Error("tenant already has an active subscription for this SKU"));
     const failed = await mountCatalog();

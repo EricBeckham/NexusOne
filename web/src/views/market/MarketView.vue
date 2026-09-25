@@ -22,9 +22,26 @@
           </header>
           <p class="summary">{{ item.app.summary || "暂无简介" }}</p>
           <div class="version-row"><span>版本</span><strong>{{ item.version.version || '暂无' }}</strong></div>
-          <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span>{{ item.skus?.length || 0 }}</span></div>
-            <NxEmpty v-if="!item.skus?.length" title="暂无 SKU" description="当前版本没有可安装的 SKU。" compact />
-            <div v-else class="sku-list"><button v-for="sku in item.skus" :key="sku.code" class="install-button" type="button" :disabled="installing === sku.code" @click="subscribe(sku.code, item.version.id)">{{ installing === sku.code ? '开通中…' : `订阅开通 ${sku.name || sku.code}` }}</button></div>
+          <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span data-testid="catalog-sku-count">{{ catalogSkus(item).length }} 个</span></div>
+            <NxEmpty v-if="!catalogSkus(item).length" title="暂无 SKU" description="当前版本没有可安装的 SKU。" compact />
+            <ul v-else class="sku-list">
+              <li v-for="sku in catalogSkus(item)" :key="sku.code" class="sku-item" data-testid="catalog-sku">
+                <div class="sku-meta">
+                  <div class="sku-title"><strong data-testid="catalog-sku-name">{{ sku.name || sku.code || "未命名 SKU" }}</strong><code v-if="sku.code">{{ sku.code }}</code></div>
+                  <p v-if="sku.definition" class="sku-product" data-testid="catalog-sku-product">产品：{{ sku.definition.name || sku.definition.code }}</p>
+                  <p v-else class="sku-warn" data-testid="catalog-sku-unbound">未绑定产品定义，暂不可开通</p>
+                  <div v-if="sku.entitlements.length" class="sku-chips"><span v-for="chip in sku.entitlements" :key="chip">{{ chip }}</span></div>
+                </div>
+                <button
+                  class="install-button"
+                  type="button"
+                  data-testid="catalog-subscribe"
+                  :aria-label="`订阅开通 ${sku.name || sku.code}`"
+                  :disabled="!sku.code || !sku.definition || installing === sku.code"
+                  @click="subscribe(sku.code, item.version.id)"
+                >{{ installing === sku.code ? "开通中…" : "订阅开通" }}</button>
+              </li>
+            </ul>
           </div>
         </article>
       </section>
@@ -38,6 +55,7 @@ import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
+import { catalogSkus } from "./catalogSku";
 
 const route = useRoute();
 const router = useRouter();
@@ -47,7 +65,7 @@ const search = ref(typeof route.query.q === "string" ? route.query.q : "");
 const visibleItems = computed(() => {
   const term = search.value.trim().toLocaleLowerCase();
   if (!term) return items.value;
-  return items.value.filter((item) => [item.app?.name, item.app?.code, item.app?.summary, item.version?.version, ...(item.skus || []).flatMap((sku) => [sku.name, sku.code])]
+  return items.value.filter((item) => [item.app?.name, item.app?.code, item.app?.summary, item.version?.version, ...catalogSkus(item).flatMap((sku) => [sku.name, sku.code])]
     .some((value) => String(value || "").toLocaleLowerCase().includes(term)));
 });
 
@@ -97,7 +115,18 @@ onMounted(load);
 .summary { min-height: 42px; margin: 0; color: var(--nx-text-secondary); line-height: 1.5; }
 .version-row { display: flex; justify-content: space-between; padding: var(--nx-space-3) 0; color: var(--nx-text-secondary); border-top: 1px solid var(--nx-divider); border-bottom: 1px solid var(--nx-divider); font-size: var(--nx-font-size-sm); }.version-row strong { color: var(--nx-text-primary); }
 .sku-section { display: grid; gap: var(--nx-space-3); margin-top: auto; }.sku-heading { display: flex; align-items: center; justify-content: space-between; }.sku-heading h3 { margin: 0; font-size: var(--nx-font-size-sm); }.sku-heading span { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
-.sku-list { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }.install-button,.ghost { min-height: 36px; padding: 0 var(--nx-space-3); color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; cursor: pointer; }.install-button:hover,.ghost:hover { color: var(--nx-product); border-color: var(--nx-product); }.install-button:disabled,.ghost:disabled { opacity: .55; cursor: not-allowed; }
+.sku-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--nx-space-2); }
+.sku-item { display: flex; align-items: center; justify-content: space-between; gap: var(--nx-space-3); padding: var(--nx-space-3); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
+.sku-meta { display: grid; gap: 4px; min-width: 0; }
+.sku-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--nx-space-2); }
+.sku-title strong { color: var(--nx-text-primary); font-size: var(--nx-font-size-sm); }
+.sku-title code { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.sku-product, .sku-warn { margin: 0; font-size: var(--nx-font-size-xs); }
+.sku-product { color: var(--nx-text-regular); }
+.sku-warn { color: var(--nx-warning); }
+.sku-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sku-chips span { padding: 1px 8px; border-radius: var(--nx-radius-pill); font-size: var(--nx-font-size-xs); color: var(--nx-product); background: var(--nx-product-light); }
+.sku-item .install-button { flex: none; }.install-button,.ghost { min-height: 36px; padding: 0 var(--nx-space-3); color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 8px; cursor: pointer; }.install-button:hover,.ghost:hover { color: var(--nx-product); border-color: var(--nx-product); }.install-button:disabled,.ghost:disabled { opacity: .55; cursor: not-allowed; }
 .loading { padding: var(--nx-space-6); color: var(--nx-text-secondary); }
 @media(max-width:640px) { .catalog-toolbar { align-items: stretch; flex-direction: column; }.result-count { align-self: flex-start; } }
 </style>
