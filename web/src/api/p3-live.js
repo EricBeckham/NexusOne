@@ -477,7 +477,11 @@ function mapDecision(row, box) {
     ...mapped,
     id: pick(todo, "id") || pick(row, "record_id", "recordId"),
     instance_id: pick(pick(row, "process") || {}, "id") || mapped.instance_id,
-    approval_status: pick(row, "approval_status", "approvalStatus"),
+    // p3/path decisions return approval_status; product-application tasks (/api/v1/process/tasks) return a
+    // TodoView with instance_status + outcome instead (M1: the notice showed approval_status=—).
+    approval_status: pick(row, "approval_status", "approvalStatus")
+      || pick(todo, "instance_status", "instanceStatus")
+      || pick(todo, "outcome"),
     ledger_id: pick(row, "ledger_id", "ledgerId"),
     record_id: pick(row, "record_id", "recordId"),
     physical_table: pick(row, "physical_table", "physicalTable"),

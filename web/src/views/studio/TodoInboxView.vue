@@ -227,7 +227,10 @@ async function act(kind) {
     }
     const labels = { approve: "同意", reject: "驳回", withdraw: "撤回" };
     const actionLabel = kind === "withdraw" ? "已 withdraw（撤回）并办结" : `已${labels[kind]}并办结`;
-    notice.value = `${actionLabel}。approval_status=${selected.value?.approval_status || "—"}`;
+    const approvalStatus = selected.value?.approval_status;
+    notice.value = approvalStatus
+      ? `${actionLabel}。审批状态：${statusLabel(approvalStatus)}（approval_status=${approvalStatus}）`
+      : `${actionLabel}。`;
     await reload();
     error.value = "";
   } catch (err) {
