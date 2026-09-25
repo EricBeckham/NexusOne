@@ -1,5 +1,7 @@
 # L12 生产 profile 硬化（2026-09-25）
 
+可执行的演示机预检、启动、验收与回退步骤见 [P6 `prod` 部署 Checklist](../engineering/runbooks/demo-host-prod-deployment.md)。
+
 - 基线：`main@2903e51f`（含 L11 #403）
 - 前置：L6（demo seed 隔离）、L8（安全复审）、L10（密钥清单）、L11（备份恢复）。
 - 结论：新增 opt-in 的 `prod` profile，并在启动时强制校验；修复了一个缺陷——单体里开启 IAM / 权限 JDBC 模式后**无法启动**。另外把两个引导令牌的比对改成常量时间。
