@@ -254,6 +254,21 @@ describe("process viewer", () => {
     expect(p3.getProcessDefinition).not.toHaveBeenCalled();
   });
 
+  it("asks for a tenant sign-in instead of a retry when there is no session (401)", async () => {
+    // Real M2 response without a session: 401 P2.IAM.UNAUTHORIZED "missing bearer token".
+    p3.listProcessDefinitions.mockRejectedValue(Object.assign(new Error("missing bearer token"), {
+      status: 401, code: "P2.IAM.UNAUTHORIZED", traceId: "01a0d95b-23b4-7c7d-9bc0-50bf62477270",
+    }));
+    const wrapper = await mountAt("/p3/workflow");
+    const state = wrapper.get("[data-testid='process-signin-required']");
+    expect(state.text()).toContain("需要登录租户账号");
+    expect(state.text()).toContain("01a0d95b-23b4-7c7d-9bc0-50bf62477270");
+    expect(state.get("[data-testid='process-signin-link']").attributes("href")).toBe("/login");
+    expect(wrapper.text()).not.toContain("missing bearer token");
+    expect(wrapper.text()).not.toContain("重试");
+    expect(wrapper.find("[data-testid='process-canvas']").exists()).toBe(false);
+  });
+
   it("shows the request error without a diagram", async () => {
     const error = new Error("需要租户上下文");
     error.traceId = "trace-n13";
