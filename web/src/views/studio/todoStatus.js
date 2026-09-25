@@ -1,6 +1,6 @@
 /**
  * One vocabulary and colour per status across 我的待办 / 已办 / 我发起 / 我的申请 and the decision notice (N2).
- * Codes come from the todo list (status / outcome), process instances and product applications.
+ * Codes come from the todo list (prefer instance_status / APPROVED after N5 mapTodo), process instances and product applications.
  */
 const STATUS = {
   PENDING: { label: "待处理", tone: "warning" },

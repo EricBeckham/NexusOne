@@ -134,6 +134,13 @@ export function mapTodo(row, box) {
   }
   const status = pick(row, "status");
   const outcome = pick(row, "outcome");
+  // Prefer instance_status so tip (M1), 已办, and 我的申请 share the same authority field.
+  // Outcome alone is APPROVE/REJECT; instance_status is APPROVED/REJECTED.
+  const instanceStatus = pick(row, "instance_status", "instanceStatus");
+  const approvalStatus = pick(row, "approval_status", "approvalStatus")
+    || instanceStatus
+    || normalizeDecisionOutcome(outcome);
+  const displayStatus = approvalStatus || status;
   return wrap({
     id: pick(row, "id"),
     instance_id: pick(row, "instance_id", "instanceId", "id"),
@@ -144,11 +151,20 @@ export function mapTodo(row, box) {
     amount: pick(row, "amount") ?? "",
     priority: "NORMAL",
     arrived_at: pick(row, "created_at", "createdAt", "started_at", "startedAt"),
-    status: outcome || status,
+    status: displayStatus,
+    approval_status: approvalStatus || undefined,
     box,
     comment: pick(row, "comment") || "",
     record: null,
   });
+}
+
+/** Map TodoView.outcome (APPROVE/REJECT) onto ProcessStatus-style labels used in lists. */
+export function normalizeDecisionOutcome(outcome) {
+  const value = String(outcome || "").toUpperCase();
+  if (value === "APPROVE") return "APPROVED";
+  if (value === "REJECT") return "REJECTED";
+  return value || undefined;
 }
 
 export function mapApplication(row) {
@@ -478,10 +494,14 @@ function mapDecision(row, box) {
     id: pick(todo, "id") || pick(row, "record_id", "recordId"),
     instance_id: pick(pick(row, "process") || {}, "id") || mapped.instance_id,
     // p3/path decisions return approval_status; product-application tasks (/api/v1/process/tasks) return a
-    // TodoView with instance_status + outcome instead (M1: the notice showed approval_status=—).
+    // TodoView with instance_status + outcome instead (M1/N5: tip / 已办 / 我的申请 must share one authority).
     approval_status: pick(row, "approval_status", "approvalStatus")
       || pick(todo, "instance_status", "instanceStatus")
-      || pick(todo, "outcome"),
+      || normalizeDecisionOutcome(pick(todo, "outcome")),
+    status: pick(row, "approval_status", "approvalStatus")
+      || pick(todo, "instance_status", "instanceStatus")
+      || normalizeDecisionOutcome(pick(todo, "outcome"))
+      || mapped.status,
     ledger_id: pick(row, "ledger_id", "ledgerId"),
     record_id: pick(row, "record_id", "recordId"),
     physical_table: pick(row, "physical_table", "physicalTable"),

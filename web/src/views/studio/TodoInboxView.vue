@@ -45,6 +45,7 @@
             <td class="nx-code">{{ row.biz_no }}</td>
             <td>{{ formatTime(row.arrived_at) }}</td>
             <td><NxStatus :label="rowStatus(row).label" :tone="rowStatus(row).tone" /></td>
+
           </tr>
         </tbody>
       </table>
@@ -158,6 +159,7 @@ function rowStatus(row) {
   // 我的申请 without a status is a just-created application, so it reads as 进行中.
   return todoStatus(row.status, box.value === "requests" ? "进行中" : "暂无");
 }
+
 
 function formatTime(value) {
   if (!value) return "暂无";

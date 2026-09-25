@@ -90,7 +90,25 @@ describe("T3-G approval HTTP contract", () => {
       "/api/v1/process/tasks/todo-9/reject",
     ]);
     expect(approved.approval_status).toBe("APPROVED");
+    expect(approved.status).toBe("APPROVED");
     expect(rejected.approval_status).toBe("REJECTED");
+    expect(rejected.status).toBe("REJECTED");
+  });
+
+  it("maps done-list TodoView status from instance_status (N5 alignment)", async () => {
+    const { mapTodo, normalizeDecisionOutcome } = await import("./p3-live");
+    expect(normalizeDecisionOutcome("APPROVE")).toBe("APPROVED");
+    expect(normalizeDecisionOutcome("REJECT")).toBe("REJECTED");
+    const done = mapTodo({
+      id: "todo-9",
+      status: "DONE",
+      outcome: "APPROVE",
+      instance_status: "APPROVED",
+      task_name: "审批",
+      business_key: "product-application:app-9",
+    }, "done");
+    expect(done.status).toBe("APPROVED");
+    expect(done.approval_status).toBe("APPROVED");
   });
 
   it("sends the comment and uses the process API for a product application", async () => {
