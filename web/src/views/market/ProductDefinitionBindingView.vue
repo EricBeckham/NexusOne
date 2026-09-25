@@ -90,31 +90,47 @@
         <label>说明<textarea v-model="form.description" data-testid="definition-description" rows="2"></textarea></label>
         <label>
           已发布模板版本
-          <select v-model="form.formTemplateVersionId" data-testid="definition-template" required :disabled="!publishedTemplates.length">
+          <select
+            v-model="form.formTemplateVersionId"
+            data-testid="definition-template"
+            required
+            :disabled="templateSelectDisabled"
+            :title="templateSelectDisabled ? templateDisabledReason : undefined"
+            :aria-describedby="templateSelectDisabled ? 'definition-template-hint' : undefined"
+          >
             <option value="">{{ publishedTemplates.length ? "请选择" : "暂无已发布模板" }}</option>
             <option v-for="item in publishedTemplates" :key="item.runningVersionId" :value="item.runningVersionId">
               {{ item.name || item.code }}（{{ item.code || "暂无" }}）
             </option>
           </select>
-          <small v-if="loaded && !publishedTemplates.length" class="hint" data-testid="definition-template-empty">
-            <template v-if="unpublishedTemplateCount">有 {{ unpublishedTemplateCount }} 个模板还是草稿或仅通过校验，发布后才会出现在这里。</template>
-            <template v-else>还没有已发布的表单模板。</template>
+          <small v-if="loaded && templateSelectDisabled" id="definition-template-hint" class="hint" data-testid="definition-template-empty">
+            {{ templateDisabledReason }}
             <router-link to="/p1/form-templates">去表单模板发布</router-link>
           </small>
         </label>
         <label>
           已发布流程版本
-          <select v-model="form.processKey" data-testid="definition-process" required :disabled="!publishedProcesses.length">
+          <select
+            v-model="form.processKey"
+            data-testid="definition-process"
+            required
+            :disabled="processSelectDisabled"
+            :title="processSelectDisabled ? processDisabledReason : undefined"
+            :aria-describedby="processSelectDisabled ? 'definition-process-hint' : undefined"
+          >
             <option value="">{{ publishedProcesses.length ? "请选择" : "暂无已发布流程" }}</option>
             <option v-for="item in publishedProcesses" :key="`${item.key}@${item.version}`" :value="item.key">
               {{ item.name || item.key }} · {{ item.key }} · 版本 {{ item.version }}
             </option>
           </select>
-          <small v-if="loaded && processUnavailable" class="hint" data-testid="definition-process-unavailable">
-            {{ processUnavailable }}
-          </small>
-          <small v-else-if="loaded && !publishedProcesses.length" class="hint" data-testid="definition-process-empty">
-            还没有已发布的流程。<router-link to="/p3/workflow">去流程设计器发布</router-link>
+          <small
+            v-if="loaded && processSelectDisabled"
+            id="definition-process-hint"
+            class="hint"
+            :data-testid="processUnavailable ? 'definition-process-unavailable' : 'definition-process-empty'"
+          >
+            {{ processDisabledReason }}
+            <router-link v-if="!processUnavailable" to="/p3/workflow">去流程设计器发布</router-link>
           </small>
         </label>
         <p class="permission-note" data-testid="definition-permission">{{ permissionNote }}</p>
@@ -143,6 +159,7 @@ const definitions = ref([]);
 const publishedTemplates = ref([]);
 const publishedProcesses = ref([]);
 const unpublishedTemplateCount = ref(0);
+const unpublishedProcessDraftCount = ref(0);
 const processUnavailable = ref("");
 const skus = ref([]);
 const skuBindings = ref({});
@@ -168,6 +185,21 @@ const form = reactive({
 const canSave = computed(() => form.code.trim() && form.name.trim() && form.formTemplateVersionId && form.processKey);
 const bindingDefinition = computed(() => definitions.value.find((row) => row.id === bindingFor.value) || null);
 const boundCount = computed(() => Object.keys(skuBindings.value).length);
+const templateSelectDisabled = computed(() => !publishedTemplates.value.length);
+const processSelectDisabled = computed(() => !publishedProcesses.value.length);
+const templateDisabledReason = computed(() => {
+  if (unpublishedTemplateCount.value) {
+    return `下拉已禁用：有 ${unpublishedTemplateCount.value} 个模板还是草稿或仅通过校验，发布后才会出现在这里。`;
+  }
+  return "下拉已禁用：还没有已发布的表单模板。";
+});
+const processDisabledReason = computed(() => {
+  if (processUnavailable.value) return processUnavailable.value;
+  if (unpublishedProcessDraftCount.value) {
+    return `下拉已禁用：有 ${unpublishedProcessDraftCount.value} 个流程草稿尚未发布，发布后才会出现在这里。`;
+  }
+  return "下拉已禁用：当前租户还没有已发布的流程（classpath 只读目录不能直接绑定）。";
+});
 const rebindWarning = computed(() => {
   const current = skuBindings.value[bindSkuCode.value];
   if (!current || current.id === bindingFor.value) return "";
@@ -270,17 +302,33 @@ function processUnavailableText(err) {
   return `流程列表暂时读不到${err?.traceId ? `（追踪号 ${err.traceId}）` : ""}，可稍后刷新重试。`;
 }
 
-async function loadPublishedProcesses(drafts) {
-  const processes = [];
+async function loadPublishedProcesses(drafts, catalog) {
+  const keys = new Set();
   for (const draft of Array.isArray(drafts) ? drafts : []) {
-    if (!draft?.key) continue;
-    try {
-      const publication = await p3.getProcessPublication(draft.key);
-      if (publication?.key && publication.version != null) processes.push(publication);
-    } catch {
-      // Unpublished drafts are not selectable.
+    if (draft?.key) keys.add(draft.key);
+  }
+  // J3 断点 B：种子流程可能已部署到 Flowable，但草稿表为空；本页应与流程设计器「已发布」目录对齐。
+  for (const item of Array.isArray(catalog) ? catalog : []) {
+    const source = item?.source || "";
+    if (item?.key && (source === "tenant-deployment" || item?.version != null || item?.tenant_id || item?.tenantId)) {
+      keys.add(item.key);
     }
   }
+  const processes = [];
+  const seen = new Set();
+  for (const key of keys) {
+    try {
+      const publication = await p3.getProcessPublication(key);
+      if (publication?.key && publication.version != null && !seen.has(publication.key)) {
+        seen.add(publication.key);
+        processes.push(publication);
+      }
+    } catch {
+      // Unpublished drafts / classpath-only catalog entries are not selectable.
+    }
+  }
+  const draftKeys = (Array.isArray(drafts) ? drafts : []).filter((draft) => draft?.key).map((draft) => draft.key);
+  unpublishedProcessDraftCount.value = draftKeys.filter((key) => !seen.has(key)).length;
   return processes;
 }
 
@@ -308,23 +356,29 @@ async function load() {
   loaded.value = false;
   error.value = "";
   try {
-    // Process drafts are tenant-scoped (a platform operator without a tenant gets "TenantContext is required");
-    // that must not take down templates and definitions, so it is read separately.
+    // Process drafts / definitions are tenant-scoped; that must not take down templates and definitions.
     processUnavailable.value = "";
-    const [rows, templates, drafts] = await Promise.all([
+    unpublishedProcessDraftCount.value = 0;
+    const [rows, templates, draftResult, catalogResult] = await Promise.all([
       p4.productDefinitions(),
       p1.formTemplates(),
-      p3.listProcessDrafts().catch((err) => {
-        processUnavailable.value = processUnavailableText(err);
-        return [];
-      }),
+      p3.listProcessDrafts().then((list) => ({ ok: true, list })).catch((err) => ({ ok: false, err, list: [] })),
+      p3.listProcessDefinitions().then((list) => ({ ok: true, list })).catch((err) => ({ ok: false, err, list: [] })),
     ]);
     definitions.value = (Array.isArray(rows) ? rows : []).map(normalizeDefinition);
     const allTemplates = (Array.isArray(templates) ? templates : [])
       .map((item) => ({ ...item, runningVersionId: pick(item, "running_version_id", "runningVersionId") }));
     publishedTemplates.value = allTemplates.filter((item) => item.status === "PUBLISHED" && item.runningVersionId);
     unpublishedTemplateCount.value = allTemplates.length - publishedTemplates.value.length;
-    publishedProcesses.value = await loadPublishedProcesses(drafts);
+    if (!draftResult.ok && !catalogResult.ok) {
+      processUnavailable.value = processUnavailableText(draftResult.err || catalogResult.err);
+      publishedProcesses.value = [];
+    } else {
+      publishedProcesses.value = await loadPublishedProcesses(
+        draftResult.ok ? draftResult.list : [],
+        catalogResult.ok ? catalogResult.list : [],
+      );
+    }
     await loadBindings();
   } catch (err) {
     error.value = err.message || "产品定义暂时不可用";
