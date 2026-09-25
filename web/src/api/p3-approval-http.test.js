@@ -4,6 +4,20 @@ import { persist, session } from "./session";
 import { approveTodo, rejectTodo, submitStart } from "./p3-live";
 
 function response(path) {
+  if (path.startsWith("/api/v1/process/tasks/")) {
+    // Real ProcessController TodoView (SNAKE_CASE): no approval_status; instance_status + outcome instead.
+    const approved = path.endsWith("/approve");
+    return {
+      id: "todo-9",
+      instance_id: "instance-9",
+      task_name: "审批",
+      status: "DONE",
+      outcome: approved ? "APPROVE" : "REJECT",
+      business_key: "product-application:app-9",
+      instance_status: approved ? "APPROVED" : "REJECTED",
+      comment: "I8 演示审批通过",
+    };
+  }
   if (path === "/api/v1/p3/path/submit-start") {
     return {
       ledger_id: "ledger-1",
@@ -64,6 +78,17 @@ describe("T3-G approval HTTP contract", () => {
       expect(init.headers["X-Trace-Id"]).toBeTruthy();
     }
     expect(started.approval_status).toBe("IN_APPROVAL");
+    expect(approved.approval_status).toBe("APPROVED");
+    expect(rejected.approval_status).toBe("REJECTED");
+  });
+
+  it("derives the status of a product-application decision from the TodoView instance status (M1)", async () => {
+    const approved = await approveTodo("todo-9", "I8 演示审批通过", "product-application:app-9");
+    const rejected = await rejectTodo("todo-9", "", "product-application:app-9");
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual([
+      "/api/v1/process/tasks/todo-9/approve",
+      "/api/v1/process/tasks/todo-9/reject",
+    ]);
     expect(approved.approval_status).toBe("APPROVED");
     expect(rejected.approval_status).toBe("REJECTED");
   });

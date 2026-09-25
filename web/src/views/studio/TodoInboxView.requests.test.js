@@ -61,6 +61,8 @@ describe("todo comment and my requests", () => {
     await wrapper.get('[data-testid="todo-approve"]').trigger("click");
     await flushPromises();
     expect(mocks.approveTodo).toHaveBeenCalledWith("todo-1", "同意这条", "product-application:1");
+    expect(wrapper.text()).toContain("已同意并办结。审批状态：已通过（approval_status=APPROVED）");
+    expect(wrapper.text()).not.toContain("approval_status=—");
   });
 
   it("shows my request status and comment without a withdraw control", async () => {
