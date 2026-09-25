@@ -129,9 +129,7 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .ghost { color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); }
 .table-scroll { overflow-x: auto; padding: 0; }
 .nx-table { min-width: 980px; }
-.nx-table th,.nx-table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--nx-divider); white-space: nowrap; }
-.nx-table th { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); font-weight: 600; background: var(--nx-bg-sidebar); }
-.nx-table tbody tr:hover { background: var(--nx-surface-hover); }
+.nx-table th,.nx-table td { white-space: nowrap; }
 .person-name,.text-action { padding: 0; color: var(--nx-primary); background: none; border: 0; font: inherit; cursor: pointer; }
 .person-name { font-weight: 600; }.nx-table small { display: block; margin-top: 4px; color: var(--nx-text-secondary); }
 .loading { padding: var(--nx-space-5); color: var(--nx-text-secondary); }
