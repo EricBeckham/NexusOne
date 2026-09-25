@@ -8,7 +8,9 @@
       <router-link v-for="tab in tabs" :key="tab.to" :to="tab.to" :aria-current="route.path === tab.to ? 'page' : undefined">{{ tab.label }}</router-link>
     </nav>
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
-    <p v-else-if="loading" class="nx-muted">正在读取星市数据…</p>
+    <div v-else-if="loading" class="management-skeleton" data-testid="p4-management-loading" role="status">
+      <NxSkeleton v-for="n in 4" :key="n" variant="list-row" label="正在读取星市数据" />
+    </div>
 
     <template v-else-if="section === 'packages'">
       <div class="split-layout">
@@ -93,7 +95,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 
@@ -156,6 +158,7 @@ onMounted(load);
 </script>
 
 <style scoped>
+.management-skeleton{display:grid;gap:var(--nx-space-3);max-width:720px}
 .installation-identity{display:grid;gap:2px;min-width:0}.installation-identity h3{margin:0}.installation-meta{margin:0;color:var(--nx-text-secondary);font-size:var(--nx-font-size-sm);display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}.installation-meta strong{color:var(--nx-text-primary)}
 .upgrade{border-top:1px solid var(--nx-divider);padding-top:8px}.upgrade summary{cursor:pointer;color:var(--nx-text-regular);font-size:var(--nx-font-size-sm);font-weight:600;list-style-position:inside}.upgrade[open] summary{margin-bottom:12px}.upgrade summary:hover{color:var(--nx-product)}
 .installation-id{font-size:var(--nx-font-size-xs)}.installation-id code{font-size:var(--nx-font-size-xs)}

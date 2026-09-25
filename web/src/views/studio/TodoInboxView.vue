@@ -18,7 +18,10 @@
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-grid inbox-layout">
-      <NxEmpty v-if="!filtered.length" :title="emptyCopy.title" :description="emptyCopy.description" data-testid="todo-empty">
+      <div v-if="loading" class="todo-skeleton" data-testid="todo-loading" role="status">
+        <NxSkeleton v-for="n in 4" :key="n" variant="list-row" label="正在加载待办" />
+      </div>
+      <NxEmpty v-else-if="!filtered.length" :title="emptyCopy.title" :description="emptyCopy.description" data-testid="todo-empty">
         <template v-if="emptyCopy.to || emptyCopy.box || emptyCopy.clear" #action>
           <router-link v-if="emptyCopy.to" class="primary" :to="emptyCopy.to" data-testid="todo-empty-action">{{ emptyCopy.action }}</router-link>
           <button v-else-if="emptyCopy.box" class="primary" type="button" data-testid="todo-empty-action" @click="switchBox(emptyCopy.box)">{{ emptyCopy.action }}</button>
@@ -89,7 +92,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxPageHeader } from "../../components";
+import { NxEmpty, NxPageHeader, NxSkeleton } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p3 } from "../../api/p3";
 import { session } from "../../api/session";
@@ -114,6 +117,7 @@ const query = ref("");
 const error = ref("");
 const notice = ref("");
 const busy = ref(false);
+const loading = ref(true);
 
 const filtered = computed(() => {
   const q = query.value.trim();
@@ -178,8 +182,13 @@ function isPending(row) {
 }
 
 async function reload() {
-  const body = box.value === "requests" ? await p3.listProductApplications() : await p3.listTodos(box.value);
-  rows.value = body.items || [];
+  loading.value = true;
+  try {
+    const body = box.value === "requests" ? await p3.listProductApplications() : await p3.listTodos(box.value);
+    rows.value = body.items || [];
+  } finally {
+    loading.value = false;
+  }
 }
 
 onMounted(async () => {
@@ -241,6 +250,7 @@ tr { cursor: pointer; }
 tbody tr:hover td { background: var(--nx-surface-hover); }
 tr.pick td { background: var(--nx-primary-light); }
 .filter { max-width: 280px; }
+.todo-skeleton { display: grid; gap: var(--nx-space-2); }
 .inbox-layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
 .detail { position: sticky; top: 16px; display: grid; gap: 12px; }
 .detail h3, .detail p { margin: 0; }
