@@ -41,9 +41,16 @@ describe("P4 catalog V11", () => {
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("暂无 SKU");
     expect(wrapper.text()).not.toContain("分类");
     await wrapper.get('[data-testid="catalog-search"]').setValue("BASIC");
+    await flushPromises();
+    expect(wrapper.get('[data-testid="catalog-filter"]').classes()).not.toContain("nx-card");
+    expect(wrapper.router.currentRoute.value.query.q).toBe("BASIC");
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("星辰 CRM");
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).not.toContain("财务平台");
     expect(wrapper.text()).toContain("1 个可用版本");
+    await wrapper.get('[data-testid="catalog-reset"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.router.currentRoute.value.query.q).toBeUndefined();
+    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("财务平台");
   });
 
   it("subscribes without payment and opens 我的已开通", async () => {
