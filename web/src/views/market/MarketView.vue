@@ -26,7 +26,9 @@
           <button class="ghost" type="button" data-testid="subscribe-dismiss" @click="failure = null">关闭</button>
         </div>
       </section>
-      <div v-if="loading" class="nx-card loading" role="status">正在加载应用目录…</div>
+      <div v-if="loading" class="catalog-skeleton" role="status" data-testid="catalog-loading">
+        <NxSkeleton v-for="n in 3" :key="n" variant="list-row" label="正在加载应用目录" />
+      </div>
       <NxEmpty v-else-if="!visibleItems.length" :title="items.length ? '没有匹配的应用' : '暂无'" :description="items.length ? '请调整搜索词后重试。' : '应用审核并发布后，会出现在这里。'" />
       <section v-else class="catalog-grid" aria-label="已发布应用目录" data-testid="catalog-grid">
         <article v-for="item in visibleItems" :key="item.version.id" class="app-card">
@@ -73,7 +75,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 import { catalogSkus } from "./catalogSku";
@@ -144,6 +146,7 @@ onMounted(load);
 
 <style scoped>
 .market-page { display: grid; gap: var(--nx-space-4); }
+.catalog-skeleton { display: grid; gap: var(--nx-space-3); }
 .catalog-toolbar { display: flex; align-items: flex-end; gap: 8px; padding: 0; background: transparent; border: 0; box-shadow: none; }
 .search-field { display: grid; flex: 1; gap: var(--nx-space-1); max-width: 560px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .search-field input { width: 100%; min-height: 36px; padding: var(--nx-space-2) var(--nx-space-3); color: var(--nx-text-primary); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); border-radius: 6px; }
