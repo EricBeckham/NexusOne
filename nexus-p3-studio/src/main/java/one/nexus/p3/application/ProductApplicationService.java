@@ -1,6 +1,7 @@
 package one.nexus.p3.application;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import one.nexus.audit.AuditCaptures;
@@ -11,6 +12,7 @@ import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.context.AccessContextHolder;
 import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.p3.flow.ApprovalCommentStore;
 import one.nexus.p3.flow.AssigneeType;
 import one.nexus.p3.flow.ProcessRecords.ProcessInstanceView;
 import one.nexus.p3.flow.ProcessRecords.StartCommand;
@@ -32,15 +34,41 @@ public class ProductApplicationService {
     private final PinnedProductApplicationValidationService validation;
     private final SequentialApprovalService approvals;
     private final ObjectProvider<AuditPort> auditPort;
+    private final ObjectProvider<ApprovalCommentStore> comments;
 
     public ProductApplicationService(JdbcTemplate jdbc, ObjectMapper mapper,
             PinnedProductApplicationValidationService validation, SequentialApprovalService approvals,
-            ObjectProvider<AuditPort> auditPort) {
+            ObjectProvider<AuditPort> auditPort, ObjectProvider<ApprovalCommentStore> comments) {
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.validation = validation;
         this.approvals = approvals;
         this.auditPort = auditPort;
+        this.comments = comments;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductApplicationSummary> listMine() {
+        TenantContext accessTenant = requireAccessTenant();
+        one.nexus.p2.kernel.TenantContext iamTenant = TenantContextHolder.get();
+        if (iamTenant == null || !accessTenant.tenantId().equals(iamTenant.tenantId().toString())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "matching tenant context is required");
+        }
+        return jdbc.query("""
+                SELECT a.id, a.installation_id, a.created_at, a.process_instance_id,
+                       COALESCE(i.status, a.status) AS status
+                  FROM business_meta.product_application a
+                  LEFT JOIN business_meta.process_instance i
+                    ON i.id = a.process_instance_id AND i.tenant_id = a.tenant_id
+                 WHERE a.tenant_id = ? AND a.initiator_person_id = ?
+                 ORDER BY a.created_at DESC
+                """, (rs, row) -> new ProductApplicationSummary(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("installation_id", UUID.class),
+                        rs.getString("status"),
+                        commentFor(iamTenant.tenantId(), rs.getObject("process_instance_id", UUID.class)),
+                        rs.getTimestamp("created_at").toInstant()),
+                iamTenant.tenantId(), iamTenant.personId());
     }
 
     @Transactional
@@ -116,6 +144,19 @@ public class ProductApplicationService {
         }
     }
 
+    private String commentFor(UUID tenantId, UUID instanceId) {
+        if (instanceId == null) return null;
+        String taskId = jdbc.query("""
+                SELECT flowable_task_id FROM business_meta.process_todo
+                 WHERE tenant_id = ? AND instance_id = ? AND outcome IS NOT NULL
+                 ORDER BY acted_at DESC NULLS LAST
+                 LIMIT 1
+                """, rs -> rs.next() ? rs.getString(1) : null, tenantId, instanceId);
+        ApprovalCommentStore store = comments.getIfAvailable();
+        if (taskId == null || store == null) return null;
+        return store.latest(taskId);
+    }
+
     private static TenantContext requireAccessTenant() {
         AccessContext context = AccessContextHolder.currentOrNull();
         if (!(context instanceof TenantContext tenant)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "TenantContext is required");
@@ -124,6 +165,7 @@ public class ProductApplicationService {
 
     public record ProductApplicationView(UUID id, UUID tenantId, UUID installationId, UUID productDefinitionId,
             UUID formTemplateVersionId, UUID processInstanceId, String status, Instant createdAt) { }
+    public record ProductApplicationSummary(UUID id, UUID installationId, String status, String comment, Instant createdAt) { }
     private record PinnedProcess(String key, Integer version) { }
     public static final class InvalidProductApplicationException extends RuntimeException {
         private final java.util.List<ProductApplicationValuesValidator.FieldError> errors;

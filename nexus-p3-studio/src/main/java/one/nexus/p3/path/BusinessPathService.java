@@ -271,12 +271,22 @@ public class BusinessPathService {
 
     @Transactional
     public DecisionView approve(UUID todoId) {
-        return complete(todoId, "APPROVE", LedgerRecordSink.APPROVED, BuiltinTemplates.APPROVAL_APPROVED);
+        return approve(todoId, null);
+    }
+
+    @Transactional
+    public DecisionView approve(UUID todoId, String comment) {
+        return complete(todoId, "APPROVE", LedgerRecordSink.APPROVED, BuiltinTemplates.APPROVAL_APPROVED, comment);
     }
 
     @Transactional
     public DecisionView reject(UUID todoId) {
-        return complete(todoId, "REJECT", LedgerRecordSink.REJECTED, BuiltinTemplates.APPROVAL_REJECTED);
+        return reject(todoId, null);
+    }
+
+    @Transactional
+    public DecisionView reject(UUID todoId, String comment) {
+        return complete(todoId, "REJECT", LedgerRecordSink.REJECTED, BuiltinTemplates.APPROVAL_REJECTED, comment);
     }
 
     @Transactional
@@ -311,13 +321,13 @@ public class BusinessPathService {
                 null);
     }
 
-    private DecisionView complete(UUID todoId, String outcome, String status, String template) {
+    private DecisionView complete(UUID todoId, String outcome, String status, String template, String comment) {
         requireIsolation();
         one.nexus.p2.kernel.TenantContext iam = requireIam();
         TodoView before = processStore.findTodo(iam.tenantId(), todoId)
                 .orElseThrow(() -> FlowException.notFound("todo not found in current tenant"));
         boolean replay = before.status() == TodoStatus.DONE && outcome.equals(before.outcome());
-        TodoView todo = "APPROVE".equals(outcome) ? approvals.approve(todoId) : approvals.reject(todoId);
+        TodoView todo = "APPROVE".equals(outcome) ? approvals.approve(todoId, comment) : approvals.reject(todoId, comment);
         ProcessInstanceView process = processStore.findInstance(iam.tenantId(), todo.instanceId()).orElseThrow();
         UUID recordId = parseRecordId(process.businessKey());
         UUID ledgerId = ledgerIdForRecord(recordId);

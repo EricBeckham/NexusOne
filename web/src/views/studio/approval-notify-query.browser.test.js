@@ -121,7 +121,7 @@ describe("T3-G sequential approval", () => {
     await wrapper.get(`[data-testid="todo-${action}"]`).trigger("click");
     await flushPromises();
 
-    expect(mocks[`${action}Todo`]).toHaveBeenCalledWith("todo-1", "");
+    expect(mocks[`${action}Todo`]).toHaveBeenCalledWith("todo-1", "", "record-1");
     expect(wrapper.text()).toContain(`已${label}并办结`);
     expect(wrapper.get('[data-testid="todo-record-link"]').attributes("href"))
       .toBe("/p3/ledgers/ledger-1/records/record-1");

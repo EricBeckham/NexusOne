@@ -30,7 +30,7 @@
         </thead>
         <tbody>
           <tr v-if="!filtered.length">
-            <td colspan="4" class="nx-empty">此箱为空。先在已发布表单上 submit-start。</td>
+            <td colspan="4" class="nx-empty">{{ box === "requests" ? "暂无" : "此箱为空。先在已发布表单上 submit-start。" }}</td>
           </tr>
           <tr
             v-for="row in filtered"
@@ -41,7 +41,7 @@
             <td>{{ row.title }}</td>
             <td class="nx-code">{{ row.biz_no }}</td>
             <td>{{ row.arrived_at }}</td>
-            <td><NxStatus :label="row.status" :tone="tone(row.status)" /></td>
+            <td><NxStatus :label="box === 'requests' ? applicationStatus(row.status) : row.status" :tone="tone(row.status)" /></td>
           </tr>
         </tbody>
       </table>
@@ -57,7 +57,8 @@
             :to="`/p3/ledgers/${selected.ledger_id}/records/${selected.record_id}`"
             data-testid="todo-record-link"
           >查看业务记录</router-link>
-          <div class="nx-field"><label>意见（仅本页，API 无 comment 字段）</label><textarea v-model="comment" rows="3" /></div>
+          <p v-if="box === 'requests'" data-testid="application-comment">意见 {{ selected.comment || "暂无" }}</p>
+          <div v-if="box === 'inbox'" class="nx-field"><label>意见</label><textarea v-model="comment" rows="3" data-testid="todo-comment" /></div>
           <div class="nx-row">
             <button v-if="box === 'inbox'" class="primary" type="button" data-testid="todo-approve" :disabled="busy" @click="act('approve')">同意</button>
             <button v-if="box === 'inbox'" class="danger" type="button" data-testid="todo-reject" :disabled="busy" @click="act('reject')">驳回</button>
@@ -89,6 +90,7 @@ const boxes = [
   { id: "inbox", label: "我的待办" },
   { id: "done", label: "已办" },
   { id: "initiated", label: "我发起" },
+  { id: "requests", label: "我的申请" },
 ];
 const box = ref(route.query.box || "inbox");
 const rows = ref([]);
@@ -114,13 +116,21 @@ function tone(status) {
   return "warning";
 }
 
+function applicationStatus(status) {
+  const value = String(status || "").toUpperCase();
+  if (value === "RUNNING") return "进行中";
+  if (value === "APPROVED") return "通过";
+  if (value === "REJECTED") return "驳回";
+  return status || "进行中";
+}
+
 function isPending(row) {
   const value = String(row?.status || "").toUpperCase();
   return value === "PENDING" || value === "RUNNING" || value === "CREATED";
 }
 
 async function reload() {
-  const body = await p3.listTodos(box.value);
+  const body = box.value === "requests" ? await p3.listProductApplications() : await p3.listTodos(box.value);
   rows.value = body.items || [];
 }
 
@@ -157,8 +167,8 @@ async function act(kind) {
   if (busy.value || !selected.value) return;
   busy.value = true;
   try {
-    if (kind === "approve") selected.value = await p3.approveTodo(selected.value.id, comment.value);
-    if (kind === "reject") selected.value = await p3.rejectTodo(selected.value.id, comment.value);
+    if (kind === "approve") selected.value = await p3.approveTodo(selected.value.id, comment.value, selected.value.biz_no);
+    if (kind === "reject") selected.value = await p3.rejectTodo(selected.value.id, comment.value, selected.value.biz_no);
     if (kind === "withdraw") {
       selected.value = await p3.withdrawTodo(selected.value.id, comment.value, selected.value.instance_id);
     }

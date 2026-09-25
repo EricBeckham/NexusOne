@@ -24,6 +24,10 @@ public class ApprovalCommentStore {
         taskService.addComment(flowableTaskId, flowableInstanceId, comment);
     }
 
+    public String latest(String flowableTaskId) {
+        return find(flowableTaskId);
+    }
+
     public TodoView attach(TodoView todo) {
         if (todo == null || todo.outcome() == null) {
             return todo;
