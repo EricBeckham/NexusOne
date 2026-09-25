@@ -6,11 +6,11 @@
   >
     <template #actions>
       <router-link class="ghost" to="/p1/form-templates">返回列表</router-link>
-      <button class="ghost" type="button" data-testid="template-validate" :disabled="creating || validating" @click="validate">
+      <button class="ghost" type="button" data-testid="template-validate" :disabled="creating || busy" @click="validate">
         {{ validating ? "校验中…" : "校验" }}
       </button>
-      <button class="ghost" type="button" data-testid="template-publish" :disabled="creating || publishing" @click="openPublish">发布</button>
-      <button class="primary" type="button" data-testid="template-save" :disabled="saving" @click="save">
+      <button class="ghost" type="button" data-testid="template-publish" :disabled="creating || busy" @click="openPublish">发布</button>
+      <button class="primary" type="button" data-testid="template-save" :disabled="busy" @click="save">
         {{ saving ? "保存中…" : "保存草稿" }}
       </button>
     </template>
@@ -34,6 +34,7 @@
     <span class="status-chip" :data-tone="statusTone" data-testid="template-status">状态：{{ statusLabel(status) }}</span>
     <span class="meta-text">{{ fields.length }} 个字段</span>
     <span v-if="dirty" class="dirty" data-testid="template-dirty">有未保存的修改<template v-if="!creating">；校验与发布针对已保存的草稿</template></span>
+    <span v-if="draftErrorCount" class="invalid-count" data-testid="template-draft-invalid">还有 {{ draftErrorCount }} 处必填项未填写，已在对应位置标出</span>
     <span v-if="validation?.valid" class="ok" data-testid="template-validate-ok">校验通过</span>
     <span v-if="publishedVersion != null" class="ok" data-testid="template-publish-version">已发布版本 {{ publishedVersion }}</span>
     <router-link v-if="publishedVersion != null" to="/p4/product-definitions" data-testid="template-next-bind">下一步：绑定到产品</router-link>
@@ -150,9 +151,12 @@
 
       <div v-show="tab === 'field'" data-testid="field-properties" role="tabpanel">
         <template v-if="selected">
-          <label class="nx-field">名称<input v-model="selected.label" data-testid="field-label" maxlength="160" /></label>
-          <label class="nx-field">字段 key
-            <input v-model="selected.key" class="nx-code" data-testid="field-key" maxlength="80" />
+          <label class="nx-field"><span>名称<em class="req" aria-hidden="true">*</em></span><input v-model="selected.label" data-testid="field-label" maxlength="160" required :aria-invalid="!!localFieldError(selected, 'label')" />
+            <small v-if="localFieldError(selected, 'label')" class="field-error" data-testid="field-label-error">{{ localFieldError(selected, "label") }}</small>
+          </label>
+          <label class="nx-field"><span>字段 key<em class="req" aria-hidden="true">*</em></span>
+            <input v-model="selected.key" class="nx-code" data-testid="field-key" maxlength="80" required :aria-invalid="!!localFieldError(selected, 'key')" />
+            <small v-if="localFieldError(selected, 'key')" class="field-error" data-testid="field-key-error">{{ localFieldError(selected, "key") }}</small>
             <small class="hint">小写字母开头，仅小写字母、数字、下划线；同一模板内唯一</small>
           </label>
           <label class="nx-field">类型
@@ -190,8 +194,12 @@
       </div>
 
       <div v-show="tab === 'template'" role="tabpanel" data-testid="template-settings">
-        <label class="nx-field">编码<input v-model="code" class="nx-code" data-testid="template-code" maxlength="80" /></label>
-        <label class="nx-field">名称<input v-model="name" data-testid="template-name" maxlength="160" /></label>
+        <label class="nx-field"><span>编码<em class="req" aria-hidden="true">*</em></span><input v-model="code" class="nx-code" data-testid="template-code" maxlength="80" required :aria-invalid="!!templateErrors.code" />
+          <small v-if="templateErrors.code" class="field-error" data-testid="template-code-error">{{ templateErrors.code }}</small>
+        </label>
+        <label class="nx-field"><span>名称<em class="req" aria-hidden="true">*</em></span><input v-model="name" data-testid="template-name" maxlength="160" required :aria-invalid="!!templateErrors.name" />
+          <small v-if="templateErrors.name" class="field-error" data-testid="template-name-error">{{ templateErrors.name }}</small>
+        </label>
         <label class="nx-field">说明<textarea v-model="description" data-testid="template-description" rows="3" /></label>
       </div>
 
@@ -278,6 +286,27 @@ const savedSnapshot = ref("");
 
 const selected = computed(() => fields.value.find((field) => field.uid === selectedUid.value) || null);
 const dirty = computed(() => JSON.stringify(payload()) !== savedSnapshot.value);
+const busy = computed(() => saving.value || validating.value || publishing.value);
+// N3: after the first save attempt, mirror the server's save rules (FormTemplateDraftService) next to each input.
+const draftChecked = ref(false);
+const draftErrors = computed(() => {
+  const template = {};
+  const byField = {};
+  if (!draftChecked.value) return { template, byField, count: 0 };
+  if (!code.value.trim()) template.code = "请填写模板编码";
+  if (!name.value.trim()) template.name = "请填写模板名称";
+  for (const field of fields.value) {
+    const errors = {};
+    if (!field.label.trim()) errors.label = "请填写字段名称";
+    if (!field.key.trim()) errors.key = "请填写字段 key";
+    if (Object.keys(errors).length) byField[field.uid] = errors;
+  }
+  const count = Object.keys(template).length
+    + Object.values(byField).reduce((sum, errors) => sum + Object.keys(errors).length, 0);
+  return { template, byField, count };
+});
+const templateErrors = computed(() => draftErrors.value.template);
+const draftErrorCount = computed(() => draftErrors.value.count);
 const statusTone = computed(() => ({ VALIDATED: "info", PUBLISHED: "success", ARCHIVED: "neutral" })[status.value] || "warning");
 
 function statusLabel(value) {
@@ -373,12 +402,17 @@ function endDrag() {
   dropIndex.value = null;
 }
 
+function localFieldError(field, prop) {
+  return draftErrors.value.byField[field?.uid]?.[prop] || "";
+}
+
 function fieldErrors(field) {
+  const local = Object.values(draftErrors.value.byField[field.uid] || {});
   const errors = validation.value?.errors;
-  if (!Array.isArray(errors) || !field.key) return [];
-  return errors.filter((item) => item?.fieldKey === field.key || item?.field_key === field.key)
+  if (!Array.isArray(errors) || !field.key) return local;
+  return local.concat(errors.filter((item) => item?.fieldKey === field.key || item?.field_key === field.key)
     .map((item) => item.message)
-    .filter(Boolean);
+    .filter(Boolean));
 }
 
 const formErrors = computed(() => {
@@ -403,6 +437,7 @@ function applyTemplate(row) {
     options: normalizeOptions(field.options),
   }));
   if (!fields.value.some((field) => field.uid === selectedUid.value)) selectedUid.value = null;
+  draftChecked.value = false;
   savedSnapshot.value = JSON.stringify(payload());
 }
 
@@ -488,7 +523,7 @@ function retryAction() {
 }
 
 function openPublish() {
-  if (creating.value || publishing.value) return;
+  if (creating.value || busy.value) return;
   publishConfirm.value = true;
 }
 
@@ -517,7 +552,7 @@ async function reload() {
 }
 
 async function validate() {
-  if (creating.value || validating.value) return;
+  if (creating.value || busy.value) return;
   validating.value = true;
   actionFailure.value = null;
   validation.value = null;
@@ -532,7 +567,21 @@ async function validate() {
   }
 }
 
+function revealDraftErrors() {
+  draftChecked.value = true;
+  if (!draftErrorCount.value) return false;
+  if (Object.keys(templateErrors.value).length) {
+    tab.value = "template";
+  } else {
+    const first = fields.value.find((field) => draftErrors.value.byField[field.uid]);
+    if (first) select(first);
+  }
+  return true;
+}
+
 async function save() {
+  if (busy.value) return;
+  if (revealDraftErrors()) return;
   saving.value = true;
   actionFailure.value = null;
   const keepSelectedKey = selected.value?.key;
@@ -704,6 +753,9 @@ onMounted(load);
 .card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
 .field-name { font-weight: 600; color: var(--nx-text-primary); }
 .field-name em { color: var(--nx-danger); font-style: normal; margin-left: 2px; }
+.req { color: var(--nx-danger); font-style: normal; margin-left: 2px; }
+.invalid-count { color: var(--nx-danger); }
+[aria-invalid="true"] { border-color: var(--nx-danger); }
 .type-chip {
   display: inline-flex;
   align-items: center;
