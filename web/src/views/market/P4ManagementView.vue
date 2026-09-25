@@ -64,8 +64,8 @@
     <template v-else>
       <NxNoPermission v-if="!session.contextId" title="需要租户上下文" description="安装记录按当前服务端租户上下文读取。请先登录并切换租户。" />
       <section v-else class="nx-card">
-        <div class="section-heading"><div><h2>安装与升级</h2><p class="nx-muted">升级请求只提交所选目标版本；服务端执行依赖与安装校验。</p></div><span class="nx-muted">{{ installations.length }} 条安装记录</span></div>
-        <NxEmpty v-if="!installations.length" title="暂无安装记录" description="从应用目录选择 SKU 安装后，记录会显示在这里。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
+        <div class="section-heading"><div><h2>我的已开通</h2><p class="nx-muted">这里是订阅开通后的记录。升级请求只提交所选目标版本。</p></div><span class="nx-muted">{{ installations.length }} 条记录</span></div>
+        <NxEmpty v-if="!installations.length" title="暂无" description="从应用目录订阅开通后，记录会显示在这里。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
         <div v-else class="installation-list"><article v-for="installation in installations" :key="installation.id" class="installation-card">
           <div class="installation-summary"><div><span class="eyebrow">{{ appById(installation.appId)?.code || installation.appId }}</span><h3>{{ appById(installation.appId)?.name || "应用" }}</h3><code>{{ installation.id }}</code></div><NxStatusTag :status="installation.status" :label="installation.status" /></div>
           <div class="stepper" aria-label="升级步骤"><span v-for="step in upgradeSteps" :key="step">{{ step }}</span></div>
@@ -91,8 +91,8 @@ const apps = ref([]); const skus = ref([]); const subscriptions = ref([]); const
 const versionsByApp = reactive({}); const selectedApp = ref(null); const versions = ref([]);
 const targets = reactive({}); const loading = ref(true); const error = ref(""); const notice = ref(""); const busyId = ref("");
 const section = computed(() => ({ "p4-packages": "packages", "p4-skus": "skus", "p4-subscriptions": "subscriptions", "p4-installations": "installations" })[route.name] || "packages");
-const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "Product / SKU", to: "/p4/skus" }, { label: "订阅", to: "/p4/subscriptions" }, { label: "安装升级", to: "/p4/installations" }];
-const titles = { packages: ["应用包", "浏览应用包、版本与发布状态；未提供的包内容或声明保持明确空态。"], skus: ["Product / SKU", "Product 对应应用，SKU 单独维护权益与配额定义。"], subscriptions: ["订阅", "查看当前租户的订阅周期、状态与关联安装。"], installations: ["安装升级", "查看租户安装版本并将应用升级到已发布版本。"] };
+const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "Product / SKU", to: "/p4/skus" }, { label: "订阅", to: "/p4/subscriptions" }, { label: "我的已开通", to: "/p4/installations" }];
+const titles = { packages: ["应用包", "浏览应用包、版本与发布状态；未提供的包内容或声明保持明确空态。"], skus: ["Product / SKU", "Product 对应应用，SKU 单独维护权益与配额定义。"], subscriptions: ["订阅", "查看当前租户的订阅周期、状态与关联安装。"], installations: ["我的已开通", "无支付、即时开通后的产品记录。升级仍提交到已发布版本。"] };
 const title = computed(() => titles[section.value][0]); const description = computed(() => titles[section.value][1]);
 const upgradeSteps = ["Precheck", "Dependency", "Schema Expand/Migrate", "Config", "Switch", "Verify"];
 
