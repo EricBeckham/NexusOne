@@ -19,9 +19,9 @@ import one.nexus.p3.flow.AssigneeType;
 import one.nexus.p3.flow.ProcessRecords.ProcessInstanceView;
 import one.nexus.p3.flow.ProcessRecords.StartCommand;
 import one.nexus.p3.flow.SequentialApprovalService;
+import one.nexus.p3.port.ProductApplicationStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -31,17 +31,17 @@ import tools.jackson.databind.ObjectMapper;
 /** Creates a tenant application against the immutable template/process versions pinned at install time. */
 @Service
 public class ProductApplicationService {
-    private final JdbcTemplate jdbc;
+    private final ProductApplicationStore store;
     private final ObjectMapper mapper;
     private final PinnedProductApplicationValidationService validation;
     private final SequentialApprovalService approvals;
     private final ObjectProvider<AuditPort> auditPort;
     private final ObjectProvider<ApprovalCommentStore> comments;
 
-    public ProductApplicationService(JdbcTemplate jdbc, ObjectMapper mapper,
+    public ProductApplicationService(ProductApplicationStore store, ObjectMapper mapper,
             PinnedProductApplicationValidationService validation, SequentialApprovalService approvals,
             ObjectProvider<AuditPort> auditPort, ObjectProvider<ApprovalCommentStore> comments) {
-        this.jdbc = jdbc;
+        this.store = store;
         this.mapper = mapper;
         this.validation = validation;
         this.approvals = approvals;
@@ -56,21 +56,10 @@ public class ProductApplicationService {
         if (iamTenant == null || !accessTenant.tenantId().equals(iamTenant.tenantId().toString())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "matching tenant context is required");
         }
-        return jdbc.query("""
-                SELECT a.id, a.installation_id, a.created_at, a.process_instance_id,
-                       COALESCE(i.status, a.status) AS status
-                  FROM business_meta.product_application a
-                  LEFT JOIN business_meta.process_instance i
-                    ON i.id = a.process_instance_id AND i.tenant_id = a.tenant_id
-                 WHERE a.tenant_id = ? AND a.initiator_person_id = ?
-                 ORDER BY a.created_at DESC
-                """, (rs, row) -> new ProductApplicationSummary(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("installation_id", UUID.class),
-                        rs.getString("status"),
-                        commentFor(iamTenant.tenantId(), rs.getObject("process_instance_id", UUID.class)),
-                        rs.getTimestamp("created_at").toInstant()),
-                iamTenant.tenantId(), iamTenant.personId());
+        return store.listByInitiator(iamTenant.tenantId(), iamTenant.personId()).stream()
+                .map(row -> new ProductApplicationSummary(row.id(), row.installationId(), row.status(),
+                        commentFor(iamTenant.tenantId(), row.processInstanceId()), row.createdAt()))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -80,21 +69,13 @@ public class ProductApplicationService {
         if (iamTenant == null || !accessTenant.tenantId().equals(iamTenant.tenantId().toString())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "matching tenant context is required");
         }
-        Pin pin = jdbc.query("""
-                SELECT p.form_template_version_id
-                  FROM market.installation_product_pin p
-                  JOIN market.installation i ON i.id = p.installation_id
-                 WHERE p.installation_id = ? AND i.tenant_id = ? AND i.status = 'INSTALLED'
-                """, rs -> rs.next() ? new Pin(true, rs.getObject(1, UUID.class)) : new Pin(false, null),
-                installationId, iamTenant.tenantId());
-        if (pin == null || !pin.found()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found");
-        }
-        if (pin.versionId() == null) return new FormSnapshot(installationId, null, List.of());
-        String snapshot = jdbc.query("SELECT fields_snapshot::text FROM platform.form_template_version WHERE id = ?",
-                rs -> rs.next() ? rs.getString(1) : null, pin.versionId());
-        if (snapshot == null || snapshot.isBlank()) return new FormSnapshot(installationId, pin.versionId(), List.of());
-        return new FormSnapshot(installationId, pin.versionId(), parseFormFields(snapshot));
+        UUID versionId = store.findInstalledPin(iamTenant.tenantId(), installationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found"))
+                .formTemplateVersionId();
+        if (versionId == null) return new FormSnapshot(installationId, null, List.of());
+        String snapshot = store.formTemplateSnapshot(versionId).orElse(null);
+        if (snapshot == null || snapshot.isBlank()) return new FormSnapshot(installationId, versionId, List.of());
+        return new FormSnapshot(installationId, versionId, parseFormFields(snapshot));
     }
 
     @Transactional
@@ -108,20 +89,15 @@ public class ProductApplicationService {
         var result = validation.validate(installationId, values);
         if (!result.valid()) throw new InvalidProductApplicationException(result.errors());
 
-        PinnedProcess pin = jdbc.query("""
-                SELECT p.process_definition_key, p.process_definition_version
-                  FROM market.installation_product_pin p
-                  JOIN market.installation i ON i.id=p.installation_id
-                 WHERE p.installation_id=? AND i.tenant_id=? AND i.status='INSTALLED'
-                """, rs -> rs.next() ? new PinnedProcess(rs.getString(1), (Integer) rs.getObject(2)) : null,
-                installationId, tenantId);
-        if (pin == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found");
+        ProductApplicationStore.InstalledPin installed = store.findInstalledPin(tenantId, installationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found"));
+        PinnedProcess pin = new PinnedProcess(installed.processDefinitionKey(), installed.processDefinitionVersion());
         if (pin.key() == null || pin.version() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "installed product has no pinned approval process");
         }
 
-        String personField = jdbc.query("SELECT fields_snapshot::text FROM platform.form_template_version WHERE id=?",
-                rs -> rs.next() ? personField(rs.getString(1)) : null, result.formTemplateVersionId());
+        String personField = store.formTemplateSnapshot(result.formTemplateVersionId())
+                .map(ProductApplicationService::personField).orElse(null);
         if (personField == null || values == null || values.get(personField) == null || !values.get(personField).isTextual()) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "a PERSON field is required for the approver");
         }
@@ -129,17 +105,12 @@ public class ProductApplicationService {
         UUID id = UuidV7.generate();
         Instant now = Utc.now();
         String businessKey = "product-application:" + id;
-        jdbc.update("""
-                INSERT INTO business_meta.product_application
-                    (id, tenant_id, installation_id, product_definition_id, form_template_version_id,
-                     process_instance_id, values_json, status, initiator_person_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NULL, CAST(? AS jsonb), 'RUNNING', ?, ?, ?)
-                """, id, tenantId, installationId, result.productDefinitionId(), result.formTemplateVersionId(),
-                writeValues(values), iamTenant.personId(), now, now);
+        store.insertRunning(new ProductApplicationStore.NewApplication(id, tenantId, installationId,
+                result.productDefinitionId(), result.formTemplateVersionId(), writeValues(values),
+                iamTenant.personId(), now));
         ProcessInstanceView process = approvals.start(new StartCommand(pin.key(), businessKey, AssigneeType.PERSON,
                 values.get(personField).asText()), pin.version());
-        jdbc.update("UPDATE business_meta.product_application SET process_instance_id=?, updated_at=? WHERE id=? AND tenant_id=?",
-                process.id(), Utc.now(), id, tenantId);
+        store.attachProcessInstance(tenantId, id, process.id(), Utc.now());
 
         AuditPort port = auditPort.getIfAvailable();
         if (port != null) port.append(AuditCaptures.data("p3.product_application.started", true, tenantId,
@@ -172,12 +143,7 @@ public class ProductApplicationService {
 
     private String commentFor(UUID tenantId, UUID instanceId) {
         if (instanceId == null) return null;
-        String taskId = jdbc.query("""
-                SELECT flowable_task_id FROM business_meta.process_todo
-                 WHERE tenant_id = ? AND instance_id = ? AND outcome IS NOT NULL
-                 ORDER BY acted_at DESC NULLS LAST
-                 LIMIT 1
-                """, rs -> rs.next() ? rs.getString(1) : null, tenantId, instanceId);
+        String taskId = store.latestActedTaskId(tenantId, instanceId).orElse(null);
         ApprovalCommentStore store = comments.getIfAvailable();
         if (taskId == null || store == null) return null;
         return store.latest(taskId);
@@ -194,7 +160,6 @@ public class ProductApplicationService {
     public record ProductApplicationSummary(UUID id, UUID installationId, String status, String comment, Instant createdAt) { }
     public record FormSnapshot(UUID installationId, UUID formTemplateVersionId, List<FormField> fields) { }
     public record FormField(String key, String label, String type, boolean required, List<String> options) { }
-    private record Pin(boolean found, UUID versionId) { }
 
     private List<FormField> parseFormFields(String snapshot) {
         try {

@@ -31,7 +31,7 @@ These modules may use JDBC for **platform / catalog / identity** tables. They ar
 | `nexus-permission-core` | `iam.perm_*` snapshot | `permission/persist/`, `PermissionConfiguration` |
 | `nexus-file-core` | `files.file_object`; IsolationKernel file key guard | `file/infra/`, `FileConfiguration` |
 | `nexus-notification-core` | `notify.inbox`; IsolationKernel notify filter | `notification/infra/`, `NotificationConfiguration` |
-| `nexus-p3-studio` | catalog / form / flow metadata; SchemaService DDL; `GuardedLedgerStore` | `p3/infra/jdbc/`, `p3/infra/schema/`, `JdbcFormStore`, flow persist/engine, `StudioConfiguration` |
+| `nexus-p3-studio` | catalog / form / flow metadata; SchemaService DDL; `GuardedLedgerStore`; K15 install pin + `business_meta.product_application` via `JdbcProductApplicationStore` (K0e) | `p3/infra/jdbc/`, `p3/infra/schema/`, `JdbcFormStore`, flow persist/engine, `StudioConfiguration` |
 | `nexus-p4-market` | `market.*` 应用目录、版本、SKU、订阅与安装元数据 | `p4/market/infra/jdbc/` |
 | `nexus-p5-connect` | `integration.*` 内部 API、Webhook 投递与连接器运行元数据 | `p5/connect/infra/jdbc/` |
 | `nexus-crypto-core` | `platform.secret_ciphertext` 密文信封（`JdbcEncryptedSecretAdapter` 与 `LocalThenEnvSecretPort.durableSystem`）；不是租户 AST 表 | 仅这两个源文件 |
