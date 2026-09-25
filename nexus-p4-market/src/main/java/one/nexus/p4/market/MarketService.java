@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import one.nexus.common.error.ErrorCode;
+import one.nexus.common.error.NexusException;
 import one.nexus.isolation.api.AccessContext;
 import one.nexus.isolation.api.TenantContext;
 import one.nexus.isolation.context.AccessContextHolder;
@@ -27,6 +29,10 @@ import one.nexus.p4.market.MarketModels.*;
 
 @Service
 public class MarketService {
+    private static final ErrorCode SUBSCRIBE_DEFINITION_MISSING = ErrorCode.of("P4", "MARKET", 1);
+    private static final ErrorCode SUBSCRIBE_ADMIN_REQUIRED = ErrorCode.of("P4", "MARKET", 2);
+    private static final ErrorCode SUBSCRIBE_CONFLICT = ErrorCode.of("P4", "MARKET", 3);
+
     private final MarketRepository market;
     private final TenantRepository tenants;
     private final Clock clock;
@@ -135,10 +141,12 @@ public class MarketService {
         assertTenant(requireTenantId(), tenantId);
         requireTenantAdmin(tenantId);
         ProductDefinition definition = market.productDefinitionForSku(skuCode)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "catalog SKU has no product definition"));
+                .orElseThrow(() -> new NexusException(SUBSCRIBE_DEFINITION_MISSING, 404,
+                        "catalog SKU has no product definition"));
         if (market.subscriptions().stream().anyMatch(row -> row.skuCode().equals(skuCode)
                 && row.status() == SubscriptionStatus.ACTIVE)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "tenant already has an active subscription for this SKU");
+            throw new NexusException(SUBSCRIBE_CONFLICT, 409,
+                    "tenant already has an active subscription for this SKU");
         }
         Installation installation = subscribeAndInstall(tenantId, skuCode, versionId);
         market.saveInstallationProductPin(new InstallationProductPin(installation.id(), definition.id(),
@@ -161,20 +169,25 @@ public class MarketService {
         AccessContext context = AccessContextHolder.currentOrNull();
         if (!(context instanceof TenantContext tenant) || !tenant.tenantId().equals(tenantId.toString())
                 || identities == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "tenant administrator context is required");
+            throw new NexusException(SUBSCRIBE_ADMIN_REQUIRED, 403,
+                    "tenant administrator context is required");
         }
         UUID subject;
         try { subject = UUID.fromString(tenant.actor().actorId()); }
-        catch (IllegalArgumentException ex) { throw new ResponseStatusException(HttpStatus.FORBIDDEN, "authenticated actor is invalid"); }
+        catch (IllegalArgumentException ex) {
+            throw new NexusException(SUBSCRIBE_ADMIN_REQUIRED, 403, "authenticated actor is invalid");
+        }
         Model.Person person = identities.findPerson(tenantId, subject)
                 .or(() -> identities.findPersonByAccount(tenantId, subject))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "tenant administrator role is required"));
+                .orElseThrow(() -> new NexusException(SUBSCRIBE_ADMIN_REQUIRED, 403,
+                        "tenant administrator role is required"));
         boolean tenantAdmin = identities.listEmploymentsByPerson(tenantId, person.id()).stream()
                 .filter(e -> e.status() == Model.EmploymentStatus.ACTIVE)
                 .map(e -> identities.findPosition(tenantId, e.positionId()).orElse(null))
                 .anyMatch(position -> position != null && "TENANT_ADMIN".equalsIgnoreCase(position.code()));
         if (!tenantAdmin || person.status() != Model.PersonStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "tenant administrator role is required");
+            throw new NexusException(SUBSCRIBE_ADMIN_REQUIRED, 403,
+                    "tenant administrator role is required");
         }
     }
 

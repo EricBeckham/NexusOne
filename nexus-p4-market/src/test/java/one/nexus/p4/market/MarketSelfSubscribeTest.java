@@ -2,6 +2,7 @@ package one.nexus.p4.market;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.Mockito.*;
 
 import java.time.Clock;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import one.nexus.common.error.NexusException;
 import one.nexus.isolation.IsolationKernel;
 import one.nexus.isolation.api.Actor;
 import one.nexus.isolation.api.AuthenticatedMembership;
@@ -74,7 +76,11 @@ class MarketSelfSubscribeTest {
         var context=kernel.tenants().issue(new AuthenticatedMembership(Actor.person(actor.toString()),tenantId.toString(),"member",Set.of(tenantId.toString())),"trace");
         when(iam.findPerson(tenantId,actor)).thenReturn(Optional.empty());
         AccessContextHolder.call(context,()->{
-            assertThatThrownBy(()->service.subscribeProduct(tenantId,"SKU",UUID.randomUUID())).isInstanceOf(ResponseStatusException.class);
+            NexusException denied = catchThrowableOfType(
+                    () -> service.subscribeProduct(tenantId, "SKU", UUID.randomUUID()), NexusException.class);
+            assertThat(denied.httpStatus()).isEqualTo(403);
+            assertThat(denied.errorCode().code()).isEqualTo("P4.MARKET.0002");
+            assertThat(denied).hasMessage("tenant administrator role is required");
             assertThatThrownBy(()->service.subscribeProduct(otherTenant,"SKU",UUID.randomUUID())).isInstanceOf(ResponseStatusException.class);
             return null;
         });
