@@ -44,7 +44,7 @@
             <td>{{ row.title }}</td>
             <td class="nx-code">{{ row.biz_no }}</td>
             <td>{{ formatTime(row.arrived_at) }}</td>
-            <td><NxStatus :label="box === 'requests' ? applicationStatus(row.status) : statusLabel(row.status)" :tone="tone(row.status)" /></td>
+            <td><NxStatus :label="rowStatus(row).label" :tone="rowStatus(row).tone" /></td>
           </tr>
         </tbody>
       </table>
@@ -92,6 +92,7 @@ import { NxEmpty, NxPageHeader } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p3 } from "../../api/p3";
 import { session } from "../../api/session";
+import { todoStatus } from "./todoStatus";
 
 const route = useRoute();
 const router = useRouter();
@@ -146,32 +147,17 @@ const emptyCopy = computed(() => {
 });
 
 function tone(status) {
-  const value = String(status || "").toUpperCase();
-  if (value === "APPROVED" || value === "APPROVE" || value === "DONE") return "success";
-  if (value === "REJECTED" || value === "REJECT" || value === "WITHDRAWN") return "danger";
-  return "warning";
+  return todoStatus(status).tone;
 }
 
-function applicationStatus(status) {
-  const value = String(status || "").toUpperCase();
-  if (value === "RUNNING") return "进行中";
-  if (value === "APPROVED") return "通过";
-  if (value === "REJECTED") return "驳回";
-  return status || "进行中";
+function statusLabel(status) {
+  return todoStatus(status).label;
 }
 
-const STATUS_LABELS = {
-  PENDING: "待处理",
-  CREATED: "待处理",
-  RUNNING: "进行中",
-  IN_APPROVAL: "审批中",
-  APPROVE: "已同意",
-  APPROVED: "已通过",
-  REJECT: "已驳回",
-  REJECTED: "已驳回",
-  WITHDRAWN: "已撤回",
-  DONE: "已办结",
-};
+function rowStatus(row) {
+  // 我的申请 without a status is a just-created application, so it reads as 进行中.
+  return todoStatus(row.status, box.value === "requests" ? "进行中" : "暂无");
+}
 
 function formatTime(value) {
   if (!value) return "暂无";
@@ -179,10 +165,6 @@ function formatTime(value) {
   if (!text.includes("T")) return text;
   const date = new Date(text);
   return Number.isNaN(date.getTime()) ? text : date.toLocaleString("zh-CN", { hour12: false });
-}
-
-function statusLabel(status) {
-  return STATUS_LABELS[String(status || "").toUpperCase()] || status || "暂无";
 }
 
 function isPending(row) {

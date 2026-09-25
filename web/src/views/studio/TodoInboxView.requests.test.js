@@ -113,7 +113,8 @@ describe("todo comment and my requests", () => {
     });
     await requests.trigger("click");
     await flushPromises();
-    expect(wrapper.text()).toContain("通过");
+    expect(wrapper.get("tbody [data-tone]").text()).toBe("已通过");
+    expect(wrapper.get("tbody [data-tone]").attributes("data-tone")).toBe("success");
     expect(wrapper.get("thead").text()).toContain("提交时间");
     expect(wrapper.get("thead").text()).toContain("申请编号");
     await wrapper.get("tbody tr").trigger("click");
