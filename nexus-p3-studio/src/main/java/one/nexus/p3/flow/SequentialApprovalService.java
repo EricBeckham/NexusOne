@@ -68,13 +68,20 @@ public class SequentialApprovalService {
 
     @Transactional
     public ProcessInstanceView start(StartCommand command) {
+        return start(command, null);
+    }
+
+    /** Starts from the exact published definition version pinned by a product installation. */
+    @Transactional
+    public ProcessInstanceView start(StartCommand command, Integer pinnedVersion) {
         TenantContext tenant = requireTenant();
         requireText(command.businessKey(), "business_key is required");
         String processKey = command.processKey() == null || command.processKey().isBlank()
                 ? FlowEngineConfiguration.PROCESS_KEY
                 : command.processKey();
         ProcessDefinitionPublishService.PublishedDefinition published =
-                FlowEngineConfiguration.PROCESS_KEY.equals(processKey) ? null : publishing.get(processKey);
+                FlowEngineConfiguration.PROCESS_KEY.equals(processKey) ? null
+                        : pinnedVersion == null ? publishing.get(processKey) : publishing.get(processKey, pinnedVersion);
         guard("process.instance", "start");
         List<UUID> candidates = assignees.resolve(tenant.tenantId(), command.assigneeType(), command.assigneeRef());
         UUID assignee = candidates.getFirst();

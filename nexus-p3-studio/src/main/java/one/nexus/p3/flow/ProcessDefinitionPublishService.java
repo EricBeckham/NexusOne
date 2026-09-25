@@ -93,6 +93,23 @@ public class ProcessDefinitionPublishService {
         return view(definition, deployment);
     }
 
+    /** Load one published process version owned by the current tenant. */
+    @Transactional(readOnly = true)
+    public PublishedDefinition get(String key, int version) {
+        TenantContext tenant = requireTenant();
+        ProcessDefinition definition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(key)
+                .processDefinitionVersion(version)
+                .processDefinitionTenantId(tenant.tenantId().toString())
+                .singleResult();
+        if (definition == null) {
+            throw FlowException.notFound("published process version not found in current tenant");
+        }
+        Deployment deployment = repositoryService.createDeploymentQuery()
+                .deploymentId(definition.getDeploymentId()).singleResult();
+        return view(definition, deployment);
+    }
+
     @Transactional(readOnly = true)
     public List<PublishedDefinition> list() {
         TenantContext tenant = requireTenant();
