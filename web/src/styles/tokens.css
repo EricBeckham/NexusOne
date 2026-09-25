@@ -47,6 +47,11 @@
   /* §2.4 / O2: vertical rhythm between form fields (label+control blocks). */
   --nx-form-field-gap: var(--nx-space-5);
   --nx-form-label-gap: var(--nx-space-2);
+  /* §9 / O3: control heights (Default 34/36 → pin 36). */
+  --nx-control-height: 36px;
+  --nx-control-height-sm: 28px;
+  --nx-control-height-lg: 40px;
+  --nx-control-radius: 6px;
   --nx-state-icon: 48px;
   --nx-font-size-xs: 12px;
   --nx-font-size-sm: 13px;
@@ -134,29 +139,75 @@ a { color: var(--nx-primary); text-decoration: none; }
   font-weight: 600;
   font-size: 12px;
 }
+
+/*
+ * O3 button tokens (§9). Prefer one Primary per action area — see
+ * docs/planning/O3-按钮与Primary约定.md. Existing .primary/.ghost/.danger keep working;
+ * new markup may use .nx-btn + modifiers.
+ */
+.nx-btn,
+.primary,
+.ghost,
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nx-space-2);
+  box-sizing: border-box;
+  min-height: var(--nx-control-height);
+  padding: 0 var(--nx-space-3);
+  border-radius: var(--nx-control-radius);
+  font-size: var(--nx-font-size-md);
+  line-height: 1.2;
+  cursor: pointer;
+  text-decoration: none;
+}
+.nx-btn:disabled,
+.primary:disabled,
+.ghost:disabled,
+.danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.nx-btn--sm,
+.primary.small,
+.ghost.small,
+.danger.small {
+  min-height: var(--nx-control-height-sm);
+  padding: 0 var(--nx-space-2);
+  font-size: var(--nx-font-size-sm);
+}
+.nx-btn--lg,
+.primary.large,
+.ghost.large,
+.danger.large {
+  min-height: var(--nx-control-height-lg);
+  padding: 0 var(--nx-space-4);
+}
+.nx-btn--primary,
 .primary {
   background: var(--nx-product);
   color: #fff;
   border: 0;
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
 }
+.nx-btn--default,
 .ghost {
   background: #fff;
   color: var(--nx-text-regular);
   border: 1px solid var(--nx-border-strong);
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
 }
+.nx-btn--danger,
 .danger {
   background: var(--nx-danger);
   color: #fff;
   border: 0;
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
+}
+.nx-btn--text {
+  background: transparent;
+  color: var(--nx-primary);
+  border: 0;
+  min-height: auto;
+  padding: var(--nx-space-1) var(--nx-space-2);
 }
 .nx-tabs {
   display: flex;
