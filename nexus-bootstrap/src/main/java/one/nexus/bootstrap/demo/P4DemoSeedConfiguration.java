@@ -39,7 +39,7 @@ public class P4DemoSeedConfiguration {
                 jdbc.sql("""
                         INSERT INTO market.sku (code, app_id, name, entitlements)
                         VALUES (:code, :app, '标准版',
-                          '{"demo":true,"entitlements":{"projects":{"enabled":true,"quota":20}}}'::jsonb)
+                          '{"projects":{"enabled":true,"quota":20,"attributes":{"demo":true}}}'::jsonb)
                         ON CONFLICT (code) DO NOTHING
                         """).param("code", SKU_CODE).param("app", APP_ID).update();
             });

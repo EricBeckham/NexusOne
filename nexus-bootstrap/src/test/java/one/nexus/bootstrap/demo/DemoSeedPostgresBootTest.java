@@ -1,9 +1,11 @@
 package one.nexus.bootstrap.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import one.nexus.bootstrap.NexusOneApplication;
+import one.nexus.p4.market.MarketService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ class DemoSeedPostgresBootTest {
     private static EmbeddedPostgres postgres;
 
     @Autowired JdbcTemplate jdbc;
+    @Autowired MarketService market;
     @Autowired @Qualifier("approvalProductDemoSeed") ApplicationRunner approvalSeed;
     @Autowired @Qualifier("p3DemoSeed") ApplicationRunner p3Seed;
 
@@ -55,6 +58,9 @@ class DemoSeedPostgresBootTest {
     @Test
     void demoSeedsCompleteOnAnEmptyDatabaseAndK20IsIdempotent() throws Exception {
         assertSeeded();
+        var names = market.catalog().stream().map(item -> item.app().name()).toList();
+        assertTrue(names.contains("演示数据 · 简单审批"), "catalog must list the simple-approval demo product");
+        assertTrue(names.contains("星河项目协作"), "catalog must list the P4 demo app");
         int quotaUsed = count("SELECT coalesce(sum(used_value), 0) FROM platform.quota WHERE tenant_id = ?",
                 P1DemoSeedConfiguration.TENANT_ID);
         approvalSeed.run(new DefaultApplicationArguments());
