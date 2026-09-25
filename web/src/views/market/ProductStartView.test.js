@@ -153,6 +153,26 @@ describe("provisioned product start form", () => {
     expect(fallback.find("[data-testid='start-form']").exists()).toBe(true);
   });
 
+  it("loads with a form skeleton and ends in one footer: 取消 then a single Primary (Q9)", async () => {
+    let resolveForm;
+    mocks.productApplicationForm.mockReturnValue(new Promise((resolve) => { resolveForm = resolve; }));
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: "/p4/installations/:id/start", component: ProductStartView }] });
+    await router.push("/p4/installations/install-1/start");
+    const wrapper = mount(ProductStartView, { global: { plugins: [router] } });
+    await flushPromises();
+    expect(wrapper.get("[data-testid='start-loading'] [data-testid='nx-skeleton']").attributes("data-variant")).toBe("form-block");
+    expect(wrapper.find("form").exists()).toBe(false);
+
+    resolveForm({ fields: [{ key: "title", label: "事由", type: "TEXT", required: true, options: [] }] });
+    await flushPromises();
+    expect(wrapper.find("[data-testid='start-loading']").exists()).toBe(false);
+    expect(wrapper.get("label[for='field-title'] em.nx-req").text()).toBe("*");
+    const footer = wrapper.get("[data-testid='start-actions']");
+    expect(footer.findAll("button").map((button) => button.text())).toEqual(["取消", "提交申请"]);
+    expect(footer.findAll(".nx-btn--primary, .primary")).toHaveLength(1);
+    expect(footer.get("[data-testid='start-submit']").attributes("type")).toBe("submit");
+    expect(wrapper.findAll(".nx-btn--primary, .primary")).toHaveLength(1);
+  });
   it("explains an opaque 500, shows the trace id, and retries with the same values", async () => {
     mocks.productApplicationForm.mockResolvedValue({ fields: [{ key: "title", label: "事由", type: "TEXT", required: true, options: [] }] });
     mocks.createProductApplication.mockRejectedValueOnce(Object.assign(new Error("Internal error"), {
