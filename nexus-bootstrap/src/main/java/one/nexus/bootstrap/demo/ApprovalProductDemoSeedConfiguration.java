@@ -133,7 +133,9 @@ public class ApprovalProductDemoSeedConfiguration {
         jdbc.sql("""
                 INSERT INTO market.sku_product_binding (sku_code, product_definition_id, created_at)
                 VALUES (:sku, :definition, timestamptz '2026-01-02 00:00:00+00')
-                ON CONFLICT (sku_code) DO NOTHING
+                ON CONFLICT (sku_code) DO UPDATE
+                  SET product_definition_id = EXCLUDED.product_definition_id,
+                      created_at = EXCLUDED.created_at
                 """).param("sku", SKU_CODE).param("definition", DEFINITION_ID).update();
         jdbc.sql("""
                 INSERT INTO business_meta.process_definition_draft

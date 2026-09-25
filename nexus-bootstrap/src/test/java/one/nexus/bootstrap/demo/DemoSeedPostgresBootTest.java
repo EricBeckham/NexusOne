@@ -125,6 +125,11 @@ class DemoSeedPostgresBootTest {
                 ApprovalProductDemoSeedConfiguration.TEMPLATE_ID, ApprovalProductDemoSeedConfiguration.TEMPLATE_VERSION_ID));
         assertEquals(1, count("SELECT count(*) FROM market.sku_product_binding WHERE sku_code = ?",
                 ApprovalProductDemoSeedConfiguration.SKU_CODE));
+        assertEquals(ApprovalProductDemoSeedConfiguration.DEFINITION_ID,
+                jdbc.queryForObject("""
+                        SELECT product_definition_id FROM market.sku_product_binding
+                        WHERE sku_code = ?
+                        """, java.util.UUID.class, ApprovalProductDemoSeedConfiguration.SKU_CODE));
         assertEquals(1, count("SELECT count(*) FROM market.product_definition WHERE id = ? AND status = 'PUBLISHED'",
                 ApprovalProductDemoSeedConfiguration.DEFINITION_ID));
     }
