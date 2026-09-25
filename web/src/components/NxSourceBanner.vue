@@ -1,5 +1,5 @@
 <template>
-  <div class="banner" data-source="LIVE" data-testid="p3-source-banner">
+  <div v-if="enabled" class="banner" data-source="LIVE" data-testid="p3-source-banner">
     <div>
       <strong>LIVE</strong>
       <p>{{ body }}</p>
@@ -8,6 +8,10 @@
 </template>
 
 <script setup>
+import { devNotesEnabled } from "../utils/devNotes";
+
+// Implementation notes for developers; hidden in the demo unless dev notes are switched on (O9).
+const enabled = devNotesEnabled();
 defineProps({
   body: { type: String, required: true },
 });
