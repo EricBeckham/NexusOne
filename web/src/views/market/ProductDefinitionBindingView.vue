@@ -259,7 +259,12 @@ function payload() {
 
 function processUnavailableText(err) {
   const message = String(err?.message || "");
-  if (/tenantcontext|tenant context/i.test(message) || Number(err?.status) === 403) {
+  const status = Number(err?.status);
+  // Not signed in: the drafts API answers 401 P2.IAM.UNAUTHORIZED "missing bearer token" (J3 observation A).
+  if (status === 401 || err?.code === "P2.IAM.UNAUTHORIZED") {
+    return "已发布流程按租户读取：当前未登录租户账号。请以租户管理员身份登录（演示：林晓）后再选择流程。";
+  }
+  if (/tenantcontext|tenant context/i.test(message) || status === 403) {
     return "已发布流程按租户读取：当前没有租户身份。请以租户管理员身份登录（演示：林晓）后再选择流程。";
   }
   return `流程列表暂时读不到${err?.traceId ? `（追踪号 ${err.traceId}）` : ""}，可稍后刷新重试。`;
