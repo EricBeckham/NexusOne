@@ -79,6 +79,8 @@ class ApprovalProductDemoSeedConfigurationTest {
         assertTrue(joined.contains("演示数据"));
         assertTrue(joined.contains("'PUBLISHED'"));
         assertTrue(joined.contains("'PERSON'"));
+        assertTrue(joined.contains("ON CONFLICT (sku_code) DO UPDATE"),
+                "the demo seed must repair the SKU-to-product-definition binding");
         var bound = org.mockito.ArgumentCaptor.forClass(Object.class);
         org.mockito.Mockito.verify(statement, org.mockito.Mockito.atLeastOnce())
                 .param(org.mockito.ArgumentMatchers.anyString(), bound.capture());
