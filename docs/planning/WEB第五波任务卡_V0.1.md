@@ -1,6 +1,6 @@
 # WEB 第五波任务卡（K 波 · 可配置审批产品 E2E）V0.1
 
-- 基线：`main@2af8c72b`（`K7: confirm form template publish and show the version (#373)`；**M1–M23 全部已合**；K 卡已合 10 张 + 修复 2 个，见 §二「K 卡合入快照」；审查修复见 K0）
+- 基线：`main@d403bd80`（`K20: seed a published simple-approval demo product (#388)`；K0a–K0d 已合；业务 K 卡仅剩 **K16、K18**；新增门禁修卡 **K0e**；上线前见 `docs/planning/WEB上线前任务卡_V0.1.md`）
 - 依据：Eric 确认的第五波主线（表单模板 + 流程 + 默认权限打包成产品 → 租户自助订阅 → 一级审批跑通）；`docs/design/星枢NexusOne_WEB页面设计与前端开发规范_V1.1.md` §25–§29；`docs/planning/快进P4P5_范围冻结表_V0.1.md`；`docs/planning/WEB第四波任务卡_V0.1.md`（M 波交付与未合登记）
 - 范围：打通「平台配置最简单业务审批产品 → 租户订阅即用 → 发起 / 待办审批 / 查看结果」端到端闭环。审批产品**不写死成业务模块**，用平台能力配出。**本波明确不做 H5**（无 `/m/*`、无 `web/src/mobile/**`）
 - 执行方：本地 Codex / Cursor 按卡领取；NexusOne 只负责拆分与审阅
@@ -10,7 +10,7 @@
 1. **一卡一产品 + 一种资源类型或一个薄片**；后端 / 前端分卡；**新表 / Flyway 单独成卡**；**密钥 / 权限开通等安全敏感单独成卡**；**仅测试**可单独成卡。
 2. **主线 = 可配置审批产品 E2E**：平台表单模板版本 + P3 流程定义版本 + 默认权限 → 打成 P4 产品 → 租户管理员自助订阅（无审核、无支付）→ 运行时发起与一级审批。
 3. **平台表单模板 ≠ 现有 P3 `business_meta.form`**：现有表单是**租户作用域**且绑定 `ledger_code` + `field_code`（M0-07）。本波新建**平台级**表单模板（字段名 / key / 类型 / 必填 / 下拉选项），供产品绑定；第一版字段类型：文本、多行文本、数字、金额、日期、单选下拉、成员选择、附件。
-4. **第四波依赖**：流程定义发布复用 **M10（#358 已合）/ M11（#359 已合）**；权益投影复用 **M20（#356 已合）**；平台哈希链校验 HTTP 复用 **M22（#357 已合）**；权益页 **M21（#360 已合）**；审计中心校验按钮 **M23（#361 已合）**。**M1–M23 全部已合**（M23 #361 为最后一张）。**K1–K8、K14、K17 等 10 张 K 卡是在 G1/G2 门禁红着时合入的**：主线默认 `mvn test` 至今被 G1（QueryCompiler allowlist）/ G2（SurfaceGuard）打红，因此 **K0a → K0b → K0c 现在最优先**；门禁转绿之后，后续卡 PR 里的「后端测试绿」才有效。K0d 可选，不阻塞 E2E。
+4. **第四波依赖**：流程定义发布复用 **M10（#358 已合）/ M11（#359 已合）**；权益投影复用 **M20（#356 已合）**；平台哈希链校验 HTTP 复用 **M22（#357 已合）**；权益页 **M21（#360 已合）**；审计中心校验按钮 **M23（#361 已合）**。**M1–M23 全部已合**（M23 #361 为最后一张）。**K1–K8、K14、K17 等 10 张 K 卡是在 G1/G2 门禁红着时合入的**：主线默认 `mvn test` 至今被 G1（QueryCompiler allowlist）/ G2（SurfaceGuard）打红，因此 **K0a–K0c 已合入**；完整 `mvn test` 仍因 **K15a** 的 `PinnedProductApplicationValidationService` 裸 JDBC 未进 G1 allowlist 而 G1 红（G2 绿）。现优先 **K0e**，再收尾 **K16 / K18**（K20 已合 #388）。K0d 可选，不阻塞 E2E。
 5. **租户隔离硬约束**：每个后端读 / 写带租户边界 + 跨租户否定测试；平台级接口须平台职责。
 6. **不编造数据**：空态「暂无」；演示种子只走 local/demo 开关，并标明演示数据。
 7. **第一版明确不做**：会签 / 或签、条件分支、转交加签、拖拽式设计器、支付、平台审核订阅、订阅后跟随模板新版本升级、H5。
@@ -36,7 +36,7 @@
 
 - **来源**：M1–M23 合入后统一审查（worktree `D:\NexusOne-review-m` @ `4c6a42dd` / #361 tip）。审查报告仅对话交付，未入仓。
 - **总体**：业务与安全验收**有条件通过**；前端门禁全绿；后端默认 `mvn test` 被 G1（QueryCompiler JDBC allowlist）与 G2（SurfaceGuard）打红（`-Dmaven.test.failure.ignore=true` 下 1037 测 / 5 失败 / 27 跳过）。
-- **现状与优先级**：审查后 K1–K8、K14、K17 等 K 卡已在 G1/G2 门禁红着时合入（见 §二快照）。**K0a → K0b → K0c 现在最优先**，由一人串行（三张动同一批门禁 allowlist / ArchUnit / 门禁测试文件，串行避冲突）；门禁绿后，后续卡的「后端测试绿」才有效。**K0d 可选**，不阻塞 E2E。
+- **现状与优先级**：审查后 K1–K8、K14、K17 等 K 卡已在 G1/G2 门禁红着时合入（见 §二快照）。**K0a–K0c 已合入**；完整 `mvn test` 仍因 **K15a** 的 `PinnedProductApplicationValidationService` 裸 JDBC 未进 G1 allowlist 而 G1 红（G2 绿）。现优先 **K0e**，再收尾 **K16 / K18**（K20 已合 #388）。**K0d 可选**，不阻塞 E2E。
 - **K0 合完后**：跑一次完整 `mvn test`。审查之后才合入的平台模板接口（**K2 / K4 / K6**，`FormTemplateController` `/api/v1/p1/platform/form-templates*`）是否带 SurfaceGuard **尚未核对**；若 G2 报红，**并入 K0c** 一起修。K 卡合入若新增 G1 违例（如新 JDBC 类未入 allowlist），同理并入 K0b。
 - 2026-09-25 复核 `main@2af8c72b`：allowlist 的 bootstrap 仍仅 `RuntimeMetaController.java`（`nexus-crypto-core` 只在扫描根列表中，未入 allowlist）；两 Process 草稿/校验控制器仍无 SurfaceGuard；`OidcClientCredentialsTester.java:49` 仍有 `new String(secret, …)`。四张 K0 均**未开始**。
 - **不做**：把路径塞进 `UNGUARDED_*` leftover 而不接 Guard（除非诚实登记 leftover 并说明）；静默关闸。
@@ -49,6 +49,7 @@
 | **K0b** | G1：bootstrap demo seed + 平台只读 JDBC 入 allowlist（或迁出 PRODUCT 扫描） | 平台 | 门禁 | K0a（同 Gate 冲突区） | 同一人串行，其后 K0c | 1h |
 | **K0c** | G2：P3 流程草稿/校验/发布 API 接入 SurfaceGuard（G2 若报 K2/K4/K6 一并修） | P3 | **安全** | 建议 K0b 后（同一人串行） | 与 K0d 可并行 | 1–2h |
 | **K0d** | M4 跟进：OidcClientCredentialsTester 去掉 secret→String 拷贝（**可选**） | P2 | **安全** | 无 | 是 | 1h |
+| **K0e** | G1：K15a `PinnedProductApplicationValidationService` JDBC allowlist 或迁出 | 平台/安全 | **安全** | K0a–c、K15a 已合 | 其后 K16/K18 演示更稳 | 1h |
 
 ### K0a — G1：durable SecretPort JDBC allowlist + ArchUnit
 
@@ -96,6 +97,17 @@
 ## 一、分功能现状（已有 vs 缺失）
 
 > 摸查基线：`origin/main@4c6a42dd`（M 波审查尖端）；合入状态同步到 `main@2af8c72b`（#373）。下列「已有」均给路径；**未在代码中证实的不写成已有**。
+
+
+### K0e — G1：K15a 钉住校验 JDBC allowlist / 迁出
+
+- **类型**：门禁 / 安全　**分支前缀**：`claude/k0e-*`　**前置**：K0a–K0c（已合）、K15a（已合）
+- **背景**：K0a–K0c 合入后，K15a 引入的 `PinnedProductApplicationValidationService` 使用裸 JDBC / Spring JDBC，未进 G1 allowlist，导致 `QueryCompilerBypassGateTest` / `G1QueryCompilerBypassTest` / `QueryCompilerBypassArchTest` 仍红。G2 已绿。
+- **目标**：小改动修好 G1——(1) 按 K0a/K0b 同一文档化 allowlist 正当列入并写清理由；或 (2) 去掉应用层 JDBC，改为经 QueryCompiler / 已有端口。**禁止关闸**；**禁止**把无关类塞进 allowlist。
+- **不做**：改校验业务语义；动前端。
+- **验收**：上述 3 个 G1 测试绿；相关模块或完整 `mvn test` 中不再出现该类 G1 失败。
+- **PR 标题**：`K0e: allowlist or remove JDBC in pinned application validation`
+
 
 ### 0) 第四波依赖卡合入快照（M1–M23 全部已合）
 
@@ -238,7 +250,7 @@
 | （修复）#372 | **已合** | `929d5305` `fix: keep P3 tests independent of optional P1 wiring` |
 | **K7** #373 | **已合** | `2af8c72b` `K7: confirm form template publish and show the version` |
 
-**未合**：K0a–K0d；业务卡 K9、K10、K11、K12a、K12b、K13、K15a、K15b、K16、K18、K19、K20（12 张）。上述 K 卡均在 G1/G2 门禁红着时合入，其「后端测试绿」以 K0 合完后的完整 `mvn test` 为准。
+**未合**：业务卡 **K16、K18**；门禁修卡 **K0e**（K20 已合 #388；K0a–K0d 已合）。上线前 L 卡见 `WEB上线前任务卡_V0.1.md`。
 
 ---
 
@@ -515,32 +527,33 @@ K20(seed) ← K6 + K11 + M10(已合)
 
 ---
 
-## 六、下一批（当前 2 人 · K0 优先）
+## 六、下一批（2026-09-25 · 三人并行 · Eric-Desktop）
 
-> 已合：K1–K8、K14、K17（见 §二快照）。以下只排未合卡；每张的前置均已在依赖表核对。
+> tip：`main@d403bd80`。**K20 已合 (#388)**。本机队列只剩 **K0e →（门禁）** 与前端 **K16 / K18**；上线前 L 卡见 `docs/planning/WEB上线前任务卡_V0.1.md`。
 
-| 人 | 顺序 | 等待点 |
+### 本机路径与分支前缀（强制）
+
+- 仓库正迁：`D:\\NexusOne` → `D:\\Projects\\NexusOne`（两者谁存在用谁；主克隆**只允许 fetch**，禁止在主克隆上 checkout 干活）。
+- 每人独立 worktree，禁止进入别人的目录 / 前缀分支：
+
+| 人 | 分支前缀 | worktree（优先 Projects） |
 |---|---|---|
-| **人 A**（后端主链，串行） | **K9 → K11 → K12a → K12b → K15a** | K9 前置 K8 ✅ / K6 ✅ / M10 ✅，可立即开；其后每张依赖上一张（K15a 另需 K6 ✅） |
-| **人 B** | **K0a → K0b → K0c → K10 → K13** | K0 系列无前置，立即开；K10 等 **K9** 合；K13 等 **K12a** 合（建议等 K12b） |
+| **Cursor** | `cursor/` | `D:\\Projects\\NexusOne-cursor` 或 `D:\\NexusOne-cursor` |
+| **Codex** | `codex/` | `D:\\Projects\\NexusOne-codex` 或 `D:\\NexusOne-codex` |
+| **Claude** | `claude/` | `D:\\Projects\\NexusOne-claude` 或 `D:\\NexusOne-claude` |
+| **NexusOne**（协调，若动手） | `nexusone/` | `D:\\Projects\\NexusOne-nexusone` 或 `D:\\NexusOne-nexusone` |
 
-**理由**：K0a–K0c 动同一批门禁 allowlist / ArchUnit / 门禁测试文件，一人串行避冲突；A 的主链每张依赖上一张。
+- **流程**：一卡一 PR；PR 标题以卡号开头；做完 → commit → push → **squash 合并** → 再开下一张。
 
-**说明**：K0 合完后跑一次完整 `mvn test`；审查后才合入的平台模板接口（K2/K4/K6）是否带 SurfaceGuard 尚未核对，若 G2 报红则并入 K0c。
+### 本波剩余卡分工
 
-**再下一批（收尾）**
+| 人 | Phase 1（第五波收尾） | Phase 2（上线前，见 L 文档） |
+|---|---|---|
+| **Cursor** | **K16**（已开通产品发起页） | L5 视觉差距 / 小修；L4 手工冒烟记账 |
+| **Codex** | **K18**（待办意见 + 我的申请） | L7 演示 runbook；L13 #270；L15 分支清理；L6 demo 隔离 |
+| **Claude** | **K0e**（先做，修 G1）→（K20 已合，跳过） | L1 门禁重跑报告；L8 N 波安全复审；L10–L12 密钥清单/备份演练/profile 硬化 |
 
-| 卡 | 前置 |
-|---|---|
-| **K15b** → **K16** | K15b：K15a、K14 ✅、K12a、K12b、M10 ✅；K16：K15b、K13 |
-| **K18** | K17 ✅、K15b |
-| **K19** | K2 ✅、K12a、K12b、K15a、K15b |
-| **K20** | K11、K6 ✅、M10 ✅ |
-| 可选 **K0d** | 无；谁空谁做，不阻塞 E2E |
-
-计划内 Flyway 已全部合入；若有人被迫新增迁移，仍 **不要**并行合入两个 Flyway PR（版本号按全局递增取，V705 起，见 §四）。
-
----
+**理由**：两张前端卡可并行；K0e 先于演示向验收，避免「功能齐但门禁红」。
 
 ## 七、端到端验收路径（演示）
 
@@ -581,6 +594,7 @@ K20(seed) ← K6 + K11 + M10(已合)
 ---
 
 ## 九、修订记录
+- 2026-09-25：同步 tip `main@d403bd80`（含 K20 #388）；标注 K0a–K0d 已合；新增 **K0e**；未合仅 K16/K18；改 §六为 Cursor/Codex/Claude 三人分工 + 路径/前缀；上线前 L 卡见 `WEB上线前任务卡_V0.1.md`。
 
 - 2026-09-25：NexusOne 草稿 V0.1。对照当时 `main@8ce154aa`；主线为可配置审批产品 E2E；写明与现有台账表单、预置流程键、P4 安装链路的差异；依赖 M10/M11/M20；K0 占位。
 - 2026-09-25：Eric 批准推送。拆分 **K12→K12a/K12b**、**K15→K15a/K15b**（不重编号后续卡）；业务卡合计 22（含安全 1）；同步 **M10 #358 / M11 #359 / M22 #357 已合**，M21/M23 当时仍未合；基线更新为 `main@7b14460d`；第一批派发不再要求「先做 M10」。
