@@ -1,6 +1,6 @@
 <template>
   <main>
-    <NxPageHeader eyebrow="星市 · 商业权益" title="商业权益" description="只读投影当前租户的订阅、SKU 权益和安装状态。本页不编辑运行时投影。">
+    <NxPageHeader eyebrow="P4 · 星市" title="商业权益" description="只读投影当前租户的订阅、SKU 权益和安装状态。本页不编辑运行时投影。">
       <template v-if="isDetail" #actions>
         <router-link class="ghost" to="/p4/entitlements">返回列表</router-link>
       </template>
