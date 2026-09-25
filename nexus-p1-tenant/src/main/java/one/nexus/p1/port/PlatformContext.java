@@ -18,4 +18,19 @@ public record PlatformContext(
     public static PlatformContext inactive() {
         return new PlatformContext(false, null, null, null, null);
     }
+
+    /**
+     * {@code platform.audit_event.tenant_id} is NOT NULL. Platform-scoped writes (form templates,
+     * product definitions, …) have no subject tenant, so prefer the actor home tenant and fall
+     * back to the configured platform tenant id.
+     */
+    public UUID auditTenantId(UUID platformTenantId) {
+        if (actorHomeTenantId != null) {
+            return actorHomeTenantId;
+        }
+        if (platformTenantId != null) {
+            return platformTenantId;
+        }
+        throw new IllegalStateException("platform audit requires actor home tenant or platform tenant id");
+    }
 }
