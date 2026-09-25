@@ -64,7 +64,7 @@
     <template v-else>
       <NxNoPermission v-if="!session.contextId" title="需要租户上下文" description="安装记录按当前服务端租户上下文读取。请先登录并切换租户。" />
       <section v-else class="nx-card">
-        <div class="section-heading"><div><h2>我的已开通</h2><p class="nx-muted">这里是订阅开通后的记录。升级请求只提交所选目标版本。</p></div><span class="nx-muted">{{ installations.length }} 条记录</span></div>
+        <div class="section-heading count-only" data-testid="installations-count"><span class="nx-muted">{{ installations.length }} 条记录</span></div>
         <NxEmpty v-if="!installations.length" title="还没有已开通的产品" description="从应用目录订阅开通后，产品会显示在这里，并可直接发起申请。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
         <div v-else class="installation-list"><article v-for="installation in installations" :key="installation.id" class="installation-card">
           <div class="installation-summary">

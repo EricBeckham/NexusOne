@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   createProductApplication: vi.fn(),
   persons: vi.fn(),
   upload: vi.fn(),
+  installation: vi.fn(),
+  app: vi.fn(),
+  version: vi.fn(),
 }));
 vi.mock("../../api/p3", () => ({
   p3: {
@@ -15,7 +18,10 @@ vi.mock("../../api/p3", () => ({
     createProductApplication: mocks.createProductApplication,
   },
 }));
-vi.mock("../../api/client", () => ({ p2: { persons: mocks.persons } }));
+vi.mock("../../api/client", () => ({
+  p2: { persons: mocks.persons },
+  p4: { installation: mocks.installation, app: mocks.app, version: mocks.version },
+}));
 vi.mock("../../api/files", () => ({
   files: { upload: mocks.upload },
   readAsBase64: vi.fn(async () => "YQ=="),
@@ -126,6 +132,25 @@ describe("provisioned product start form", () => {
     await wrapper.get("[data-testid='start-cancel']").trigger("click");
     await flushPromises();
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
+  });
+
+  it("names the installed product and version being applied for (N1)", async () => {
+    mocks.productApplicationForm.mockResolvedValue({ fields: [{ key: "title", label: "事由", type: "TEXT", required: true, options: [] }] });
+    // Real SNAKE_CASE wire shapes for /p4/installations/{id}, /p4/apps/{id}, /p4/versions/{id}.
+    mocks.installation.mockResolvedValue({ id: "install-1", app_id: "app-1", version_id: "ver-1", status: "INSTALLED" });
+    mocks.app.mockResolvedValue({ id: "app-1", code: "demo_simple_approval", name: "演示数据 · 简单审批" });
+    mocks.version.mockResolvedValue({ id: "ver-1", version: "1.0.0" });
+    const wrapper = await mountStart();
+    const context = wrapper.get("[data-testid='start-product']");
+    expect(context.text()).toContain("演示数据 · 简单审批");
+    expect(context.text()).toContain("版本 1.0.0");
+    expect(mocks.installation).toHaveBeenCalledWith("install-1");
+    wrapper.unmount();
+
+    mocks.installation.mockRejectedValue(new Error("installation not found"));
+    const fallback = await mountStart();
+    expect(fallback.find("[data-testid='start-product']").exists()).toBe(false);
+    expect(fallback.find("[data-testid='start-form']").exists()).toBe(true);
   });
 
   it("explains an opaque 500, shows the trace id, and retries with the same values", async () => {

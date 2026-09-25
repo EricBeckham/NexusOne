@@ -1,6 +1,11 @@
 <template>
   <main class="start-page">
     <NxPageHeader eyebrow="P4 · 星市" title="发起申请" description="按已开通时钉住的模板填写。无支付。提交后进入我的申请。" />
+    <p v-if="product" class="product-context" data-testid="start-product">
+      <span class="product-label">申请产品</span>
+      <strong>{{ product.name }}</strong>
+      <span v-if="product.version" class="product-version">版本 {{ product.version }}</span>
+    </p>
     <p v-if="error" class="nx-error" data-testid="start-error">{{ error }}</p>
     <NxRequestAlert
       v-if="submitFailure"
@@ -69,7 +74,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxPageHeader, NxRequestAlert } from "../../components";
-import { p2 } from "../../api/client";
+import { p2, p4 } from "../../api/client";
 import { describeRequestError } from "../../utils/requestError";
 import { p3 } from "../../api/p3";
 import { files, readAsBase64 } from "../../api/files";
@@ -84,6 +89,7 @@ const busy = ref(false);
 const error = ref("");
 const fieldErrors = ref([]);
 const submitFailure = ref(null);
+const product = ref(null);
 
 const unmatchedErrors = computed(() => {
   const keys = new Set(fields.value.map((field) => field.key));
@@ -94,6 +100,24 @@ function errorsFor(key) {
   return fieldErrors.value.filter((item) => item.fieldKey === key);
 }
 
+// N1: name the installed product being applied for. Best effort — the form never depends on it.
+async function loadProduct() {
+  try {
+    const installation = await p4.installation(route.params.id);
+    const appId = installation?.app_id ?? installation?.appId;
+    const versionId = installation?.version_id ?? installation?.versionId;
+    if (!appId) return;
+    const [app, version] = await Promise.all([
+      p4.app(appId),
+      versionId ? p4.version(versionId).catch(() => null) : null,
+    ]);
+    if (app?.name || app?.code) product.value = { name: app.name || app.code, version: version?.version || "" };
+  } catch {
+    product.value = null;
+  }
+}
+
+onMounted(loadProduct);
 onMounted(async () => {
   try {
     const [form, persons] = await Promise.all([
@@ -185,6 +209,10 @@ async function submit() {
 
 <style scoped>
 .start-form { max-width: 720px; }
+.product-context { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; max-width: 720px; margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); background: var(--nx-surface); }
+.product-label { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.product-context strong { color: var(--nx-text-primary); }
+.product-version { padding: 1px 8px; border-radius: var(--nx-radius-pill); font-size: var(--nx-font-size-xs); color: var(--nx-product); background: var(--nx-product-light); }
 .submit-failure { max-width: 720px; box-sizing: border-box; margin-bottom: 16px; }
 .start-form .nx-field { margin-bottom: 20px; }
 .start-form .nx-field input,

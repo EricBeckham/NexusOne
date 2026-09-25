@@ -47,8 +47,14 @@
                   <p v-else class="sku-warn" data-testid="catalog-sku-unbound">未绑定产品定义，暂不可开通</p>
                   <div v-if="sku.entitlements.length" class="sku-chips"><span v-for="chip in sku.entitlements" :key="chip">{{ chip }}</span></div>
                 </div>
+                <div v-if="subscribedSkus.has(sku.code)" class="subscribed" data-testid="catalog-subscribed">
+                  <span class="subscribed-chip">已开通</span>
+                  <router-link class="install-button" to="/p4/installations">前往我的已开通</router-link>
+                </div>
                 <button
+                  v-else
                   class="install-button"
+                  :class="{ ready: sku.code && sku.definition }"
                   type="button"
                   data-testid="catalog-subscribe"
                   :aria-label="`订阅开通 ${sku.name || sku.code}`"
@@ -78,6 +84,21 @@ const router = useRouter();
 
 const items = ref([]); const loading = ref(true); const error = ref(""); const installing = ref("");
 const failure = ref(null);
+// SKUs this tenant already subscribed (ACTIVE): show 已开通 instead of a subscribe that would 409.
+const subscribedSkus = ref(new Set());
+
+async function loadSubscriptions() {
+  if (!session.contextId) { subscribedSkus.value = new Set(); return; }
+  try {
+    const rows = (await p4.subscriptions()) || [];
+    subscribedSkus.value = new Set(rows
+      .filter((row) => String(row?.status || "").toUpperCase() === "ACTIVE")
+      .map((row) => row?.sku_code ?? row?.skuCode)
+      .filter(Boolean));
+  } catch {
+    subscribedSkus.value = new Set(); // Unknown: keep offering subscribe; the 409 alert still explains duplicates.
+  }
+}
 const search = ref(typeof route.query.q === "string" ? route.query.q : "");
 const visibleItems = computed(() => {
   const term = search.value.trim().toLocaleLowerCase();
@@ -88,7 +109,7 @@ const visibleItems = computed(() => {
 
 async function load() {
   loading.value = true; error.value = "";
-  try { items.value = (await p4.catalog()) || []; }
+  try { [items.value] = await Promise.all([p4.catalog().then((rows) => rows || []), loadSubscriptions()]); }
   catch (err) { error.value = err.message || "应用目录暂时不可用"; }
   finally { loading.value = false; }
 }
@@ -148,7 +169,14 @@ onMounted(load);
 .sku-warn { color: var(--nx-warning); }
 .sku-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .sku-chips span { padding: 1px 8px; border-radius: var(--nx-radius-pill); font-size: var(--nx-font-size-xs); color: var(--nx-product); background: var(--nx-product-light); }
-.sku-item .install-button { flex: none; }
+.sku-item { flex-wrap: wrap; }
+.sku-item .sku-meta { flex: 1 1 200px; }
+.sku-item .install-button { flex: none; display: inline-flex; align-items: center; text-decoration: none; }
+/* The one primary action on a subscribable SKU (N1); disabled / unbound SKUs stay outlined. */
+.install-button.ready:not(:disabled) { color: #fff; background: var(--nx-product); border-color: var(--nx-product); font-weight: 600; }
+.install-button.ready:not(:disabled):hover { color: #fff; background: var(--nx-product); border-color: var(--nx-product); filter: brightness(0.93); }
+.subscribed { display: flex; flex: none; align-items: center; gap: var(--nx-space-2); }
+.subscribed-chip { padding: 2px 10px; border-radius: var(--nx-radius-pill); font-size: var(--nx-font-size-xs); font-weight: 600; color: var(--nx-success); background: var(--nx-success-light); }
 .subscribe-failure { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); padding: var(--nx-space-3) var(--nx-space-4); border: 1px solid color-mix(in srgb, var(--nx-danger) 30%, white); border-left: 4px solid var(--nx-danger); border-radius: var(--nx-radius-sm); background: var(--nx-danger-light); }
 .failure-body { display: grid; gap: 4px; min-width: 0; }
 .failure-body strong { color: var(--nx-danger); }
