@@ -27,6 +27,12 @@ nexus:
     persistence: ${NEXUS_PERMISSION_PERSISTENCE:jdbc}
 
 management:
+  # The product has no actuator authentication: every exposed endpoint is anonymous.
+  # prod exposes health only (liveness/readiness); metrics/info stay off HTTP (P9).
+  endpoints:
+    web:
+      exposure:
+        include: health
   endpoint:
     health:
       show-details: when-authorized

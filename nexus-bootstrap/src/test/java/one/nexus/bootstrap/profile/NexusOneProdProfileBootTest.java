@@ -3,6 +3,9 @@ package one.nexus.bootstrap.profile;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +20,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -28,6 +33,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * master key, Keycloak IdP, no demo switches, health details not public.
  */
 @SpringBootTest(classes = NexusOneApplication.class)
+@AutoConfigureMockMvc
 @ActiveProfiles("prod")
 class NexusOneProdProfileBootTest {
     /** Test-only key material; never a deployment key. */
@@ -40,6 +46,7 @@ class NexusOneProdProfileBootTest {
     @Autowired PolicyRepository policies;
     @Autowired SecretPort secrets;
     @Autowired Environment env;
+    @Autowired MockMvc mvc;
 
     @BeforeAll
     static void startPostgres() throws Exception {
@@ -77,6 +84,17 @@ class NexusOneProdProfileBootTest {
         assertEquals("false", env.getProperty("nexus.demo.enabled"));
         assertEquals("when-authorized", env.getProperty("management.endpoint.health.show-details"));
         assertEquals("false", env.getProperty("management.info.env.enabled"));
+    }
+
+    @Test
+    void actuatorExposesOnlyHealthAndHidesItsDetailsFromAnonymousCallers() throws Exception {
+        mvc.perform(get("/actuator/metrics")).andExpect(status().isNotFound());
+        mvc.perform(get("/actuator/info")).andExpect(status().isNotFound());
+        mvc.perform(get("/actuator/env")).andExpect(status().isNotFound());
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").exists())
+                .andExpect(jsonPath("$.components").doesNotExist());
     }
 
     @Test

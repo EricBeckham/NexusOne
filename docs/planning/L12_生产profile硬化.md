@@ -28,6 +28,7 @@ java -jar nexus-bootstrap.jar --spring.profiles.active=prod
 | `nexus.iam.persistence` / `nexus.permission.persistence` | `jdbc`（可以用环境变量覆盖，但守卫会拒绝 `memory`） | `memory` | 用内存存储时，身份和授权在重启后丢失 |
 | `management.endpoint.health.show-details` / `show-components` | `when-authorized` | `always` | 不对匿名请求公开 DB、Redis 等组件细节 |
 | `management.info.env.enabled` | `false` | `true` | 收紧 `/actuator/info` |
+| `management.endpoints.web.exposure.include` | `health`（P9） | `health,info,metrics` | actuator 无鉴权，暴露即匿名 |
 
 ## 3. 启动守卫 `ProductionProfileGuard`
 
@@ -65,7 +66,7 @@ java -jar nexus-bootstrap.jar --spring.profiles.active=prod
 | 项 | 说明 |
 |---|---|
 | `nexus.permission.seed-tenant-member-grants` 默认 `true` | 会给租户成员下发默认授权，它属于产品语义，关闭后可能影响成员的默认可见性和演示路径（本卡没有验证），所以没有改。上线前由产品确认 |
-| actuator 端点本身是否需要鉴权 | 目前暴露 `health,info,metrics`。prod 已经不再公开 health 细节，但 `metrics` 仍然匿名可读，建议在网关层限制为内网访问 |
+| ~~actuator 端点本身是否需要鉴权~~ | **P9 已处理**：actuator 没有鉴权，所以 prod 下 `management.endpoints.web.exposure.include=health`，`metrics` / `info` 不再通过 HTTP 暴露（404）；守卫拒绝 health 以外的任何暴露。需要指标时通过内网抓取或另行加鉴权，不在本卡范围 |
 | Redis 不支持口令 | 见 L10；必须部署在私有网络 |
 | outbox dispatcher 没有环境变量开关 | 见 L11 §4-5 |
 | 主密钥轮换 / 重新加密工具 | 见 L10、L11 |

@@ -51,6 +51,16 @@ class ProductionProfileGuardTest {
         assertEquals(4, violations.size(), violations::toString);
     }
 
+    @Test void prodRefusesAnonymousActuatorEndpointsBeyondHealth() {
+        MockEnvironment env = hardenedProd()
+                .withProperty("management.endpoints.web.exposure.include", "health, info,metrics");
+        List<String> violations = ProductionProfileGuard.violations(env);
+        assertEquals(2, violations.size(), violations::toString);
+        assertTrue(violations.stream().anyMatch(v -> v.contains("'metrics'")), violations::toString);
+        env.setProperty("management.endpoints.web.exposure.include", "*");
+        assertEquals(1, ProductionProfileGuard.violations(env).size());
+    }
+
     @Test void configurationRefusesToCreateTheCheckBeanOnViolation() {
         MockEnvironment env = hardenedProd().withProperty("nexus.iam.idp", "stub");
         IllegalStateException refused = assertThrows(IllegalStateException.class,
