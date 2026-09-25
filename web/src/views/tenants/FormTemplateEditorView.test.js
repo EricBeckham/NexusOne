@@ -240,11 +240,15 @@ describe("form template designer", () => {
     await wrapper.get("[data-testid='template-publish-cancel']").trigger("click");
     expect(wrapper.find("[data-testid='template-publish-confirm']").exists()).toBe(false);
 
-    p1.publishFormTemplate.mockRejectedValueOnce(new Error("publish requires VALIDATED template status"));
+    p1.publishFormTemplate.mockRejectedValueOnce(Object.assign(new Error("publish requires VALIDATED template status"), { status: 409 }));
     await wrapper.get("[data-testid='template-publish']").trigger("click");
     await wrapper.get("[data-testid='template-publish-submit']").trigger("click");
     await flushPromises();
-    expect(wrapper.get("[data-testid='template-publish-error']").text()).toBe("publish requires VALIDATED template status");
+    const failure = wrapper.get("[data-testid='template-action-failure']");
+    expect(failure.text()).toContain("发布失败");
+    expect(failure.get("[data-testid='nx-request-alert-hint']").text()).toContain("先保存并通过校验");
+    expect(failure.get("[data-testid='nx-request-alert-server']").text()).toContain("publish requires VALIDATED template status");
+    expect(failure.find("[data-testid='nx-request-alert-retry']").exists()).toBe(false);
 
     p1.publishFormTemplate.mockResolvedValueOnce({ templateId: "tpl-1", versionId: "ver-1", version: 2 });
     await wrapper.get("[data-testid='template-publish']").trigger("click");
@@ -254,6 +258,55 @@ describe("form template designer", () => {
     expect(wrapper.get("[data-testid='template-next-bind']").attributes("href")).toBe("/p4/product-definitions");
     expect(wrapper.get("[data-testid='template-status']").text()).toContain("已发布");
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p1/form-templates/tpl-1");
+  });
+
+  it("keeps the canvas on an opaque save failure, shows the trace, and retries the save", async () => {
+    const wrapper = await mountAt("/p1/form-templates/new");
+    await wrapper.get("[data-testid='template-code']").setValue("leave");
+    await wrapper.get("[data-testid='template-name']").setValue("请假");
+    await paletteItem(wrapper, "TEXT").trigger("click");
+    p1.createFormTemplate.mockRejectedValueOnce(Object.assign(new Error("Internal error"), {
+      status: 500, code: "CORE.API.0099", traceId: "trace-h11",
+    }));
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    const failure = wrapper.get("[data-testid='template-action-failure']");
+    expect(failure.text()).toContain("保存草稿失败，画布内容未丢失");
+    expect(failure.get("[data-testid='nx-request-alert-trace']").text()).toContain("trace-h11");
+    expect(wrapper.text()).not.toContain("Internal error");
+    expect(wrapper.find("[data-testid='nx-error-state']").exists()).toBe(false);
+    expect(wrapper.findAll("[data-testid='template-field']")).toHaveLength(1);
+
+    p1.createFormTemplate.mockResolvedValueOnce({ id: "tpl-new", code: "leave", name: "请假", status: "DRAFT", fields: [
+      { key: "text_1", label: "文本", type: "TEXT", required: false, options: null },
+    ] });
+    await failure.get("[data-testid='nx-request-alert-retry']").trigger("click");
+    await flushPromises();
+    expect(p1.createFormTemplate).toHaveBeenCalledTimes(2);
+    expect(wrapper.find("[data-testid='template-action-failure']").exists()).toBe(false);
+    expect(wrapper.router.currentRoute.value.fullPath).toBe("/p1/form-templates/tpl-new");
+  });
+
+  it("explains a missing-fields save error and retries a failed validate", async () => {
+    const wrapper = await mountAt("/p1/form-templates/new");
+    p1.createFormTemplate.mockRejectedValueOnce(Object.assign(new Error("code, name, and fields are required"), { status: 400, code: "CORE.API.0001" }));
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='nx-request-alert-hint']").text()).toContain("填写编码和名称");
+    expect(wrapper.get("[data-testid='nx-request-alert-server']").text()).toContain("code, name, and fields are required");
+    wrapper.unmount();
+
+    p1.formTemplate.mockResolvedValue({ ...LEAVE });
+    const editing = await mountAt("/p1/form-templates/tpl-1");
+    p1.validateFormTemplate.mockRejectedValueOnce(Object.assign(new Error("Internal error"), { status: 500, traceId: "trace-v" }));
+    await editing.get("[data-testid='template-validate']").trigger("click");
+    await flushPromises();
+    expect(editing.get("[data-testid='template-action-failure']").text()).toContain("校验请求失败");
+    p1.validateFormTemplate.mockResolvedValueOnce({ templateId: "tpl-1", valid: true, status: "VALIDATED", errors: [] });
+    await editing.get("[data-testid='nx-request-alert-retry']").trigger("click");
+    await flushPromises();
+    expect(editing.get("[data-testid='template-validate-ok']").text()).toBe("校验通过");
+    expect(editing.find("[data-testid='template-action-failure']").exists()).toBe(false);
   });
 
   it("shows the server error text", async () => {
