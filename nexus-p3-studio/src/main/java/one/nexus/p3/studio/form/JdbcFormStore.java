@@ -1,7 +1,7 @@
 package one.nexus.p3.studio.form;
 
-import java.sql.Timestamp;
-import java.time.Instant;
+import static one.nexus.common.time.Utc.sqlTimestamp;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,9 +40,9 @@ public final class JdbcFormStore implements FormStore {
                 .param("description", form.description())
                 .param("draft_status", form.draftStatus().name())
                 .param("running_version", form.runningVersion())
-                .param("created_at", ts(form.createdAt()))
+                .param("created_at", sqlTimestamp(form.createdAt()))
                 .param("created_by", form.createdBy())
-                .param("updated_at", ts(form.updatedAt()))
+                .param("updated_at", sqlTimestamp(form.updatedAt()))
                 .param("updated_by", form.updatedBy())
                 .update();
         replaceBindings(form);
@@ -64,7 +64,7 @@ public final class JdbcFormStore implements FormStore {
                 .param("description", form.description())
                 .param("draft_status", form.draftStatus().name())
                 .param("running_version", form.runningVersion())
-                .param("updated_at", ts(form.updatedAt()))
+                .param("updated_at", sqlTimestamp(form.updatedAt()))
                 .param("updated_by", form.updatedBy())
                 .param("form_id", form.formId())
                 .param("tenant_id", form.tenantId())
@@ -136,7 +136,7 @@ public final class JdbcFormStore implements FormStore {
                 .param("status", version.status().name())
                 .param("snapshot", json(version.snapshot().toJson()))
                 .param("notes", version.notes())
-                .param("created_at", ts(version.createdAt()))
+                .param("created_at", sqlTimestamp(version.createdAt()))
                 .param("created_by", version.createdBy())
                 .update();
     }
@@ -228,7 +228,7 @@ public final class JdbcFormStore implements FormStore {
                 .param("message", log.message())
                 .param("details", json(log.details() == null ? Map.of() : log.details()))
                 .param("trace_id", log.traceId())
-                .param("occurred_at", ts(log.occurredAt()))
+                .param("occurred_at", sqlTimestamp(log.occurredAt()))
                 .update();
     }
 
@@ -273,7 +273,7 @@ public final class JdbcFormStore implements FormStore {
                 .param("tenant_id", submission.tenantId())
                 .param("running_version", submission.runningVersion())
                 .param("values", json(submission.values()))
-                .param("submitted_at", ts(submission.submittedAt()))
+                .param("submitted_at", sqlTimestamp(submission.submittedAt()))
                 .param("submitted_by", submission.submittedBy())
                 .param("ledger_id", submission.ledgerId())
                 .param("ledger_record_id", submission.ledgerRecordId())
@@ -416,9 +416,5 @@ public final class JdbcFormStore implements FormStore {
             parsed.put("bindings", mapper.convertValue(bindings, MAP_LIST));
         }
         return parsed;
-    }
-
-    private static Timestamp ts(Instant instant) {
-        return Timestamp.from(instant);
     }
 }

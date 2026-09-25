@@ -1,6 +1,7 @@
 package one.nexus.p3.infra.jdbc;
 
-import java.sql.Timestamp;
+import static one.nexus.common.time.Utc.sqlTimestamp;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -72,14 +73,14 @@ public class JdbcProductApplicationStore implements ProductApplicationStore {
                 VALUES (?, ?, ?, ?, ?, NULL, CAST(? AS jsonb), 'RUNNING', ?, ?, ?)
                 """, application.id(), application.tenantId(), application.installationId(),
                 application.productDefinitionId(), application.formTemplateVersionId(), application.valuesJson(),
-                application.initiatorPersonId(), Timestamp.from(application.createdAt()),
-                Timestamp.from(application.createdAt()));
+                application.initiatorPersonId(), sqlTimestamp(application.createdAt()),
+                sqlTimestamp(application.createdAt()));
     }
 
     @Override
     public void attachProcessInstance(UUID tenantId, UUID applicationId, UUID processInstanceId, Instant updatedAt) {
         jdbc.update("UPDATE business_meta.product_application SET process_instance_id=?, updated_at=? WHERE id=? AND tenant_id=?",
-                processInstanceId, Timestamp.from(updatedAt), applicationId, tenantId);
+                processInstanceId, sqlTimestamp(updatedAt), applicationId, tenantId);
     }
 
     @Override

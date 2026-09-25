@@ -1,11 +1,12 @@
 package one.nexus.p3.infra.jdbc;
 
+import static one.nexus.common.time.Utc.sqlTimestamp;
+
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,7 @@ public class FormTemplateDraftService {
         jdbc.update("""
                 INSERT INTO platform.form_template (id, code, name, description, status, created_at, updated_at, version)
                 VALUES (?, ?, ?, ?, 'DRAFT', ?, ?, 1)
-                """, id, request.code().trim(), request.name().trim(), request.description(), Timestamp.from(now), Timestamp.from(now));
+                """, id, request.code().trim(), request.name().trim(), request.description(), sqlTimestamp(now), sqlTimestamp(now));
         replaceFields(id, request.fields(), now);
         appendAudit(platform, "created", id, request.code().trim());
         return getWithoutGuard(id);
@@ -83,7 +84,7 @@ public class FormTemplateDraftService {
                 UPDATE platform.form_template
                    SET code = ?, name = ?, description = ?, status = 'DRAFT', updated_at = ?, version = version + 1
                  WHERE id = ?
-                """, request.code().trim(), request.name().trim(), request.description(), Timestamp.from(now), id);
+                """, request.code().trim(), request.name().trim(), request.description(), sqlTimestamp(now), id);
         if (changed == 0) throw notFound();
         replaceFields(id, request.fields(), now);
         appendAudit(platform, "updated", id, request.code().trim());
@@ -103,7 +104,7 @@ public class FormTemplateDraftService {
         String status = errors.isEmpty() ? "VALIDATED" : template.status();
         if (errors.isEmpty()) {
             jdbc.update("UPDATE platform.form_template SET status = 'VALIDATED', updated_at = ?, version = version + 1 WHERE id = ?",
-                    Timestamp.from(now), id);
+                    sqlTimestamp(now), id);
         }
         audit.append(new AuditEvent(UUID.randomUUID(), "platform.form_template.validated", AuditEvent.VERSION, now,
                 null, platform.actor().subjectId(), platform.actorHomeTenantId(), true, platform.reason(),
@@ -136,12 +137,12 @@ public class FormTemplateDraftService {
                 INSERT INTO platform.form_template_version
                     (id, template_id, version, fields_snapshot, published_at, published_by)
                 VALUES (?, ?, ?, CAST(? AS jsonb), ?, ?)
-                """, versionId, id, nextVersion, snapshot, Timestamp.from(publishedAt), platform.actor().subjectId());
+                """, versionId, id, nextVersion, snapshot, sqlTimestamp(publishedAt), platform.actor().subjectId());
         jdbc.update("""
                 UPDATE platform.form_template
                    SET status = 'PUBLISHED', running_version_id = ?, updated_at = ?, version = version + 1
                  WHERE id = ?
-                """, versionId, Timestamp.from(publishedAt), id);
+                """, versionId, sqlTimestamp(publishedAt), id);
         audit.append(new AuditEvent(UUID.randomUUID(), "platform.form_template.published", AuditEvent.VERSION,
                 publishedAt, null, platform.actor().subjectId(), platform.actorHomeTenantId(), true,
                 platform.reason(), platform.traceId(), platform.traceId(), null, AuditEvent.OUTCOME_ACCEPTED,
@@ -164,7 +165,7 @@ public class FormTemplateDraftService {
                         (id, template_id, field_key, label, field_type, required, options, position, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?)
                     """, UUID.randomUUID(), templateId, field.key().trim(), field.label().trim(), field.type(),
-                    field.required(), json(field.options()), position, Timestamp.from(now), Timestamp.from(now));
+                    field.required(), json(field.options()), position, sqlTimestamp(now), sqlTimestamp(now));
         }
     }
 
