@@ -406,11 +406,30 @@ function localFieldError(field, prop) {
   return draftErrors.value.byField[field?.uid]?.[prop] || "";
 }
 
+/** N6: API is SNAKE_CASE (field_key); normalize so canvas cards can bind by key. */
+function normalizeValidationResult(result) {
+  if (!result || typeof result !== "object") return result;
+  const errors = Array.isArray(result.errors)
+    ? result.errors.map((item) => ({
+        fieldId: item?.field_id ?? item?.fieldId ?? null,
+        fieldKey: item?.field_key ?? item?.fieldKey ?? null,
+        code: item?.code || "",
+        message: item?.message || "",
+      }))
+    : [];
+  return {
+    templateId: result.template_id ?? result.templateId ?? null,
+    valid: result.valid === true,
+    status: result.status || "",
+    errors,
+  };
+}
+
 function fieldErrors(field) {
   const local = Object.values(draftErrors.value.byField[field.uid] || {});
   const errors = validation.value?.errors;
   if (!Array.isArray(errors) || !field.key) return local;
-  return local.concat(errors.filter((item) => item?.fieldKey === field.key || item?.field_key === field.key)
+  return local.concat(errors.filter((item) => item?.fieldKey === field.key)
     .map((item) => item.message)
     .filter(Boolean));
 }
@@ -418,7 +437,7 @@ function fieldErrors(field) {
 const formErrors = computed(() => {
   const errors = validation.value?.errors;
   if (!Array.isArray(errors)) return [];
-  return errors.filter((item) => !item?.fieldKey && !item?.field_key)
+  return errors.filter((item) => !item?.fieldKey)
     .map((item) => item.message)
     .filter(Boolean);
 });
@@ -557,7 +576,7 @@ async function validate() {
   actionFailure.value = null;
   validation.value = null;
   try {
-    const result = await p1.validateFormTemplate(route.params.id);
+    const result = normalizeValidationResult(await p1.validateFormTemplate(route.params.id));
     validation.value = result;
     if (result?.status) status.value = result.status;
   } catch (err) {

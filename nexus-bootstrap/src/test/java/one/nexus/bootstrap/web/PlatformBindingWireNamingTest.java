@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import one.nexus.bootstrap.NexusOneApplication;
+import one.nexus.p3.infra.jdbc.FormTemplateDraftService.ValidationError;
+import one.nexus.p3.infra.jdbc.FormTemplateDraftService.ValidationResult;
 import one.nexus.p3.infra.jdbc.FormTemplateDraftService.TemplateView;
 import one.nexus.p4.market.MarketModels.ProductDefinition;
 import one.nexus.p4.market.MarketModels.ProductDefinitionWrite;
@@ -84,5 +86,31 @@ class PlatformBindingWireNamingTest {
         ProductDefinitionWrite ignored = mapper.readValue(camel, ProductDefinitionWrite.class);
         assertNull(ignored.formTemplateVersionId(), "camelCase keys are not bound, so the server sees no template version");
         assertNull(ignored.processDefinitionKey());
+    }
+
+    @Test
+    void formTemplateValidationErrorsExposeFieldKeyInSnakeCase() {
+        UUID fieldId = UUID.randomUUID();
+        UUID templateId = UUID.randomUUID();
+        JsonNode body = mapper.valueToTree(new ValidationResult(templateId, false, "DRAFT", List.of(
+                new ValidationError(fieldId, "Reason", "field.key.invalid", "字段 key 须以小写字母开头，只能包含小写字母、数字和下划线"),
+                new ValidationError(null, null, "fields.required", "至少需要一个字段"))));
+
+        assertEquals(templateId.toString(), body.path("template_id").asText());
+        assertTrue(body.path("templateId").isMissingNode());
+        assertEquals(false, body.path("valid").asBoolean());
+        assertEquals("DRAFT", body.path("status").asText());
+
+        JsonNode fieldError = body.path("errors").get(0);
+        assertEquals(fieldId.toString(), fieldError.path("field_id").asText());
+        assertEquals("Reason", fieldError.path("field_key").asText());
+        assertEquals("field.key.invalid", fieldError.path("code").asText());
+        assertTrue(fieldError.path("message").asText().contains("小写字母"));
+        assertTrue(fieldError.path("fieldKey").isMissingNode(), "web must read field_key, not camelCase");
+
+        JsonNode formError = body.path("errors").get(1);
+        assertTrue(formError.path("field_key").isNull() || formError.path("field_key").isMissingNode());
+        assertEquals("fields.required", formError.path("code").asText());
+        assertEquals("至少需要一个字段", formError.path("message").asText());
     }
 }
