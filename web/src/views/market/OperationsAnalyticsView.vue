@@ -3,7 +3,8 @@
     <NxPageHeader
       eyebrow="P4 · 星市"
       title="运营分析"
-      description="轻量运营分析，非独立 BI。计数来自已有上架 / 订阅 / 安装列表 API，无假 KPI。"
+      description="轻量运营分析，非独立 BI。计数来自已有上架 / 订阅 / 安装列表，无假 KPI。"
+      :crumbs="crumbs"
     >
       <template #actions>
         <button class="ghost" type="button" :disabled="loading" data-testid="operations-refresh" @click="load">刷新</button>
@@ -33,7 +34,7 @@
 
       <p v-if="tenantHint" class="nx-muted tenant-hint" data-testid="operations-tenant-hint">{{ tenantHint }}</p>
 
-      <NxPanelCard title="上架摘要" description="来自应用目录（catalog）已发布条目。" data-testid="operations-catalog">
+      <NxPanelCard title="上架摘要" description="来自应用目录的已发布条目。" data-testid="operations-catalog">
         <template #actions>
           <router-link to="/p4/market">查看目录</router-link>
         </template>
@@ -86,6 +87,10 @@ const loading = ref(true);
 const error = ref("");
 const traceId = ref("");
 const tenantPartial = ref("");
+const crumbs = [
+  { label: "应用目录", to: "/p4/market" },
+  { label: "运营分析" },
+];
 
 const appCount = computed(() => new Set(catalog.value.map((item) => item.app?.id).filter(Boolean)).size);
 const subscriptionCount = computed(() => (Array.isArray(subscriptions.value) ? subscriptions.value.length : 0));
