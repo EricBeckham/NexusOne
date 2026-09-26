@@ -1,6 +1,6 @@
 <template>
   <main>
-    <NxPageHeader eyebrow="P4 · 星市" title="商业权益" description="只读投影当前租户的订阅、SKU 权益和安装状态。本页不编辑运行时投影。">
+    <NxPageHeader eyebrow="P4 · 星市" title="商业权益" description="查看当前租户的订阅、SKU 权益与开通状态（只读）。">
       <template v-if="isDetail" #actions>
         <router-link class="ghost" to="/p4/entitlements">返回列表</router-link>
       </template>
@@ -9,7 +9,7 @@
     <NxErrorState v-if="error" :title="error" :trace-id="traceId" retry-label="重试" @retry="load" />
 
     <template v-else-if="isDetail">
-      <NxEmpty v-if="loaded && !item" title="暂无" description="接口没有返回这条商业权益。" />
+      <NxEmpty v-if="loaded && !item" title="找不到这条商业权益" description="它可能已失效或不属于当前租户，请返回列表查看。" />
       <section v-else-if="item" class="nx-card detail">
         <h2>{{ show(item.skuName) }}</h2>
         <dl>
@@ -33,7 +33,7 @@
     </template>
 
     <template v-else>
-      <NxEmpty v-if="rows && !rows.length" title="暂无" description="当前租户还没有可投影的商业权益。" />
+      <NxEmpty v-if="rows && !rows.length" title="还没有商业权益" description="在应用目录订阅开通后，权益会显示在这里。" />
       <table v-else-if="listed.length" class="nx-table">
         <thead><tr><th>SKU</th><th>订阅状态</th><th>安装状态</th><th>权益项</th><th></th></tr></thead>
         <tbody>
@@ -129,7 +129,7 @@ async function load() {
   try {
     const body = await p4.commercialEntitlements();
     rows.value = Array.isArray(body) ? body : null;
-    if (!rows.value) error.value = "接口没有返回商业权益列表";
+    if (!rows.value) error.value = "商业权益暂时无法加载，请稍后重试。";
   } catch (err) {
     rows.value = null;
     error.value = err.message || "加载失败";

@@ -48,10 +48,12 @@ describe("P4 commercial entitlements page", () => {
     expect(wrapper.text()).not.toContain("金额");
   });
 
-  it("shows 暂无 when the tenant has no projection", async () => {
+  it("shows an empty state with the next step when the tenant has no entitlements (S9)", async () => {
     p4.commercialEntitlements.mockResolvedValue([]);
     const wrapper = await open("/p4/entitlements");
-    expect(wrapper.text()).toContain("暂无");
+    expect(wrapper.text()).toContain("还没有商业权益");
+    expect(wrapper.text()).toContain("在应用目录订阅开通后");
+    expect(wrapper.text()).not.toMatch(/投影|接口/);
     expect(wrapper.find("table").exists()).toBe(false);
   });
 
