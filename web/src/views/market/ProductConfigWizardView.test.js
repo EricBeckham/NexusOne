@@ -7,11 +7,16 @@ const mocks = vi.hoisted(() => ({
   formTemplates: vi.fn(),
   productDefinitions: vi.fn(),
   skus: vi.fn(),
+  bindProductDefinitionSku: vi.fn(),
   listProcessDefinitions: vi.fn(),
 }));
 vi.mock("../../api/client", () => ({
   p1: { formTemplates: mocks.formTemplates },
-  p4: { productDefinitions: mocks.productDefinitions, skus: mocks.skus },
+  p4: {
+    productDefinitions: mocks.productDefinitions,
+    skus: mocks.skus,
+    bindProductDefinitionSku: mocks.bindProductDefinitionSku,
+  },
 }));
 vi.mock("../../api/p3", () => ({
   p3: { listProcessDefinitions: mocks.listProcessDefinitions },
@@ -77,5 +82,22 @@ describe("product config wizard empty/error (PC3)", () => {
     await flushPromises();
     expect(wrapper.find("[data-testid='wizard-error']").exists()).toBe(false);
     expect(wrapper.get("[data-testid='wizard-empty-form']").exists()).toBe(true);
+  });
+
+  it("binds an SKU from the wizard panel via the existing bind API (PC4)", async () => {
+    mocks.formTemplates.mockResolvedValue([{ id: "t1", status: "PUBLISHED" }]);
+    mocks.productDefinitions.mockResolvedValue([{ id: "def-1", code: "hr-basic", name: "HR 基础版", status: "DRAFT" }]);
+    mocks.skus.mockResolvedValue([{ code: "crm-pro", name: "专业版" }]);
+    mocks.listProcessDefinitions.mockResolvedValue([{ key: "leave" }]);
+    mocks.bindProductDefinitionSku.mockResolvedValue({});
+    const wrapper = await mountPage();
+    await wrapper.get("[data-testid='wizard-step-bind'] button").trigger("click");
+    expect(wrapper.get("[data-testid='wizard-definition-list']").text()).toContain("HR 基础版");
+    await wrapper.get("[data-testid='wizard-bind-open-hr-basic']").trigger("click");
+    await wrapper.get("[data-testid='wizard-bind-sku']").setValue("crm-pro");
+    await wrapper.get("[data-testid='wizard-bind-form']").trigger("submit");
+    await flushPromises();
+    expect(mocks.bindProductDefinitionSku).toHaveBeenCalledWith("def-1", "crm-pro");
+    expect(wrapper.get("[data-testid='wizard-bind-notice']").text()).toContain("crm-pro");
   });
 });
