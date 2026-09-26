@@ -450,6 +450,10 @@
       <section class="confirm-dialog nx-card" role="dialog" aria-modal="true" aria-labelledby="process-publish-confirm-title" data-testid="process-publish-confirm">
         <h2 id="process-publish-confirm-title">确认发布流程？</h2>
         <p>将当前已保存且校验通过的草稿发布为租户可用版本。正在运行的流程实例不会迁移。</p>
+        <ul class="confirm-facts" data-testid="process-publish-facts">
+          <li data-testid="process-publish-version-hint">当前已发布版本：{{ publication?.version != null ? `v${publication.version}` : "尚无（本次将发布为首个版本）" }}</li>
+          <li data-testid="process-publish-ref-hint">产品引用数暂不可用：还没有「哪些产品绑定了此流程」的只读接口，发布前请自行在产品定义中核对。</li>
+        </ul>
         <div class="confirm-actions">
           <button type="button" class="ghost" data-testid="process-publish-cancel" :disabled="publishing" @click="publishConfirm = false">取消</button>
           <button type="button" class="primary" data-testid="process-publish-confirm-submit" :disabled="publishing" @click="publishDraft">
@@ -1090,8 +1094,14 @@ watch(() => route.params.key, reload, { immediate: true });
 .validation-result li span, .validation-error, .publish-error { color: var(--nx-text-secondary); }
 .publication-result { display: grid; gap: var(--nx-space-1); padding: var(--nx-space-2); border: 1px solid var(--nx-success); border-radius: var(--nx-radius-sm); }
 .confirm-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: var(--nx-space-4); background: rgb(0 0 0 / 48%); }
+.confirm-facts { margin: var(--nx-space-3) 0; padding-left: 1.2em; color: var(--nx-text-regular); }
+.confirm-facts li { margin: var(--nx-space-1) 0; }
 .confirm-dialog { width: min(100%, 440px); display: grid; gap: var(--nx-space-3); }
-.confirm-dialog h2, .confirm-dialog p { margin: 0; }
+.confirm-facts { margin: var(--nx-space-3) 0; padding-left: 1.2em; color: var(--nx-text-regular); }
+.confirm-facts li { margin: var(--nx-space-1) 0; }
+.confirm-dialog h2, .confirm-facts { margin: var(--nx-space-3) 0; padding-left: 1.2em; color: var(--nx-text-regular); }
+.confirm-facts li { margin: var(--nx-space-1) 0; }
+.confirm-dialog p { margin: 0; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: var(--nx-space-2); }
 .list h2, .canvas h2, .props h2, .props h3 { margin: 0; font-size: var(--nx-font-size-md); }
 .list h2 small { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); font-weight: 400; }
