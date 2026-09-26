@@ -3,7 +3,7 @@
     <NxPageHeader
       eyebrow="P4 · 平台配置"
       title="产品配置向导"
-      description="按顺序完成：配表单 → 配流程 → 绑 SKU → 发布。步骤状态按当前产品的真实配置显示，未确认的不打勾。"
+      description="按顺序完成：配表单 → 配流程 → 绑 SKU → 发布。就绪态来自产品定义读口；未确认的步骤不打勾。"
       :crumbs="crumbs"
     >
       <template #actions>

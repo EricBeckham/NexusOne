@@ -57,6 +57,8 @@ describe("product config wizard empty/error (PC3)", () => {
 
   it("keeps steps pending and shows form empty with next CTA", async () => {
     const wrapper = await mountPage();
+    expect(wrapper.get("[data-testid='nx-page-header']").text()).toContain("就绪态来自产品定义读口");
+    expect(wrapper.get("[data-testid='nx-page-header']").text()).not.toContain("未接读口");
     const steps = wrapper.findAll("[data-testid='wizard-steps'] [data-testid^='wizard-step-']");
     expect(steps.every((node) => node.attributes("data-status") === "PENDING")).toBe(true);
     expect(wrapper.get("[data-testid='wizard-empty-form']").text()).toContain("还没有已发布的表单模板");
