@@ -7,7 +7,7 @@
     <nav class="p4-tabs" aria-label="星市管理分区">
       <router-link v-for="tab in tabs" :key="tab.to" :to="tab.to" :aria-current="route.path === tab.to ? 'page' : undefined">{{ tab.label }}</router-link>
     </nav>
-    <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
+    <NxErrorState v-if="error" title="星市数据暂时无法加载" :description="error" retry-label="重新加载" @retry="load" />
     <div v-else-if="loading" class="management-skeleton" data-testid="p4-management-loading" role="status">
       <NxSkeleton v-for="n in 4" :key="n" variant="list-row" label="正在读取星市数据" />
     </div>
@@ -56,7 +56,7 @@
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="订阅按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="nx-card">
         <div class="section-heading"><div><h2>订阅</h2><p class="nx-muted">当前租户的订阅及其对应安装状态。</p></div><span class="nx-muted">{{ subscriptions.length }} 条记录</span></div>
-        <NxEmpty v-if="!subscriptions.length" title="暂无订阅" description="当前租户还没有订阅记录。" />
+        <NxEmpty v-if="!subscriptions.length" title="还没有订阅" description="在应用目录选择 SKU 订阅开通后，订阅会显示在这里。" data-testid="subscriptions-empty"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
         <div v-else class="table-scroll"><table class="nx-table"><thead><tr><th>租户</th><th>商品</th><th>SKU</th><th>状态</th><th>开始</th><th>到期</th><th>权益状态</th><th>安装状态</th></tr></thead><tbody>
           <tr v-for="sub in subscriptions" :key="sub.id"><td><code>{{ sub.tenantId }}</code></td><td>{{ appForSku(sub.skuCode)?.name || appForSku(sub.skuCode)?.code || "暂无" }}</td><td>{{ skuByCode(sub.skuCode)?.name || sub.skuCode }}</td><td><NxStatusTag :status="sub.status" :label="sub.status" /></td><td>{{ formatDate(sub.startedAt) }}</td><td>{{ formatDate(sub.endedAt) }}</td><td><span class="nx-muted">暂无投影读模型</span></td><td>{{ installationStatus(sub) }}</td></tr>
         </tbody></table></div>
