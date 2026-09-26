@@ -29,6 +29,27 @@ public final class MarketModels {
             Instant pinnedAt) {}
     public record CatalogItem(AppPackage app, AppVersion version, java.util.List<CatalogSku> skus) {}
 
+    /**
+     * XB7: one upgrade fact. {@code value == null} means nothing declares or records it (shown as 暂无);
+     * {@code note} says why in plain words. Never a claim that something was checked when it was not.
+     */
+    public record UpgradeFact(String key, String label, String value, String note) {}
+    public record UpgradeFacts(UUID installationId, UUID currentVersionId, java.util.List<UpgradeFact> facts) {
+        public UpgradeFacts {
+            facts = java.util.List.copyOf(facts);
+        }
+
+        /** What the code can honestly say today: versions declare no compatibility/schema/migration data. */
+        public static UpgradeFacts current(Installation installation) {
+            return new UpgradeFacts(installation.id(), installation.versionId(), java.util.List.of(
+                    new UpgradeFact("compatibility", "兼容范围", null, "应用版本没有声明兼容范围。"),
+                    new UpgradeFact("schema_change", "Schema 变更", null, "应用版本没有声明结构变更。"),
+                    new UpgradeFact("data_migration", "数据迁移", null, "升级只切换版本，不执行数据迁移，也没有迁移记录。"),
+                    new UpgradeFact("rollback", "回滚能力", "仅切换版本",
+                            "可以切回同一应用的已发布版本；数据不会随之回滚。")));
+        }
+    }
+
     /** XB6: status words shared with the web stepper (XB4). DONE/ACTIVE/FAILED only ever come from a record. */
     public enum UpgradeStepStatus { DONE, ACTIVE, FAILED, UNKNOWN }
     public record UpgradeStep(String key, String label, UpgradeStepStatus status) {}

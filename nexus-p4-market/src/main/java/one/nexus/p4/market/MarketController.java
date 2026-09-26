@@ -45,6 +45,8 @@ public class MarketController {
     }
     /** XB6: step state of an installation's upgrade; UNKNOWN everywhere while nothing records steps. */
     @GetMapping("/installations/{id}/upgrade-steps") UpgradeSteps upgradeSteps(@PathVariable UUID id){return service.upgradeSteps(id);}
+    /** XB7: upgrade facts (兼容范围 / Schema 变更 / 数据迁移 / 回滚能力); null where nothing declares them. */
+    @GetMapping("/installations/{id}/upgrade-facts") UpgradeFacts upgradeFacts(@PathVariable UUID id){return service.upgradeFacts(id);}
     @PostMapping("/installations/{id}/upgrade") Installation upgrade(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/rollback") Installation rollback(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/uninstall") Installation uninstall(@PathVariable UUID id){return service.uninstall(id);}

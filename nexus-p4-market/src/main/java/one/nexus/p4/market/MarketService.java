@@ -213,6 +213,15 @@ public class MarketService {
         return UpgradeSteps.unrecorded(current.id());
     }
 
+    /**
+     * XB7: upgrade facts for an installation. Versions carry only release notes, so compatibility, schema
+     * change and data migration are null (暂无) with a reason; rollback describes the real version switch.
+     */
+    @Transactional(readOnly = true)
+    public UpgradeFacts upgradeFacts(UUID installationId) {
+        return UpgradeFacts.current(installation(installationId));
+    }
+
     @Transactional
     public Installation uninstall(UUID installationId) {
         Installation current = installation(installationId);
