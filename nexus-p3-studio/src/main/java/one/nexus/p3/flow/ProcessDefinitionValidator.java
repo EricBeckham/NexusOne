@@ -123,6 +123,8 @@ public class ProcessDefinitionValidator {
             }
         }
 
+        checkParallelPairing(nodes, outgoingFlows, incomingCounts, errors);
+
         if (!starts.isEmpty()) {
             Set<String> reachable = new HashSet<>(starts);
             ArrayDeque<String> queue = new ArrayDeque<>(starts);
@@ -139,6 +141,90 @@ public class ProcessDefinitionValidator {
         }
 
         return new ProcessDefinitionValidationResult(errors.isEmpty(), errors);
+    }
+
+    /**
+     * ZA11 thin fork/join pairing. Supported: a fork (one in, several out) whose every branch is a straight
+     * chain of single-exit nodes (possibly empty) ending at the same join (several in, one out), and nothing
+     * else feeding that join. Everything else is reported with a node/flow locator instead of guessed at:
+     * mixed gateways, branches that end or merge early, nested splits and loops, mismatched or unpaired joins.
+     * Flowable execution is untouched.
+     */
+    private static void checkParallelPairing(Map<String, Element> nodes, Map<String, List<Element>> outgoingFlows,
+                                             Map<String, Integer> incomingCounts, List<ValidationError> errors) {
+        Set<String> reported = new HashSet<>();
+        java.util.function.Consumer<ValidationError> report = error -> {
+            if (reported.add(error.code() + "|" + error.nodeId() + "|" + error.flowId())) errors.add(error);
+        };
+        Set<String> forks = new java.util.LinkedHashSet<>();
+        Set<String> joins = new java.util.LinkedHashSet<>();
+        for (var entry : nodes.entrySet()) {
+            if (!"parallelGateway".equals(localName(entry.getValue()))) continue;
+            String id = entry.getKey();
+            int in = incomingCounts.getOrDefault(id, 0);
+            int out = outgoingFlows.getOrDefault(id, List.of()).size();
+            if (in > 1 && out > 1) {
+                report.accept(error("PARALLEL_GATEWAY_MIXED", "并行网关不能同时汇合和分出；请拆成一个并行汇合和一个并行开始", id, null));
+            } else if (out > 1) {
+                forks.add(id);
+            } else if (in > 1) {
+                joins.add(id);
+            }
+        }
+
+        Set<String> pairedJoins = new HashSet<>();
+        for (String fork : forks) {
+            String join = null;
+            boolean broken = false;
+            for (Element exit : outgoingFlows.getOrDefault(fork, List.of())) {
+                String cursor = exit.getAttribute("targetRef");
+                Set<String> seen = new HashSet<>();
+                String reached = null;
+                while (cursor != null && nodes.containsKey(cursor)) {
+                    if (!seen.add(cursor) || cursor.equals(fork)) {
+                        report.accept(error("PARALLEL_STRUCTURE_UNSUPPORTED", "并行分支里出现了回环，当前只支持并行开始到并行汇合之间的顺序分支", cursor, null));
+                        break;
+                    }
+                    boolean parallelJoin = "parallelGateway".equals(localName(nodes.get(cursor))) && incomingCounts.getOrDefault(cursor, 0) > 1;
+                    if (parallelJoin) {
+                        reached = cursor;
+                        break;
+                    }
+                    if (incomingCounts.getOrDefault(cursor, 0) > 1) {
+                        report.accept(error("PARALLEL_EARLY_MERGE", "并行分支在到达并行汇合之前就与其他连线合流了", cursor, null));
+                        break;
+                    }
+                    List<Element> next = outgoingFlows.getOrDefault(cursor, List.of());
+                    if (next.isEmpty()) {
+                        report.accept(error("PARALLEL_BRANCH_NOT_JOINED", "并行分支没有汇合就结束了；每条并行分支都要连到同一个并行汇合", fork, exit.getAttribute("id")));
+                        break;
+                    }
+                    if (next.size() > 1) {
+                        report.accept(error("PARALLEL_STRUCTURE_UNSUPPORTED", "并行分支里又出现了分支，当前只支持并行开始到并行汇合之间的顺序分支", cursor, null));
+                        break;
+                    }
+                    cursor = next.getFirst().getAttribute("targetRef");
+                }
+                if (reached == null) {
+                    broken = true;
+                } else if (join == null) {
+                    join = reached;
+                } else if (!join.equals(reached)) {
+                    report.accept(error("PARALLEL_JOIN_MISMATCH", "同一个并行开始的分支必须汇合到同一个并行汇合", fork, exit.getAttribute("id")));
+                    broken = true;
+                }
+            }
+            if (join == null) continue;
+            pairedJoins.add(join);
+            if (!broken && incomingCounts.getOrDefault(join, 0) != outgoingFlows.getOrDefault(fork, List.of()).size()) {
+                report.accept(error("PARALLEL_JOIN_MISMATCH", "并行汇合还收到了并行分支以外的连线", join, null));
+            }
+        }
+        for (String join : joins) {
+            if (!pairedJoins.contains(join)) {
+                report.accept(error("PARALLEL_JOIN_UNPAIRED", "并行汇合没有对应的并行开始", join, null));
+            }
+        }
     }
 
     private static Element parseProcess(String xml) throws Exception {
