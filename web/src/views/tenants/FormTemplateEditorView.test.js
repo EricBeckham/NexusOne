@@ -58,6 +58,7 @@ const LEAVE = {
   name: "请假",
   description: "说明",
   status: "DRAFT",
+  running_version: 2,
   fields: [
     { key: "reason", label: "事由", type: "TEXT", required: true, options: null },
     { key: "days", label: "天数", type: "NUMBER", required: false, options: null },
@@ -155,6 +156,15 @@ describe("form template designer", () => {
     expect(wrapper.findAll("[data-testid='move-up']")[0].attributes("disabled")).toBeDefined();
     await wrapper.findAll("[data-testid='remove-field']")[1].trigger("click");
     expect(cardNames(wrapper)).toEqual(["成员选择", "天数"]);
+  });
+
+  it("shows publish status and running version on the editor status bar (CF-T3)", async () => {
+    p1.formTemplate.mockResolvedValue({ ...LEAVE });
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    const bar = wrapper.get("[data-testid='template-editor-statusbar']");
+    expect(bar.get("[data-testid='template-status']").text()).toContain("发布态：草稿");
+    expect(bar.get("[data-testid='template-running-version']").text()).toContain("运行版本 v2");
+    expect(bar.text()).not.toContain("针对已保存的草稿");
   });
 
   it("opens a read-only applicant preview drawer without a second editor (CF-F2)", async () => {

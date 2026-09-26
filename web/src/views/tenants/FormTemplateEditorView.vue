@@ -29,10 +29,11 @@
     @dismiss="actionFailure = null"
   />
 
-  <section class="statusbar" aria-live="polite">
-    <span class="status-chip" :data-tone="statusTone" data-testid="template-status">状态：{{ statusLabel(status) }}</span>
-    <span class="meta-text">{{ fields.length }} 个字段</span>
-    <span v-if="dirty" class="dirty" data-testid="template-dirty">有未保存的修改<template v-if="!creating">；校验与发布针对已保存的草稿</template></span>
+  <section class="statusbar" aria-live="polite" data-testid="template-editor-statusbar">
+    <span class="status-chip" :data-tone="statusTone" data-testid="template-status">发布态：{{ statusLabel(status) }}</span>
+    <span class="meta-text" data-testid="template-running-version">运行版本 {{ runningVersionLabel }}</span>
+    <span class="meta-text" data-testid="template-field-count">{{ fields.length }} 个字段</span>
+    <span v-if="dirty" class="dirty" data-testid="template-dirty">有未保存的修改<template v-if="!creating">；请先保存后再校验或发布</template></span>
     <span v-if="draftErrorCount" class="invalid-count" data-testid="template-draft-invalid">还有 {{ draftErrorCount }} 处必填项未填写，已在对应位置标出</span>
     <span v-if="validation?.valid" class="ok" data-testid="template-validate-ok">校验通过</span>
   </section>
@@ -386,6 +387,7 @@ const code = ref("");
 const name = ref("");
 const description = ref("");
 const status = ref("DRAFT");
+const runningVersion = ref(null);
 const fields = ref([]);
 const error = ref("");
 const traceId = ref("");
@@ -431,6 +433,12 @@ const draftErrors = computed(() => {
 const templateErrors = computed(() => draftErrors.value.template);
 const draftErrorCount = computed(() => draftErrors.value.count);
 const statusTone = computed(() => ({ VALIDATED: "info", PUBLISHED: "success", ARCHIVED: "neutral" })[status.value] || "warning");
+const runningVersionLabel = computed(() => {
+  if (creating.value) return "尚未创建";
+  const version = runningVersion.value ?? publishedVersion.value;
+  if (version === 0 || version) return `v${version}`;
+  return "暂无";
+});
 
 function statusLabel(value) {
   return ({ DRAFT: "草稿", VALIDATED: "已校验", PUBLISHED: "已发布", ARCHIVED: "已归档" })[value] || value || "暂无";
@@ -643,6 +651,7 @@ function applyTemplate(row) {
   name.value = row?.name || "";
   description.value = row?.description || "";
   status.value = row?.status || "DRAFT";
+  runningVersion.value = row?.runningVersion ?? row?.running_version ?? row?.publishedVersion ?? row?.version ?? null;
   fields.value = (Array.isArray(row?.fields) ? row.fields : []).map((field) => {
     const wire = readWireOptions(field.options, field.layout);
     const next = {
@@ -761,6 +770,7 @@ async function publish() {
   try {
     const result = await p1.publishFormTemplate(route.params.id);
     publishedVersion.value = result?.version ?? null;
+    if (publishedVersion.value != null) runningVersion.value = publishedVersion.value;
     status.value = "PUBLISHED";
     publishConfirm.value = false;
     nxMessage.success("模板已发布");
