@@ -32,16 +32,16 @@
       </p>
 
       <section class="nx-card" aria-label="已有产品定义">
-        <h2>已有定义</h2>
+        <div class="section-heading"><h2>已有定义</h2><span>{{ loaded ? `共 ${definitions.length} 个` : "正在加载…" }}</span></div>
         <NxEmpty
           v-if="loaded && !definitions.length"
           title="暂无产品定义"
           description="在下方选择已发布的模板和流程，保存后即可绑定 SKU。"
           compact
-        />
-        <table v-else-if="definitions.length" class="nx-table" data-testid="product-definition-list">
+        ><template #next><a href="#new-definition" class="ghost">填写产品定义</a></template></NxEmpty>
+        <div v-if="definitions.length" class="table-scroll"><table class="nx-table nx-table--compact" data-testid="product-definition-list">
           <thead>
-            <tr><th>产品</th><th>状态</th><th>表单模板</th><th>流程</th><th>已绑定 SKU</th><th></th></tr>
+            <tr><th scope="col">产品</th><th scope="col">状态</th><th scope="col">表单模板</th><th scope="col">流程</th><th scope="col">已绑定 SKU</th><th scope="col">操作</th></tr>
           </thead>
           <tbody>
             <tr v-for="row in definitions" :key="row.id" :class="{ binding: bindingFor === row.id }">
@@ -59,22 +59,24 @@
               </td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
 
         <form v-if="bindingDefinition" class="bind-panel" data-testid="bind-panel" @submit.prevent="bindSku">
           <h3>为「{{ bindingDefinition.name || bindingDefinition.code }}」绑定 SKU</h3>
           <p class="nx-muted">绑定后，租户在应用目录订阅该 SKU 时会开通这个产品。一个 SKU 只能绑定一个产品。</p>
-          <NxEmpty v-if="!skus.length" title="暂无 SKU" description="先在星市创建应用与 SKU，再回来绑定。" compact />
+          <NxEmpty v-if="!skus.length" title="暂无 SKU" description="先在星市创建应用与 SKU，再回来绑定。" compact>
+            <template #next><router-link class="ghost" to="/p4/market">去应用目录</router-link></template>
+          </NxEmpty>
           <template v-else>
-            <label>
-              SKU
-              <select v-model="bindSkuCode" data-testid="bind-sku" required>
+            <label class="nx-field">
+              <span>SKU<em class="nx-req" aria-hidden="true">*</em></span>
+              <select v-model="bindSkuCode" data-testid="bind-sku" required :aria-invalid="!!bindError">
                 <option value="">请选择</option>
                 <option v-for="sku in skus" :key="sku.code" :value="sku.code">{{ sku.name || sku.code }}（{{ sku.code }}）</option>
               </select>
+              <small v-if="bindError" class="nx-field-error" role="alert" data-testid="bind-error">{{ bindError }}</small>
             </label>
             <p v-if="rebindWarning" class="warn" data-testid="bind-rebind-warning">{{ rebindWarning }}</p>
-            <p v-if="bindError" class="error" role="alert" data-testid="bind-error">{{ bindError }}</p>
             <div class="actions">
               <button class="primary" type="submit" data-testid="bind-submit" :disabled="binding || !bindSkuCode">{{ binding ? "绑定中…" : "确认绑定" }}</button>
               <button class="ghost" type="button" @click="closeBind">取消</button>
@@ -83,13 +85,13 @@
         </form>
       </section>
 
-      <form class="nx-card binding-form" data-testid="product-definition-form" @submit.prevent="save">
+      <form id="new-definition" class="nx-card binding-form" data-testid="product-definition-form" @submit.prevent="save">
         <h2>{{ editingId ? "编辑草稿" : "新建产品定义" }}</h2>
-        <label>编码<input v-model="form.code" data-testid="definition-code" required maxlength="80" /></label>
-        <label>名称<input v-model="form.name" data-testid="definition-name" required maxlength="160" /></label>
-        <label>说明<textarea v-model="form.description" data-testid="definition-description" rows="2"></textarea></label>
-        <label>
-          已发布模板版本
+        <label class="nx-field"><span>编码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="form.code" data-testid="definition-code" required maxlength="80" :aria-invalid="touched.code && !form.code.trim()" @blur="touched.code = true" /><small v-if="touched.code && !form.code.trim()" class="nx-field-error">请填写产品编码</small></label>
+        <label class="nx-field"><span>名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="form.name" data-testid="definition-name" required maxlength="160" :aria-invalid="touched.name && !form.name.trim()" @blur="touched.name = true" /><small v-if="touched.name && !form.name.trim()" class="nx-field-error">请填写产品名称</small></label>
+        <label class="nx-field"><span>说明</span><textarea v-model="form.description" data-testid="definition-description" rows="2"></textarea></label>
+        <label class="nx-field">
+          <span>已发布模板版本<em class="nx-req" aria-hidden="true">*</em></span>
           <select
             v-model="form.formTemplateVersionId"
             data-testid="definition-template"
@@ -108,8 +110,8 @@
             <router-link to="/p1/form-templates">去表单模板发布</router-link>
           </small>
         </label>
-        <label>
-          已发布流程版本
+        <label class="nx-field">
+          <span>已发布流程版本<em class="nx-req" aria-hidden="true">*</em></span>
           <select
             v-model="form.processKey"
             data-testid="definition-process"
@@ -181,6 +183,7 @@ const form = reactive({
   formTemplateVersionId: "",
   processKey: "",
 });
+const touched = reactive({ code: false, name: false });
 
 const canSave = computed(() => form.code.trim() && form.name.trim() && form.formTemplateVersionId && form.processKey);
 const bindingDefinition = computed(() => definitions.value.find((row) => row.id === bindingFor.value) || null);
@@ -274,6 +277,8 @@ function resetForm() {
   form.description = "";
   form.formTemplateVersionId = "";
   form.processKey = "";
+  touched.code = false;
+  touched.name = false;
 }
 
 function payload() {
@@ -445,6 +450,11 @@ onMounted(load);
 
 <style scoped>
 .binding-page { display: grid; gap: var(--nx-space-4); }
+.binding-page :deep(.page-header) { margin-bottom: 0; }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nx-space-3); }
+.section-heading span { color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); }
+.table-scroll { overflow-x: auto; }
+.table-scroll .nx-table { min-width: 760px; }
 .binding-form, .nx-card h2 { margin: 0; }
 .nx-card h2 { margin-bottom: var(--nx-space-3); font-size: 16px; }
 .journey { list-style: none; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--nx-space-3); }
@@ -469,7 +479,7 @@ tr.binding td { background: var(--nx-primary-light); }
 .bind-panel h3, .bind-panel p { margin: 0; }
 .bind-panel h3 { font-size: var(--nx-font-size-md); }
 .binding-form { display: grid; gap: var(--nx-space-3); max-width: 720px; }
-.binding-form label, .bind-panel label { display: grid; gap: var(--nx-space-1); color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.binding-form .nx-field, .bind-panel .nx-field { margin-bottom: 0; }
 .binding-form input, .binding-form textarea, .binding-form select, .bind-panel select {
   width: 100%; min-height: 40px; padding: var(--nx-space-2) var(--nx-space-3);
   color: var(--nx-text-primary); background: var(--nx-surface);
