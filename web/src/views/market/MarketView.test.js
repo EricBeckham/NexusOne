@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
+import { useNxToastState } from "../../feedback/nxMessage";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const mocks = vi.hoisted(() => ({ catalog: vi.fn(), subscribe: vi.fn(), subscriptions: vi.fn(), session: { tenantId: "tenant-1", contextId: "" } }));
@@ -73,6 +74,7 @@ describe("P4 catalog V11", () => {
     await flushPromises();
     expect(mocks.subscribe).toHaveBeenCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "已开通「基础版」，可以在我的已开通发起申请" });
   });
 
   it("reads the nested SKU fields instead of rendering undefined", async () => {

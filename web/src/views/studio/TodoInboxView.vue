@@ -16,7 +16,6 @@
       <template #summary>{{ loading ? "正在加载…" : `共 ${filtered.length} 条` }}</template>
     </NxFilterBar>
     <p v-if="error" class="nx-error">{{ error }}</p>
-    <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-grid inbox-layout">
       <div v-if="loading" class="todo-skeleton" data-testid="todo-loading" role="status">
         <NxSkeleton v-for="n in 4" :key="n" variant="list-row" label="正在加载待办" />
@@ -106,6 +105,9 @@ import { p3 } from "../../api/p3";
 import { session } from "../../api/session";
 import { todoStatus } from "./todoStatus";
 import { devNotesEnabled } from "../../utils/devNotes";
+import { nxMessage } from "../../feedback/nxMessage";
+
+const ACTION_LABELS = { approve: "同意", reject: "驳回", withdraw: "撤回" };
 
 const devNotes = devNotesEnabled();
 
@@ -124,7 +126,6 @@ const comment = ref("");
 // §11: the keyword lives in the URL (?q=) next to ?box= so a reload keeps the filter.
 const query = ref(typeof route.query.q === "string" ? route.query.q : "");
 const error = ref("");
-const notice = ref("");
 const busy = ref(false);
 const loading = ref(true);
 
@@ -266,16 +267,15 @@ async function act(kind) {
     if (kind === "withdraw") {
       selected.value = await p3.withdrawTodo(selected.value.id, comment.value, selected.value.instance_id);
     }
-    const labels = { approve: "同意", reject: "驳回", withdraw: "撤回" };
-    const actionLabel = kind === "withdraw" ? "已 withdraw（撤回）并办结" : `已${labels[kind]}并办结`;
+    // S6: the result goes to the shared toast; the status comes from the server's approval_status (M1/N5).
     const approvalStatus = selected.value?.approval_status;
-    notice.value = approvalStatus
-      ? `${actionLabel}。审批状态：${statusLabel(approvalStatus)}（approval_status=${approvalStatus}）`
-      : `${actionLabel}。`;
+    const status = approvalStatus ? `，审批状态：${statusLabel(approvalStatus)}` : "";
+    const raw = devNotes && approvalStatus ? `（approval_status=${approvalStatus}）` : "";
+    nxMessage.success(`已${ACTION_LABELS[kind]}并办结${status}${raw}`);
     await reload();
     error.value = "";
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
+    nxMessage.error(`${ACTION_LABELS[kind]}没有完成：${[err.code, err.message].filter(Boolean).join(" ")}`, { traceId: err.traceId || "", durationMs: 8000 });
   } finally {
     busy.value = false;
   }

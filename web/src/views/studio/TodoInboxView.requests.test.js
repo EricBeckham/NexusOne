@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
+import { clearToasts, useNxToastState } from "../../feedback/nxMessage";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const mocks = vi.hoisted(() => ({
@@ -38,6 +39,7 @@ describe("todo comment and my requests", () => {
     mocks.listProductApplications.mockReset();
     mocks.approveTodo.mockReset();
     mocks.getTodo.mockRejectedValue(new Error("missing"));
+    clearToasts();
     mocks.listTodos.mockResolvedValue({ items: [] });
     mocks.listProductApplications.mockResolvedValue({ items: [] });
   });
@@ -61,8 +63,9 @@ describe("todo comment and my requests", () => {
     await wrapper.get('[data-testid="todo-approve"]').trigger("click");
     await flushPromises();
     expect(mocks.approveTodo).toHaveBeenCalledWith("todo-1", "同意这条", "product-application:1");
-    expect(wrapper.text()).toContain("已同意并办结。审批状态：已通过（approval_status=APPROVED）");
-    expect(wrapper.text()).not.toContain("approval_status=—");
+    // S6: shared toast with the server status; no raw approval_status text in the page.
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "已同意并办结，审批状态：已通过" });
+    expect(wrapper.text()).not.toContain("approval_status");
   });
 
   it("gives every empty box a reason and a next step (M4)", async () => {
@@ -123,5 +126,18 @@ describe("todo comment and my requests", () => {
     expect(wrapper.get('[data-testid="application-comment"]').text()).toContain("审批意见");
     expect(wrapper.get('[data-testid="application-comment"]').text()).toContain("可以");
     expect(wrapper.find('[data-testid="todo-withdraw"]').exists()).toBe(false);
+  });
+
+  it("reports a failed decision as an error toast with the trace id (S6)", async () => {
+    const row = { id: "todo-1", title: "审批", biz_no: "b-1", status: "PENDING", instance_id: "inst-1" };
+    mocks.listTodos.mockResolvedValue({ items: [row] });
+    mocks.getTodo.mockResolvedValue(row);
+    mocks.approveTodo.mockRejectedValue(Object.assign(new Error("task already completed"), { status: 409, code: "P3.FLOW.0004", traceId: "trace-s6" }));
+    const wrapper = await mountInbox();
+    await wrapper.get("tbody tr").trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-testid="todo-approve"]').trigger("click");
+    await flushPromises();
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "error", message: "同意没有完成：P3.FLOW.0004 task already completed", traceId: "trace-s6" });
   });
 });

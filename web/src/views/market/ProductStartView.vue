@@ -86,6 +86,7 @@ import { p2, p4 } from "../../api/client";
 import { describeRequestError } from "../../utils/requestError";
 import { p3 } from "../../api/p3";
 import { files, readAsBase64 } from "../../api/files";
+import { nxMessage } from "../../feedback/nxMessage";
 
 const route = useRoute();
 const router = useRouter();
@@ -212,6 +213,8 @@ async function submit() {
   fieldErrors.value = [];
   try {
     await p3.createProductApplication(route.params.id, values());
+    // S6: short success toast; failures keep the inline alert and field-level errors (§21: toasts never replace them).
+    nxMessage.success("申请已提交，可在我的申请查看审批进度");
     await router.push({ path: "/p3/todos", query: { box: "requests" } });
   } catch (err) {
     submitFailure.value = describeRequestError(err, SUBMIT_HINTS);
