@@ -543,4 +543,25 @@ describe("form template designer", () => {
       ],
     });
   });
+
+  it("snaps a free-canvas move to a sibling edge then grid (ZA3)", async () => {
+    p1.formTemplate.mockResolvedValue({
+      ...LEAVE,
+      fields: [
+        { key: "reason", label: "事由", type: "TEXT", required: true, options: { layout: { x: 4, y: 0, w: 4, h: 1 } } },
+        { key: "days", label: "天数", type: "NUMBER", required: false, options: { layout: { x: 0, y: 5, w: 4, h: 1 } } },
+      ],
+    });
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    await wrapper.get("[data-testid='canvas-mode-free']").trigger("click");
+    const board = wrapper.get("[data-testid='template-free-board']");
+    board.element.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 1200, height: 560, right: 1200, bottom: 560, x: 0, y: 0, toJSON() {},
+    });
+    const days = wrapper.findAll("[data-testid='template-free-board'] [data-testid='template-field']")[1];
+    await days.trigger("dragstart", { dataTransfer: transfer() });
+    // raw x≈3.2 cells → edge snap left to sibling x=4
+    await board.trigger("drop", { dataTransfer: transfer(), clientX: 320, clientY: 280 });
+    expect(days.attributes("style")).toContain("grid-column: 5 / span 4");
+  });
 });

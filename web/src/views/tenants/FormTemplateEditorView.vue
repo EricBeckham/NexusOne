@@ -85,7 +85,7 @@
       <header class="canvas-head">
         <div>
           <h2>{{ canvasMode === "free" ? "自由画布" : "字段顺序" }}</h2>
-          <p class="hint">{{ canvasMode === "free" ? "拖到网格放置字段（薄 MVP）；可切回列表排序" : "字段自上而下依次展示给申请人" }}</p>
+          <p class="hint">{{ canvasMode === "free" ? "拖到网格放置；近邻边与格点会薄吸附（无对齐线全家桶）" : "字段自上而下依次展示给申请人" }}</p>
         </div>
         <div class="canvas-head-actions">
           <div class="mode-toggle" role="group" aria-label="画布模式">
@@ -298,6 +298,7 @@ import { nxMessage } from "../../feedback/nxMessage";
 import NxIcon from "../../icons/NxIcon.vue";
 import FieldControl from "./form-template/FieldControl.vue";
 import { hasLayout, normalizeLayout, readWireOptions, wireOptions, withNormalizedLayout } from "./fieldLayout";
+import { snapLayout } from "./fieldSnap";
 import {
   FIELD_GROUPS, FIELD_TYPES, blankField, fieldType, filledOptions, insertAt, moveToGap, nextUid,
   normalizeOptions, paletteField,
@@ -402,9 +403,10 @@ function freeCellFromEvent(event) {
   if (!board || !board.width) return { x: 0, y: 0 };
   const colW = board.width / 12;
   const rowH = 56;
-  const x = Math.max(0, Math.min(11, Math.floor((event.clientX - board.left) / colW)));
-  const y = Math.max(0, Math.floor((event.clientY - board.top) / rowH));
-  return { x, y };
+  return {
+    x: Math.max(0, (event.clientX - board.left) / colW),
+    y: Math.max(0, (event.clientY - board.top) / rowH),
+  };
 }
 
 function onFreeDragOver(event) {
@@ -422,18 +424,31 @@ function placeAt(field, cell) {
   });
 }
 
+/** ZA3: edge + grid snap only — no guide-line chrome. */
+function snapFreeCell(raw, movingUid, size) {
+  const siblings = fields.value
+    .filter((field) => field.uid !== movingUid && hasLayout(field))
+    .map((field) => ({ layout: field.layout }));
+  return snapLayout(raw, size, siblings, { threshold: 1, gridX: 1, gridY: 1 });
+}
+
 function onFreeDrop(event) {
   const current = drag.value;
   if (!current) return;
-  const cell = freeCellFromEvent(event);
+  const raw = freeCellFromEvent(event);
   if (current.kind === "new") {
     const created = withNormalizedLayout(paletteField(current.type, fields.value), fields.value.length);
-    placeAt(created, cell);
+    const snapped = snapFreeCell(raw, null, { w: created.layout.w, h: created.layout.h });
+    placeAt(created, snapped);
     fields.value = [...fields.value, created];
     select(created);
   } else {
     const target = fields.value.find((field) => field.uid === current.uid);
-    if (target) placeAt(target, cell);
+    if (target) {
+      const layout = normalizeLayout(target.layout);
+      const snapped = snapFreeCell(raw, target.uid, { w: layout.w, h: layout.h });
+      placeAt(target, snapped);
+    }
   }
   endDrag();
 }
