@@ -17,6 +17,25 @@ describe("M9 process draft validation HTTP contract", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it.each(["exclusive", "parallel"])("returns %s draft validation without client-side rejection", async (kind) => {
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ valid: true, errors: [] }) });
+    expect(await validateProcessDraft(`${kind} branch`)).toEqual({ valid: true, errors: [] });
+    const [path, init] = fetch.mock.calls[0];
+    expect(path).toBe(`/api/v1/process/drafts/${kind}%20branch/validate`);
+    expect(init.method).toBe("POST");
+    expect(init.headers["X-Nexus-Context-Id"]).toBe("m9-context");
+    expect(init.headers["X-Tenant-Id"]).toBeUndefined();
+  });
+
+  it("preserves gateway and condition error locations from the server", async () => {
+    const errors = [
+      { code: "FLOW_CONDITION_EMPTY", message: "连线条件不能为空", nodeId: null, flowId: "branch" },
+      { code: "PARALLEL_FLOW_CONDITION_UNSUPPORTED", message: "并行网关的出线不能带条件", nodeId: "fork", flowId: "a" },
+    ];
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ valid: false, errors }) });
+    expect(await validateProcessDraft("gateway")).toEqual({ valid: false, errors });
+  });
+
   it("posts to the tenant-context draft validator and returns server validation errors", async () => {
     const result = await validateProcessDraft("draft one");
     const [path, init] = fetch.mock.calls[0];
