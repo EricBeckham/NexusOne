@@ -44,7 +44,14 @@
           <template v-if="selectedApp">
             <div class="section-heading"><div><span class="nx-muted">应用包 · {{ selectedApp.code }}</span><h2>{{ selectedApp.name }}</h2></div></div>
             <p>{{ selectedApp.summary || "暂无简介" }}</p>
-            <dl class="facts"><dt>创建时间</dt><dd>{{ formatDate(selectedApp.createdAt) }}</dd><dt>包内容与声明</dt><dd data-testid="package-declarations">暂未开放查看</dd></dl>
+            <dl class="facts"><dt>创建时间</dt><dd>{{ formatDate(selectedApp.createdAt) }}</dd></dl>
+            <div data-testid="package-declarations">
+              <NxEmpty
+                compact
+                title="包内容与声明暂未开放"
+                description="当前读模型不提供包内文件与声明明细，因此这里不展示占位内容，也不提供不可用操作。"
+              />
+            </div>
             <h3>版本与发布记录</h3>
             <NxDataTable
               :empty="!versions.length"

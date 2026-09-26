@@ -45,7 +45,9 @@ describe("P4 management subpages", () => {
     const wrapper = await mountPage("/p4/packages");
     expect(mocks.apps).toHaveBeenCalledOnce(); expect(mocks.versions).toHaveBeenCalledWith("app-1");
     expect(wrapper.text()).toContain("CRM"); expect(wrapper.text()).toContain("1.0.0");
-    expect(wrapper.get("[data-testid='package-declarations']").text()).toBe("暂未开放查看");
+    expect(wrapper.get("[data-testid='package-declarations']").text()).toContain("包内容与声明暂未开放");
+    expect(wrapper.get("[data-testid='package-declarations']").text()).not.toContain("暂未开放查看");
+    expect(wrapper.find("[data-testid='package-declarations'] button").exists()).toBe(false);
     expect(wrapper.get("[data-testid='packages-table']").exists()).toBe(true);
     expect(wrapper.get("[data-testid='package-versions-table']").exists()).toBe(true);
     // S9: no read-model / API wording on the tenant path.
