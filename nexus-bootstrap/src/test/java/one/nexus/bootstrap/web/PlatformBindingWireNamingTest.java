@@ -60,7 +60,7 @@ class PlatformBindingWireNamingTest {
     void templateAndProductDefinitionResponsesUseSnakeCase() {
         UUID version = UUID.randomUUID();
         JsonNode template = mapper.valueToTree(new TemplateView(UUID.randomUUID(), "leave", "请假", null, "PUBLISHED",
-                version, Instant.now(), Instant.now(), 1, List.of()));
+                version, Instant.now(), Instant.now(), 1, List.of(), null));
         assertEquals(version.toString(), template.path("running_version_id").asText());
         assertTrue(template.path("runningVersionId").isMissingNode());
 
