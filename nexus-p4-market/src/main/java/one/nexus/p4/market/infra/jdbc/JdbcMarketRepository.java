@@ -243,6 +243,20 @@ public class JdbcMarketRepository implements MarketRepository {
         return jdbc.sql("SELECT * FROM market.product_definition WHERE id=:id").param("id",id)
                 .query(this::mapProductDefinition).optional();
     }
+
+    @Override public Optional<ProductDefinition> productDefinitionByCode(String code) {
+        if (code == null || code.isBlank()) return Optional.empty();
+        return jdbc.sql("SELECT * FROM market.product_definition WHERE code=:code")
+                .param("code", code.trim()).query(this::mapProductDefinition).optional();
+    }
+    @Override public Optional<UUID> publishedFormTemplateVersionByCode(String code, int version) {
+        if (code == null || code.isBlank() || version <= 0) return Optional.empty();
+        return jdbc.sql("""
+                SELECT v.id FROM platform.form_template_version v
+                JOIN platform.form_template t ON t.id=v.template_id
+                WHERE t.code=:code AND v.version=:version AND v.published_at IS NOT NULL
+                """).param("code", code.trim()).param("version", version).query(UUID.class).optional();
+    }
     private ProductDefinition mapProductDefinition(ResultSet r,int n)throws SQLException {
         try { return new ProductDefinition(uuid(r,"id"),r.getString("code"),r.getString("name"),r.getString("description"),
                 uuid(r,"form_template_version_id"),r.getString("process_definition_key"),
