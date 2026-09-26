@@ -29,7 +29,7 @@
         </button>
       </template>
     </NxPageHeader>
-    <p class="nx-muted later-note">顺序审批：审批节点按从上到下的顺序依次流转，可增删、拖拽排序；不支持分支与并行。发布前须保存并通过校验。</p>
+    <p class="nx-muted later-note">审批节点按从上到下的顺序依次流转，可增删、拖拽排序；在节点属性中可添加条件分支。发布前须保存并通过校验。</p>
     <NxErrorState
       v-if="error && signInRequired"
       title="需要登录租户账号"
@@ -190,7 +190,8 @@
           <NxIcon name="plus" :size="16" />添加审批节点
         </button>
         <p v-if="definition && graph.nodes.length && !sequence.sequential" class="nonsequential" data-testid="process-nonsequential">
-          此流程{{ sequence.reason }}，顺序编辑器不支持，仅可查看。
+          <template v-if="isEditing">此草稿{{ sequence.reason }}，以流程图显示：点选节点后在右侧修改名称，或添加、删除条件分支。</template>
+          <template v-else>此流程{{ sequence.reason }}，顺序编辑器不支持，仅可查看。</template>
         </p>
         <svg
           v-if="definition && graph.nodes.length && !sequence.sequential"
@@ -219,7 +220,7 @@
           >
             <rect :x="node.x" :y="node.y" :width="graph.nodeWidth" :height="graph.nodeHeight" rx="8" />
             <text :x="node.x + 12" :y="node.y + 24">{{ showText(node.name) }}</text>
-            <text :x="node.x + 12" :y="node.y + 42" class="type">{{ showText(node.type) }}</text>
+            <text :x="node.x + 12" :y="node.y + 42" class="type">{{ NODE_TYPES[node.type] || showText(node.type) }}</text>
           </g>
         </svg>
       </section>
@@ -248,7 +249,19 @@
             <dd v-else>{{ selected.assignee ? assigneeLabel(selected.assignee) : "暂无" }}</dd>
           </template>
         </dl>
-        <p v-else class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
+        <!-- Z6: exclusive-gateway add/remove on editable drafts. Conditions are edited on branch flows (Z7). -->
+        <div v-if="isEditing && selected && canBranchAfter(selected)" class="branch-actions">
+          <button type="button" class="nx-btn nx-btn--default nx-btn--sm" data-testid="add-gateway" @click="addGatewayAfter(selected.id)">
+            <NxIcon name="plus" :size="14" />在此后添加条件分支
+          </button>
+          <small class="nx-muted">原有路径作为分支一，另加一条分支审批，两条分支在后续节点汇合。</small>
+        </div>
+        <div v-if="isEditing && selected?.type === 'exclusiveGateway'" class="branch-actions">
+          <button type="button" class="nx-btn nx-btn--text danger-text" data-testid="remove-gateway" @click="removeGateway(selected.id)">删除条件分支</button>
+          <small class="nx-muted">保留第一条分支，其他分支上独有的审批节点一并删除。</small>
+        </div>
+        <p v-if="branchError" class="step-error" role="alert" data-testid="branch-error">{{ branchError }}</p>
+        <p v-if="!selected" class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
         <p v-if="isEditing && selected && nodeErrors(selected.id).length" class="step-error" data-testid="node-error">{{ nodeErrors(selected.id).join("；") }}</p>
         <section v-if="validationResult" class="validation-result" data-testid="process-validation" :data-valid="validationResult.valid">
           <strong>{{ validationResult.valid ? "校验通过" : "校验未通过" }}</strong>
@@ -306,7 +319,7 @@ import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../component
 import NxIcon from "../../icons/NxIcon.vue";
 import { p3 } from "../../api/p3";
 import { insertAt, moveToGap } from "../../utils/listMove";
-import { createBlankDraft, parseDraftXml, serializeDraftXml } from "./processDraft";
+import { addDraftNode, createBlankDraft, parseDraftXml, removeExclusiveGateway, serializeDraftXml } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
 import { fromSequence, newStep, toSequence } from "./sequentialFlow";
 import { devNotesEnabled } from "../../utils/devNotes";
@@ -515,7 +528,36 @@ function nodeErrors(id) {
   return errors.filter((item) => item?.node_id === id || item?.nodeId === id).map((item) => item.message).filter(Boolean);
 }
 
-const NODE_TYPES = { startEvent: "开始", userTask: "审批节点", endEvent: "结束" };
+const NODE_TYPES = { startEvent: "开始", userTask: "审批节点", endEvent: "结束", exclusiveGateway: "条件分支" };
+const branchError = ref("");
+
+function canBranchAfter(node) {
+  if (!["startEvent", "userTask"].includes(node?.type)) return false;
+  return (definition.value?.flows || []).filter((flow) => flow.source_ref === node.id).length === 1;
+}
+
+function addGatewayAfter(id) {
+  branchError.value = "";
+  try {
+    const next = addDraftNode(definition.value, "exclusiveGateway", { after: id });
+    const added = next.nodes.find((node) => node.type === "exclusiveGateway" && !definition.value.nodes.some((item) => item.id === node.id));
+    definition.value = next;
+    if (added) selectedId.value = added.id;
+  } catch (err) {
+    branchError.value = err.message;
+  }
+}
+
+function removeGateway(id) {
+  branchError.value = "";
+  try {
+    const predecessor = (definition.value.flows || []).find((flow) => flow.target_ref === id)?.source_ref || "";
+    definition.value = removeExclusiveGateway(definition.value, id);
+    selectedId.value = predecessor;
+  } catch (err) {
+    branchError.value = err.message;
+  }
+}
 
 function nodeTypeLabel(type) {
   return NODE_TYPES[type] ? `${NODE_TYPES[type]}（${type}）` : showText(type);
@@ -538,7 +580,7 @@ function assigneeLabel(value) {
 }
 
 function editableType(type) {
-  return ["startEvent", "userTask", "endEvent"].includes(type);
+  return ["startEvent", "userTask", "endEvent", "exclusiveGateway"].includes(type);
 }
 
 async function saveDraft() {
@@ -610,6 +652,8 @@ watch(() => route.params.key, reload, { immediate: true });
 <style scoped>
 .process-loading { display: grid; gap: var(--nx-space-2); max-width: 760px; }
 .later-note { margin-top: 0; }
+.branch-actions { display: grid; gap: 4px; justify-items: start; margin-top: var(--nx-space-2); }
+.danger-text { color: var(--nx-danger); padding-left: 0; }
 .draft-state { margin: 0 0 var(--nx-space-3); padding: var(--nx-space-2) var(--nx-space-3); border-radius: var(--nx-radius-sm); font-size: var(--nx-font-size-sm); background: var(--nx-info-light); color: var(--nx-info); }
 .draft-state[data-tone="warning"] { background: var(--nx-warning-light); color: var(--nx-warning); }
 .draft-state[data-tone="success"] { background: var(--nx-success-light); color: var(--nx-success); }
