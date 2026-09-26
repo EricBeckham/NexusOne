@@ -13,6 +13,8 @@ async function mountHome() {
     routes: [
       { path: "/p1", component: TenantHomeView },
       { path: "/p1/tenants", component: { template: "<div />" } },
+      { path: "/p1/audit", component: { template: "<div />" } },
+      { path: "/p1/services", component: { template: "<div />" } },
     ],
   });
   await router.push("/p1");
@@ -45,6 +47,8 @@ describe("P1 home", () => {
     expect(wrapper.text()).not.toContain("12");
     expect(wrapper.get("a.text-link[href='/p1/tenants']").text()).toContain("查看全部");
     expect(wrapper.get(".page-header a.primary[href='/p1/tenants']").text()).toContain("租户目录");
+    expect(wrapper.get("[data-testid='home-todos-panel']").text()).toContain("暂无待办读模型");
+    expect(wrapper.findComponent({ name: "NxTodoList" }).exists()).toBe(false);
   });
 
   it("shows 暂无 when the APIs fail", async () => {

@@ -14,6 +14,7 @@ async function mountHome() {
     routes: [
       { path: "/p2", component: IamHomeView },
       { path: "/p2/persons", component: { template: "<div />" } },
+      { path: "/p2/org", component: { template: "<div />" } },
     ],
   });
   await router.push("/p2");
@@ -61,5 +62,7 @@ describe("P2 home", () => {
     await flushPromises();
     expect(wrapper.findAll("[data-testid='nx-stat-card'] .value").map((node) => node.text())).toEqual(["1", "2", "0"]);
     expect(wrapper.text()).toContain("暂无图表数据");
+    expect(wrapper.get("[data-testid='home-todos-panel']").text()).toContain("暂无待办读模型");
+    expect(wrapper.findComponent({ name: "NxTodoList" }).exists()).toBe(false);
   });
 });
