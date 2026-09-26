@@ -39,31 +39,35 @@ describe("W3 Studio home", () => {
     mocks.listApplications.mockResolvedValue({ items: [] });
   });
 
-  it("moves the P3 shortcuts and live session context into the product home", async () => {
+  it("groups the P3 entries into cards and shows the session without developer notes (R11)", async () => {
     mocks.health.mockResolvedValue({ status: "UP" });
     const wrapper = await mountHome();
-    const links = wrapper.findAll(".quick-actions a").map((link) => link.attributes("href"));
-
     expect(wrapper.get("h1").text()).toBe("星构工作台");
-    expect(links).toEqual([
-      "/p3/ledgers",
-      "/p3/forms",
+    expect(wrapper.findAll("[data-testid='studio-entry-group'] h2").map((node) => node.text())).toEqual(["工作台", "流程配置", "数据与审计"]);
+    expect(wrapper.findAll(".quick-actions a").map((link) => link.attributes("href"))).toEqual([
       "/p3/todos",
+      "/p3/forms",
+      "/p3/ledgers",
       "/p3/notifications",
-      "/p3/audit",
+      "/p3/workflow",
+      "/p3/publish-center",
       "/p3/reports",
-      "/p3/dumps",
       "/p3/exports/wizard",
+      "/p3/dumps",
+      "/p3/audit",
     ]);
-    expect(wrapper.text()).toContain("tenant-w3");
-    expect(wrapper.text()).toContain("builder@nexus.test");
-    expect(wrapper.text()).toContain("IAM health: UP");
-    expect(wrapper.text()).toContain("暂无");
-    expect(wrapper.text()).not.toContain("发布成功率");
-    expect(wrapper.text()).not.toContain("待办总数");
+    expect(wrapper.findAll(".nx-page-header .primary, .quick-actions .primary")).toHaveLength(1);
+    const sessionCard = wrapper.get("[data-testid='studio-session']");
+    expect(sessionCard.text()).toContain("tenant-w3");
+    expect(sessionCard.text()).toContain("builder@nexus.test");
+    expect(wrapper.get("[data-testid='studio-health']").text()).toBe("运行正常");
+    for (const noise of ["IAM health", "TenantContext", "没有趋势聚合接口", "近期活动", "发布成功率", "待办总数"]) {
+      expect(wrapper.text()).not.toContain(noise);
+    }
+    expect(wrapper.text()).toContain("暂无应用");
   });
 
-  it("lists applications returned by the API and counts only that list", async () => {
+  it("lists applications returned by the API with the count in the panel title", async () => {
     mocks.health.mockResolvedValue({ status: "UP" });
     mocks.listApplications.mockResolvedValue({
       items: [
@@ -72,15 +76,25 @@ describe("W3 Studio home", () => {
       ],
     });
     const wrapper = await mountHome();
-    expect(wrapper.text()).toContain("crm");
-    expect(wrapper.text()).toContain("客户");
-    expect(wrapper.text()).toContain("CUSTOM");
-    expect(wrapper.get("[data-testid='nx-stat-card'] .value").text()).toBe("2");
+    const panel = wrapper.get("[data-testid='studio-apps']");
+    expect(panel.text()).toContain("应用 · 2 个");
+    expect(panel.text()).toContain("crm");
+    expect(panel.text()).toContain("客户");
+    expect(panel.text()).toContain("CUSTOM");
+    expect(panel.findAll("[data-testid='nx-status-tag']").map((tag) => tag.text())).toEqual(["启用", "启用"]);
     const rowLinks = wrapper.findAll(".row-links a").map((link) => link.attributes("href"));
     expect(rowLinks).toEqual(["/p3/ledgers", "/p3/forms", "/p3/ledgers", "/p3/forms"]);
   });
 
+  it("shows a skeleton while applications load", async () => {
+    mocks.health.mockResolvedValue({ status: "UP" });
+    mocks.listApplications.mockReturnValue(new Promise(() => {}));
+    const wrapper = await mountHome();
+    expect(wrapper.get("[data-testid='studio-apps-loading']").attributes("data-variant")).toBe("list-row");
+  });
+
   it("offers a retry when the health probe fails", async () => {
+
     mocks.health.mockRejectedValueOnce(new Error("health unavailable"));
     mocks.health.mockResolvedValueOnce({ status: "UP" });
     const wrapper = await mountHome();
@@ -89,6 +103,6 @@ describe("W3 Studio home", () => {
     await wrapper.get("[data-testid='nx-error-state'] button").trigger("click");
     await flushPromises();
     expect(mocks.health).toHaveBeenCalledTimes(2);
-    expect(wrapper.text()).toContain("IAM health: UP");
+    expect(wrapper.get("[data-testid='studio-health']").text()).toBe("运行正常");
   });
 });
