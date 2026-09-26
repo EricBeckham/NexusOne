@@ -176,6 +176,19 @@ public class JdbcMarketRepository implements MarketRepository {
                 """).param("id",formTemplateVersionId).query((r,n) -> new FormTemplateVersionSnapshot(uuid(r,"id"),
                         r.getString("code"),r.getString("name"),r.getInt("version"),formFields(r.getString("snapshot")))).optional();
     }
+    /** Platform aggregate, like the activation review list: counts only, across tenants. */
+    @Override public ProductUsageCounts productUsageCounts(UUID productDefinitionId) {
+        return jdbc.sql("""
+                SELECT
+                  (SELECT count(*) FROM market.sku_product_binding b WHERE b.product_definition_id=:id) skus,
+                  (SELECT count(*) FROM market.subscription s JOIN market.sku_product_binding b ON b.sku_code=s.sku_code
+                     WHERE b.product_definition_id=:id AND s.status='ACTIVE') subscriptions,
+                  (SELECT count(DISTINCT i.tenant_id) FROM market.installation_product_pin p
+                     JOIN market.installation i ON i.id=p.installation_id
+                     WHERE p.product_definition_id=:id AND i.status='INSTALLED') installed
+                """).param("id",productDefinitionId).query((r,n) -> new ProductUsageCounts(
+                        r.getLong("skus"),r.getLong("subscriptions"),r.getLong("installed"))).single();
+    }
     /** Snapshot rows are the published FieldView list; tolerate snake_case keys and skip malformed entries. */
     private List<FormFieldSnapshot> formFields(String snapshot) {
         if (snapshot == null || snapshot.isBlank()) return List.of();

@@ -95,6 +95,8 @@ public final class MarketModels {
             return new ProductConfigReadiness(definition.id(), definition.status(), complete, steps);
         }
     }
+    /** PC13: current row counts for one product across tenants (platform aggregate; no tenant ids, no money). */
+    public record ProductUsageCounts(long boundSkus, long activeSubscriptions, long installedTenants) {}
     /** PC9: a published form template version as the product binds it (fields from {@code fields_snapshot}). */
     public record FormFieldSnapshot(String key, String label, String type, boolean required) {}
     public record FormTemplateVersionSnapshot(UUID versionId, String templateCode, String templateName, int version,
