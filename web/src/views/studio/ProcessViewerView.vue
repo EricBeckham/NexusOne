@@ -202,6 +202,11 @@
           role="group"
           aria-label="流程图"
         >
+          <defs>
+            <marker id="flow-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto">
+              <path d="M0 0 L8 4 L0 8 z" class="arrow" />
+            </marker>
+          </defs>
           <!-- Z7: flows are selectable (wide invisible hit line); a condition shows as a label at the midpoint. -->
           <g
             v-for="flow in graph.flows"
@@ -212,13 +217,13 @@
             :data-flow-id="flow.id"
             @click="selectFlow(flow.id)"
           >
-            <line class="hit" :x1="flow.x1" :y1="flow.y1" :x2="flow.x2" :y2="flow.y2" />
-            <line class="edge" :x1="flow.x1" :y1="flow.y1" :x2="flow.x2" :y2="flow.y2" />
+            <path v-if="flow.path" class="hit" :d="flow.path" />
+            <path v-if="flow.path" class="edge" :d="flow.path" marker-end="url(#flow-arrow)" />
             <text
-              v-if="flow.condition && flow.x1 != null"
+              v-if="flow.condition && flow.path"
               class="flow-condition"
-              :x="(flow.x1 + flow.x2) / 2"
-              :y="(flow.y1 + flow.y2) / 2 - 6"
+              :x="flow.labelX"
+              :y="flow.labelY - 6"
               text-anchor="middle"
             >{{ shortCondition(flow.condition) }}</text>
           </g>
@@ -765,8 +770,9 @@ watch(() => route.params.key, reload, { immediate: true });
 .canvas { overflow: auto; }
 svg.graph { display: block; min-width: 100%; }
 .flow { cursor: pointer; }
-.flow .edge { stroke: var(--nx-border-strong, var(--nx-border)); stroke-width: 1.5; }
-.flow .hit { stroke: transparent; stroke-width: 12; }
+.flow .edge { fill: none; stroke: var(--nx-border-strong, var(--nx-border)); stroke-width: 1.5; }
+.arrow { fill: var(--nx-border-strong, var(--nx-border)); }
+.flow .hit { fill: none; stroke: transparent; stroke-width: 12; }
 .flow.conditional .edge { stroke-dasharray: 5 3; }
 .flow.current .edge { stroke: var(--nx-product); stroke-width: 2.5; }
 .flow-condition { fill: var(--nx-text-secondary); font-size: 11px; }
