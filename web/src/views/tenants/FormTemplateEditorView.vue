@@ -73,7 +73,7 @@
       class="nx-card canvas"
       data-testid="template-fields"
       :class="{ receiving: drag }"
-      aria-label="表单画布"
+      aria-label="表单字段列表"
       @dragover.prevent="onCanvasDragOver"
       @dragleave="onCanvasDragLeave"
       @drop.prevent="onDrop"
@@ -119,7 +119,7 @@
               <div class="card-head">
                 <span class="field-name">{{ field.label || "未命名字段" }}<em v-if="field.required" class="nx-req" aria-label="必填">*</em></span>
                 <span class="type-chip"><NxIcon :name="fieldType(field.type).icon" :size="14" />{{ fieldType(field.type).label }}</span>
-                <code class="field-key" :class="{ missing: !field.key }">{{ field.key || "未设置 key" }}</code>
+                <code class="field-key" :class="{ missing: !field.key }">{{ field.key || "未设置字段编码" }}</code>
               </div>
               <div class="control" aria-hidden="true"><FieldControl :field="field" /></div>
               <p v-for="(message, messageIndex) in fieldErrors(field)" :key="messageIndex" class="nx-field-error" data-testid="field-error">{{ message }}</p>
@@ -152,7 +152,7 @@
           <label class="nx-field"><span>名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="selected.label" data-testid="field-label" maxlength="160" required :aria-invalid="!!localFieldError(selected, 'label')" />
             <small v-if="localFieldError(selected, 'label')" class="nx-field-error" data-testid="field-label-error">{{ localFieldError(selected, "label") }}</small>
           </label>
-          <label class="nx-field"><span>字段 key<em class="nx-req" aria-hidden="true">*</em></span>
+          <label class="nx-field"><span>字段编码<em class="nx-req" aria-hidden="true">*</em></span>
             <input v-model="selected.key" class="nx-code" data-testid="field-key" maxlength="80" required :aria-invalid="!!localFieldError(selected, 'key')" />
             <small v-if="localFieldError(selected, 'key')" class="nx-field-error" data-testid="field-key-error">{{ localFieldError(selected, "key") }}</small>
             <small class="hint">小写字母开头，仅小写字母、数字、下划线；同一模板内唯一</small>
@@ -187,7 +187,7 @@
         </template>
         <div v-else class="empty-hint" data-testid="field-properties-empty">
           <NxIcon name="card" :size="24" />
-          <p>在画布中点选一个字段以编辑属性</p>
+          <p>选择列表中的字段，查看或修改属性</p>
         </div>
       </div>
 
@@ -304,7 +304,7 @@ const draftErrors = computed(() => {
   for (const field of fields.value) {
     const errors = {};
     if (!field.label.trim()) errors.label = "请填写字段名称";
-    if (!field.key.trim()) errors.key = "请填写字段 key";
+    if (!field.key.trim()) errors.key = "请填写字段编码";
     if (Object.keys(errors).length) byField[field.uid] = errors;
   }
   const count = Object.keys(template).length
@@ -501,17 +501,17 @@ async function load() {
 
 // I9: the platform audit write can fail (e.g. "not-null constraint violated: platform.audit_event.tenant_id").
 const AUDIT_FAILURE = [
-  { status: 500, includes: "audit_event", hint: "服务端写审计记录失败，本次操作已回滚，画布内容已保留。这是服务端问题，不是填写错误；请把下方服务端信息和追踪号提供给管理员。" },
+  { status: 500, includes: "audit_event", hint: "本次操作未完成，修改已保留。请稍后重试；如仍失败，请把下方信息和追踪号提供给管理员。" },
 ];
 
 // Readable hints for the draft API's deliberate errors (FormTemplateDraftService); the server text is kept too.
 const ACTION_ERRORS = {
   save: {
-    title: "保存草稿失败，画布内容未丢失",
+    title: "草稿未保存，修改已保留",
     retryLabel: "重试保存",
     match: [
       { status: 400, includes: "code, name, and fields are required", hint: "请在「模板设置」填写编码和名称，并至少添加一个字段。" },
-      { status: 400, includes: "each field requires", hint: "每个字段都需要 key、名称和受支持的类型，请在画布中检查后再保存。" },
+      { status: 400, includes: "each field requires", hint: "请检查每个字段的编码、名称和类型后再保存。" },
       { status: 400, includes: "too many fields", hint: "字段数量超过 200 个上限，请删减后再保存。" },
       { status: 400, includes: "invalid field options", hint: "单选字段的选项格式不正确，请检查选项后再保存。" },
       { status: 409, includes: "unique constraint", hint: "模板编码已被其他模板使用，请在「模板设置」换一个编码后再保存。" },

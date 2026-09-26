@@ -307,7 +307,7 @@ describe("form template designer", () => {
     await wrapper.get("[data-testid='template-save']").trigger("click");
     await flushPromises();
     const failure = wrapper.get("[data-testid='template-action-failure']");
-    expect(failure.text()).toContain("保存草稿失败，画布内容未丢失");
+    expect(failure.text()).toContain("草稿未保存，修改已保留");
     expect(failure.get("[data-testid='nx-request-alert-trace']").text()).toContain("trace-h11");
     expect(wrapper.text()).not.toContain("Internal error");
     expect(wrapper.find("[data-testid='nx-error-state']").exists()).toBe(false);
@@ -335,7 +335,7 @@ describe("form template designer", () => {
     await wrapper.get("[data-testid='template-save']").trigger("click");
     await flushPromises();
     let failure = wrapper.get("[data-testid='template-action-failure']");
-    expect(failure.get("[data-testid='nx-request-alert-hint']").text()).toContain("服务端写审计记录失败");
+    expect(failure.get("[data-testid='nx-request-alert-hint']").text()).toContain("本次操作未完成，修改已保留");
     expect(failure.get("[data-testid='nx-request-alert-server']").text()).toContain("platform.audit_event.tenant_id");
     expect(failure.get("[data-testid='nx-request-alert-server']").text()).toContain("CORE.API.0006");
     expect(failure.get("[data-testid='nx-request-alert-trace']").text()).toContain("01a0d885-ac82-7f70-aff3-b24eb39859ae");
