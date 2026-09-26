@@ -35,7 +35,9 @@ async function mountCatalog() {
 
 describe("P4 catalog V11", () => {
   beforeEach(() => {
-    mocks.catalog.mockReset(); mocks.subscribe.mockReset();
+    mocks.catalog.mockReset(); mocks.subscribe.mockReset(); mocks.subscriptions.mockReset();
+    mocks.subscriptions.mockResolvedValue([]);
+    mocks.session.contextId = "";
     mocks.catalog.mockResolvedValue([
       { app: { id: "app-1", name: "星辰 CRM", code: "crm", summary: "客户关系管理" }, version: { id: "v1", version: "1.2.0", status: "PUBLISHED" }, skus: [BOUND_BASIC] },
       { app: { id: "app-2", name: "财务平台", code: "finance", summary: "账务与报表" }, version: { id: "v2", version: "2.0.0", status: "PUBLISHED" }, skus: [] },
@@ -65,7 +67,7 @@ describe("P4 catalog V11", () => {
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("财务平台");
   });
 
-  it("subscribes without payment and opens 我的已开通", async () => {
+  it("subscribes without payment and opens 已开通可用", async () => {
     mocks.subscribe.mockResolvedValue({ id: "install-1" });
     const wrapper = await mountCatalog();
     expect(wrapper.text()).toContain("无支付");
@@ -74,7 +76,7 @@ describe("P4 catalog V11", () => {
     await flushPromises();
     expect(mocks.subscribe).toHaveBeenCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
-    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "已开通「基础版」，可以在我的已开通发起申请" });
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "已开通可用「基础版」，可在已开通列表发起申请" });
   });
 
   it("reads the nested SKU fields instead of rendering undefined", async () => {
@@ -93,16 +95,16 @@ describe("P4 catalog V11", () => {
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("基础版");
   });
 
-  it("makes subscribe the primary action and shows 已开通 for a SKU the tenant already has (N1)", async () => {
+  it("makes subscribe the primary action and shows 已开通可用 for a SKU the tenant already has (N1)", async () => {
     mocks.session.contextId = "ctx-1";
     // Real /api/v1/p4/subscriptions wire shape (SNAKE_CASE).
     mocks.subscriptions.mockResolvedValue([{ id: "sub-1", tenant_id: "tenant-1", sku_code: "basic", status: "ACTIVE" }]);
     const subscribed = await mountCatalog();
     const sku = subscribed.get('[data-testid="catalog-sku"]');
     expect(sku.find('[data-testid="catalog-subscribe"]').exists()).toBe(false);
-    expect(sku.get('[data-testid="catalog-subscribed"]').text()).toContain("已开通");
-    expect(sku.get('[data-testid="catalog-subscribed"] a').attributes("href")).toBe("/p4/installations");
-    expect(subscribed.get('[data-testid="catalog-card-badge"]').text()).toBe("已开通");
+    expect(sku.get('[data-testid="catalog-subscribed"]').text()).toContain("已开通可用");
+    expect(sku.get('[data-testid="catalog-open-installed"]').attributes("href")).toBe("/p4/installations");
+    expect(subscribed.get('[data-testid="catalog-card-badge"]').text()).toBe("已开通可用");
     subscribed.unmount();
 
     mocks.subscriptions.mockResolvedValue([{ id: "sub-1", sku_code: "basic", status: "CANCELLED" }]);
@@ -159,7 +161,7 @@ describe("P4 catalog V11", () => {
     expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
   });
 
-  it("links a duplicate subscription to 我的已开通 without a retry button", async () => {
+  it("links a duplicate subscription to 已开通可用 without a retry button", async () => {
     mocks.subscribe.mockRejectedValueOnce(Object.assign(new Error("tenant already has an active subscription for this SKU"), { status: 409 }));
     const wrapper = await mountCatalog();
     await wrapper.get('[data-testid="catalog-subscribe"]').trigger("click");

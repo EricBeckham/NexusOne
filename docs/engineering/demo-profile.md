@@ -45,7 +45,30 @@ NEXUS_DEMO_ENVIRONMENT=local
 
 打开之后重启进程。日志会出现「演示开关已打开。禁止连生产。」。V-SEED-P1…P5 的种子初始化器会再次检查开关和本机数据库地址；开关关闭时不写任何行。
 
-### 清理 P1 演示租户
+#
+### 一键重置演示种子包
+
+本地演示包（平台管理员 + 已启用租户 + 发起人林晓 / 审批人周然 + 已发布请假/报销产品）可用 guarded 脚本一次清掉固定 ID，再开开关重启重播。**先停后端**，保持演示开关打开与本机回环库：
+
+```powershell
+.\scripts\demo\reset.ps1
+. .\scripts\demo\enable.ps1
+```
+
+```bash
+bash scripts/demo/reset.sh
+source scripts/demo/enable.sh
+```
+
+脚本依次调用 `clean-approval`（K20 请假报销产品及开通/申请行）→ P5 → P4 → P3 → P2 → P1。不建真 Keycloak，不碰外网主机。Flowable 部署若残留，重建本机库最干净；种子本身幂等，重启不会重复插入冲突行。
+
+仅清请假报销产品、保留其它 V-SEED 时：
+
+```powershell
+.\scripts\demo\clean-approval.ps1
+```
+
+## 清理 P1 演示租户
 
 P1 种子只在既有 `platform` 表插入固定 ID 的演示租户、配置、权益投影和配额，不新增表或迁移。清理前保持 `NEXUS_DEMO_ENABLED=true`（或 `demo` profile），并使用和应用相同的本机 `NEXUS_DB_URL`：
 

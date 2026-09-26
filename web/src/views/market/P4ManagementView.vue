@@ -55,8 +55,8 @@
     <template v-else-if="section === 'subscriptions'">
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="订阅按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="nx-card">
-        <div class="section-heading"><div><h2>订阅</h2><p class="nx-muted">当前租户的订阅及其对应安装状态。</p></div><span class="nx-muted">{{ subscriptions.length }} 条记录</span></div>
-        <NxEmpty v-if="!subscriptions.length" title="还没有订阅" description="在应用目录选择 SKU 订阅开通后，订阅会显示在这里。" data-testid="subscriptions-empty"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
+        <div class="section-heading"><div><h2>开通记录</h2><p class="nx-muted">当前租户已开通记录及其安装状态。无支付。</p></div><span class="nx-muted">{{ subscriptions.length }} 条记录</span></div>
+        <NxEmpty v-if="!subscriptions.length" title="还没有开通记录" description="在应用目录选择 SKU 开通后，记录会显示在这里。" data-testid="subscriptions-empty"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
         <div v-else class="table-scroll"><table class="nx-table"><thead><tr><th>租户</th><th>商品</th><th>SKU</th><th>状态</th><th>开始</th><th>到期</th><th>权益状态</th><th>安装状态</th></tr></thead><tbody>
           <tr v-for="sub in subscriptions" :key="sub.id"><td><code>{{ sub.tenantId }}</code></td><td>{{ appForSku(sub.skuCode)?.name || appForSku(sub.skuCode)?.code || "暂无" }}</td><td>{{ skuByCode(sub.skuCode)?.name || sub.skuCode }}</td><td><NxStatusTag :status="sub.status" :label="sub.status" /></td><td>{{ formatDate(sub.startedAt) }}</td><td>{{ formatDate(sub.endedAt) }}</td><td data-testid="subscription-entitlement"><template v-if="entitlementFor(sub)"><span class="entitlement-count">{{ entitlementFor(sub).total ? `${entitlementFor(sub).enabled}/${entitlementFor(sub).total} 项启用` : "无权益项" }}</span><NxStatus v-if="entitlementFor(sub).projected === true" label="当前生效" tone="success" /><NxStatus v-else-if="entitlementFor(sub).projected === false" label="未生效" tone="neutral" title="租户当前生效的是另一条订阅或默认权益包" /></template><span v-else class="nx-muted">暂无</span></td><td>{{ installationStatus(sub) }}</td></tr>
         </tbody></table></div>
@@ -67,7 +67,7 @@
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="已开通产品按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="installations">
         <p v-if="installations.length" class="installations-count nx-muted" data-testid="installations-count">共 {{ installations.length }} 个已开通产品</p>
-        <NxEmpty v-if="!installations.length" class="nx-card" title="还没有已开通的产品" description="从应用目录订阅开通后，产品会显示在这里，并可直接发起申请。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
+        <NxEmpty v-if="!installations.length" class="nx-card" title="还没有已开通可用的产品" description="从应用目录开通后，产品会显示在这里，并可直接发起申请。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
         <div v-else class="installation-list"><article v-for="installation in installations" :key="installation.id" class="installation-card">
           <div class="installation-summary">
             <div class="installation-identity">
@@ -132,7 +132,7 @@ const versionsByApp = reactive({}); const selectedApp = ref(null); const version
 const targets = reactive({}); const loading = ref(true); const error = ref(""); const notice = ref(""); const busyId = ref("");
 const section = computed(() => ({ "p4-packages": "packages", "p4-skus": "skus", "p4-subscriptions": "subscriptions", "p4-installations": "installations" })[route.name] || "packages");
 const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "商品与 SKU", to: "/p4/skus" }, { label: "订阅", to: "/p4/subscriptions" }, { label: "我的已开通", to: "/p4/installations" }];
-const titles = { packages: ["应用包", "浏览应用包、版本与发布状态。"], skus: ["商品与 SKU", "商品对应应用，SKU 定义可开通的权益与配额。"], subscriptions: ["订阅", "查看当前租户的订阅周期、状态与关联安装。"], installations: ["我的已开通", "无支付、即时开通后的产品记录。升级仍提交到已发布版本。"] };
+const titles = { packages: ["应用包", "浏览应用包、版本与发布状态。"], skus: ["SKU", "SKU 定义可开通的权益与配额，无价格字段。"], subscriptions: ["开通记录", "查看当前租户已开通的周期、状态与关联安装。无支付。"], installations: ["已开通可用", "无支付、即时开通后的产品记录。可从此发起申请。"] };
 const title = computed(() => titles[section.value][0]); const description = computed(() => titles[section.value][1]);
 // O11: one Primary per card — 发起申请 is the card's action; upgrade stays secondary inside its fold.
 // Q8 / Q5: 我的已开通 sits on the tenant path 应用目录 → 我的已开通 → 发起申请 (same crumbs as the start page).

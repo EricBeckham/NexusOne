@@ -1,6 +1,6 @@
 <template>
   <main class="market-page">
-    <NxPageHeader eyebrow="P4 · 星市" title="应用目录" description="无支付。选择 SKU 后即时开通，成功后进入我的已开通。">
+    <NxPageHeader eyebrow="P4 · 星市" title="应用目录" description="无支付、无下单。选择 SKU 后即时开通，成功后进入「已开通可用」。">
       <template #actions><button class="ghost" type="button" :disabled="loading" @click="load">刷新目录</button></template>
     </NxPageHeader>
 
@@ -67,8 +67,8 @@
                   <div v-if="sku.entitlements.length" class="sku-chips"><span v-for="chip in sku.entitlements" :key="chip">{{ chip }}</span></div>
                 </div>
                 <div v-if="subscribedSkus.has(sku.code)" class="subscribed" data-testid="catalog-subscribed">
-                  <NxStatusTag status="INSTALLED" label="已开通" tone="success" />
-                  <router-link class="nx-btn nx-btn--text" to="/p4/installations">前往我的已开通</router-link>
+                  <NxStatusTag status="INSTALLED" label="已开通可用" tone="success" />
+                  <router-link class="nx-btn nx-btn--text" to="/p4/installations" data-testid="catalog-open-installed">前往已开通可用</router-link>
                 </div>
                 <button
                   v-else
@@ -122,7 +122,7 @@ async function loadSubscriptions() {
 // Q7: the corner badge says what the tenant can do with the app — every catalog entry is already published.
 function cardBadge(item) {
   const skus = catalogSkus(item);
-  if (skus.some((sku) => subscribedSkus.value.has(sku.code))) return { label: "已开通", tone: "success" };
+  if (skus.some((sku) => subscribedSkus.value.has(sku.code))) return { label: "已开通可用", tone: "success" };
   if (skus.some((sku) => sku.code && sku.definition)) return { label: "可开通", tone: "info" };
   return { label: "暂不可开通", tone: "neutral" };
 }
@@ -150,7 +150,7 @@ async function subscribe(skuCode, versionId, skuLabel = "") {
   try {
     await p4.subscribe(session.tenantId, { sku_code: skuCode, version_id: versionId });
     // S6: short success toast; failures keep the inline alert with hint, server text and retry.
-    nxMessage.success(`已开通${skuLabel ? `「${skuLabel}」` : ""}，可以在我的已开通发起申请`);
+    nxMessage.success(`已开通可用${skuLabel ? `「${skuLabel}」` : ""}，可在已开通列表发起申请`);
     await router.push("/p4/installations");
   } catch (err) {
     // A subscribe failure must not replace the catalog: keep it visible and offer a real retry.

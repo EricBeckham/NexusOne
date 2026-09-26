@@ -13,9 +13,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Local/demo simple-approval product. Inserts a published form template, a one-level
- * approval process (same deployment shape as M10), a product definition, and a published
- * catalog SKU. It does not subscribe or install a tenant. Rows are marked 演示数据.
+ * Local/demo leave/expense-style product. Inserts a published form template (事由 / 天数 /
+ * 金额 / 审批人), a one-level approval process (same deployment shape as M10), a product
+ * definition, and a published catalog SKU. It does not subscribe or install a tenant.
+ * Rows are marked 演示数据. No payment fields.
  */
 @Configuration
 public class ApprovalProductDemoSeedConfiguration {
@@ -29,6 +30,8 @@ public class ApprovalProductDemoSeedConfiguration {
     static final String PROCESS_KEY = "demoSimpleApproval";
     static final String SNAPSHOT = """
             [{"key":"title","label":"事由","type":"TEXT","required":true},\
+            {"key":"days","label":"天数","type":"NUMBER","required":false},\
+            {"key":"amount","label":"金额","type":"MONEY","required":false},\
             {"key":"approver","label":"审批人","type":"PERSON","required":true}]""";
 
     static String bpmnXml() {
@@ -36,7 +39,7 @@ public class ApprovalProductDemoSeedConfiguration {
                 <?xml version="1.0" encoding="UTF-8"?>
                 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:flowable="http://flowable.org/bpmn" targetNamespace="https://nexus.one/process">
-                  <process id="demoSimpleApproval" name="演示数据 · 一级审批" isExecutable="true">
+                  <process id="demoSimpleApproval" name="演示数据 · 请假报销审批" isExecutable="true">
                     <startEvent id="start"/>
                     <sequenceFlow id="toReview" sourceRef="start" targetRef="review"/>
                     <userTask id="review" name="审批" flowable:assignee="${assignee}"/>
@@ -71,7 +74,7 @@ public class ApprovalProductDemoSeedConfiguration {
         jdbc.sql("""
                 INSERT INTO platform.form_template
                   (id, code, name, description, status, running_version_id, created_at, updated_at, version)
-                VALUES (:id, 'demo_simple_approval', '演示数据 · 简单审批', '演示数据。文本加审批人。',
+                VALUES (:id, 'demo_simple_approval', '演示数据 · 请假报销', '演示数据。请假/报销样式：事由、天数、金额与审批人。无支付。',
                   'PUBLISHED', NULL, timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', 1)
                 ON CONFLICT (id) DO NOTHING
                 """).param("id", TEMPLATE_ID).update();
@@ -88,7 +91,27 @@ public class ApprovalProductDemoSeedConfiguration {
         jdbc.sql("""
                 INSERT INTO platform.form_template_field
                   (id, template_id, field_key, label, field_type, required, options, position, created_at, updated_at)
-                SELECT :id, :template, 'approver', '审批人', 'PERSON', true, NULL, 1,
+                SELECT :id, :template, 'days', '天数', 'NUMBER', false, NULL, 1,
+                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00'
+                 WHERE NOT EXISTS (SELECT 1 FROM platform.form_template_field
+                                    WHERE template_id = :template AND field_key = 'days')
+                ON CONFLICT DO NOTHING
+                """).param("id", UUID.fromString("01900000-0000-7000-8000-000000000513"))
+                .param("template", TEMPLATE_ID).update();
+        jdbc.sql("""
+                INSERT INTO platform.form_template_field
+                  (id, template_id, field_key, label, field_type, required, options, position, created_at, updated_at)
+                SELECT :id, :template, 'amount', '金额', 'MONEY', false, NULL, 2,
+                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00'
+                 WHERE NOT EXISTS (SELECT 1 FROM platform.form_template_field
+                                    WHERE template_id = :template AND field_key = 'amount')
+                ON CONFLICT DO NOTHING
+                """).param("id", UUID.fromString("01900000-0000-7000-8000-000000000514"))
+                .param("template", TEMPLATE_ID).update();
+        jdbc.sql("""
+                INSERT INTO platform.form_template_field
+                  (id, template_id, field_key, label, field_type, required, options, position, created_at, updated_at)
+                SELECT :id, :template, 'approver', '审批人', 'PERSON', true, NULL, 3,
                   timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00'
                  WHERE NOT EXISTS (SELECT 1 FROM platform.form_template_field
                                     WHERE template_id = :template AND field_key = 'approver')
@@ -108,7 +131,7 @@ public class ApprovalProductDemoSeedConfiguration {
                 """).param("version", TEMPLATE_VERSION_ID).param("id", TEMPLATE_ID).update();
         jdbc.sql("""
                 INSERT INTO market.app_package (id, code, name, summary, created_at)
-                VALUES (:id, 'demo_simple_approval', '演示数据 · 简单审批', '演示数据。无支付的一级审批产品。',
+                VALUES (:id, 'demo_simple_approval', '演示数据 · 请假报销', '演示数据。无支付的请假/报销一级审批产品。',
                   timestamptz '2026-01-01 00:00:00+00')
                 ON CONFLICT (id) DO NOTHING
                 """).param("id", APP_ID).update();
@@ -128,7 +151,7 @@ public class ApprovalProductDemoSeedConfiguration {
                 INSERT INTO market.product_definition
                   (id, code, name, description, form_template_version_id, process_definition_key,
                    process_definition_version, default_permission_pack, status, created_at, updated_at, version)
-                VALUES (:id, 'demo_simple_approval', '演示数据 · 简单审批', '演示数据。文本与审批人，一级审批。',
+                VALUES (:id, 'demo_simple_approval', '演示数据 · 请假报销', '演示数据。事由/天数/金额与审批人，一级审批。无支付。',
                   :form, :processKey, 1, '{"summary":"演示数据"}'::jsonb, 'PUBLISHED',
                   timestamptz '2026-01-02 00:00:00+00', timestamptz '2026-01-02 00:00:00+00', 1)
                 ON CONFLICT (id) DO NOTHING
@@ -143,7 +166,7 @@ public class ApprovalProductDemoSeedConfiguration {
         jdbc.sql("""
                 INSERT INTO business_meta.process_definition_draft
                   (id, tenant_id, process_key, name, bpmn_xml, version, updated_by, created_at, updated_at)
-                SELECT :id, t.id, :processKey, '演示数据 · 一级审批', :xml, 1, :actor,
+                SELECT :id, t.id, :processKey, '演示数据 · 请假报销审批', :xml, 1, :actor,
                   timestamptz '2026-01-02 00:00:00+00', timestamptz '2026-01-02 00:00:00+00'
                   FROM platform.tenant t
                  WHERE t.id = :tenant
@@ -151,6 +174,36 @@ public class ApprovalProductDemoSeedConfiguration {
                 """).param("id", DRAFT_ID).param("processKey", PROCESS_KEY).param("xml", bpmnXml())
                 .param("actor", P1DemoSeedConfiguration.PLATFORM_ID)
                 .param("tenant", P1DemoSeedConfiguration.TENANT_ID).update();
+        // Refresh display names / snapshot so an already-seeded local DB picks up leave/expense copy without a migration.
+        jdbc.sql("""
+                UPDATE platform.form_template
+                   SET name = '演示数据 · 请假报销',
+                       description = '演示数据。请假/报销样式：事由、天数、金额与审批人。无支付。',
+                       status = 'PUBLISHED'
+                 WHERE id = :id
+                """).param("id", TEMPLATE_ID).update();
+        jdbc.sql("""
+                UPDATE platform.form_template_version
+                   SET fields_snapshot = CAST(:snapshot AS jsonb)
+                 WHERE id = :id
+                """).param("id", TEMPLATE_VERSION_ID).param("snapshot", SNAPSHOT).update();
+        jdbc.sql("""
+                UPDATE market.app_package
+                   SET name = '演示数据 · 请假报销',
+                       summary = '演示数据。无支付的请假/报销一级审批产品。'
+                 WHERE id = :id
+                """).param("id", APP_ID).update();
+        jdbc.sql("""
+                UPDATE market.sku SET name = '演示数据 · 标准' WHERE code = :code
+                """).param("code", SKU_CODE).update();
+        jdbc.sql("""
+                UPDATE market.product_definition
+                   SET name = '演示数据 · 请假报销',
+                       description = '演示数据。事由/天数/金额与审批人，一级审批。无支付。',
+                       status = 'PUBLISHED'
+                 WHERE id = :id
+                """).param("id", DEFINITION_ID).update();
+
     }
 
     /** Deploys the one-level BPMN the same way M10 does: tenant-scoped Flowable deployment. */

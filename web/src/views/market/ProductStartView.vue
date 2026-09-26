@@ -3,7 +3,7 @@
     <NxPageHeader
       eyebrow="P4 · 星市"
       title="发起申请"
-      description="按已开通时钉住的模板填写。无支付。提交后进入我的申请。"
+      description="按已开通可用时钉住的模板填写。无支付、无下单。提交后进入我的申请。"
       :crumbs="startCrumbs"
     />
     <p v-if="product" class="product-context" data-testid="start-product">
