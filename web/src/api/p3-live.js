@@ -119,12 +119,13 @@ export function mapForm(row) {
 function bindingToField(binding) {
   const widget = String(pick(binding, "widget_type", "widgetType") || "TEXT").toUpperCase();
   return {
+    ...(binding.layout ? { layout: binding.layout } : {}),
     id: pick(binding, "widget_code", "widgetCode"),
     code: pick(binding, "field_code", "fieldCode"),
     name: pick(binding, "widget_code", "widgetCode", "field_code", "fieldCode"),
     type: widget === "TEXTAREA" ? "longtext" : widget.toLowerCase(),
     required: Boolean(pick(binding, "required")),
-    options: [],
+    options: binding.options || [],
   };
 }
 
