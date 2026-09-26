@@ -314,3 +314,84 @@ describe("honest save and revision (CF-RD3)", () => {
     expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("版本号：暂无");
   });
 });
+describe("designer → read-only preview (CF-RD4)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    clearToasts();
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }]);
+    mocks.productPrintSample.mockResolvedValue(PRINT);
+    mocks.printMappingContract.mockResolvedValue(CONTRACT);
+    mocks.productPrintMapping.mockResolvedValue({ ...DEFAULT_MAPPING, source: "IN_MEMORY", revision: 2 });
+  });
+
+  const route = (wrapper) => wrapper.router.currentRoute.value;
+
+  it("opens the sample-route preview for the same product when nothing is unsaved", async () => {
+    const wrapper = await mountAt("/p4/product-samples/print/designer?definition=d1");
+    await wrapper.get("[data-testid='designer-open-preview']").trigger("click");
+    await flushPromises();
+    expect(route(wrapper).path).toBe("/p4/product-samples/print");
+    expect(route(wrapper).query).toEqual({ definition: "d1", from: "designer" });
+  });
+
+  it("with unsaved edits, says the preview shows the saved r2 and lets the user choose", async () => {
+    const wrapper = await mountAt("/p4/product-samples/print/designer?definition=d1");
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("");
+    await wrapper.get("[data-testid='designer-open-preview']").trigger("click");
+    await flushPromises();
+    expect(route(wrapper).path).toBe("/p4/product-samples/print/designer");
+    expect(wrapper.get("[data-testid='designer-preview-prompt']").text()).toContain("进程内修订 r2");
+    await wrapper.get("[data-testid='designer-preview-cancel']").trigger("click");
+    expect(wrapper.find("[data-testid='designer-preview-prompt']").exists()).toBe(false);
+
+    await wrapper.get("[data-testid='designer-open-preview']").trigger("click");
+    await wrapper.get("[data-testid='designer-preview-anyway']").trigger("click");
+    await flushPromises();
+    expect(route(wrapper).path).toBe("/p4/product-samples/print");
+  });
+
+  it("save-first saves with the revision, then opens the preview", async () => {
+    const wrapper = await mountAt("/p4/product-samples/print/designer?definition=d1");
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("");
+    mocks.saveProductPrintMapping.mockResolvedValue({});
+    mocks.productPrintMapping.mockImplementationOnce(async () => ({
+      ...DEFAULT_MAPPING,
+      source: "IN_MEMORY",
+      revision: 3,
+      mappings: mocks.saveProductPrintMapping.mock.calls[0][1].mappings,
+    }));
+    await wrapper.get("[data-testid='designer-open-preview']").trigger("click");
+    await wrapper.get("[data-testid='designer-preview-save-first']").trigger("click");
+    await flushPromises();
+    expect(mocks.saveProductPrintMapping.mock.calls[0][1].expected_revision).toBe(2);
+    expect(route(wrapper).path).toBe("/p4/product-samples/print");
+  });
+
+  it("stays in the designer when save-first hits a conflict", async () => {
+    const wrapper = await mountAt("/p4/product-samples/print/designer?definition=d1");
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("");
+    mocks.saveProductPrintMapping.mockRejectedValueOnce(Object.assign(new Error("changed"), { status: 409 }));
+    mocks.productPrintMapping.mockResolvedValueOnce({ ...DEFAULT_MAPPING, source: "IN_MEMORY", revision: 5 });
+    await wrapper.get("[data-testid='designer-open-preview']").trigger("click");
+    await wrapper.get("[data-testid='designer-preview-save-first']").trigger("click");
+    await flushPromises();
+    expect(route(wrapper).path).toBe("/p4/product-samples/print/designer");
+    expect(wrapper.find("[data-testid='designer-binding-conflict']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='designer-preview-prompt']").exists()).toBe(false);
+  });
+});
+describe("unmapped wording matches the CF-R2 preview (CF-RD4)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }]);
+    mocks.productPrintSample.mockResolvedValue(PRINT);
+    mocks.printMappingContract.mockResolvedValue(CONTRACT);
+    mocks.productPrintMapping.mockResolvedValue(DEFAULT_MAPPING);
+  });
+
+  it("never promises that a field will not be printed", async () => {
+    const wrapper = await mountAt();
+    expect(wrapper.text()).not.toContain("不打印");
+    expect(wrapper.get("[data-testid='designer-binding-days'] option[value='']").text()).toBe("未映射（落入表单字段区）");
+  });
+});

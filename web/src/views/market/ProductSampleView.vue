@@ -190,6 +190,10 @@
           <p class="preview-banner nx-muted" data-testid="sample-print-preview-note">
             只读 HTML 预览 · 字段值留空 · 非拖拽设计器
           </p>
+          <p v-if="fromDesigner" class="preview-banner preview-from-designer" data-testid="sample-print-from-designer">
+            来自设计器 · 按{{ previewBasis }}生成，不含设计器里未保存的修改。
+            <router-link :to="designerLink" data-testid="sample-print-back-designer">返回设计器</router-link>
+          </p>
           <article class="paper" :class="orientationClass" aria-label="打印只读预览" data-testid="sample-print-paper">
             <h3 class="paper-title">{{ sample.title || sample.product_name }}</h3>
             <section
@@ -248,7 +252,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxSkeleton } from "../../components";
 import { p4 } from "../../api/client";
@@ -304,6 +308,21 @@ const mappingError = ref("");
 const mappingTraceId = ref("");
 const mappingSaving = ref(false);
 const mappingSaveMessage = ref("");
+// CF-RD4: the designer opens this preview with ?from=designer; say which saved mapping the paper shows.
+const mappingSource = ref("");
+const mappingRevision = ref(null);
+const fromDesigner = computed(() => kind.value === "print" && route.query.from === "designer");
+const designerLink = computed(() => ({
+  path: "/p4/product-samples/print/designer",
+  query: selectedId.value ? { definition: selectedId.value } : {},
+}));
+const previewBasis = computed(() => {
+  if (mappingSource.value === "IN_MEMORY") {
+    return mappingRevision.value == null ? "服务器进程内已保存的映射" : `服务器进程内已保存的映射（修订 r${mappingRevision.value}）`;
+  }
+  if (mappingSource.value === "DEFAULT") return "契约默认映射（设计器尚未保存过）";
+  return "打印样例分区（映射暂时读不到）";
+});
 
 const printSections = computed(() => (Array.isArray(sample.value?.sections) ? sample.value.sections : [])
   .filter((section) => section?.key)
@@ -443,6 +462,8 @@ function applyMappingPayload(mapping) {
   }));
   printPaper.value = mapping?.paper || sample.value?.paper || "A4";
   printOrientation.value = mapping?.orientation || sample.value?.orientation || "PORTRAIT";
+  mappingSource.value = mapping?.source || "";
+  mappingRevision.value = typeof mapping?.revision === "number" ? mapping.revision : null;
 }
 
 async function ensurePrintContract() {
@@ -538,6 +559,10 @@ async function load() {
   selectedId.value = definitions.value.some((row) => row.id === wanted) ? wanted : definitions.value[0]?.id || "";
   await loadSample();
   loading.value = false;
+  if (fromDesigner.value) {
+    await nextTick();
+    document.querySelector("[data-testid='sample-print-readonly-preview']")?.scrollIntoView?.({ block: "start" });
+  }
 }
 
 watch(kind, () => { if (!loading.value) loadSample(); });
@@ -652,6 +677,12 @@ onMounted(load);
   width: 100%;
   text-align: center;
   font-size: var(--nx-font-size-sm);
+}
+.preview-from-designer {
+  color: var(--nx-text);
+}
+.preview-from-designer a {
+  margin-left: var(--nx-space-2);
 }
 .paper {
   width: min(100%, 560px);

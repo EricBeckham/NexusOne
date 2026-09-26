@@ -168,6 +168,27 @@
           </template>
         </NxResult>
 
+        <NxResult
+          v-if="previewPrompt"
+          compact
+          tone="info"
+          data-testid="designer-preview-prompt"
+          title="预览只显示服务器上已保存的映射"
+          :description="`你有未保存的修改；预览会按 ${versionLabel} 生成，不包含这些修改。`"
+        >
+          <template #next>
+            <button
+              class="primary"
+              type="button"
+              data-testid="designer-preview-save-first"
+              :disabled="saving || hasBindingErrors"
+              @click="saveThenPreview"
+            >先保存再预览</button>
+            <button class="ghost" type="button" data-testid="designer-preview-anyway" @click="goPreview">仍然打开预览</button>
+            <button class="ghost" type="button" data-testid="designer-preview-cancel" @click="previewPrompt = false">留在设计器</button>
+          </template>
+        </NxResult>
+
         <p v-if="saveError" class="save-error" role="alert" data-testid="designer-binding-save-error">
           保存失败：{{ saveError }}<span v-if="saveTraceId" class="nx-muted">（追踪号 {{ saveTraceId }}）</span>。修改仍在本页，可以再试。
         </p>
@@ -202,7 +223,7 @@
                     :aria-label="`${row.label} 的槽位`"
                     :data-testid="`designer-binding-${row.fieldKey}`"
                   >
-                    <option value="">不打印</option>
+                    <option value="">未映射（落入表单字段区）</option>
                     <option v-for="slot in slotOptions(contract, row.type)" :key="slot.id" :value="slot.id">
                       {{ slot.label }}（{{ slot.id }}）
                     </option>
@@ -224,6 +245,7 @@
               @click="saveBinding()"
             >{{ saving ? "保存中…" : "保存绑定" }}</button>
             <button class="ghost" type="button" :disabled="saving || !dirty" data-testid="designer-binding-reset" @click="resetBinding">撤销修改</button>
+            <button class="ghost" type="button" data-testid="designer-open-preview" :disabled="saving" @click="openPreview">只读预览</button>
             <span v-if="hasBindingErrors" class="nx-muted">先修正标红的槽位。</span>
             <span v-else-if="dirty" class="nx-muted" data-testid="designer-binding-dirty">有未保存的修改。</span>
             <span v-else-if="readBack" class="nx-muted" data-testid="designer-binding-readback">{{ readBack }}</span>
@@ -284,7 +306,8 @@ const baselineMappings = computed(() => mappingsFromRows(bindingRows(designer.va
 const selectedRow = computed(() => rows.value.find((row) => row.fieldKey === selectedSlot.value?.fieldKey) || null);
 
 function slotLabel(id) {
-  if (!id) return "不打印";
+  // CF-R3 has no "do not print": an unmapped field falls into the spill slot (same wording as CF-R1).
+  if (!id) return "未映射（落入表单字段区）";
   return contractSlots(contract.value).find((slot) => slot.id === id)?.label || id;
 }
 
@@ -377,6 +400,32 @@ async function saveBinding(basedOn = revisionOf(mapping.value)) {
   } finally {
     saving.value = false;
   }
+}
+
+// CF-RD4: open the CF-R2 read-only preview on the sample route (one preview, not a second engine).
+const previewPrompt = ref(false);
+const previewLink = computed(() => ({
+  path: "/p4/product-samples/print",
+  query: { ...productQuery.value, from: "designer" },
+}));
+
+function goPreview() {
+  previewPrompt.value = false;
+  router.push(previewLink.value);
+}
+
+function openPreview() {
+  if (dirty.value) {
+    previewPrompt.value = true;
+    return;
+  }
+  goPreview();
+}
+
+async function saveThenPreview() {
+  await saveBinding();
+  if (!conflict.value && !saveError.value && !dirty.value) goPreview();
+  else previewPrompt.value = false;
 }
 
 function reloadFromServer() {
