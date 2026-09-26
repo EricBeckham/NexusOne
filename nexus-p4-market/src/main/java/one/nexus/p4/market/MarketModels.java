@@ -10,6 +10,7 @@ public final class MarketModels {
     public enum VersionStatus { DRAFT, IN_REVIEW, APPROVED, PUBLISHED, UNPUBLISHED }
     public enum InstallationStatus { INSTALLED, UNINSTALLED }
     public enum SubscriptionStatus { ACTIVE, CANCELLED }
+    public enum ActivationApplicationStatus { PENDING, APPROVED, REJECTED }
 
     public record AppPackage(UUID id, String code, String name, String summary, Instant createdAt) {}
     public record AppVersion(UUID id, UUID appId, String version, VersionStatus status, String releaseNotes,
@@ -124,4 +125,9 @@ public final class MarketModels {
             defaultPermissionPack = defaultPermissionPack == null ? Map.of() : Map.copyOf(defaultPermissionPack);
         }
     }
+
+    /** Thin 开通申请 — pending until platform approves; no payment. */
+    public record ActivationApplication(UUID id, UUID tenantId, String skuCode, UUID versionId,
+            ActivationApplicationStatus status, String reviewNote, Instant reviewedAt, UUID reviewedBy,
+            UUID resultingSubscriptionId, UUID resultingInstallationId, Instant createdAt, UUID createdBy) {}
 }

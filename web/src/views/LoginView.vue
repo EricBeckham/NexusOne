@@ -1,5 +1,10 @@
 <template>
   <div class="page">
+    <p class="register-link" data-testid="goto-register">
+      还没有租户？
+      <router-link to="/register">提交租户自助注册申请</router-link>
+      （无支付，待平台审订）
+    </p>
     <div class="nx-page-header">
       <h1>会话与登录</h1>
       <p>本机 Stub IdP 或已有 access token。产品路径是 Keycloak 授权码；M0-12 不把 stub 当作正式验收登录。</p>

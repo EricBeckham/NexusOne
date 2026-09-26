@@ -133,6 +133,14 @@ export const p1 = {
   updateFormTemplate: (id, body) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   validateFormTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}/validate`, { method: "POST", body: {}, platform: true, auth: false }),
   publishFormTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}/publish`, { method: "POST", body: {}, platform: true, auth: false }),
+  applyTenantRegistration: (body) => api("/api/v1/p1/tenant-registrations", { method: "POST", body, auth: false }),
+  listTenantRegistrations: (status) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : "";
+    return api(`/api/v1/p1/tenant-registrations${q}`, { platform: true, auth: false });
+  },
+  getTenantRegistration: (id) => api(`/api/v1/p1/tenant-registrations/${encodeURIComponent(id)}`, { platform: true, auth: false }),
+  approveTenantRegistration: (id, note) => api(`/api/v1/p1/tenant-registrations/${encodeURIComponent(id)}/approve`, { method: "POST", body: { note }, platform: true, auth: false }),
+  rejectTenantRegistration: (id, note) => api(`/api/v1/p1/tenant-registrations/${encodeURIComponent(id)}/reject`, { method: "POST", body: { note }, platform: true, auth: false }),
 };
 
 export const p2 = {
@@ -211,6 +219,11 @@ export const p4 = {
   bindProductDefinitionSku: (id, skuCode) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/skus/${encodeURIComponent(skuCode)}`, { method: "PUT", platform: true, auth: false }),
   install: (tenantId, body) => api(`/api/v1/p4/tenants/${tenantId}/installations`, { method: "POST", body }),
   subscribe: (tenantId, body) => api(`/api/v1/p4/tenants/${encodeURIComponent(tenantId)}/subscriptions`, { method: "POST", body }),
+  requestActivation: (tenantId, body) => api(`/api/v1/p4/tenants/${encodeURIComponent(tenantId)}/activation-applications`, { method: "POST", body }),
+  activationApplications: (mine = false) => api(`/api/v1/p4/activation-applications${mine ? "?mine=true" : ""}`, mine ? {} : { platform: true, auth: false }),
+  activationApplication: (id) => api(`/api/v1/p4/activation-applications/${encodeURIComponent(id)}`, { platform: true, auth: false }),
+  approveActivation: (id, note) => api(`/api/v1/p4/activation-applications/${encodeURIComponent(id)}/approve`, { method: "POST", body: { note }, platform: true, auth: false }),
+  rejectActivation: (id, note) => api(`/api/v1/p4/activation-applications/${encodeURIComponent(id)}/reject`, { method: "POST", body: { note }, platform: true, auth: false }),
   upgrade: (installationId, versionId) => api(`/api/v1/p4/installations/${installationId}/upgrade`, { method: "POST", body: { versionId } }),
   uninstall: (installationId) => api(`/api/v1/p4/installations/${installationId}/uninstall`, { method: "POST", body: {} }),
 };

@@ -32,9 +32,29 @@ public class MarketController {
     @GetMapping("/catalog") List<CatalogItem> catalog(){return service.catalog();}
     @PostMapping("/tenants/{tenantId}/installations") @ResponseStatus(HttpStatus.CREATED)
     Installation install(@PathVariable UUID tenantId,@RequestBody Install request){return service.subscribeAndInstall(tenantId,request.skuCode(),request.versionId());}
-    @PostMapping("/tenants/{tenantId}/subscriptions") @ResponseStatus(HttpStatus.CREATED)
+        @PostMapping("/tenants/{tenantId}/subscriptions") @ResponseStatus(HttpStatus.CREATED)
     Installation selfSubscribe(@PathVariable UUID tenantId,@RequestBody Install request){
         return service.subscribeProduct(tenantId,request.skuCode(),request.versionId());
+    }
+    /** Tenant 开通申请 — PENDING; platform approves separately. No payment. */
+    @PostMapping("/tenants/{tenantId}/activation-applications") @ResponseStatus(HttpStatus.CREATED)
+    ActivationApplication requestActivation(@PathVariable UUID tenantId,@RequestBody Install request){
+        return service.requestActivation(tenantId,request.skuCode(),request.versionId());
+    }
+    @GetMapping("/activation-applications") List<ActivationApplication> activationApplications(
+            @RequestParam(required=false) Boolean mine){
+        return Boolean.TRUE.equals(mine) ? service.myActivationApplications() : service.activationApplications();
+    }
+    @GetMapping("/activation-applications/{id}") ActivationApplication activationApplication(@PathVariable UUID id){
+        return service.getActivationApplication(id);
+    }
+    @PostMapping("/activation-applications/{id}/approve") ActivationApplication approveActivation(
+            @PathVariable UUID id,@RequestBody(required=false) Review request){
+        return service.approveActivation(id, request==null?null:request.note());
+    }
+    @PostMapping("/activation-applications/{id}/reject") ActivationApplication rejectActivation(
+            @PathVariable UUID id,@RequestBody(required=false) Review request){
+        return service.rejectActivation(id, request==null?null:request.note());
     }
     @GetMapping("/subscriptions") List<Subscription> subscriptions(){return service.subscriptions();}
     @GetMapping("/subscriptions/{id}") Subscription subscription(@PathVariable UUID id){return service.getSubscription(id);}
@@ -56,4 +76,5 @@ public class MarketController {
     record CreateSku(String code,UUID appId,String name,Map<String,EntitlementSpec> entitlements){}
     record Install(String skuCode,UUID versionId){}
     record Upgrade(UUID versionId){}
+    record Review(String note){}
 }

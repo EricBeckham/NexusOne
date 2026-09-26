@@ -32,4 +32,9 @@ public interface MarketRepository {
     Optional<FormTemplateVersionSnapshot> formTemplateVersionSnapshot(UUID formTemplateVersionId);
     void saveInstallationProductPin(InstallationProductPin pin);
     Optional<InstallationProductPin> installationProductPin(UUID installationId);
+    void saveActivationApplication(ActivationApplication application);
+    Optional<ActivationApplication> activationApplication(UUID id);
+    List<ActivationApplication> activationApplications();
+    List<ActivationApplication> activationApplicationsForCurrentTenant();
+    boolean hasActiveSubscription(UUID tenantId, String skuCode);
 }

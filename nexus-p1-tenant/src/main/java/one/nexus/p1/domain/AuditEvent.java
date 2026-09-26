@@ -42,6 +42,9 @@ public record AuditEvent(
     public static final String QUOTA_RELEASED = "p1.quota.released";
     public static final String QUOTA_REJECTED = "p1.quota.rejected";
     public static final String PLATFORM_CONTEXT_USED = "p1.platform_context.used";
+    public static final String TENANT_REGISTRATION_APPLIED = "p1.tenant.registration.applied";
+    public static final String TENANT_REGISTRATION_APPROVED = "p1.tenant.registration.approved";
+    public static final String TENANT_REGISTRATION_REJECTED = "p1.tenant.registration.rejected";
 
     public AuditEvent {
         details = details == null ? Map.of() : Map.copyOf(details);

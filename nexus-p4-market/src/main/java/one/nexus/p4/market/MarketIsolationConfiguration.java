@@ -38,7 +38,23 @@ public class MarketIsolationConfiguration {
                         "version_id",
                         "status",
                         "installed_at",
-                        "updated_at");
+                        "updated_at"))
+                .registerTenant(
+                        "market.activation_application",
+                        "nexus-p4-market",
+                        1,
+                        "id",
+                        "tenant_id",
+                        "sku_code",
+                        "version_id",
+                        "status",
+                        "review_note",
+                        "reviewed_at",
+                        "reviewed_by",
+                        "resulting_subscription_id",
+                        "resulting_installation_id",
+                        "created_at",
+                        "created_by");
         return IsolationKernel.create(tables.freeze(), Set.of(), sink);
     }
 }

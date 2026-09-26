@@ -23,7 +23,7 @@ describe("product shell menus", () => {
 
   it("keeps P1 and P2 on their own menus", () => {
     const p1 = navFor("p1").map((item) => item.label);
-    expect(p1).toEqual(["首页", "租户列表", "新建租户", "租户详情", "租户关系", "权益与配额", "平台服务态", "平台审计", "表单模板"]);
+    expect(p1).toEqual(["首页", "租户列表", "新建租户", "注册审订", "租户详情", "租户关系", "权益与配额", "平台服务态", "平台审计", "表单模板"]);
     expect(navFor("p1").find((item) => item.id === "quotas").to).toBe("/p1/quotas");
     expect(navFor("p1").find((item) => item.id === "service").to).toBe("/p1/services");
     expect(navFor("p1").find((item) => item.id === "audit").to).toBe("/p1/audit");
@@ -97,7 +97,7 @@ describe("product shell menus", () => {
     const p4Links = collectLinks(p4Items);
     const p5Links = collectLinks(p5Items);
 
-    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/installations", "/p4/subscriptions", "/p4/entitlements", "/p4/packages", "/p4/skus", "/p4/product-definitions", "/p4/product-config-wizard", "/p4/operations"]);
+    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/installations", "/p4/subscriptions", "/p4/activation-applications", "/p4/entitlements", "/p4/packages", "/p4/skus", "/p4/product-definitions", "/p4/product-config-wizard", "/p4/operations"]);
     expect(p5Links).toEqual(["/p5", "/p5/connect", "/p5/apis", "/p5/clients", "/p5/webhooks", "/p5/connectors", "/p5/credentials", "/p5/call-logs"]);
     expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
     expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
