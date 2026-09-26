@@ -60,4 +60,15 @@ class ProcessDefinitionDraftServiceTest {
         TenantContextHolder.set(new TenantContext(
                 UUID.randomUUID(), tenant, UUID.randomUUID(), PERSON, "m6-test", Instant.now(), Instant.now().plusSeconds(60)));
     }
+
+    @Test
+    void preservesExclusiveGatewayAndConditionXmlWithoutEvaluation() {
+        bind(TENANT_A);
+        String xml = "<definitions><process id='expense'><exclusiveGateway id='choice'/>"
+                + "<sequenceFlow id='approved' sourceRef='choice' targetRef='done'>"
+                + "<conditionExpression><![CDATA[${approved}]]></conditionExpression>"
+                + "</sequenceFlow></process></definitions>";
+        service.save("expense", "Expense", xml);
+        verify(store).save(TENANT_A, PERSON, "expense", "Expense", xml);
+    }
 }

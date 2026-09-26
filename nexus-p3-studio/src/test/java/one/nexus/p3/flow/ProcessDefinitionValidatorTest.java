@@ -59,4 +59,22 @@ class ProcessDefinitionValidatorTest {
         return "<definitions xmlns='http://www.omg.org/spec/BPMN/20100524/MODEL' xmlns:flowable='http://flowable.org/bpmn'>"
                 + "<process id='test'>" + nodes + flows + "</process></definitions>";
     }
+
+    @Test
+    void acceptsExclusiveBranchesWithOpaqueConditionsAndUnconditionalDefault() {
+        var result = validator.validate(xml("<startEvent id='s'/><exclusiveGateway id='g' default='fallback'/><endEvent id='e'/>",
+                "<sequenceFlow id='in' sourceRef='s' targetRef='g'/>"
+                + "<sequenceFlow id='yes' sourceRef='g' targetRef='e'><conditionExpression><![CDATA[${amount > 100}]]></conditionExpression></sequenceFlow>"
+                + "<sequenceFlow id='fallback' sourceRef='g' targetRef='e'/>"));
+        assertTrue(result.valid(), result.errors().toString());
+    }
+
+    @Test
+    void locatesEmptyConditionInvalidDefaultAndDisconnectedGateway() {
+        var result = validator.validate(xml("<startEvent id='s'/><exclusiveGateway id='g' default='missing'/><endEvent id='e'/>",
+                "<sequenceFlow id='empty' sourceRef='g' targetRef='e'><conditionExpression> </conditionExpression></sequenceFlow>"));
+        assertTrue(result.errors().stream().anyMatch(e -> "FLOW_CONDITION_EMPTY".equals(e.code()) && "empty".equals(e.flowId())));
+        assertTrue(result.errors().stream().anyMatch(e -> "GATEWAY_DEFAULT_FLOW_INVALID".equals(e.code()) && "g".equals(e.nodeId())));
+        assertTrue(result.errors().stream().anyMatch(e -> "GATEWAY_CONNECTION_REQUIRED".equals(e.code())));
+    }
 }
