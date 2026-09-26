@@ -68,6 +68,9 @@ describe("form template designer", () => {
 
   it("shows the palette, an empty drop zone, and keeps validate and publish disabled", async () => {
     const wrapper = await mountAt("/p1/form-templates/new");
+    expect(wrapper.findAll(".template-editor-page .primary")).toHaveLength(1);
+    expect(wrapper.get(".editor-actions [data-testid='template-save']").text()).toBe("保存草稿");
+    expect(wrapper.get("[data-testid='template-fields'] h2").text()).toBe("字段顺序");
     expect(wrapper.findAll("[data-testid='palette-item']")).toHaveLength(8);
     expect(wrapper.get("[data-testid='field-palette']").text()).toContain("业务");
     expect(wrapper.get("[data-testid='template-fields-empty']").text()).toContain("暂无字段");
@@ -86,6 +89,8 @@ describe("form template designer", () => {
     expect(cards[0].text()).toContain("choice_1");
     expect(wrapper.get("[data-testid='tab-field']").classes()).toContain("active");
     expect(wrapper.get("[data-testid='field-key']").element.value).toBe("choice_1");
+    expect(wrapper.get("[data-testid='field-label']").element.closest(".nx-field")).not.toBeNull();
+    expect(wrapper.get("[data-testid='field-label']").element.closest(".nx-field").querySelector(".nx-req")).not.toBeNull();
     expect(wrapper.findAll("[data-testid='option-label']")).toHaveLength(1);
     expect(wrapper.find("[data-testid='drop-indicator']").exists()).toBe(false);
   });
