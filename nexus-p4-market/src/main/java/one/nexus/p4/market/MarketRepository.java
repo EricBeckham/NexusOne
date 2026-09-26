@@ -32,6 +32,7 @@ public interface MarketRepository {
     Optional<ProductDefinition> productDefinitionForSku(String skuCode);
     List<Sku> skusBoundToProductDefinition(UUID productDefinitionId);
     Optional<FormTemplateVersionSnapshot> formTemplateVersionSnapshot(UUID formTemplateVersionId);
+    ProductUsageCounts productUsageCounts(UUID productDefinitionId);
     void saveInstallationProductPin(InstallationProductPin pin);
     Optional<InstallationProductPin> installationProductPin(UUID installationId);
     void saveActivationApplication(ActivationApplication application);

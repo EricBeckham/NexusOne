@@ -26,7 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 class ProductLedgerSampleTest {
     private final MarketRepository market = mock(MarketRepository.class);
     private final IsolationGuard isolation = mock(IsolationGuard.class);
-    private final ProductSampleService service = new ProductSampleService(market, isolation);
+    private final ProductSampleService service = new ProductSampleService(market, isolation, () -> Instant.EPOCH);
     private final UUID id = UUID.randomUUID();
     private final UUID formVersion = UUID.randomUUID();
 

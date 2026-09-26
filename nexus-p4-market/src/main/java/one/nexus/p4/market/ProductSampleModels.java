@@ -32,6 +32,23 @@ public final class ProductSampleModels {
         }
     }
 
+    /** PC13: one current count. {@code value == null} means it could not be counted (never a guess). */
+    public record ReportMetric(String key, String label, Long value, String note) {}
+
+    /**
+     * PC13: a statistics sample for one product: a few honest current counts. There is no time-series
+     * aggregation anywhere, so {@code trendAvailable} is always false and no series is returned.
+     */
+    public record ReportSample(UUID productDefinitionId, String productName, java.time.Instant asOf,
+            List<ReportMetric> metrics, boolean trendAvailable, String trendNote, String note) {
+        public static final String TREND_NOTE = "没有按时间聚合的统计数据，趋势暂无。";
+        public static final String NOTE = "只统计平台现有记录的当前数量（跨租户合计，不含租户明细、不含金额）。";
+
+        public ReportSample {
+            metrics = List.copyOf(metrics);
+        }
+    }
+
     public record PrintField(String key, String label, String type) {}
     public record PrintSection(String key, String label, List<PrintField> fields) {
         public PrintSection {
