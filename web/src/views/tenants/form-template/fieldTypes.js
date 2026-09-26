@@ -5,15 +5,16 @@ export const FIELD_GROUPS = [
   { id: "business", label: "业务" },
 ];
 
+/** CF-F4: operator-facing Chinese hints (no API/type jargon). */
 export const FIELD_TYPES = [
-  { value: "TEXT", label: "文本", icon: "type", group: "basic", keyPrefix: "text", hint: "单行文字" },
-  { value: "TEXTAREA", label: "多行文本", icon: "alignLeft", group: "basic", keyPrefix: "textarea", hint: "长段说明" },
-  { value: "NUMBER", label: "数字", icon: "hash", group: "basic", keyPrefix: "number", hint: "整数或小数" },
-  { value: "DATE", label: "日期", icon: "calendar", group: "basic", keyPrefix: "date", hint: "年月日" },
-  { value: "SELECT", label: "单选下拉", icon: "list", group: "data", keyPrefix: "choice", hint: "从选项中选一个" },
-  { value: "MONEY", label: "金额", icon: "currency", group: "data", keyPrefix: "amount", hint: "两位小数" },
-  { value: "PERSON", label: "成员选择", icon: "user", group: "business", keyPrefix: "person", hint: "本租户成员" },
-  { value: "ATTACHMENT", label: "附件", icon: "paperclip", group: "business", keyPrefix: "attachment", hint: "上传文件" },
+  { value: "TEXT", label: "文本", icon: "type", group: "basic", keyPrefix: "text", hint: "一行短内容，如姓名、标题" },
+  { value: "TEXTAREA", label: "多行文本", icon: "alignLeft", group: "basic", keyPrefix: "textarea", hint: "较长说明，如事由、备注" },
+  { value: "NUMBER", label: "数字", icon: "hash", group: "basic", keyPrefix: "number", hint: "可填整数或小数，如天数、数量" },
+  { value: "DATE", label: "日期", icon: "calendar", group: "basic", keyPrefix: "date", hint: "选择年月日，如请假开始日" },
+  { value: "SELECT", label: "单选下拉", icon: "list", group: "data", keyPrefix: "choice", hint: "在预设选项里选一项" },
+  { value: "MONEY", label: "金额", icon: "currency", group: "data", keyPrefix: "amount", hint: "货币金额，默认保留两位小数" },
+  { value: "PERSON", label: "成员选择", icon: "user", group: "business", keyPrefix: "person", hint: "从本组织成员中选人，如审批人" },
+  { value: "ATTACHMENT", label: "附件", icon: "paperclip", group: "business", keyPrefix: "attachment", hint: "上传证明材料或文件" },
 ];
 
 const BY_VALUE = Object.fromEntries(FIELD_TYPES.map((type) => [type.value, type]));
