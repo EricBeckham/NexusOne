@@ -50,7 +50,7 @@ export function serializeDraftXml(definition) {
   const nodes = Array.isArray(definition?.nodes) ? definition.nodes : [];
   const flows = Array.isArray(definition?.flows) ? definition.flows : [];
   const nodeXml = nodes.map((node) => {
-    const type = ["startEvent", "userTask", "endEvent", "exclusiveGateway"].includes(node.type)
+    const type = ["startEvent", "userTask", "endEvent", "exclusiveGateway", "parallelGateway"].includes(node.type)
       ? node.type
       : "userTask";
     const assignee = type === "userTask" && node.assignee
@@ -129,8 +129,10 @@ export function addDraftNode(definition, type, options = {}) {
     if (predecessor) next.flows.push({ id: `flow_${predecessor.id}_${id}`, source_ref: predecessor.id, target_ref: id, condition: null });
   } else if (type === "exclusiveGateway") {
     return insertExclusiveGateway(next, options.after);
+  } else if (type === "parallelGateway") {
+    return insertParallelBlock(next, options.after);
   } else {
-    throw new Error("仅支持开始、用户任务、结束和条件分支节点");
+    throw new Error("仅支持开始、用户任务、结束、条件分支和并行分支节点");
   }
   return next;
 }
@@ -212,6 +214,100 @@ export function removeExclusiveGateway(definition, gatewayId) {
   const nextFlows = flows.filter((flow) => !removed.has(flow.source_ref) && !removed.has(flow.target_ref));
   if (keep) {
     for (const flow of inbound) nextFlows.push({ ...flow, target_ref: keep, condition: null });
+  }
+  return { ...definition, nodes: nodes.filter((node) => !removed.has(node.id)), flows: nextFlows };
+}
+
+/** Z9: a parallel gateway is a fork when it has several outgoing flows, a join when it has several incoming. */
+export function parallelRole(definition, id) {
+  const flows = definition?.flows || [];
+  const outgoing = flows.filter((flow) => flow.source_ref === id).length;
+  const incoming = flows.filter((flow) => flow.target_ref === id).length;
+  if (outgoing > 1) return "fork";
+  if (incoming > 1) return "join";
+  return "";
+}
+
+/**
+ * Z9: insert a parallel block after `afterId` (a start or task with one outgoing flow):
+ * after → fork → { 并行审批 1, 并行审批 2 } → join → the original successor.
+ * Pairing convention: ids fork/join, fork_2/join_2, …; roles are read from structure (parallelRole).
+ */
+function insertParallelBlock(next, afterId) {
+  const after = next.nodes.find((node) => node.id === afterId);
+  if (!after || !["startEvent", "userTask"].includes(after.type)) {
+    throw new Error("请先选择开始或审批节点，再在其后添加并行分支");
+  }
+  const outgoing = next.flows.filter((flow) => flow.source_ref === after.id);
+  if (outgoing.length !== 1) {
+    throw new Error("该节点后已经有分支或没有后续节点，无法再添加并行分支");
+  }
+  const successor = outgoing[0].target_ref;
+  const fork = { id: uniqueNodeId(next.nodes, "fork"), name: "并行开始", type: "parallelGateway" };
+  const suffix = fork.id.slice("fork".length);
+  const join = { id: uniqueNodeId([...next.nodes, fork], `join${suffix}`), name: "并行汇合", type: "parallelGateway" };
+  const taken = [...next.nodes, fork, join];
+  const first = { id: uniqueNodeId(taken, "parallel_task"), name: "并行审批 1", type: "userTask", assignee: "" };
+  const second = { id: uniqueNodeId([...taken, first], "parallel_task"), name: "并行审批 2", type: "userTask", assignee: "" };
+  next.flows = next.flows.filter((flow) => flow !== outgoing[0]);
+  next.flows.push(
+    { id: `flow_${after.id}_${fork.id}`, source_ref: after.id, target_ref: fork.id, condition: null },
+    { id: `flow_${fork.id}_${first.id}`, source_ref: fork.id, target_ref: first.id, condition: null },
+    { id: `flow_${fork.id}_${second.id}`, source_ref: fork.id, target_ref: second.id, condition: null },
+    { id: `flow_${first.id}_${join.id}`, source_ref: first.id, target_ref: join.id, condition: null },
+    { id: `flow_${second.id}_${join.id}`, source_ref: second.id, target_ref: join.id, condition: null },
+    { id: `flow_${join.id}_${successor}`, source_ref: join.id, target_ref: successor, condition: null },
+  );
+  const at = next.nodes.findIndex((node) => node.id === after.id);
+  next.nodes.splice(at + 1, 0, fork, first, second, join);
+  return next;
+}
+
+/**
+ * Z9: remove a whole parallel block given its fork or join. Every branch from the fork must reach the
+ * same join; the nodes in between are removed and the fork's predecessors connect to the join's successor.
+ */
+export function removeParallelBlock(definition, gatewayId) {
+  const nodes = (definition?.nodes || []).map((node) => ({ ...node }));
+  const flows = (definition?.flows || []).map((flow) => ({ ...flow }));
+  const gateway = nodes.find((node) => node.id === gatewayId);
+  if (!gateway || gateway.type !== "parallelGateway") {
+    throw new Error("只能删除并行分支节点");
+  }
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const out = (id) => flows.filter((flow) => flow.source_ref === id).map((flow) => flow.target_ref);
+  const into = (id) => flows.filter((flow) => flow.target_ref === id).map((flow) => flow.source_ref);
+  let fork = gateway;
+  if (parallelRole({ flows }, gateway.id) === "join") {
+    // Walk one branch back to its fork.
+    let cursor = into(gateway.id)[0];
+    while (cursor && !(byId.get(cursor)?.type === "parallelGateway" && out(cursor).length > 1)) cursor = into(cursor)[0];
+    fork = byId.get(cursor);
+  }
+  if (!fork || out(fork.id).length < 2) {
+    throw new Error("无法识别配对的并行开始与汇合节点");
+  }
+  const inner = new Set();
+  let join = null;
+  for (const start of out(fork.id)) {
+    let cursor = start;
+    const seen = new Set();
+    while (cursor && !seen.has(cursor)) {
+      seen.add(cursor);
+      const node = byId.get(cursor);
+      if (node?.type === "parallelGateway" && into(cursor).length > 1) break;
+      inner.add(cursor);
+      cursor = out(cursor)[0];
+    }
+    if (!cursor || (join && join !== cursor)) throw new Error("无法识别配对的并行开始与汇合节点");
+    join = cursor;
+  }
+  const successor = out(join)[0];
+  const removed = new Set([fork.id, join, ...inner]);
+  const inbound = flows.filter((flow) => flow.target_ref === fork.id);
+  const nextFlows = flows.filter((flow) => !removed.has(flow.source_ref) && !removed.has(flow.target_ref));
+  if (successor) {
+    for (const flow of inbound) nextFlows.push({ ...flow, target_ref: successor, condition: null });
   }
   return { ...definition, nodes: nodes.filter((node) => !removed.has(node.id)), flows: nextFlows };
 }

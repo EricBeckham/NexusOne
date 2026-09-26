@@ -1,6 +1,8 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from "vitest";
-import { addDraftNode, createBlankDraft, parseDraftXml, removeExclusiveGateway, serializeDraftXml } from "./processDraft";
+import {
+  addDraftNode, createBlankDraft, parallelRole, parseDraftXml, removeExclusiveGateway, removeParallelBlock, serializeDraftXml,
+} from "./processDraft";
 
 describe("process draft editing", () => {
   it("round-trips basic BPMN nodes, user-task assignee references, and conditional flows", () => {
@@ -25,7 +27,7 @@ describe("process draft editing", () => {
     const expanded = addDraftNode(draft, "userTask");
     expect(expanded.nodes.map((node) => node.type)).toEqual(["startEvent", "userTask", "userTask", "endEvent"]);
     expect(expanded.flows.some((flow) => flow.source_ref === "approveTask" && flow.target_ref === "userTask")).toBe(true);
-    expect(() => addDraftNode(draft, "parallelGateway")).toThrow("仅支持");
+    expect(() => addDraftNode(draft, "inclusiveGateway")).toThrow("仅支持");
     // Z6: a gateway needs an anchor node (start or task).
     expect(() => addDraftNode(draft, "exclusiveGateway")).toThrow("请先选择");
     expect(() => addDraftNode(draft, "exclusiveGateway", { after: "end" })).toThrow("请先选择");
@@ -63,5 +65,45 @@ describe("process draft editing", () => {
     expect(restored.nodes.map((node) => node.id)).toEqual(["start", "approveTask", "end"]);
     expect(restored.flows.map((flow) => `${flow.source_ref}>${flow.target_ref}`).sort()).toEqual(["approveTask>end", "start>approveTask"]);
     expect(() => removeExclusiveGateway(branched, "approveTask")).toThrow("只能删除条件分支节点");
+  });
+
+  it("inserts a parallel fork/join block and round-trips it (Z9)", () => {
+    const draft = createBlankDraft("parallel");
+    const block = addDraftNode(draft, "parallelGateway", { after: "approveTask" });
+    expect(block.nodes.map((node) => `${node.id}:${node.type}`)).toEqual([
+      "start:startEvent",
+      "approveTask:userTask",
+      "fork:parallelGateway",
+      "parallel_task:userTask",
+      "parallel_task_2:userTask",
+      "join:parallelGateway",
+      "end:endEvent",
+    ]);
+    const edges = block.flows.map((flow) => `${flow.source_ref}>${flow.target_ref}`).sort();
+    expect(edges).toEqual([
+      "approveTask>fork", "fork>parallel_task", "fork>parallel_task_2", "join>end",
+      "parallel_task>join", "parallel_task_2>join", "start>approveTask",
+    ].sort());
+    expect(parallelRole(block, "fork")).toBe("fork");
+    expect(parallelRole(block, "join")).toBe("join");
+    expect(parallelRole(block, "approveTask")).toBe("");
+
+    const reparsed = parseDraftXml(serializeDraftXml(block));
+    expect(reparsed.nodes.filter((node) => node.type === "parallelGateway").map((node) => node.name)).toEqual(["并行开始", "并行汇合"]);
+    expect(serializeDraftXml(block)).toContain('<parallelGateway id="fork" name="并行开始"/>');
+
+    const second = addDraftNode(block, "parallelGateway", { after: "start" });
+    expect(second.nodes.filter((node) => node.type === "parallelGateway").map((node) => node.id)).toEqual(["fork_2", "join_2", "fork", "join"]);
+    expect(() => addDraftNode(block, "parallelGateway", { after: "fork" })).toThrow("请先选择");
+  });
+
+  it("removes a parallel block from either its fork or its join (Z9)", () => {
+    const block = addDraftNode(createBlankDraft("parallel"), "parallelGateway", { after: "approveTask" });
+    for (const id of ["fork", "join"]) {
+      const restored = removeParallelBlock(block, id);
+      expect(restored.nodes.map((node) => node.id)).toEqual(["start", "approveTask", "end"]);
+      expect(restored.flows.map((flow) => `${flow.source_ref}>${flow.target_ref}`).sort()).toEqual(["approveTask>end", "start>approveTask"]);
+    }
+    expect(() => removeParallelBlock(block, "approveTask")).toThrow("只能删除并行分支节点");
   });
 });

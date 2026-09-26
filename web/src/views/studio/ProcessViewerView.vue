@@ -237,7 +237,7 @@
           >
             <rect :x="node.x" :y="node.y" :width="graph.nodeWidth" :height="graph.nodeHeight" rx="8" />
             <text :x="node.x + 12" :y="node.y + 24">{{ showText(node.name) }}</text>
-            <text :x="node.x + 12" :y="node.y + 42" class="type">{{ NODE_TYPES[node.type] || showText(node.type) }}</text>
+            <text :x="node.x + 12" :y="node.y + 42" class="type">{{ nodeKind(node.type, node.id) }}</text>
           </g>
         </svg>
       </section>
@@ -251,7 +251,7 @@
           <dd v-if="isEditing && editableType(selected.type)"><input v-model="selected.name" data-testid="node-name" aria-label="节点名称" /></dd>
           <dd v-else>{{ showText(selected.name) }}</dd>
           <dt>类型</dt>
-          <dd data-testid="node-type">{{ nodeTypeLabel(selected.type) }}</dd>
+          <dd data-testid="node-type">{{ nodeTypeLabel(selected.type, selected.id) }}</dd>
           <template v-if="selected.type === 'userTask'">
             <dt>审批人引用</dt>
             <dd v-if="isEditing">
@@ -272,6 +272,14 @@
             <NxIcon name="plus" :size="14" />在此后添加条件分支
           </button>
           <small class="nx-muted">原有路径作为分支一，另加一条分支审批，两条分支在后续节点汇合。</small>
+          <button type="button" class="nx-btn nx-btn--default nx-btn--sm" data-testid="add-parallel" @click="addParallelAfter(selected.id)">
+            <NxIcon name="plus" :size="14" />在此后添加并行分支
+          </button>
+          <small class="nx-muted">插入「并行开始 → 两条并行审批 → 并行汇合」，两条审批同时进行，都完成后再继续。</small>
+        </div>
+        <div v-if="isEditing && selected?.type === 'parallelGateway'" class="branch-actions">
+          <button type="button" class="nx-btn nx-btn--text danger-text" data-testid="remove-parallel" @click="removeParallel(selected.id)">删除并行分支</button>
+          <small class="nx-muted">连同配对的并行开始 / 汇合和其间的并行审批一起删除。</small>
         </div>
         <div v-if="isEditing && selected?.type === 'exclusiveGateway'" class="branch-actions">
           <button type="button" class="nx-btn nx-btn--text danger-text" data-testid="remove-gateway" @click="removeGateway(selected.id)">删除条件分支</button>
@@ -289,7 +297,7 @@
             </dd>
             <dd v-else data-testid="flow-condition-text">
               <code v-if="selectedFlow.condition">{{ selectedFlow.condition }}</code><span v-else>无条件</span>
-              <small v-if="isEditing" class="preset-hint">只有从条件分支出发的连线可以设置条件。</small>
+              <small v-if="isEditing" class="preset-hint">{{ parallelFlow(selectedFlow) ? "并行分支的连线不设条件，各分支同时进行。" : "只有从条件分支出发的连线可以设置条件。" }}</small>
             </dd>
           </dl>
         </section>
@@ -353,7 +361,9 @@ import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../component
 import NxIcon from "../../icons/NxIcon.vue";
 import { p3 } from "../../api/p3";
 import { insertAt, moveToGap } from "../../utils/listMove";
-import { addDraftNode, createBlankDraft, parseDraftXml, removeExclusiveGateway, serializeDraftXml } from "./processDraft";
+import {
+  addDraftNode, createBlankDraft, parallelRole, parseDraftXml, removeExclusiveGateway, removeParallelBlock, serializeDraftXml,
+} from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
 import { fromSequence, newStep, toSequence } from "./sequentialFlow";
 import { devNotesEnabled } from "../../utils/devNotes";
@@ -627,8 +637,47 @@ function removeGateway(id) {
   }
 }
 
-function nodeTypeLabel(type) {
-  return NODE_TYPES[type] ? `${NODE_TYPES[type]}（${type}）` : showText(type);
+// Z9: a parallel gateway reads as 并行开始 (fork) or 并行汇合 (join), decided by its flows.
+function nodeKind(type, id) {
+  if (type === "parallelGateway") {
+    const role = parallelRole(definition.value, id);
+    return role === "fork" ? "并行开始" : role === "join" ? "并行汇合" : "并行网关";
+  }
+  return NODE_TYPES[type] || showText(type);
+}
+
+function nodeTypeLabel(type, id) {
+  return NODE_TYPES[type] || type === "parallelGateway" ? `${nodeKind(type, id)}（${type}）` : showText(type);
+}
+
+function parallelFlow(flow) {
+  const types = [flow?.source_ref, flow?.target_ref].map((ref) => definition.value?.nodes?.find((node) => node.id === ref)?.type);
+  return types.includes("parallelGateway");
+}
+
+function addParallelAfter(id) {
+  branchError.value = "";
+  try {
+    const next = addDraftNode(definition.value, "parallelGateway", { after: id });
+    const fork = next.nodes.find((node) => node.type === "parallelGateway" && !definition.value.nodes.some((item) => item.id === node.id));
+    definition.value = next;
+    if (fork) selectedId.value = fork.id;
+  } catch (err) {
+    branchError.value = err.message;
+  }
+}
+
+function removeParallel(id) {
+  branchError.value = "";
+  try {
+    const next = removeParallelBlock(definition.value, id);
+    const before = new Set(next.nodes.map((node) => node.id));
+    const anchor = (definition.value.flows || []).find((flow) => before.has(flow.source_ref) && !before.has(flow.target_ref))?.source_ref || "";
+    definition.value = next;
+    selectedId.value = anchor;
+  } catch (err) {
+    branchError.value = err.message;
+  }
 }
 
 // N4: say where the draft is in 保存 → 校验 → 发布, so a disabled button is never unexplained.
@@ -648,7 +697,7 @@ function assigneeLabel(value) {
 }
 
 function editableType(type) {
-  return ["startEvent", "userTask", "endEvent", "exclusiveGateway"].includes(type);
+  return ["startEvent", "userTask", "endEvent", "exclusiveGateway", "parallelGateway"].includes(type);
 }
 
 async function saveDraft() {

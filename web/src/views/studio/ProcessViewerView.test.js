@@ -429,4 +429,38 @@ describe("process viewer", () => {
     expect(wrapper.find("[data-testid='flow-condition']").exists()).toBe(false);
     expect(wrapper.get("[data-testid='flow-condition-text']").text()).toBe("${ok}");
   });
+
+  it("adds a parallel fork/join block, labels it by role, saves it and removes it from the join (Z9)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    await wrapper.get(".step").trigger("click");
+    await wrapper.get("[data-testid='add-parallel']").trigger("click");
+
+    expect(wrapper.findAll("[data-testid='process-node']")).toHaveLength(7);
+    expect(wrapper.get("[data-testid='node-type']").text()).toBe("并行开始（parallelGateway）");
+    const kinds = wrapper.findAll("svg.graph g.node .type").map((node) => node.text());
+    expect(kinds).toContain("并行开始");
+    expect(kinds).toContain("并行汇合");
+    expect(kinds.filter((kind) => kind === "审批节点")).toHaveLength(3);
+
+    // Flows inside the block explain that they take no condition.
+    await wrapper.get("[data-testid='process-flow'][data-flow-id='flow_fork_parallel_task']").trigger("click");
+    expect(wrapper.find("[data-testid='flow-condition']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='flow-condition-text']").text()).toContain("并行分支的连线不设条件");
+
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    const xml = p3.saveProcessDraft.mock.calls[0][1].bpmn_xml;
+    expect(xml).toContain('<parallelGateway id="fork" name="并行开始"/>');
+    expect(xml).toContain('<parallelGateway id="join" name="并行汇合"/>');
+
+    const join = wrapper.findAll("[data-testid='process-node']").find((node) => node.text().includes("并行汇合"));
+    await join.trigger("click");
+    expect(wrapper.get("[data-testid='node-type']").text()).toBe("并行汇合（parallelGateway）");
+    await wrapper.get("[data-testid='remove-parallel']").trigger("click");
+    expect(wrapper.find("[data-testid='flow-steps']").exists()).toBe(true);
+    expect(wrapper.findAll(".step")).toHaveLength(1);
+  });
 });
