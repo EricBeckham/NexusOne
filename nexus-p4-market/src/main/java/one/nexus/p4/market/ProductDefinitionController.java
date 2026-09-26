@@ -7,6 +7,7 @@ import one.nexus.p4.market.MarketModels.ProductConfigReadiness;
 import one.nexus.p4.market.MarketModels.ProductDefinition;
 import one.nexus.p4.market.MarketModels.ProductDefinitionWrite;
 import one.nexus.p4.market.ProductConfigImportModels.ImportAccepted;
+import one.nexus.p4.market.ProductConfigImportModels.ImportJob;
 import one.nexus.p4.market.ProductConfigImportModels.ImportRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -55,6 +56,12 @@ public class ProductDefinitionController {
         Map<String, Object> body = request == null ? null : request.packageBody();
         String strategy = request == null ? null : request.conflictStrategy();
         return importService.importPackage(body, strategy, idempotencyKey);
+    }
+
+    /** IM6: read import job status / results. */
+    @GetMapping("/import-jobs/{id}")
+    public ImportJob importJob(@PathVariable UUID id) {
+        return importService.getJob(id);
     }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
