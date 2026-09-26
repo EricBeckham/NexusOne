@@ -69,7 +69,7 @@ public class PrintMappingService {
         return store.find(productDefinitionId).orElseGet(() -> defaultMapping(productDefinitionId));
     }
 
-    public ProductPrintMapping put(UUID productDefinitionId, ProductPrintMappingPut body) {
+    public synchronized ProductPrintMapping put(UUID productDefinitionId, ProductPrintMappingPut body) {
         isolation.requirePlatformContext("print-mapping.write", PlatformDuty.SYSTEM_ADMIN);
         requireProduct(productDefinitionId);
         if (body == null) {
@@ -84,9 +84,14 @@ public class PrintMappingService {
         validatePaper(paper);
         validateOrientation(orientation);
         validateMappings(body.mappings());
+        long current = store.find(productDefinitionId).map(ProductPrintMapping::revision).orElse(0L);
+        if (body.expectedRevision() != null && body.expectedRevision() != current) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "print mapping changed: expected revision " + body.expectedRevision() + ", current " + current);
+        }
         ProductPrintMapping saved = new ProductPrintMapping(productDefinitionId, ProductPrintMapping.SOURCE_IN_MEMORY,
                 paper, orientation, contract.builtinTemplate().code(), body.mappings(),
-                ProductPrintMapping.NOTE_IN_MEMORY);
+                ProductPrintMapping.NOTE_IN_MEMORY, current + 1);
         store.save(saved);
         return saved;
     }
@@ -95,7 +100,7 @@ public class PrintMappingService {
         return new ProductPrintMapping(productDefinitionId, ProductPrintMapping.SOURCE_DEFAULT,
                 contract.builtinTemplate().defaultPaper(), contract.builtinTemplate().defaultOrientation(),
                 contract.builtinTemplate().code(), contract.defaultFieldMappings(),
-                ProductPrintMapping.NOTE_DEFAULT);
+                ProductPrintMapping.NOTE_DEFAULT, 0);
     }
 
     private void requireProduct(UUID productDefinitionId) {
