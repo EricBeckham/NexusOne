@@ -294,9 +294,40 @@
             <dt>从</dt><dd>{{ nodeName(selectedFlow.source_ref) }}</dd>
             <dt>到</dt><dd>{{ nodeName(selectedFlow.target_ref) }}</dd>
             <dt>条件</dt>
-            <dd v-if="isEditing && conditionEditable(selectedFlow)">
-              <input v-model="selectedFlow.condition" class="nx-code" data-testid="flow-condition" aria-label="分支条件" placeholder="例如 ${amount > 1000}" />
-              <small class="preset-hint">留空表示无条件；条件为真的分支会被选中。</small>
+            <dd v-if="isEditing && conditionEditable(selectedFlow)" class="condition-editor" data-testid="condition-editor">
+              <!-- ZA7: thin structured editor (variable · operator · value) ↔ the condition string; 原文 keeps any expression. -->
+              <div class="mode-switch" role="group" aria-label="条件编辑方式">
+                <button type="button" :class="{ active: conditionMode === 'builder' }" data-testid="condition-mode-builder" @click="switchConditionMode('builder')">条件</button>
+                <button type="button" :class="{ active: conditionMode === 'raw' }" data-testid="condition-mode-raw" @click="switchConditionMode('raw')">原文</button>
+              </div>
+              <template v-if="conditionMode === 'builder'">
+                <select v-model="conditionDraft.variable" data-testid="condition-variable" aria-label="变量" @change="onConditionVariableChange">
+                  <option value="">选择变量</option>
+                  <option v-for="variable in CONDITION_VARIABLES" :key="variable.name" :value="variable.name">{{ variable.label }}</option>
+                  <option value="__custom">其他变量…</option>
+                </select>
+                <template v-if="conditionDraft.variable === '__custom'">
+                  <input v-model="conditionDraft.custom" class="nx-code" data-testid="condition-custom" aria-label="变量名" placeholder="变量名，如 amount" @input="applyConditionDraft" />
+                  <small class="preset-hint">需确保运行时存在该变量；申请表单的字段目前不会传入流程。</small>
+                </template>
+                <select v-model="conditionDraft.operator" data-testid="condition-operator" aria-label="运算符" @change="applyConditionDraft">
+                  <option v-for="op in operatorsFor(draftVariableName)" :key="op.value" :value="op.value">{{ op.label }}</option>
+                </select>
+                <select v-if="draftEnumOptions" v-model="conditionDraft.value" data-testid="condition-value" aria-label="值" @change="applyConditionDraft">
+                  <option value="">选择值</option>
+                  <option v-for="option in draftEnumOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+                <input v-else v-model="conditionDraft.value" data-testid="condition-value" aria-label="值" placeholder="值，如 1000 或 文本" @input="applyConditionDraft" />
+                <div class="condition-foot">
+                  <small class="preset-hint">生成：<code data-testid="condition-generated">{{ selectedFlow.condition || "无条件" }}</code></small>
+                  <button type="button" class="nx-btn nx-btn--text" data-testid="condition-clear" @click="clearCondition">清空条件</button>
+                </div>
+              </template>
+              <template v-else>
+                <input v-model="selectedFlow.condition" class="nx-code" data-testid="flow-condition" aria-label="分支条件原文" placeholder="例如 ${outcome == 'APPROVE'}" />
+                <small class="preset-hint">原文按表达式原样保存；留空表示无条件。</small>
+                <small v-if="conditionModeNote" class="preset-hint" data-testid="condition-mode-note">{{ conditionModeNote }}</small>
+              </template>
             </dd>
             <dd v-else data-testid="flow-condition-text">
               <code v-if="selectedFlow.condition">{{ selectedFlow.condition }}</code><span v-else>无条件</span>
@@ -365,7 +396,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import NxIcon from "../../icons/NxIcon.vue";
@@ -376,6 +407,7 @@ import {
 } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
 import { nxMessage } from "../../feedback/nxMessage";
+import { CONDITION_OPERATORS, CONDITION_VARIABLES, catalogVariable, formatCondition, operatorsFor, parseCondition } from "./conditionDsl";
 import { fromSequence, newStep, toSequence } from "./sequentialFlow";
 import { devNotesEnabled } from "../../utils/devNotes";
 
@@ -441,6 +473,82 @@ function conditionEditable(flow) {
   const source = definition.value?.nodes?.find((node) => node.id === flow?.source_ref);
   return source?.type === "exclusiveGateway";
 }
+
+// ZA7: local builder state for the selected flow; it writes the canonical string only when complete.
+const conditionMode = ref("builder");
+const conditionModeNote = ref("");
+const conditionDraft = reactive({ variable: "", custom: "", operator: "==", value: "" });
+const draftVariableName = computed(() => (conditionDraft.variable === "__custom" ? conditionDraft.custom.trim() : conditionDraft.variable));
+const draftEnumOptions = computed(() => catalogVariable(draftVariableName.value)?.options || null);
+
+function loadConditionDraft() {
+  conditionModeNote.value = "";
+  const parsed = parseCondition(selectedFlow.value?.condition);
+  Object.assign(conditionDraft, { variable: "", custom: "", operator: "==", value: "" });
+  if (parsed.kind === "advanced") {
+    conditionMode.value = "raw";
+    return;
+  }
+  conditionMode.value = "builder";
+  if (parsed.kind === "simple") {
+    const catalog = catalogVariable(parsed.variable);
+    Object.assign(conditionDraft, {
+      variable: catalog ? parsed.variable : "__custom",
+      custom: catalog ? "" : parsed.variable,
+      operator: parsed.operator,
+      value: parsed.value,
+    });
+  }
+}
+
+function draftValueType() {
+  const value = String(conditionDraft.value).trim();
+  if (draftEnumOptions.value) return "string";
+  if (CONDITION_OPERATORS.find((op) => op.value === conditionDraft.operator)?.numeric || /^-?\d+(\.\d+)?$/.test(value)) return "number";
+  if (value === "true" || value === "false") return "boolean";
+  return "string";
+}
+
+function applyConditionDraft() {
+  if (!selectedFlow.value) return;
+  const variable = draftVariableName.value;
+  const value = String(conditionDraft.value ?? "").trim();
+  if (!variable && !value) {
+    selectedFlow.value.condition = "";
+    return;
+  }
+  try {
+    selectedFlow.value.condition = formatCondition({ variable, operator: conditionDraft.operator, value, valueType: draftValueType() });
+  } catch {
+    // Incomplete: keep the last complete condition (ZA8 explains what is missing).
+  }
+}
+
+function onConditionVariableChange() {
+  if (!operatorsFor(draftVariableName.value).some((op) => op.value === conditionDraft.operator)) conditionDraft.operator = "==";
+  if (draftEnumOptions.value && !draftEnumOptions.value.some((option) => option.value === conditionDraft.value)) conditionDraft.value = "";
+  applyConditionDraft();
+}
+
+function clearCondition() {
+  Object.assign(conditionDraft, { variable: "", custom: "", operator: "==", value: "" });
+  if (selectedFlow.value) selectedFlow.value.condition = "";
+}
+
+function switchConditionMode(mode) {
+  conditionModeNote.value = "";
+  if (mode === "raw") {
+    conditionMode.value = "raw";
+    return;
+  }
+  if (parseCondition(selectedFlow.value?.condition).kind === "advanced") {
+    conditionModeNote.value = "这是条件编辑器表示不了的高级表达式，请在原文里修改，或清空后改用条件编辑。";
+    return;
+  }
+  loadConditionDraft();
+}
+
+watch(selectedFlowId, loadConditionDraft);
 
 function shortCondition(value) {
   const text = String(value || "");
@@ -877,7 +985,12 @@ svg.graph { display: block; min-width: 100%; }
 .flow-props dl { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--nx-space-1) var(--nx-space-2); margin: 0; }
 .flow-props dt { color: var(--nx-text-secondary); }
 .flow-props dd { display: grid; gap: 4px; margin: 0; overflow-wrap: anywhere; }
-.flow-props input { box-sizing: border-box; width: 100%; }
+.flow-props input, .flow-props select { box-sizing: border-box; width: 100%; min-height: 32px; }
+.condition-editor { display: grid; gap: 6px; }
+.mode-switch { display: inline-flex; width: max-content; padding: 2px; border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
+.mode-switch button { padding: 2px 10px; border: 0; border-radius: 4px; background: none; color: var(--nx-text-secondary); cursor: pointer; font-size: var(--nx-font-size-xs); }
+.mode-switch button.active { background: var(--nx-surface); color: var(--nx-text-primary); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
+.condition-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px; }
 .related-flow { display: grid; width: 100%; padding: 4px 6px; border: 0; border-radius: var(--nx-radius-sm); background: none; color: inherit; text-align: left; cursor: pointer; }
 .related-flow:hover { background: var(--nx-bg-page); }
 .node { cursor: pointer; }
