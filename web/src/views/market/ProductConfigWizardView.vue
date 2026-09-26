@@ -40,6 +40,7 @@
           <span class="nx-muted">样例：</span>
           <router-link :to="{ path: '/p4/product-samples/ledger', query: { definition: selectedDefinitionId } }" data-testid="wizard-sample-ledger">台账</router-link>
           <router-link :to="{ path: '/p4/product-samples/print', query: { definition: selectedDefinitionId } }" data-testid="wizard-sample-print">打印</router-link>
+          <router-link :to="{ path: '/p4/product-samples/report', query: { definition: selectedDefinitionId } }" data-testid="wizard-sample-report">统计</router-link>
         </nav>
       </section>
 

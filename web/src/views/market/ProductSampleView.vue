@@ -147,6 +147,26 @@
           </article>
         </div>
       </section>
+
+      <section v-else-if="kind === 'report' && sample" class="sample-card nx-card" data-testid="sample-report">
+        <header class="sample-meta">
+          <h2>{{ sample.product_name || "当前产品" }} · 统计样例</h2>
+          <p class="nx-muted" data-testid="sample-report-meta">
+            {{ asOfLabel ? `截至 ${asOfLabel}` : "当前" }} · {{ sample.note || "只统计平台现有记录的当前数量。" }}
+          </p>
+        </header>
+        <ul class="metric-grid" data-testid="sample-report-metrics">
+          <li v-for="metric in metrics" :key="metric.key" class="metric" :data-testid="`sample-report-metric-${metric.key}`">
+            <span class="metric-label">{{ metric.label }}</span>
+            <strong class="metric-value" :class="{ unknown: metric.value == null }">{{ metric.value == null ? "暂无" : metric.value }}</strong>
+            <small class="nx-muted">{{ metric.note }}</small>
+          </li>
+        </ul>
+        <p class="trend-note" data-testid="sample-report-trend">
+          <strong>趋势</strong>
+          <span>{{ sample.trend_available === true ? "趋势读口已提供，本样例页仍只展示当前数量。" : sample.trend_note || "趋势暂无。" }}</span>
+        </p>
+      </section>
     </template>
   </main>
 </template>
@@ -157,7 +177,7 @@ import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxSkeleton } from "../../components";
 import { p4 } from "../../api/client";
 
-/** PC8+: open a read-only sample for the current product (ledger PC8, print PC10; report follows in PC12). */
+/** PC8+: open a read-only sample for the current product (ledger PC8, print PC10, report PC12). */
 const KINDS = {
   ledger: {
     title: "样例台账",
@@ -168,6 +188,11 @@ const KINDS = {
     title: "打印模板样例",
     description: "内置版式套用当前产品的表单字段，只读预览打印效果。完整拖拽设计器标 later，本页不提供。",
     read: (id) => p4.productPrintSample(id),
+  },
+  report: {
+    title: "统计报表样例",
+    description: "当前产品的几项真实计数；没有按时间聚合的数据，所以不画趋势。",
+    read: (id) => p4.productReportSample(id),
   },
 };
 
@@ -204,6 +229,14 @@ const paperLabel = computed(() => {
   return `${paper} ${sample.value?.orientation === "LANDSCAPE" ? "横向" : "纵向"}`;
 });
 const orientationClass = computed(() => (sample.value?.orientation === "LANDSCAPE" ? "landscape" : "portrait"));
+// PC12: a count the backend could not make arrives as null or an absent key — both read as 暂无, never 0.
+const metrics = computed(() => (Array.isArray(sample.value?.metrics) ? sample.value.metrics : [])
+  .filter((metric) => metric?.key)
+  .map((metric) => ({ ...metric, value: typeof metric.value === "number" ? metric.value : null })));
+const asOfLabel = computed(() => {
+  const at = sample.value?.as_of ? new Date(sample.value.as_of) : null;
+  return at && !Number.isNaN(at.getTime()) ? at.toLocaleString("zh-CN", { hour12: false }) : "";
+});
 const columns = computed(() => (Array.isArray(sample.value?.columns) ? sample.value.columns.filter((c) => c?.key) : []));
 const sampleErrorTitle = computed(() => {
   if (kind.value === "print") return "打印样例暂时无法读取";
@@ -319,6 +352,45 @@ onMounted(load);
 }
 .empty-row span {
   margin-top: var(--nx-space-1);
+  font-size: var(--nx-font-size-sm);
+}
+.metric-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--nx-space-3);
+}
+.metric {
+  display: grid;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+.metric-label {
+  font-size: var(--nx-font-size-sm);
+  color: var(--nx-text-secondary);
+}
+.metric-value {
+  font-size: 24px;
+  line-height: 1.2;
+}
+.metric-value.unknown {
+  font-size: var(--nx-font-size-lg);
+  color: var(--nx-text-secondary);
+}
+.metric small {
+  font-size: var(--nx-font-size-xs);
+}
+.trend-note {
+  display: flex;
+  gap: var(--nx-space-2);
+  margin: 0;
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-divider);
   font-size: var(--nx-font-size-sm);
 }
 .paper-stage {
