@@ -1,5 +1,5 @@
 <template>
-  <div v-if="form">
+  <main v-if="form" class="form-studio-page">
     <NxPageHeader :title="form.name" description="分别管理草稿、已发布和运行版本；填报会写入台账并启动审批。">
       <template #actions>
         <div class="nx-row">
@@ -19,7 +19,9 @@
     </div>
 
     <form v-if="tab === 'fill'" class="nx-card" style="max-width:720px;" @submit.prevent="submitFill">
-      <p v-if="!runningFields.length" class="nx-muted">没有 running 快照。先 Validate / Publish，或当前租户还没有运行版本。</p>
+      <NxEmpty v-if="!runningFields.length" compact title="暂无运行版本" description="先到发布页校验并发布草稿，才能填报并启动审批。">
+        <template #next><button class="ghost" type="button" @click="tab = 'publish'">去发布</button></template>
+      </NxEmpty>
       <div v-for="field in runningFields" :key="field.id || field.code" class="nx-field">
         <label>{{ field.name }}</label>
         <textarea v-if="field.type === 'longtext' || field.type === 'textarea'" v-model="values[field.code]" rows="3" />
@@ -71,8 +73,9 @@
         <p class="nx-muted">表单只绑定 ledger_code + field_code。物理列名会被 P3.FORM.0004 拒绝。</p>
       </div>
       <div class="pane canvas">
-        <h3>Canvas · Draft bindings</h3>
+        <h3>草稿字段顺序</h3>
         <div class="preview">
+          <NxEmpty v-if="!form.draft_fields?.length" compact title="暂无草稿字段" description="此处按顺序展示草稿字段绑定；请先在表单草稿中添加字段。" />
           <p v-for="field in form.draft_fields || []" :key="field.id || field.code">
             <strong>{{ field.name }}</strong>
             <span class="nx-muted"> {{ field.code }} · {{ field.type }}</span>
@@ -88,21 +91,21 @@
     <div v-else class="nx-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="nx-card">
         <h3>发布中心</h3>
-        <ol class="steps">
-          <li>Draft</li>
-          <li>Validate</li>
-          <li>Publish</li>
-          <li>Running</li>
+        <ol class="steps" aria-label="表单发布顺序">
+          <li><span class="step-number">1</span><span><strong>草稿</strong><small>配置字段与绑定</small></span></li>
+          <li><span class="step-number">2</span><span><strong>校验</strong><small>{{ validation?.ok ? "已通过" : "检查草稿规则" }}</small></span></li>
+          <li><span class="step-number">3</span><span><strong>发布</strong><small>生成不可变版本</small></span></li>
+          <li><span class="step-number">4</span><span><strong>运行</strong><small>{{ form.running_version ? `版本 ${form.running_version}` : "暂无运行版本" }}</small></span></li>
         </ol>
         <div class="nx-row" style="margin-top:12px;">
-          <button class="ghost" type="button" data-testid="form-validate" @click="onValidate">Validate</button>
-          <button class="primary" type="button" data-testid="form-publish" @click="onPublish">Publish</button>
-          <button class="ghost" type="button" data-testid="form-publish-log" @click="onLog">查看 publish-log</button>
+          <button class="ghost" type="button" data-testid="form-validate" @click="onValidate">校验草稿</button>
+          <button class="primary" type="button" data-testid="form-publish" @click="onPublish">发布表单</button>
+          <button class="ghost" type="button" data-testid="form-publish-log" @click="onLog">查看发布日志</button>
         </div>
       </div>
       <div class="nx-card">
-        <h3>Validation Result</h3>
-        <p v-if="!validation">尚未校验</p>
+        <h3>校验结果</h3>
+        <NxEmpty v-if="!validation" compact title="尚未校验" description="点击左侧「校验草稿」后，结果会显示在这里。" />
         <template v-else>
           <NxStatus :label="validation.ok ? 'PASS' : 'FAIL'" :tone="validation.ok ? 'success' : 'danger'" />
           <ul>
@@ -113,14 +116,15 @@
         <p v-if="publishResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(publishResult, null, 2) }}</p>
       </div>
     </div>
-  </div>
-  <p v-else-if="error" class="nx-error">{{ error }}</p>
+  </main>
+  <NxErrorState v-else-if="error" :title="error" retry-label="重试" @retry="reload" />
+  <NxSkeleton v-else variant="form-block" label="正在加载表单工作室" />
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
-import { NxPageHeader } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
@@ -220,6 +224,12 @@ async function onLog() {
 </script>
 
 <style scoped>
-.steps { margin: 8px 0 0 18px; }
-.preview { border: 1px dashed var(--nx-border); border-radius: 8px; padding: 12px; }
+.form-studio-page { display: grid; gap: var(--nx-space-4); }
+.form-studio-page :deep(.page-header) { margin-bottom: 0; }
+.steps { list-style: none; display: grid; gap: var(--nx-space-2); margin: var(--nx-space-3) 0; padding: 0; }
+.steps li { display: flex; align-items: center; gap: var(--nx-space-3); padding: var(--nx-space-2) var(--nx-space-3); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); }
+.steps li strong, .steps li small { display: block; }
+.steps li small { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.step-number { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%; color: var(--nx-product); background: var(--nx-product-light); font-weight: 700; }
+.preview { border: 1px dashed var(--nx-border); border-radius: var(--nx-radius-sm); padding: var(--nx-space-3); }
 </style>
