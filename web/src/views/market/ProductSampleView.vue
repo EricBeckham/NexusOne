@@ -42,7 +42,8 @@
       <NxErrorState
         v-if="sampleError"
         data-testid="sample-read-error"
-        :title="sampleError"
+        :title="sampleErrorTitle"
+        :description="sampleErrorDescription"
         :trace-id="sampleTraceId"
         retry-label="重试"
         @retry="loadSample"
@@ -94,10 +95,31 @@
         <header class="sample-meta">
           <h2>{{ sample.template_name || "内置样例版式" }}</h2>
           <p class="nx-muted" data-testid="sample-print-meta">
-            {{ paperLabel }} · {{ sample.note }}
+            {{ paperLabel }} · {{ sample.note || "内置样例版式，字段值留空，只用于预览打印效果。" }}
           </p>
         </header>
-        <div class="paper-stage">
+
+        <NxResult
+          compact
+          tone="info"
+          data-testid="sample-print-later"
+          title="完整打印设计器 · later"
+          description="拖拽排版、页眉页脚引擎不在本波。当前只提供内置样例预览；配置映射与纸张枚举若已接通，仍不会变成完整设计器。"
+        />
+
+        <NxEmpty
+          v-if="!printSections.length"
+          compact
+          data-testid="sample-print-no-sections"
+          title="暂无打印分区"
+          :description="sample.note || '读不到可套用的表单字段分区。请先在产品定义绑定已发布的表单模板，再回来预览。'"
+        >
+          <template #next>
+            <router-link class="primary" to="/p4/product-definitions">去产品定义</router-link>
+          </template>
+        </NxEmpty>
+
+        <div v-else class="paper-stage">
           <article class="paper" :class="orientationClass" aria-label="打印预览" data-testid="sample-print-paper">
             <h3 class="paper-title">{{ sample.title || sample.product_name }}</h3>
             <section
@@ -107,7 +129,14 @@
               :data-testid="`sample-print-section-${section.key}`"
             >
               <h4>{{ section.label }}</h4>
-              <p v-if="!section.fields.length" class="paper-empty">（表单字段暂无）</p>
+              <NxEmpty
+                v-if="!section.fields.length"
+                compact
+                class="paper-empty-shell"
+                :data-testid="`sample-print-section-empty-${section.key}`"
+                title="本分区暂无字段"
+                description="表单未提供可映射到此槽位的字段，留空预览。"
+              />
               <dl v-else>
                 <div v-for="field in section.fields" :key="field.key" class="paper-field" :class="{ wide: field.type === 'TEXTAREA' }">
                   <dt>{{ field.label }}</dt>
@@ -125,7 +154,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxSkeleton } from "../../components";
 import { p4 } from "../../api/client";
 
 /** PC8+: open a read-only sample for the current product (ledger PC8, print PC10; report follows in PC12). */
@@ -137,7 +166,7 @@ const KINDS = {
   },
   print: {
     title: "打印模板样例",
-    description: "内置版式套用当前产品的表单字段，预览打印效果；不是打印设计器。",
+    description: "内置版式套用当前产品的表单字段，只读预览打印效果。完整拖拽设计器标 later，本页不提供。",
     read: (id) => p4.productPrintSample(id),
   },
 };
@@ -176,6 +205,14 @@ const paperLabel = computed(() => {
 });
 const orientationClass = computed(() => (sample.value?.orientation === "LANDSCAPE" ? "landscape" : "portrait"));
 const columns = computed(() => (Array.isArray(sample.value?.columns) ? sample.value.columns.filter((c) => c?.key) : []));
+const sampleErrorTitle = computed(() => {
+  if (kind.value === "print") return "打印样例暂时无法读取";
+  return sampleError.value || "样例暂时无法读取";
+});
+const sampleErrorDescription = computed(() => {
+  if (!sampleError.value || kind.value !== "print") return "";
+  return `${sampleError.value}。这是内置样例预览，不是完整打印设计器；修好读口后可重试。`;
+});
 const wizardLink = computed(() => ({ path: "/p4/product-config-wizard", query: selectedId.value ? { definition: selectedId.value } : {} }));
 const crumbs = computed(() => [
   { label: "产品配置向导", to: wizardLink.value },
@@ -345,9 +382,8 @@ onMounted(load);
   min-height: 16px;
   border-bottom: 1px solid #8f959e;
 }
-.paper-empty {
-  margin: 0;
-  font-size: 12px;
-  color: #8f959e;
+.paper-empty-shell {
+  margin: 4px 0 0;
+  padding: var(--nx-space-2) 0;
 }
 </style>

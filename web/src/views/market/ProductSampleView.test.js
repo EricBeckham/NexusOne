@@ -139,13 +139,35 @@ describe("product sample print (PC10)", () => {
     expect(wrapper.findAll("dd").every((dd) => dd.text() === "")).toBe(true);
     expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("A4 纵向");
     expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("不是打印设计器");
+    expect(wrapper.get("[data-testid='sample-print-later']").text()).toMatch(/完整打印设计器.*later/);
     expect(wrapper.find("[draggable], input, textarea").exists()).toBe(false);
   });
 
-  it("marks an empty form section instead of inventing fields", async () => {
+  it("marks an empty form section with the S empty shell", async () => {
     mocks.productPrintSample.mockResolvedValue({ ...PRINT, sections: [PRINT.sections[0], { key: "form", label: "申请内容", fields: [] }] });
     const wrapper = await mountAt("/p4/product-samples/print");
-    expect(wrapper.get("[data-testid='sample-print-section-form']").text()).toContain("表单字段暂无");
+    expect(wrapper.get("[data-testid='sample-print-section-empty-form']").text()).toContain("本分区暂无字段");
     expect(wrapper.find("[data-testid='sample-print-section-approval']").exists()).toBe(false);
+  });
+
+  it("shows an empty S shell when the print sample has no sections", async () => {
+    mocks.productPrintSample.mockResolvedValue({ ...PRINT, sections: [], note: "读不到可套用的表单字段分区。" });
+    const wrapper = await mountAt("/p4/product-samples/print");
+    expect(wrapper.get("[data-testid='sample-print-no-sections']").text()).toContain("暂无打印分区");
+    expect(wrapper.get("[data-testid='sample-print-no-sections'] a").attributes("href")).toBe("/p4/product-definitions");
+    expect(wrapper.find("[data-testid='sample-print-paper']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='sample-print-later']").text()).toContain("later");
+  });
+
+  it("uses a print-specific error shell with later honesty when the sample fails", async () => {
+    mocks.productPrintSample.mockRejectedValueOnce(Object.assign(new Error("print down"), { traceId: "tr-r4" }));
+    const wrapper = await mountAt("/p4/product-samples/print");
+    const err = wrapper.get("[data-testid='sample-read-error']");
+    expect(err.text()).toContain("打印样例暂时无法读取");
+    expect(err.text()).toContain("print down");
+    expect(err.text()).toContain("不是完整打印设计器");
+    await err.get("button").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-testid='sample-print-paper']").exists()).toBe(true);
   });
 });
