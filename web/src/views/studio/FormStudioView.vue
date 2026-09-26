@@ -72,10 +72,11 @@
         <p class="nx-muted">表单只绑定 ledger_code + field_code。物理列名会被 P3.FORM.0004 拒绝。</p>
       </div>
       <div class="pane canvas">
-        <h3>草稿字段顺序</h3>
-        <div class="preview">
+        <h3>{{ previewLayout ? '草稿布局预览' : '草稿字段顺序' }}</h3>
+        <p v-if="previewLayout" class="nx-muted">只读布局预览；字段修改请前往模板编辑器。</p>
+        <div class="preview" :class="{ 'layout-preview': previewLayout }" data-testid="studio-field-preview">
           <NxEmpty v-if="!form.draft_fields?.length" compact title="暂无草稿字段" description="此处按顺序展示草稿字段绑定；请先在表单草稿中添加字段。" />
-          <p v-for="field in form.draft_fields || []" :key="field.id || field.code">
+          <p v-for="(field, index) in form.draft_fields || []" :key="field.id || field.code" :style="previewLayout?.[index]" data-testid="studio-preview-field">
             <strong>{{ field.name }}</strong>
             <span class="nx-muted"> {{ field.code }} · {{ field.type }}</span>
           </p>
@@ -145,6 +146,18 @@ const assigneeRef = ref("");
 const processKey = ref("nexusSequentialApproval");
 
 const runningFields = computed(() => form.value?.running_fields || []);
+
+// Thin read-only consumer: zero-based 12-column grid, persisted as options.layout.
+// Never invent placement for legacy, mixed or invalid metadata: retain list order.
+const previewLayout = computed(() => {
+  const fields = form.value?.draft_fields || [];
+  if (!fields.length) return null;
+  const layouts = fields.map((field) => field.options?.layout || field.layout);
+  if (!layouts.every((layout) => layout && [layout.x, layout.y, layout.w, layout.h].every(Number.isInteger)
+    && layout.x >= 0 && layout.y >= 0 && layout.w > 0 && layout.h > 0
+    && layout.x + layout.w <= 12 && layout.y + layout.h <= 100)) return null;
+  return layouts.map(({ x, y, w, h }) => ({ gridColumn: `${x + 1} / span ${w}`, gridRow: `${y + 1} / span ${h}` }));
+});
 
 function inputType(type) {
   const normalized = String(type || "").toLowerCase();
@@ -232,4 +245,6 @@ async function onLog() {
 .steps li small { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .step-number { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%; color: var(--nx-product); background: var(--nx-product-light); font-weight: 700; }
 .preview { border: 1px dashed var(--nx-border); border-radius: var(--nx-radius-sm); padding: var(--nx-space-3); }
+.layout-preview { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: minmax(40px, auto); gap: var(--nx-space-2); overflow: auto; }
+.layout-preview p { margin: 0; padding: var(--nx-space-2); min-width: 0; overflow-wrap: anywhere; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); background: var(--nx-surface); }
 </style>
