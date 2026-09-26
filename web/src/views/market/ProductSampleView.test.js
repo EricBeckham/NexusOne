@@ -139,11 +139,12 @@ const CONTRACT = {
   orientations: [{ code: "PORTRAIT", label: "纵向" }, { code: "LANDSCAPE", label: "横向" }],
   builtin_template: {
     slots: [
-      { id: "header.application_no", label: "单号" },
-      { id: "form.fields", label: "表单字段区" },
-      { id: "approval.opinion", label: "审批意见" },
+      { id: "header.application_no", label: "单号", section: "header" },
+      { id: "form.fields", label: "表单字段区", section: "form" },
+      { id: "approval.opinion", label: "审批意见", section: "approval" },
     ],
   },
+  mapping_rules: { unmapped_spill_slot_id: "form.fields" },
 };
 
 const MAPPING = {
@@ -189,6 +190,15 @@ describe("product sample print (PC10 / CF-R1)", () => {
     await wrapper.get("[data-testid='sample-print-orientation']").setValue("LANDSCAPE");
     expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("A5 横向");
     expect(wrapper.get("[data-testid='sample-print-paper']").classes()).toContain("landscape");
+  });
+
+  it("shows a mapping-driven readonly HTML preview shell (CF-R2)", async () => {
+    const wrapper = await mountAt("/p4/product-samples/print?definition=d1");
+    expect(wrapper.get("[data-testid='sample-print-readonly-preview']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='sample-print-preview-note']").text()).toContain("只读 HTML 预览");
+    expect(wrapper.get("[data-testid='sample-print-preview-field-application_no']").text()).toContain("单号");
+    expect(wrapper.get("[data-testid='sample-print-preview-field-opinion']").text()).toContain("审批意见");
+    expect(wrapper.find("[data-testid='sample-print-readonly-preview'] [contenteditable], [data-testid='sample-print-readonly-preview'] input, [data-testid='sample-print-readonly-preview'] textarea").exists()).toBe(false);
   });
 
   it("marks an empty form section with the S empty shell", async () => {
