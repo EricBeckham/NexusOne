@@ -7,5 +7,6 @@ export const p4Nav = [
   { id: "packages", label: "应用包", to: "/p4/packages", section: "目录配置" },
   { id: "skus", label: "商品与 SKU", to: "/p4/skus", section: "目录配置" },
   { id: "product-definitions", label: "产品定义", to: "/p4/product-definitions", section: "目录配置" },
+  { id: "product-config-wizard", label: "配置向导", to: "/p4/product-config-wizard", section: "目录配置" },
   { id: "operations", label: "运营分析", to: "/p4/operations", section: "目录配置" },
 ];
