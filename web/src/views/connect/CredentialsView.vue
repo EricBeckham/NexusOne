@@ -1,5 +1,5 @@
 <template>
-  <main>
+  <main class="credentials-page">
     <NxPageHeader
       eyebrow="P5 · 自用凭证"
       title="凭证"
@@ -40,20 +40,22 @@
               <button class="primary" type="submit" :disabled="busy">{{ secretConfigured ? "轮转" : "写入密钥" }}</button>
             </form>
             <div class="actions">
-              <button class="secondary" type="button" :disabled="busy" @click="probe">测试</button>
+              <button class="ghost" type="button" :disabled="busy" @click="probe">测试</button>
               <button class="danger" type="button" :disabled="busy" @click="revoke">吊销</button>
             </div>
           </template>
-          <button v-else class="secondary" type="button" :disabled="busy" @click="probe">测试</button>
+          <button v-else class="ghost" type="button" :disabled="busy" @click="probe">测试</button>
         </section>
       </template>
     </template>
 
     <template v-else>
-      <NxEmpty v-if="rows && !rows.length" title="暂无" description="当前租户还没有凭证。" />
-      <table v-else-if="listed.length" class="nx-table">
+      <NxEmpty v-if="rows && !rows.length" title="暂无凭证" description="先保存凭证元数据，再在详情页写入密钥；列表始终不会回显密钥。">
+        <template #next><a class="ghost" href="#create-credential">新建凭证</a></template>
+      </NxEmpty>
+      <div v-else-if="listed.length" class="table-scroll"><table class="nx-table nx-table--compact" data-testid="credentials-table">
         <thead>
-          <tr><th>名称</th><th>提供方</th><th>引用</th><th>最近轮转</th><th>到期</th><th>状态</th><th></th></tr>
+          <tr><th scope="col">名称</th><th scope="col">提供方</th><th scope="col">引用</th><th scope="col">最近轮转</th><th scope="col">到期</th><th scope="col">状态</th><th scope="col">操作</th></tr>
         </thead>
         <tbody>
           <tr v-for="row in listed" :key="row.id || row.name">
@@ -66,9 +68,10 @@
             <td><router-link v-if="row.id" :to="`/p5/credentials/${row.id}`">查看</router-link><template v-else>暂无</template></td>
           </tr>
         </tbody>
-      </table>
+      </table></div>
+      <div v-else-if="!loaded" class="loading-list"><NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在加载凭证" compact /></div>
 
-      <section class="nx-card create">
+      <section id="create-credential" class="nx-card create">
         <h2>新建</h2>
         <div class="nx-field"><label>名称</label><input v-model="name" maxlength="160" /></div>
         <div class="nx-field"><label>提供方</label><input v-model="provider" maxlength="100" /></div>
@@ -83,7 +86,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p5 } from "../../api/client";
 import { asRows, credentialFields, show } from "./connectDisplay";
 
@@ -276,13 +279,18 @@ onMounted(load);
 </script>
 
 <style scoped>
-.detail, .create, .secret-form { margin-top: var(--nx-space-4); }
+.credentials-page { display: grid; gap: var(--nx-space-4); }
+.credentials-page :deep(.page-header) { margin-bottom: 0; }
+.table-scroll { overflow-x: auto; }
+.table-scroll .nx-table { min-width: 760px; }
+.loading-list { display: grid; gap: var(--nx-space-2); }
+.detail, .create, .secret-form { margin-top: 0; }
 .detail h2, .create h2, .secret-form h2 { margin-top: 0; font-size: 16px; }
 dl { display: grid; gap: var(--nx-space-3); margin: 0; }
 dl div { display: grid; grid-template-columns: 120px 1fr; gap: var(--nx-space-3); }
 dt { color: var(--nx-text-secondary); }
 dd { margin: 0; overflow-wrap: anywhere; }
 .hint { color: var(--nx-text-secondary); font-size: 13px; }
-.actions { display: flex; gap: 8px; margin-top: 12px; }
-.danger { color: #b42318; }
+.actions { display: flex; align-items: center; gap: var(--nx-space-2); margin-top: var(--nx-space-4); padding-top: var(--nx-space-3); border-top: 1px solid var(--nx-divider); }
+.actions .danger { margin-left: auto; }
 </style>

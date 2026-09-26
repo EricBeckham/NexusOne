@@ -60,17 +60,20 @@ describe("P5 credential page", () => {
     expect(wrapper.text()).toContain("暂无");
     expect(wrapper.text()).not.toContain("must-not-render");
     expect(wrapper.text()).not.toContain("开放平台");
+    expect(wrapper.get("[data-testid='credentials-table']").classes()).toContain("nx-table--compact");
   });
 
   it("shows 暂无 when the tenant has no credentials", async () => {
     p5.credentials.mockResolvedValue([]);
     const wrapper = await open("/p5/credentials");
-    expect(wrapper.text()).toContain("暂无");
+    expect(wrapper.get("[data-testid='nx-empty-title']").text()).toBe("暂无凭证");
+    expect(wrapper.get("[data-testid='nx-empty-next'] a").attributes("href")).toBe("#create-credential");
     expect(wrapper.find("table").exists()).toBe(false);
   });
 
   it("rotates from the detail page and clears the secret field", async () => {
     const wrapper = await open("/p5/credentials/cred-1");
+    expect(wrapper.findAll(".actions button").map((button) => button.classes())).toEqual([expect.arrayContaining(["ghost"]), expect.arrayContaining(["danger"])]);
     const input = wrapper.get('input[type="password"]');
     await input.setValue("rotated-secret-value");
     await wrapper.get("form").trigger("submit");
