@@ -51,7 +51,19 @@
       </NxResult>
     </section>
 
-    <section class="gallery-grid states" aria-label="页面状态示例">
+        <section class="nx-card section" data-testid="data-table-gallery">
+      <h2>NxDataTable</h2>
+      <p class="hint">§12 density + Empty / Skeleton / Error shell. Demo rows only.</p>
+      <NxDataTable aria-label="gallery-table" testid="gallery-data-table" density="compact">
+        <template #header>
+          <tr><th>Name</th><th>Status</th></tr>
+        </template>
+        <tr><td>Row A</td><td><NxStatusTag status="ACTIVE" /></td></tr>
+        <tr><td>Row B</td><td><NxStatusTag status="PENDING" /></td></tr>
+      </NxDataTable>
+    </section>
+
+<section class="gallery-grid states" aria-label="页面状态示例">
       <div class="nx-card"><NxEmpty description="创建第一条记录后会显示在这里" compact /></div>
       <div class="nx-card"><NxErrorState trace-id="dev-trace-id" /></div>
       <div class="nx-card"><NxNoPermission /></div>
