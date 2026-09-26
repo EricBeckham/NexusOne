@@ -10,23 +10,30 @@
         <button class="primary" type="submit" :disabled="!session.contextId || creating">新增人员</button>
       </div>
     </form>
-    <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="reload" />
-    <section v-else-if="loading" class="nx-card loading" role="status">正在加载用户目录…</section>
-    <NxEmpty v-else-if="!rows.length" title="暂无用户" description="当前租户还没有可展示的人员记录。" />
-    <div v-else class="table-scroll nx-card">
-      <table class="nx-table" data-testid="person-table">
-        <thead><tr><th>姓名 / 账号</th><th>所属组织</th><th>岗位</th><th>角色</th><th>账号状态</th><th>最近登录</th><th>来源</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="row in rows" :key="row.id">
-            <td><button class="person-name" type="button" @click="openDrawer(row)">{{ displayName(row) }}</button><small>{{ row.employee_no || row.employeeNo || row.email || '暂无账号信息' }}</small></td>
-            <td>详情中查看</td><td>详情中查看</td><td>暂无</td>
-            <td><NxStatusTag :status="row.status || ''" :label="row.status || '暂无'" :tone="row.status === 'ACTIVE' ? 'success' : 'neutral'" /></td>
-            <td>暂无</td><td>暂无</td>
-            <td><button class="text-action" type="button" @click="openDrawer(row)">详情</button></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <NxDataTable
+      :loading="loading"
+      :error="tableError"
+      :empty="!loading && !error && !rows.length"
+      empty-title="暂无用户"
+      empty-description="当前租户还没有可展示的人员记录。"
+      density="compact"
+      loading-label="正在加载用户目录"
+      aria-label="用户目录"
+      testid="person-table-root"
+      card
+      @retry="reload"
+    >
+      <template #header>
+        <tr><th>姓名 / 账号</th><th>所属组织</th><th>岗位</th><th>角色</th><th>账号状态</th><th>最近登录</th><th>来源</th><th>操作</th></tr>
+      </template>
+      <tr v-for="row in rows" :key="row.id">
+        <td><button class="person-name" type="button" @click="openDrawer(row)">{{ displayName(row) }}</button><small>{{ row.employee_no || row.employeeNo || row.email || '暂无账号信息' }}</small></td>
+        <td>详情中查看</td><td>详情中查看</td><td>暂无</td>
+        <td><NxStatusTag :status="row.status || ''" :label="row.status || '暂无'" :tone="row.status === 'ACTIVE' ? 'success' : 'neutral'" /></td>
+        <td>暂无</td><td>暂无</td>
+        <td><button class="text-action" type="button" @click="openDrawer(row)">详情</button></td>
+      </tr>
+    </NxDataTable>
 
     <div v-if="selectedPerson" class="drawer-backdrop" data-testid="person-drawer-backdrop" @click.self="closeDrawer">
       <aside class="person-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" data-testid="person-drawer">
@@ -65,8 +72,8 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, reactive, ref } from "vue";
-import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { NxDataTable, NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
 import { p2 } from "../../api/client";
 import { ensureContext, session } from "../../api/session";
 
@@ -76,6 +83,7 @@ const selectedPerson = ref(null); const detail = ref(null); const employments = 
 const detailLoading = ref(false); const detailError = ref(""); const employmentError = ref("");
 const value = (input) => input === null || input === undefined || input === "" ? "暂无" : input;
 const displayName = (person) => person?.display_name || person?.displayName || "暂无姓名";
+const tableError = computed(() => (error.value ? { title: "用户目录暂时无法加载", description: error.value } : ""));
 
 async function reload() {
   loading.value = true; error.value = "";
@@ -127,10 +135,10 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .primary:disabled { opacity: .55; cursor: not-allowed; }
 .ghost { color: var(--nx-text-regular); background: var(--nx-surface); border: 1px solid var(--nx-border-strong); }
 .table-scroll { overflow-x: auto; padding: 0; }
-.nx-table { min-width: 980px; }
-.nx-table th,.nx-table td { white-space: nowrap; }
+:deep(.nx-table) { min-width: 980px; }
+:deep(.nx-table) th,:deep(.nx-table) td { white-space: nowrap; }
 .person-name,.text-action { padding: 0; color: var(--nx-primary); background: none; border: 0; font: inherit; cursor: pointer; }
-.person-name { font-weight: 600; }.nx-table small { display: block; margin-top: 4px; color: var(--nx-text-secondary); }
+.person-name { font-weight: 600; }:deep(.nx-table) small { display: block; margin-top: 4px; color: var(--nx-text-secondary); }
 .loading { padding: var(--nx-space-5); color: var(--nx-text-secondary); }
 .drawer-backdrop { position: fixed; inset: 0; z-index: 20; display: flex; justify-content: flex-end; background: color-mix(in srgb, var(--nx-text-primary) 28%, transparent); }
 .person-drawer { display: flex; flex-direction: column; width: min(520px, 100vw); height: 100%; padding: var(--nx-space-6); overflow-y: auto; background: var(--nx-surface); box-shadow: var(--nx-shadow-dialog); }
