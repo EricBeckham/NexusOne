@@ -63,6 +63,10 @@ describe("product definition binding page", () => {
   it("guides an empty platform to publish a template and a process first", async () => {
     const wrapper = await mountPage();
     expect(wrapper.text()).toContain("暂无产品定义");
+    expect(wrapper.get("[data-testid='nx-empty-next'] a").attributes("href")).toBe("#new-definition");
+    await wrapper.get("[data-testid='definition-code']").trigger("blur");
+    expect(wrapper.get("[data-testid='definition-code']").attributes("aria-invalid")).toBe("true");
+    expect(wrapper.get("[data-testid='definition-code']").element.closest(".nx-field").querySelector(".nx-field-error").textContent).toBe("请填写产品编码");
     expect(wrapper.get("[data-testid='definition-permission']").text()).toContain("租户成员可发起");
     expect(wrapper.get("[data-testid='journey-template']").attributes("data-done")).toBe("false");
     expect(wrapper.get("[data-testid='definition-template-empty']").text()).toContain("下拉已禁用");
@@ -109,6 +113,7 @@ describe("product definition binding page", () => {
     });
     expect(wrapper.get("[data-testid='definition-saved']").text()).toBe("已保存 hr-basic");
     const list = wrapper.get("[data-testid='product-definition-list']");
+    expect(list.classes()).toContain("nx-table--compact");
     expect(list.text()).toContain("请假");
     expect(list.text()).toContain("草稿");
     expect(list.text()).toContain("leave_flow · 版本 3");
