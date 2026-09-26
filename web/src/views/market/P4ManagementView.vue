@@ -58,7 +58,7 @@
         <div class="section-heading"><div><h2>订阅</h2><p class="nx-muted">当前租户的订阅及其对应安装状态。</p></div><span class="nx-muted">{{ subscriptions.length }} 条记录</span></div>
         <NxEmpty v-if="!subscriptions.length" title="还没有订阅" description="在应用目录选择 SKU 订阅开通后，订阅会显示在这里。" data-testid="subscriptions-empty"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
         <div v-else class="table-scroll"><table class="nx-table"><thead><tr><th>租户</th><th>商品</th><th>SKU</th><th>状态</th><th>开始</th><th>到期</th><th>权益状态</th><th>安装状态</th></tr></thead><tbody>
-          <tr v-for="sub in subscriptions" :key="sub.id"><td><code>{{ sub.tenantId }}</code></td><td>{{ appForSku(sub.skuCode)?.name || appForSku(sub.skuCode)?.code || "暂无" }}</td><td>{{ skuByCode(sub.skuCode)?.name || sub.skuCode }}</td><td><NxStatusTag :status="sub.status" :label="sub.status" /></td><td>{{ formatDate(sub.startedAt) }}</td><td>{{ formatDate(sub.endedAt) }}</td><td><span class="nx-muted">暂无投影读模型</span></td><td>{{ installationStatus(sub) }}</td></tr>
+          <tr v-for="sub in subscriptions" :key="sub.id"><td><code>{{ sub.tenantId }}</code></td><td>{{ appForSku(sub.skuCode)?.name || appForSku(sub.skuCode)?.code || "暂无" }}</td><td>{{ skuByCode(sub.skuCode)?.name || sub.skuCode }}</td><td><NxStatusTag :status="sub.status" :label="sub.status" /></td><td>{{ formatDate(sub.startedAt) }}</td><td>{{ formatDate(sub.endedAt) }}</td><td data-testid="subscription-entitlement"><template v-if="entitlementFor(sub)"><span class="entitlement-count">{{ entitlementFor(sub).total ? `${entitlementFor(sub).enabled}/${entitlementFor(sub).total} 项启用` : "无权益项" }}</span><NxStatus v-if="entitlementFor(sub).projected === true" label="当前生效" tone="success" /><NxStatus v-else-if="entitlementFor(sub).projected === false" label="未生效" tone="neutral" title="租户当前生效的是另一条订阅或默认权益包" /></template><span v-else class="nx-muted">暂无</span></td><td>{{ installationStatus(sub) }}</td></tr>
         </tbody></table></div>
       </section>
     </template>
@@ -121,6 +121,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import NxStatus from "../../components/NxStatus.vue";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 import { devNotesEnabled } from "../../utils/devNotes";
@@ -203,6 +204,28 @@ function camelRow(row) {
 }
 const camelRows = (rows) => (Array.isArray(rows) ? rows : []).map(camelRow);
 
+// XB11: per-subscription entitlement summary from the M20 read model (XB10). Best effort — a failure leaves
+// the column at 暂无 and never blocks the subscription list.
+const entitlementSummaries = reactive({});
+async function loadEntitlementSummaries() {
+  for (const key of Object.keys(entitlementSummaries)) delete entitlementSummaries[key];
+  try {
+    for (const row of (await p4.commercialEntitlements()) || []) {
+      const id = row.subscription_id ?? row.subscriptionId;
+      const summary = row.summary;
+      if (!id || !summary) continue;
+      entitlementSummaries[id] = {
+        enabled: summary.enabled_count ?? summary.enabledCount ?? 0,
+        total: summary.total_count ?? summary.totalCount ?? 0,
+        projected: summary.projected ?? null,
+      };
+    }
+  } catch {
+    // leave the column at 暂无
+  }
+}
+const entitlementFor = (sub) => entitlementSummaries[sub.id] || null;
+
 async function load() {
   loading.value = true; error.value = ""; notice.value = "";
   try {
@@ -213,6 +236,7 @@ async function load() {
     if (session.contextId && ["subscriptions", "installations"].includes(section.value)) {
       const [subs, installs] = await Promise.all([p4.subscriptions(), p4.installations()]);
       subscriptions.value = camelRows(subs); installations.value = camelRows(installs);
+      if (section.value === "subscriptions") await loadEntitlementSummaries();
     }
   } catch (err) { error.value = err.message || "星市数据暂时不可用"; }
   finally { loading.value = false; }
@@ -260,4 +284,5 @@ onMounted(load);
 .upgrade-fact dd{display:grid;gap:2px;margin:0}
 .upgrade-fact strong{color:var(--nx-text-primary);font-size:13px}.upgrade-fact strong.none{color:var(--nx-text-secondary);font-weight:500}
 .upgrade-fact small{color:var(--nx-text-secondary);font-size:11px;line-height:1.4}
+[data-testid="subscription-entitlement"]{white-space:nowrap}.entitlement-count{margin-right:6px}
 </style>

@@ -6,7 +6,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 const mocks = vi.hoisted(() => ({
   apps: vi.fn(), app: vi.fn(), versions: vi.fn(), version: vi.fn(), skus: vi.fn(), sku: vi.fn(),
   subscriptions: vi.fn(), subscription: vi.fn(), installations: vi.fn(), installation: vi.fn(), upgrade: vi.fn(),
-  upgradeSteps: vi.fn(), upgradeFacts: vi.fn(),
+  upgradeSteps: vi.fn(), upgradeFacts: vi.fn(), commercialEntitlements: vi.fn(),
   session: { contextId: "ctx-1", tenantId: "tenant-1" },
 }));
 vi.mock("../../api/client", () => ({ p4: mocks }));
@@ -38,7 +38,7 @@ describe("P4 management subpages", () => {
     Object.values(mocks).filter((value) => typeof value === "function").forEach((fn) => fn.mockReset());
     mocks.session.contextId = "ctx-1"; mocks.session.tenantId = "tenant-1";
     mocks.apps.mockResolvedValue([app]); mocks.skus.mockResolvedValue([sku]); mocks.versions.mockResolvedValue([version]);
-    mocks.subscriptions.mockResolvedValue([]); mocks.installations.mockResolvedValue([]); mocks.upgrade.mockResolvedValue({});
+    mocks.subscriptions.mockResolvedValue([]); mocks.installations.mockResolvedValue([]); mocks.upgrade.mockResolvedValue({}); mocks.commercialEntitlements.mockResolvedValue([]);
   });
 
   it("shows package details and version history from the read models", async () => {
@@ -190,5 +190,33 @@ describe("P4 management subpages", () => {
     expect(failed.get('[data-testid="upgrade-info-error"]').text()).toContain("升级信息暂时无法读取");
     expect(failed.findAll('[data-testid="upgrade-stepper"] [data-status="UNKNOWN"]')).toHaveLength(6);
     expect(failed.findAll('[data-testid="upgrade-stepper"] [data-status="DONE"]')).toHaveLength(0);
+  });
+
+  it("fills 权益状态 from the entitlement summary and never shows the old placeholder (XB11)", async () => {
+    mocks.subscriptions.mockResolvedValue([
+      { id: "sub-1", tenant_id: "tenant-1", sku_code: "crm-pro", status: "ACTIVE", started_at: "2026-01-01T00:00:00Z" },
+      { id: "sub-2", tenant_id: "tenant-1", sku_code: "crm-pro", status: "ACTIVE", started_at: "2026-02-01T00:00:00Z" },
+      { id: "sub-3", tenant_id: "tenant-1", sku_code: "crm-pro", status: "CANCELLED", started_at: "2026-03-01T00:00:00Z" },
+      { id: "sub-4", tenant_id: "tenant-1", sku_code: "crm-pro", status: "ACTIVE", started_at: "2026-04-01T00:00:00Z" },
+    ]);
+    // Real XB10 wire shape: snake_case summary on each commercial-entitlement view.
+    mocks.commercialEntitlements.mockResolvedValue([
+      { subscription_id: "sub-1", summary: { enabled_count: 2, total_count: 3, projected: false } },
+      { subscription_id: "sub-2", summary: { enabled_count: 3, total_count: 3, projected: true, projection_version: 4, projected_at: "2026-02-01T00:00:00Z" } },
+      { subscription_id: "sub-3", summary: { enabled_count: 0, total_count: 0, projected: null } },
+    ]);
+    const wrapper = await mountPage("/p4/subscriptions");
+    const cells = wrapper.findAll('[data-testid="subscription-entitlement"]').map((cell) => cell.text());
+    expect(cells).toEqual(["2/3 项启用未生效", "3/3 项启用当前生效", "无权益项", "暂无"]);
+    expect(wrapper.text()).not.toContain("暂无投影读模型");
+  });
+
+  it("keeps the subscription list when the entitlement summary cannot be read (XB11)", async () => {
+    mocks.subscriptions.mockResolvedValue([{ id: "sub-1", tenant_id: "tenant-1", sku_code: "crm-pro", status: "ACTIVE" }]);
+    mocks.commercialEntitlements.mockRejectedValue(new Error("offline"));
+    const wrapper = await mountPage("/p4/subscriptions");
+    expect(wrapper.find('[data-testid="nx-error-state"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="subscription-entitlement"]').text()).toBe("暂无");
+    expect(wrapper.text()).not.toContain("暂无投影读模型");
   });
 });
