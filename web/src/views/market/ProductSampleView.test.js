@@ -6,9 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   productDefinitions: vi.fn(),
   productLedgerSample: vi.fn(),
+  productPrintSample: vi.fn(),
 }));
 vi.mock("../../api/client", () => ({
-  p4: { productDefinitions: mocks.productDefinitions, productLedgerSample: mocks.productLedgerSample },
+  p4: { productDefinitions: mocks.productDefinitions, productLedgerSample: mocks.productLedgerSample, productPrintSample: mocks.productPrintSample },
 }));
 
 import ProductSampleView from "./ProductSampleView.vue";
@@ -18,6 +19,7 @@ async function mountAt(path) {
     history: createMemoryHistory(),
     routes: [
       { path: "/p4/product-samples/ledger", component: ProductSampleView, meta: { sample: "ledger" } },
+      { path: "/p4/product-samples/print", component: ProductSampleView, meta: { sample: "print" } },
       { path: "/p4/product-config-wizard", component: { template: "<div />" } },
       { path: "/p4/product-definitions", component: { template: "<div />" } },
       { path: "/p1/form-templates", component: { template: "<div />" } },
@@ -99,5 +101,51 @@ describe("product sample ledger (PC8)", () => {
     await failing.get("[data-testid='sample-read-error'] button").trigger("click");
     await flushPromises();
     expect(failing.find("[data-testid='sample-ledger-table']").exists()).toBe(true);
+  });
+});
+const PRINT = {
+  product_definition_id: "d1",
+  product_name: "请假报销",
+  source: "BUILTIN",
+  template_code: "builtin.approval-form.a4.v1",
+  template_name: "内置样例 · 审批单（A4 纵向）",
+  paper: "A4",
+  orientation: "PORTRAIT",
+  title: "请假报销 申请单",
+  sections: [
+    { key: "header", label: "单据信息", fields: [{ key: "application_no", label: "单号", type: "TEXT" }] },
+    { key: "form", label: "申请内容", fields: [{ key: "title", label: "事由", type: "TEXT" }, { key: "reason", label: "说明", type: "TEXTAREA" }] },
+    { key: "approval", label: "审批", fields: [{ key: "opinion", label: "审批意见", type: "TEXTAREA" }] },
+  ],
+  note: "内置样例版式，字段值留空，只用于预览打印效果；不是打印设计器。",
+};
+
+describe("product sample print (PC10)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }]);
+    mocks.productPrintSample.mockResolvedValue(PRINT);
+  });
+
+  it("previews the built-in layout on a portrait page with blank values", async () => {
+    const wrapper = await mountAt("/p4/product-samples/print?definition=d1");
+    expect(mocks.productPrintSample).toHaveBeenCalledWith("d1");
+    expect(mocks.productLedgerSample).not.toHaveBeenCalled();
+    const paper = wrapper.get("[data-testid='sample-print-paper']");
+    expect(paper.classes()).toContain("portrait");
+    expect(paper.get(".paper-title").text()).toBe("请假报销 申请单");
+    expect(wrapper.findAll("[data-testid^='sample-print-section-']").map((s) => s.get("h4").text())).toEqual(["单据信息", "申请内容", "审批"]);
+    expect(wrapper.findAll("[data-testid='sample-print-section-form'] dt").map((dt) => dt.text())).toEqual(["事由", "说明"]);
+    expect(wrapper.findAll("dd").every((dd) => dd.text() === "")).toBe(true);
+    expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("A4 纵向");
+    expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("不是打印设计器");
+    expect(wrapper.find("[draggable], input, textarea").exists()).toBe(false);
+  });
+
+  it("marks an empty form section instead of inventing fields", async () => {
+    mocks.productPrintSample.mockResolvedValue({ ...PRINT, sections: [PRINT.sections[0], { key: "form", label: "申请内容", fields: [] }] });
+    const wrapper = await mountAt("/p4/product-samples/print");
+    expect(wrapper.get("[data-testid='sample-print-section-form']").text()).toContain("表单字段暂无");
+    expect(wrapper.find("[data-testid='sample-print-section-approval']").exists()).toBe(false);
   });
 });
