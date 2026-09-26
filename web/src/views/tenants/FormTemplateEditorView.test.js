@@ -464,4 +464,25 @@ describe("form template designer", () => {
     expect(wrapper.text()).toContain("form template not found");
     expect(wrapper.text()).toContain("trace-9");
   });
+
+  it("switches to free canvas shell and keeps list mode as fallback (Z3)", async () => {
+    p1.formTemplate.mockResolvedValue(LEAVE);
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    expect(wrapper.find("[data-testid='template-free-board']").exists()).toBe(false);
+    expect(wrapper.find("ol.field-list").exists()).toBe(true);
+
+    await wrapper.get("[data-testid='canvas-mode-free']").trigger("click");
+    expect(wrapper.get("[data-testid='template-fields'] h2").text()).toBe("自由画布");
+    expect(wrapper.get("[data-testid='template-free-board']").exists()).toBe(true);
+    expect(wrapper.find("ol.field-list").exists()).toBe(false);
+    const freeCards = wrapper.findAll("[data-testid='template-free-board'] [data-testid='template-field']");
+    expect(freeCards).toHaveLength(2);
+    expect(freeCards[0].attributes("style")).toMatch(/grid-column/);
+
+    await wrapper.get("[data-testid='canvas-mode-list']").trigger("click");
+    expect(wrapper.get("[data-testid='template-fields'] h2").text()).toBe("字段顺序");
+    expect(wrapper.find("[data-testid='template-free-board']").exists()).toBe(false);
+    expect(wrapper.find("ol.field-list").exists()).toBe(true);
+    expect(cardNames(wrapper)).toEqual(["事由", "天数"]);
+  });
 });
