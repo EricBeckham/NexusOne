@@ -3,7 +3,6 @@ package one.nexus.p4.market;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +28,7 @@ class PrintMappingServiceTest {
     private final IsolationGuard isolation = mock(IsolationGuard.class);
     private final InMemoryPrintMappingStore store = new InMemoryPrintMappingStore();
     private final PrintMappingService service =
-            new PrintMappingService(isolation, market, store, new ObjectMapper());
+            new PrintMappingService(isolation, market, store);
     private final UUID id = UUID.randomUUID();
 
     @BeforeEach
