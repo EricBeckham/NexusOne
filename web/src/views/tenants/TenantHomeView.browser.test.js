@@ -43,7 +43,8 @@ describe("P1 home", () => {
     expect(wrapper.text()).toContain("2");
     expect(wrapper.text()).toContain("平台租户");
     expect(wrapper.text()).not.toContain("12");
-    expect(wrapper.get("a[href='/p1/tenants']").text()).toContain("查看全部");
+    expect(wrapper.get("a.text-link[href='/p1/tenants']").text()).toContain("查看全部");
+    expect(wrapper.get(".page-header a.primary[href='/p1/tenants']").text()).toContain("租户目录");
   });
 
   it("shows 暂无 when the APIs fail", async () => {
