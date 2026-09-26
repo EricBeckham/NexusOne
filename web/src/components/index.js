@@ -1,3 +1,4 @@
+export { default as NxDataTable } from "./NxDataTable.vue";
 export { default as NxEmpty } from "./NxEmpty.vue";
 export { default as NxErrorState } from "./NxErrorState.vue";
 export { default as NxFilterBar } from "./NxFilterBar.vue";

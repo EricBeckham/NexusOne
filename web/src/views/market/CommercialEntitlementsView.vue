@@ -6,10 +6,10 @@
       </template>
     </NxPageHeader>
 
-    <NxErrorState v-if="error" :title="error" :trace-id="traceId" retry-label="重试" @retry="load" />
+    <template v-if="isDetail">
+      <NxErrorState v-if="error" :title="error" :trace-id="traceId" retry-label="重试" @retry="load" />
 
-    <template v-else-if="isDetail">
-      <NxEmpty v-if="loaded && !item" title="找不到这条开通权益" description="它可能已失效或不属于当前租户，请返回列表查看。" />
+      <NxEmpty v-else-if="loaded && !item" title="找不到这条开通权益" description="它可能已失效或不属于当前租户，请返回列表查看。" />
       <section v-else-if="item" class="nx-card detail">
         <h2>{{ show(item.skuName) }}</h2>
         <dl>
@@ -18,34 +18,50 @@
           <div><dt>安装状态</dt><dd><NxStatusTag :status="item.installationStatus || ''" :label="statusLabel(item.installationStatus)" /></dd></div>
         </dl>
         <h3>权益项</h3>
-        <p v-if="!item.lines.length" class="nx-muted">暂无权益项</p>
-        <table v-else class="nx-table">
-          <thead><tr><th>权益项</th><th>是否启用</th><th>配额</th></tr></thead>
-          <tbody>
-            <tr v-for="line in item.lines" :key="line.key">
-              <td>{{ show(line.key) }}</td>
-              <td>{{ line.enabled === true ? "启用" : line.enabled === false ? "停用" : "暂无" }}</td>
-              <td>{{ quotaLabel(line.quota) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <NxDataTable
+          :empty="!item.lines.length"
+          empty-title="暂无权益项"
+          empty-compact
+          density="compact"
+          aria-label="entitlement-lines"
+          testid="entitlement-lines"
+        >
+          <template #header>
+            <tr><th>权益项</th><th>是否启用</th><th>配额</th></tr>
+          </template>
+          <tr v-for="line in item.lines" :key="line.key">
+            <td>{{ show(line.key) }}</td>
+            <td>{{ line.enabled === true ? "启用" : line.enabled === false ? "停用" : "暂无" }}</td>
+            <td>{{ quotaLabel(line.quota) }}</td>
+          </tr>
+        </NxDataTable>
       </section>
     </template>
 
     <template v-else>
-      <NxEmpty v-if="rows && !rows.length" title="还没有开通权益" description="在应用目录开通后，权益会显示在这里。" />
-      <table v-else-if="listed.length" class="nx-table">
-        <thead><tr><th>SKU</th><th>订阅状态</th><th>安装状态</th><th>权益项</th><th></th></tr></thead>
-        <tbody>
-          <tr v-for="row in listed" :key="row.subscriptionId || row.skuCode">
+      <NxDataTable
+      :loading="!loaded"
+      :error="error"
+      :trace-id="traceId"
+      :empty="loaded && !listed.length"
+      empty-title="还没有开通权益"
+      empty-description="在应用目录开通后，权益会显示在这里。"
+      loading-label="正在加载开通权益"
+      aria-label="entitlements"
+      testid="entitlements-table"
+      @retry="load"
+    >
+      <template #header>
+        <tr><th>SKU</th><th>订阅状态</th><th>安装状态</th><th>权益项</th><th></th></tr>
+      </template>
+      <tr v-for="row in listed" :key="row.subscriptionId || row.skuCode">
             <td>{{ show(row.skuName) }}<div class="nx-muted">{{ show(row.skuCode) }}</div></td>
             <td><NxStatusTag :status="row.subscriptionStatus || ''" :label="statusLabel(row.subscriptionStatus)" /></td>
             <td><NxStatusTag :status="row.installationStatus || ''" :label="statusLabel(row.installationStatus)" /></td>
             <td>{{ row.lines.length ? row.lines.map((line) => line.key).join("、") : "暂无" }}</td>
             <td><router-link v-if="row.subscriptionId" :to="`/p4/entitlements/${row.subscriptionId}`">查看</router-link><template v-else>暂无</template></td>
           </tr>
-        </tbody>
-      </table>
+    </NxDataTable>
     </template>
   </main>
 </template>
@@ -53,7 +69,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
+import { NxDataTable, NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 
 const route = useRoute();
