@@ -6,6 +6,7 @@
       description="把已发布的表单模板版本和流程版本组合成产品，再绑定 SKU，租户即可在应用目录订阅开通。此页仅平台管理员使用。"
     >
       <template #actions>
+        <router-link class="primary" to="/p4/product-config-wizard" data-testid="open-config-wizard">配置向导</router-link>
         <router-link class="ghost" to="/p1/form-templates">表单模板</router-link>
         <router-link class="ghost" to="/p3/workflow">流程设计器</router-link>
         <router-link class="ghost" to="/p4/market">应用目录</router-link>

@@ -62,6 +62,7 @@ describe("product definition binding page", () => {
 
   it("guides an empty platform to publish a template and a process first", async () => {
     const wrapper = await mountPage();
+    expect(wrapper.get("[data-testid='open-config-wizard']").attributes("href")).toBe("/p4/product-config-wizard");
     expect(wrapper.text()).toContain("暂无产品定义");
     expect(wrapper.get("[data-testid='nx-empty-next'] a").attributes("href")).toBe("#new-definition");
     await wrapper.get("[data-testid='definition-code']").trigger("blur");
