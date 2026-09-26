@@ -63,7 +63,8 @@ describe("publish center", () => {
     expect(wrapper.get("[data-testid='schema-notice']").text()).toBe("回滚不会回滚共享物理 Schema，也不会删除已有业务数据。");
     expect(wrapper.get("[data-testid='schema-steps']").text()).toContain("Expand");
     expect(wrapper.get("[data-testid='schema-steps']").find("button").exists()).toBe(false);
-    expect(wrapper.text()).toContain("这些步骤只是标签，当前不会执行。");
+    expect(wrapper.text()).toContain("仅供查看，本页不会执行结构变更。");
+    expect(wrapper.text()).toContain("结构变更步骤");
     expect(wrapper.text()).not.toContain("发布成功率");
     expect(wrapper.text()).not.toMatch(/\d+%/);
     expect(p3.getPublishCenter).toHaveBeenCalledWith("form-1");

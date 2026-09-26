@@ -69,12 +69,12 @@
         </div>
       </header>
       <p data-testid="schema-notice">{{ showText(detail.schema_notice) }}</p>
-      <h3>Schema 步骤</h3>
+      <h3>结构变更步骤</h3>
       <ol data-testid="schema-steps">
         <li v-for="step in detail.schema_steps || []" :key="step">{{ step }}</li>
       </ol>
       <p v-if="!detail.schema_steps?.length" class="nx-muted">暂无</p>
-      <p class="nx-muted">{{ detail.schema_execution === false ? "这些步骤只是标签，当前不会执行。" : "暂无" }}</p>
+      <p class="nx-muted">{{ detail.schema_execution === false ? "仅供查看，本页不会执行结构变更。" : "暂无" }}</p>
       <h3>业务类型</h3>
       <p>{{ provisionText }}</p>
       <h3>版本</h3>
