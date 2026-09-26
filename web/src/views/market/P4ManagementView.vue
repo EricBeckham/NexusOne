@@ -7,22 +7,22 @@
     <nav class="p4-tabs" aria-label="星市管理分区">
       <router-link v-for="tab in tabs" :key="tab.to" :to="tab.to" :aria-current="route.path === tab.to ? 'page' : undefined">{{ tab.label }}</router-link>
     </nav>
-    <NxErrorState v-if="error" title="星市数据暂时无法加载" :description="error" retry-label="重新加载" @retry="load" />
-    <div v-else-if="loading" class="management-skeleton" data-testid="p4-management-loading" role="status">
-      <NxSkeleton v-for="n in 4" :key="n" variant="list-row" label="正在读取星市数据" />
-    </div>
 
-    <template v-else-if="section === 'packages'">
+    <template v-if="section === 'packages'">
       <div class="split-layout">
         <section class="nx-card">
           <h2>应用包目录</h2>
           <NxDataTable
-            :empty="!apps.length"
+            :loading="loading"
+            :error="tableError"
+            :empty="!loading && !error && !apps.length"
             empty-title="暂无应用包"
             empty-description="平台创建并发布应用后，会在此显示真实应用包与版本。"
             density="compact"
+            loading-label="正在读取应用包"
             aria-label="应用包目录"
             testid="packages-table"
+            @retry="load"
           >
             <template #header>
               <tr><th>应用包</th><th></th></tr>
@@ -54,11 +54,13 @@
             </div>
             <h3>版本与发布记录</h3>
             <NxDataTable
-              :empty="!versions.length"
+              :loading="loading"
+              :empty="!loading && !versions.length"
               empty-title="暂无版本"
               empty-description="此应用尚无版本记录。"
               empty-compact
               density="compact"
+              loading-label="正在读取版本"
               aria-label="版本与发布记录"
               testid="package-versions-table"
             >
@@ -80,38 +82,52 @@
     <template v-else-if="section === 'skus'">
       <section class="nx-card">
         <div class="section-heading"><div><h2>商品与 SKU</h2><p class="nx-muted">每个应用对应一个商品；SKU 定义可开通的权益与配额。</p></div><span class="nx-muted">{{ apps.length }} 个商品 · {{ skus.length }} 个 SKU</span></div>
-        <NxEmpty v-if="!apps.length" title="暂无商品" description="平台发布应用后，商品会显示在这里。" />
-        <article v-for="app in apps" :key="app.id" class="product-block">
-          <div class="product-heading"><div><span class="eyebrow">商品 · {{ app.code }}</span><h3>{{ app.name }}</h3><p>{{ app.summary || "暂无简介" }}</p></div><code v-if="devNotes">{{ app.id }}</code></div>
-          <NxDataTable
-            :empty="!skusFor(app).length"
-            empty-title="暂无 SKU"
-            empty-description="该商品还没有 SKU。"
-            empty-compact
-            density="compact"
-            :aria-label="`${app.name} SKU`"
-            :testid="`sku-table-${app.id}`"
-          >
-            <template #header>
-              <tr><th>SKU</th><th>权益</th><th>配额 / 属性</th></tr>
-            </template>
-            <tr v-for="sku in skusFor(app)" :key="sku.code">
-              <td><strong>{{ sku.name || sku.code }}</strong><div class="nx-muted">{{ sku.code }}</div></td>
-              <td>
-                <span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无权益定义</span>
-                <ul v-else class="entitlements">
-                  <li v-for="(entitlement, name) in sku.entitlements" :key="name"><code>{{ name }}</code><span>{{ entitlement.enabled ? "启用" : "停用" }}</span></li>
-                </ul>
-              </td>
-              <td>
-                <span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无</span>
-                <ul v-else class="entitlements">
-                  <li v-for="(entitlement, name) in sku.entitlements" :key="name"><span>{{ name }}</span><span>{{ entitlement.quota ?? "未设置" }} · {{ formatAttributes(entitlement.attributes) }}</span></li>
-                </ul>
-              </td>
-            </tr>
-          </NxDataTable>
-        </article>
+        <NxDataTable
+          v-if="loading || error || !apps.length"
+          :loading="loading"
+          :error="tableError"
+          :empty="!loading && !error && !apps.length"
+          empty-title="暂无商品"
+          empty-description="平台发布应用后，商品会显示在这里。"
+          density="compact"
+          loading-label="正在读取商品与 SKU"
+          aria-label="商品与 SKU"
+          testid="skus-catalog-table"
+          @retry="load"
+        />
+        <template v-else>
+          <article v-for="app in apps" :key="app.id" class="product-block">
+            <div class="product-heading"><div><span class="eyebrow">商品 · {{ app.code }}</span><h3>{{ app.name }}</h3><p>{{ app.summary || "暂无简介" }}</p></div><code v-if="devNotes">{{ app.id }}</code></div>
+            <NxDataTable
+              :empty="!skusFor(app).length"
+              empty-title="暂无 SKU"
+              empty-description="该商品还没有 SKU。"
+              empty-compact
+              density="compact"
+              :aria-label="`${app.name} SKU`"
+              :testid="`sku-table-${app.id}`"
+            >
+              <template #header>
+                <tr><th>SKU</th><th>权益</th><th>配额 / 属性</th></tr>
+              </template>
+              <tr v-for="sku in skusFor(app)" :key="sku.code">
+                <td><strong>{{ sku.name || sku.code }}</strong><div class="nx-muted">{{ sku.code }}</div></td>
+                <td>
+                  <span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无权益定义</span>
+                  <ul v-else class="entitlements">
+                    <li v-for="(entitlement, name) in sku.entitlements" :key="name"><code>{{ name }}</code><span>{{ entitlement.enabled ? "启用" : "停用" }}</span></li>
+                  </ul>
+                </td>
+                <td>
+                  <span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无</span>
+                  <ul v-else class="entitlements">
+                    <li v-for="(entitlement, name) in sku.entitlements" :key="name"><span>{{ name }}</span><span>{{ entitlement.quota ?? "未设置" }} · {{ formatAttributes(entitlement.attributes) }}</span></li>
+                  </ul>
+                </td>
+              </tr>
+            </NxDataTable>
+          </article>
+        </template>
       </section>
     </template>
 
@@ -120,12 +136,16 @@
       <section v-else class="nx-card">
         <div class="section-heading"><div><h2>开通记录</h2><p class="nx-muted">当前租户已开通记录及其安装状态。无支付。</p></div><span class="nx-muted">{{ subscriptions.length }} 条记录</span></div>
         <NxDataTable
-          :empty="!subscriptions.length"
+          :loading="loading"
+          :error="tableError"
+          :empty="!loading && !error && !subscriptions.length"
           empty-title="还没有开通记录"
           empty-description="在应用目录选择 SKU 开通后，记录会显示在这里。"
           density="compact"
+          loading-label="正在读取开通记录"
           aria-label="开通记录"
-          testid="subscriptions-empty"
+          testid="subscriptions-table"
+          @retry="load"
         >
           <template #empty-next>
             <router-link class="primary" to="/p4/market">前往应用目录</router-link>
@@ -157,15 +177,19 @@
     <template v-else>
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="已开通产品按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="installations">
-        <p v-if="installations.length" class="installations-count nx-muted" data-testid="installations-count">共 {{ installations.length }} 个已开通产品</p>
+        <p v-if="!loading && installations.length" class="installations-count nx-muted" data-testid="installations-count">共 {{ installations.length }} 个已开通产品</p>
         <NxDataTable
-          v-if="!installations.length"
-          :empty="true"
+          v-if="loading || error || !installations.length"
+          :loading="loading"
+          :error="tableError"
+          :empty="!loading && !error && !installations.length"
           empty-title="还没有已开通可用的产品"
           empty-description="从应用目录开通后，产品会显示在这里，并可直接发起申请。"
+          loading-label="正在读取已开通产品"
           aria-label="已开通产品"
           testid="installations-table"
           card
+          @retry="load"
         >
           <template #empty-next>
             <router-link class="primary" to="/p4/market">前往应用目录</router-link>
@@ -223,7 +247,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { NxDataTable, NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import { NxDataTable, NxEmpty, NxNoPermission, NxPageHeader, NxStatusTag } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
@@ -237,6 +261,7 @@ const section = computed(() => ({ "p4-packages": "packages", "p4-skus": "skus", 
 const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "商品与 SKU", to: "/p4/skus" }, { label: "订阅", to: "/p4/subscriptions" }, { label: "我的已开通", to: "/p4/installations" }];
 const titles = { packages: ["应用包", "浏览应用包、版本与发布状态。"], skus: ["SKU", "SKU 定义可开通的权益与配额，无价格字段。"], subscriptions: ["开通记录", "查看当前租户已开通的周期、状态与关联安装。无支付。"], installations: ["已开通可用", "无支付、即时开通后的产品记录。可从此发起申请。"] };
 const title = computed(() => titles[section.value][0]); const description = computed(() => titles[section.value][1]);
+const tableError = computed(() => (error.value ? { title: "星市数据暂时无法加载", description: error.value } : ""));
 // O11: one Primary per card — 发起申请 is the card's action; upgrade stays secondary inside its fold.
 // Q8 / Q5: 我的已开通 sits on the tenant path 应用目录 → 我的已开通 → 发起申请 (same crumbs as the start page).
 const crumbs = computed(() => (section.value === "installations"
@@ -368,7 +393,6 @@ onMounted(load);
 </script>
 
 <style scoped>
-.management-skeleton{display:grid;gap:var(--nx-space-3);max-width:720px}
 /* Q8: installed products are a flat list of cards (no card-in-card); the status tag sits with the name, the one Primary on the right. */
 .installations{display:grid;gap:var(--nx-space-3)}
 .installations-count{margin:0;font-size:var(--nx-font-size-sm)}

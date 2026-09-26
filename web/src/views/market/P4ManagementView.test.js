@@ -116,7 +116,7 @@ describe("P4 management subpages", () => {
   it("gives an empty subscription list a reason and the next step (S10)", async () => {
     mocks.subscriptions.mockResolvedValue([]);
     const wrapper = await mountPage("/p4/subscriptions");
-    const empty = wrapper.get('[data-testid="subscriptions-empty"]');
+    const empty = wrapper.get('[data-testid="subscriptions-table"]');
     expect(empty.text()).toContain("还没有开通记录");
     expect(empty.text()).toContain("在应用目录选择 SKU 开通后");
     expect(empty.get("a").attributes("href")).toBe("/p4/market");
