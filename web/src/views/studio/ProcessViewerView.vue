@@ -207,6 +207,11 @@
               <path d="M0 0 L8 4 L0 8 z" class="arrow" />
             </marker>
           </defs>
+          <!-- ZA13: read-only parallel scope — a shaded box behind each fork → join block. -->
+          <g v-for="scope in scopeBoxes" :key="scope.fork" class="parallel-scope" data-testid="parallel-scope-box" :data-fork="scope.fork">
+            <rect :x="scope.x" :y="scope.y" :width="scope.width" :height="scope.height" rx="10" />
+            <text :x="scope.x + 8" :y="scope.y + 13">并行</text>
+          </g>
           <!-- Z7: flows are selectable (wide invisible hit line); a condition shows as a label at the midpoint. -->
           <g
             v-for="flow in graph.flows"
@@ -355,6 +360,17 @@
           </dl>
           <p v-if="flowErrors(selectedFlow.id).length" class="step-error" data-testid="flow-error">{{ flowErrors(selectedFlow.id).join("；") }}</p>
         </section>
+        <section v-if="selectedBlock" class="parallel-scope-panel" data-testid="parallel-scope">
+          <h3>并行范围</h3>
+          <ol>
+            <li><span class="scope-role">开始</span>{{ nodeName(selectedBlock.fork) }}</li>
+            <li v-for="(branch, index) in selectedBlock.branches" :key="index" data-testid="parallel-scope-branch">
+              <span class="scope-role">分支 {{ index + 1 }}</span>{{ branch.length ? branch.map(nodeName).join(" → ") : "直接汇合" }}
+            </li>
+            <li><span class="scope-role">汇合</span>{{ nodeName(selectedBlock.join) }}</li>
+          </ol>
+          <p class="nx-muted">{{ selectedBlock.branches.length }} 条分支同时进行，全部完成后在「{{ nodeName(selectedBlock.join) }}」继续。</p>
+        </section>
         <p v-if="!selected && !selectedFlow" class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
         <p v-if="isEditing && selected && nodeErrors(selected.id).length" class="step-error" data-testid="node-error">{{ nodeErrors(selected.id).join("；") }}</p>
         <section v-if="conditionProblems.length" class="validation-result" data-testid="condition-problems" data-valid="false">
@@ -436,6 +452,7 @@ import {
   addDraftNode, createBlankDraft, parallelRole, parseDraftXml, removeExclusiveGateway, removeParallelBlock, serializeDraftXml,
 } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
+import { blockOf, parallelBlocks } from "./parallelScope";
 import { nxMessage } from "../../feedback/nxMessage";
 import {
   CONDITION_OPERATORS, CONDITION_VARIABLES, catalogVariable, checkConditionDraft, checkConditionText, describeCondition, formatCondition, operatorsFor, parseCondition,
@@ -476,10 +493,21 @@ const signInRequired = computed(() => Number(error.value?.status) === 401 || err
 const canPublish = computed(() => isPersistedDraft.value && !dirty.value && validationResult.value?.valid === true && !publishing.value);
 
 const graph = computed(() => layoutDefinition(definition.value || {}));
+// ZA13: parallel blocks (same supported shape as the ZA11 validator) for read-only display.
+const blocks = computed(() => parallelBlocks(definition.value));
+const scopeBoxes = computed(() => blocks.value.map((block) => {
+  const members = graph.value.nodes.filter((node) => block.members.has(node.id));
+  const left = Math.min(...members.map((node) => node.x));
+  const top = Math.min(...members.map((node) => node.y));
+  const right = Math.max(...members.map((node) => node.x + graph.value.nodeWidth));
+  const bottom = Math.max(...members.map((node) => node.y + graph.value.nodeHeight));
+  return { fork: block.fork, x: left - 10, y: top - 18, width: right - left + 20, height: bottom - top + 28 };
+}));
 const sequence = computed(() => toSequence(definition.value || {}));
 const draggingId = ref("");
 const dropIndex = ref(null);
 const selected = computed(() => definition.value?.nodes?.find((node) => node.id === selectedId.value) || null);
+const selectedBlock = computed(() => (selected.value ? blockOf(blocks.value, selected.value.id) : null));
 const selectedFlow = computed(() => (selectedFlowId.value
   ? definition.value?.flows?.find((flow) => flow.id === selectedFlowId.value) || null
   : null));
@@ -975,6 +1003,13 @@ watch(() => route.params.key, reload, { immediate: true });
 <style scoped>
 .process-loading { display: grid; gap: var(--nx-space-2); max-width: 760px; }
 .later-note { margin-top: 0; }
+.parallel-scope rect { fill: var(--nx-product-light, var(--nx-primary-light)); stroke: var(--nx-product, var(--nx-primary)); stroke-dasharray: 4 3; opacity: 0.6; }
+.parallel-scope text { fill: var(--nx-product, var(--nx-primary)); font-size: 11px; font-weight: 600; }
+.parallel-scope-panel { margin-top: var(--nx-space-3); }
+.parallel-scope-panel h3 { margin: 0 0 var(--nx-space-1); color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); font-weight: 500; }
+.parallel-scope-panel ol { display: grid; gap: 4px; margin: 0 0 var(--nx-space-1); padding: 0; list-style: none; font-size: var(--nx-font-size-sm); }
+.scope-role { display: inline-block; min-width: 44px; margin-right: 6px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.parallel-scope-panel p { margin: 0; font-size: var(--nx-font-size-xs); }
 .node.invalid rect { stroke: var(--nx-danger); stroke-width: 2; }
 .flow.invalid .edge { stroke: var(--nx-danger); }
 .validation-item { display: block; width: 100%; padding: 2px 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
