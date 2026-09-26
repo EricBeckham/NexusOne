@@ -1,6 +1,7 @@
 package one.nexus.p3.flow;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,5 +46,23 @@ class ProcessDefinitionValidationIsolationTest {
     private static void bind(UUID tenant) {
         TenantContextHolder.set(new TenantContext(
                 UUID.randomUUID(), tenant, UUID.randomUUID(), PERSON, "m8-test", Instant.now(), Instant.now().plusSeconds(60)));
+    }
+
+    @Test
+    void validatesStoredExclusiveAndParallelXmlThroughTenantDraftService() {
+        bind(TENANT_A);
+        for (String type : new String[]{"exclusiveGateway", "parallelGateway"}) {
+            String condition = type.equals("exclusiveGateway")
+                    ? "<conditionExpression>${approved}</conditionExpression>" : "";
+            String xml = "<definitions><process id='p'><startEvent id='s'/><" + type + " id='g'/><endEvent id='e'/>"
+                    + "<sequenceFlow id='in' sourceRef='s' targetRef='g'/>"
+                    + "<sequenceFlow id='a' sourceRef='g' targetRef='e'>" + condition + "</sequenceFlow>"
+                    + "<sequenceFlow id='b' sourceRef='g' targetRef='e'/></process></definitions>";
+            when(store.find(TENANT_A, type)).thenReturn(Optional.of(new ProcessDefinitionDraft(
+                    UUID.randomUUID(), TENANT_A, type, type, xml, 1, PERSON, Instant.now(), Instant.now())));
+            var result = service.validateDraft(type);
+            assertTrue(result.valid(), result.errors().toString());
+            verify(store).find(TENANT_A, type);
+        }
     }
 }
