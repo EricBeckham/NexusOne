@@ -79,6 +79,9 @@ class ApprovalProductDemoSeedConfigurationTest {
         assertTrue(joined.contains("演示数据"));
         assertTrue(joined.contains("'PUBLISHED'"));
         assertTrue(joined.contains("'PERSON'"));
+        assertTrue(joined.contains("'NUMBER'"));
+        assertTrue(joined.contains("'MONEY'"));
+        assertTrue(joined.contains("请假报销"));
         assertTrue(joined.contains("ON CONFLICT (sku_code) DO UPDATE"),
                 "the demo seed must repair the SKU-to-product-definition binding");
         var bound = org.mockito.ArgumentCaptor.forClass(Object.class);
@@ -87,7 +90,9 @@ class ApprovalProductDemoSeedConfigurationTest {
         assertTrue(bound.getAllValues().contains(ApprovalProductDemoSeedConfiguration.PROCESS_KEY));
         assertTrue(bound.getAllValues().stream().anyMatch(value -> String.valueOf(value).contains("<userTask ")));
         for (String query : sql.getAllValues()) {
-            assertTrue(query.contains("ON CONFLICT") || query.contains("running_version_id IS NULL"));
+            assertTrue(query.contains("ON CONFLICT") || query.contains("running_version_id IS NULL")
+                    || query.contains("UPDATE "),
+                    "seed writes must be idempotent inserts or display-name refresh updates");
             assertTrue(!query.contains("market.subscription") && !query.contains("market.installation"),
                     "demo rows must not grant a tenant subscription or installation");
         }

@@ -95,7 +95,7 @@ class DemoSeedPostgresBootTest {
     void demoSeedsCompleteOnAnEmptyDatabaseAndK20IsIdempotent() throws Exception {
         assertSeeded();
         var names = market.catalog().stream().map(item -> item.app().name()).toList();
-        assertTrue(names.contains("演示数据 · 简单审批"), "catalog must list the simple-approval demo product");
+        assertTrue(names.contains("演示数据 · 请假报销"), "catalog must list the leave/expense demo product");
         assertTrue(names.contains("星河项目协作"), "catalog must list the P4 demo app");
         assertCatalogSkuContract();
         int quotaUsed = count("SELECT coalesce(sum(used_value), 0) FROM platform.quota WHERE tenant_id = ?",
@@ -236,6 +236,8 @@ class DemoSeedPostgresBootTest {
                 .andReturn().getResponse().getContentAsString();
         java.util.List<String> fieldKeys = JsonPath.read(form, "$.fields[*].key");
         assertTrue(fieldKeys.contains("title"));
+        assertTrue(fieldKeys.contains("days"));
+        assertTrue(fieldKeys.contains("amount"));
         assertTrue(fieldKeys.contains("approver"));
 
         MvcResult started = mvc.perform(post("/api/v1/p3/product-applications/installations/" + installationId)
@@ -275,7 +277,7 @@ class DemoSeedPostgresBootTest {
     }
 
     private void assertSeeded() {
-        assertEquals(2, count("SELECT count(*) FROM platform.form_template_field WHERE template_id = ?",
+        assertEquals(4, count("SELECT count(*) FROM platform.form_template_field WHERE template_id = ?",
                 ApprovalProductDemoSeedConfiguration.TEMPLATE_ID));
         assertEquals(1, count("SELECT count(*) FROM platform.form_template_field"
                 + " WHERE template_id = ? AND field_key = 'approver' AND field_type = 'PERSON'",

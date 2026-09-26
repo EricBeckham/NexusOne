@@ -57,7 +57,7 @@ class P2DemoSeedConfigurationTest {
         configuration.p2DemoSeed(jdbc, env, transaction).run((ApplicationArguments) null);
 
         var sql = org.mockito.ArgumentCaptor.forClass(String.class);
-        org.mockito.Mockito.verify(jdbc, org.mockito.Mockito.times(16)).sql(sql.capture());
+        org.mockito.Mockito.verify(jdbc, org.mockito.Mockito.times(22)).sql(sql.capture());
         for (String statementSql : sql.getAllValues()) {
             assertTrue(statementSql.contains("ON CONFLICT"), "seed insert must be idempotent");
             if (!statementSql.contains("iam.iam_global_account")) {

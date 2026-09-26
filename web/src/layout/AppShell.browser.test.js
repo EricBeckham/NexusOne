@@ -132,7 +132,7 @@ describe("W0 product shell", () => {
   it("renders section titles and a compact product row, collapsing titles to dividers (O8)", async () => {
     const router = await boot("/p4");
     const wrapper = mount(AppShell, { global: { plugins: [router] } });
-    expect(wrapper.findAll("[data-testid='nav-section']").map((node) => node.text())).toEqual(["目录与开通", "商品配置"]);
+    expect(wrapper.findAll("[data-testid='nav-section']").map((node) => node.text())).toEqual(["目录与开通", "目录配置"]);
     expect(wrapper.find(".later").exists()).toBe(false);
     expect(wrapper.get('a[href="/p4/operations"]').text()).toContain("运营分析");
     expect(wrapper.get(".switcher").text()).toContain("切换产品");

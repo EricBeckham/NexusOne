@@ -3,7 +3,7 @@
     <NxPageHeader
       eyebrow="P4 · 星市"
       title="星市工作台"
-      description="浏览已发布应用。无支付，订阅后即时开通。"
+      description="浏览已发布应用。无支付、无下单：开通后即可在「已开通可用」发起申请。"
     >
       <template #actions>
         <router-link class="primary" to="/p4/market">打开应用目录</router-link>
@@ -40,10 +40,10 @@
         </table>
       </NxPanelCard>
 
-      <NxPanelCard title="快速开始" data-testid="market-home-start">
+      <NxPanelCard title="已开通可用路径" data-testid="market-home-start">
         <ol class="start-steps">
           <li><router-link to="/p4/market"><strong>应用目录</strong><small>选择 SKU，无支付即时开通</small></router-link></li>
-          <li><router-link to="/p4/installations"><strong>我的已开通</strong><small>对已开通产品发起申请</small></router-link></li>
+          <li><router-link to="/p4/installations"><strong>已开通可用</strong><small>对已开通产品发起申请</small></router-link></li>
           <li><router-link to="/p3/todos?box=requests"><strong>我的申请</strong><small>查看审批进度与意见</small></router-link></li>
         </ol>
       </NxPanelCard>

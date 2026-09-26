@@ -88,7 +88,7 @@ describe("product shell menus", () => {
       }
       expect(seen.length, id).toBeGreaterThanOrEqual(1);
     }
-    expect([...new Set(navFor("p4").map((item) => item.section).filter(Boolean))]).toEqual(["目录与开通", "商品配置"]);
+    expect([...new Set(navFor("p4").map((item) => item.section).filter(Boolean))]).toEqual(["目录与开通", "目录配置"]);
   });
 
   it("keeps P4 and P5 navigation product-scoped with only implemented links", () => {
@@ -97,7 +97,7 @@ describe("product shell menus", () => {
     const p4Links = collectLinks(p4Items);
     const p5Links = collectLinks(p5Items);
 
-    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/installations", "/p4/subscriptions", "/p4/packages", "/p4/skus", "/p4/product-definitions", "/p4/entitlements", "/p4/operations"]);
+    expect(p4Links).toEqual(["/p4", "/p4/market", "/p4/installations", "/p4/subscriptions", "/p4/entitlements", "/p4/packages", "/p4/skus", "/p4/product-definitions", "/p4/operations"]);
     expect(p5Links).toEqual(["/p5", "/p5/connect", "/p5/apis", "/p5/clients", "/p5/webhooks", "/p5/connectors", "/p5/credentials", "/p5/call-logs"]);
     expect(p4Links.every((link) => link.startsWith("/p4"))).toBe(true);
     expect(p5Links.every((link) => link.startsWith("/p5"))).toBe(true);
