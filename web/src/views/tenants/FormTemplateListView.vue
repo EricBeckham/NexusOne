@@ -3,14 +3,14 @@
     <NxPageHeader
       eyebrow="星域 / 平台配置"
       title="表单模板"
-      description="维护平台模板草稿，校验并发布后可供产品定义与配置向导选用。这里不是租户台账表单。"
+      description="维护平台模板草稿，校验并发布后可供产品定义与产品配置向导选用。这里不是租户台账表单。"
       :crumbs="crumbs"
     >
       <template #actions>
         <button class="ghost" type="button" :disabled="loading" @click="load">刷新</button>
-        <router-link class="ghost" to="/p4/product-definitions" data-testid="template-open-definitions">产品定义</router-link>
-        <router-link class="ghost" to="/p3/workflow" data-testid="template-open-workflow">流程设计器</router-link>
-        <router-link class="ghost" to="/p4/product-config-wizard" data-testid="template-open-wizard">配置向导</router-link>
+        <router-link class="ghost" :to="links.definitions.to" data-testid="template-open-definitions">{{ links.definitions.label }}</router-link>
+        <router-link class="ghost" :to="links.workflow.to" data-testid="template-open-workflow">{{ links.workflow.label }}</router-link>
+        <router-link class="ghost" :to="links.wizard.to" data-testid="template-open-wizard">{{ links.wizard.label }}</router-link>
         <router-link class="primary" to="/p1/form-templates/new">新建模板</router-link>
       </template>
     </NxPageHeader>
@@ -43,11 +43,12 @@
         v-if="!loading && !rows.length"
         data-testid="template-list-empty"
         title="还没有表单模板"
-        description="新建并发布模板后，可在产品配置向导的「配表单」步骤中继续完成流程与 SKU 绑定。"
+        description="新建并发布模板后，可在产品配置向导的「配表单」步骤中继续；也可先到产品定义绑定。"
       >
         <template #next>
           <router-link class="primary" to="/p1/form-templates/new">新建模板</router-link>
-          <router-link class="ghost" to="/p4/product-config-wizard">打开配置向导</router-link>
+          <router-link class="ghost" :to="links.wizard.to" data-testid="template-empty-wizard">打开{{ links.wizard.fullLabel }}</router-link>
+          <router-link class="ghost" :to="links.definitions.to" data-testid="template-empty-definitions">打开{{ links.definitions.label }}</router-link>
         </template>
       </NxEmpty>
 
@@ -113,7 +114,9 @@
 import { computed, onMounted, ref } from "vue";
 import { p1 } from "../../api/client";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import { PLATFORM_CONFIG_LINKS } from "../../config/platformConfigLinks";
 
+const links = PLATFORM_CONFIG_LINKS;
 const STATUS_CHIPS = [
   { id: "all", label: "全部" },
   { id: "DRAFT", label: "草稿" },
@@ -128,8 +131,8 @@ const error = ref("");
 const traceId = ref("");
 const statusFilter = ref("all");
 const crumbs = [
-  { label: "配置向导", to: "/p4/product-config-wizard" },
-  { label: "表单模板" },
+  { label: links.wizard.fullLabel, to: links.wizard.to },
+  { label: links.templates.label },
 ];
 
 function normalizeStatus(status) {

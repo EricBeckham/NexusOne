@@ -17,6 +17,8 @@ async function mountList() {
       { path: "/p1/form-templates/new", component: { template: "<div>new</div>" } },
       { path: "/p1/form-templates/:id", component: { template: "<div>editor</div>" } },
       { path: "/p4/product-config-wizard", component: { template: "<div>wizard</div>" } },
+      { path: "/p4/product-definitions", component: { template: "<div>definitions</div>" } },
+      { path: "/p3/workflow", component: { template: "<div>workflow</div>" } },
     ],
   });
   await router.push("/p1/form-templates");
@@ -32,10 +34,13 @@ describe("form template list", () => {
     p1.formTemplates.mockResolvedValue([]);
     const wrapper = await mountList();
     expect(wrapper.get("[data-testid='nx-empty-title']").text()).toBe("还没有表单模板");
-    expect(wrapper.get("[data-testid='template-list-empty']").text()).toContain("配置向导");
+    expect(wrapper.get("[data-testid='template-list-empty']").text()).toContain("产品配置向导");
     expect(wrapper.get("[data-testid='nx-empty-next'] a.primary").attributes("href")).toBe("/p1/form-templates/new");
+    expect(wrapper.get("[data-testid='template-empty-wizard']").attributes("href")).toBe("/p4/product-config-wizard");
+    expect(wrapper.get("[data-testid='template-empty-definitions']").attributes("href")).toBe("/p4/product-definitions");
     expect(wrapper.get("[data-testid='template-open-wizard']").attributes("href")).toBe("/p4/product-config-wizard");
     expect(wrapper.get("[data-testid='nx-page-crumb'] a").attributes("href")).toBe("/p4/product-config-wizard");
+    expect(wrapper.get("[data-testid='nx-page-crumb'] a").text()).toBe("产品配置向导");
     expect(wrapper.find("[data-testid='template-list']").exists()).toBe(false);
   });
 

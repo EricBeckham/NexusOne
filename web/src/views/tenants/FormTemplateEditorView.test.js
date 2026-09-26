@@ -343,7 +343,7 @@ describe("form template designer", () => {
     await flushPromises();
     expect(wrapper.get("[data-testid='template-publish-version']").text()).toBe("已发布版本 2");
     expect(wrapper.get("[data-testid='nx-result-title']").text()).toBe("模板已发布");
-    expect(wrapper.get("[data-testid='nx-result-next']").text()).toContain("下一步：绑定到产品");
+    expect(wrapper.get("[data-testid='nx-result-next']").text()).toContain("下一步：到产品定义绑定");
     expect(wrapper.get("[data-testid='template-next-bind']").attributes("href")).toBe("/p4/product-definitions");
     expect(wrapper.get("[data-testid='template-status']").text()).toContain("已发布");
     expect(nxMessage.success).toHaveBeenCalledWith("模板已发布");

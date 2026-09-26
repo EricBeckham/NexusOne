@@ -40,7 +40,7 @@
   <NxResult v-if="publishedVersion != null" compact title="模板已发布" description="可前往产品配置绑定此模板。">
     <template #next>
       <span class="meta-text" data-testid="template-publish-version">已发布版本 {{ publishedVersion }}</span>
-      <router-link class="primary" to="/p4/product-definitions" data-testid="template-next-bind">下一步：绑定到产品</router-link>
+      <router-link class="primary" to="/p4/product-definitions" data-testid="template-next-bind">下一步：到产品定义绑定</router-link>
     </template>
   </NxResult>
   <ul v-if="validationIssues.length" class="errors" data-testid="template-validate-errors">
