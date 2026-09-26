@@ -7,5 +7,5 @@ export const p4Nav = [
   { id: "skus", label: "商品与 SKU", to: "/p4/skus", section: "商品配置" },
   { id: "product-definitions", label: "产品定义", to: "/p4/product-definitions", section: "商品配置" },
   { id: "entitlements", label: "商业权益", to: "/p4/entitlements", section: "商品配置" },
-  { id: "operations", label: "运营分析", later: true, section: "商品配置" },
+  { id: "operations", label: "运营分析", to: "/p4/operations", section: "商品配置" },
 ];
