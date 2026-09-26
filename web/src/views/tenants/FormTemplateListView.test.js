@@ -45,7 +45,24 @@ describe("form template list", () => {
     expect(wrapper.get("[data-testid='template-list']").text()).toContain("请假");
     expect(wrapper.get("a[href='/p1/form-templates/tpl-1']").text()).toBe("编辑");
     expect(wrapper.get("[data-testid='template-list']").classes()).toContain("nx-table--compact");
-    expect(wrapper.get("[data-testid='nx-status-tag']").text()).toBe("草稿");
+    expect(wrapper.get("[data-testid='template-status-DRAFT']").text()).toBe("草稿");
+    expect(wrapper.get("[data-testid='template-status-DRAFT']").attributes("data-tone")).toBe("neutral");
+  });
+
+  it("shows published badge tone and filter chips (CF-T1)", async () => {
+    p1.formTemplates.mockResolvedValue([
+      { id: "tpl-1", code: "leave", name: "请假", status: "DRAFT", fields: [{ key: "a" }], version: 1 },
+      { id: "tpl-2", code: "expense", name: "报销", status: "PUBLISHED", fields: [], publishedVersion: 3 },
+    ]);
+    const wrapper = await mountList();
+    expect(wrapper.get("[data-testid='template-list-summary']").text()).toContain("已发布 1");
+    expect(wrapper.get("[data-testid='template-status-PUBLISHED']").text()).toBe("已发布");
+    expect(wrapper.get("[data-testid='template-status-PUBLISHED']").attributes("data-tone")).toBe("success");
+    expect(wrapper.get("a[href='/p1/form-templates/tpl-2']").text()).toBe("查看");
+    await wrapper.get("[data-testid='template-filter-PUBLISHED']").trigger("click");
+    expect(wrapper.find("[data-testid='template-status-DRAFT']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='template-status-PUBLISHED']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='template-version']").text()).toBe("v3");
   });
 
   it("keeps the table header and shows row skeletons while loading", async () => {
@@ -59,6 +76,7 @@ describe("form template list", () => {
     await router.push("/p1/form-templates");
     const wrapper = mount(FormTemplateListView, { global: { plugins: [router] } });
     expect(wrapper.get("[data-testid='template-list'] thead").text()).toContain("名称");
+    expect(wrapper.get("[data-testid='template-list'] thead").text()).toContain("发布态");
     expect(wrapper.findAll("[data-testid='nx-skeleton']")).toHaveLength(3);
     finishRequest([]);
     await flushPromises();
