@@ -3,8 +3,12 @@
     <NxPageHeader
       eyebrow="星权 · 权限管理"
       :title="pageTitle"
-      description="管理角色、角色分配、数据范围与字段规则。授权由服务端 PermissionEngine 判定。"
+      description="配置角色、人员分配、数据可见范围与字段规则。谁能执行操作，由服务端按当前策略统一判定。"
     />
+
+    <p class="permission-explainer" data-testid="permission-explainer" role="note">
+      本页回答「谁能做什么」：角色定义能力，分配绑定到人，矩阵决定允许或拒绝。改动会进入策略版本，不影响登录与组织目录本身。
+    </p>
 
     <NxSourceBanner body="本页只读写 /api/v1/permission 已提供的角色、分配、授权矩阵与快照；不在前端定义权限码或实现数据范围。" />
 
@@ -512,6 +516,16 @@ watch(() => session.contextId, load);
 
 <style scoped>
 .permissions-page { display: grid; gap: var(--nx-space-4); }
+.permission-explainer {
+  margin: 0;
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-info-light);
+  color: var(--nx-text-regular);
+  font-size: var(--nx-font-size-sm);
+  line-height: 1.5;
+}
 .permission-tabs { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); border-bottom: 1px solid var(--nx-border); }
 .permission-tabs a { padding: var(--nx-space-2) var(--nx-space-3); color: var(--nx-text-secondary); text-decoration: none; border-bottom: 2px solid transparent; }
 .permission-tabs a.active { color: var(--nx-product); border-color: var(--nx-product); font-weight: 600; }
