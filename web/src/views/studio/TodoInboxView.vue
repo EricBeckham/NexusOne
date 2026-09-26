@@ -51,7 +51,7 @@
             <td class="cell-title">{{ row.title || "未命名" }}</td>
             <td class="nx-code cell-code" :title="row.biz_no || undefined" data-testid="todo-row-no">{{ shortRef(row.biz_no) }}</td>
             <td class="cell-time">{{ formatTime(row.arrived_at) }}</td>
-            <td><NxStatus :label="rowStatus(row).label" :tone="rowStatus(row).tone" /></td>
+            <td><NxStatusTag :status="row.status || row.approval_status || ''" :label="rowStatus(row).label" :tone="rowStatus(row).tone" /></td>
 
           </tr>
         </tbody>
@@ -63,13 +63,13 @@
           <dl v-if="box === 'requests'" class="detail-meta" data-testid="request-detail-meta">
             <dt>申请编号</dt><dd class="nx-code">{{ selected.biz_no || "暂无" }}</dd>
             <dt>提交时间</dt><dd>{{ formatTime(selected.arrived_at) }}</dd>
-            <dt>状态</dt><dd><NxStatus :label="rowStatus(selected).label" :tone="rowStatus(selected).tone" /></dd>
+            <dt>状态</dt><dd><NxStatusTag :status="selected.status || selected.approval_status || ''" :label="rowStatus(selected).label" :tone="rowStatus(selected).tone" /></dd>
           </dl>
           <dl v-else class="detail-meta">
             <dt>流程</dt><dd>{{ selected.process || "暂无" }}</dd>
             <dt>业务单号</dt><dd class="nx-code">{{ selected.biz_no || "暂无" }}</dd>
             <dt v-if="selected.approval_status">审批状态</dt>
-            <dd v-if="selected.approval_status"><NxStatus :label="statusLabel(selected.approval_status)" :tone="tone(selected.approval_status)" /></dd>
+            <dd v-if="selected.approval_status"><NxStatusTag :status="selected.approval_status" :label="statusLabel(selected.approval_status)" :tone="tone(selected.approval_status)" /></dd>
             <dt v-if="selected.instance_id">流程实例</dt><dd v-if="selected.instance_id" class="nx-code instance">{{ selected.instance_id }}</dd>
           </dl>
           <router-link
@@ -101,8 +101,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxFilterBar, NxPageHeader, NxSkeleton } from "../../components";
-import NxStatus from "../../components/NxStatus.vue";
+import { NxEmpty, NxFilterBar, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p3 } from "../../api/p3";
 import { session } from "../../api/session";
 import { todoStatus } from "./todoStatus";

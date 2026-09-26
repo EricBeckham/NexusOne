@@ -67,7 +67,7 @@ defineProps({
 }
 .bone-avatar { width: 40px; height: 40px; border-radius: var(--nx-radius-sm); }
 .bone-line { height: 12px; }
-.bone-chip { height: 24px; border-radius: var(--nx-radius-pill); }
+.bone-chip { height: var(--nx-status-tag-height); border-radius: var(--nx-radius-pill); }
 .bone-input { height: var(--nx-control-height, 36px); margin-bottom: var(--nx-form-field-gap, var(--nx-space-5)); }
 .bone-area { height: 72px; margin-bottom: var(--nx-space-2); }
 .w-30 { width: 30%; }

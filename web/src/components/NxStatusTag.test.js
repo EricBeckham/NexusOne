@@ -17,4 +17,19 @@ describe("NxStatusTag", () => {
     expect(wrapper.text()).toBe("待审核");
     expect(wrapper.get("[data-testid='nx-status-tag']").attributes("data-tone")).toBe("warning");
   });
+
+  it("maps draft / published / approval codes used on tenant lists", () => {
+    expect(mount(NxStatusTag, { props: { status: "DRAFT" } }).text()).toBe("草稿");
+    expect(mount(NxStatusTag, { props: { status: "PUBLISHED" } }).get("[data-testid='nx-status-tag']").attributes("data-tone")).toBe("success");
+    expect(mount(NxStatusTag, { props: { status: "APPROVED" } }).text()).toBe("已通过");
+    expect(mount(NxStatusTag, { props: { status: "INSTALLED" } }).get("[data-testid='nx-status-tag']").attributes("data-tone")).toBe("success");
+  });
+
+  it("lets the caller override data-testid (MarketView catalog badge)", () => {
+    const wrapper = mount(NxStatusTag, {
+      props: { status: "ACTIVE", label: "可开通", tone: "info" },
+      attrs: { "data-testid": "catalog-card-badge" },
+    });
+    expect(wrapper.get("[data-testid='catalog-card-badge']").text()).toBe("可开通");
+  });
 });

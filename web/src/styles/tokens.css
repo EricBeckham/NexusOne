@@ -59,6 +59,12 @@
   --nx-table-cell-padding-y: 12px;
   --nx-table-cell-padding-x: var(--nx-space-3);
   --nx-table-header-font-size: var(--nx-font-size-xs);
+  /* §2.3 Badge/Tag + §12.4 / Q4: shared status tag density (NxStatus / NxStatusTag). */
+  --nx-status-tag-height: 24px;
+  --nx-status-tag-padding-x: var(--nx-space-2);
+  --nx-status-tag-font-size: var(--nx-font-size-xs);
+  --nx-status-tag-font-weight: 500;
+  --nx-status-tag-line-height: 18px;
   --nx-state-icon: 48px;
   --nx-font-size-xs: 12px;
   --nx-font-size-sm: 13px;
