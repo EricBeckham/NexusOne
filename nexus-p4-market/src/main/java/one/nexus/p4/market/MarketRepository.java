@@ -25,6 +25,8 @@ public interface MarketRepository {
     void saveProductDefinition(ProductDefinition definition);
     List<ProductDefinition> productDefinitions();
     Optional<ProductDefinition> productDefinition(UUID id);
+    Optional<ProductDefinition> productDefinitionByCode(String code);
+    Optional<UUID> publishedFormTemplateVersionByCode(String code, int version);
     Optional<UUID> publishedFormTemplateVersion(UUID id);
     void bindSkuToProductDefinition(String skuCode, UUID productDefinitionId);
     Optional<ProductDefinition> productDefinitionForSku(String skuCode);

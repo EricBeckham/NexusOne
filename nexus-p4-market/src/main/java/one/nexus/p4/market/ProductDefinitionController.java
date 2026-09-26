@@ -6,6 +6,8 @@ import java.util.UUID;
 import one.nexus.p4.market.MarketModels.ProductConfigReadiness;
 import one.nexus.p4.market.MarketModels.ProductDefinition;
 import one.nexus.p4.market.MarketModels.ProductDefinitionWrite;
+import one.nexus.p4.market.ProductConfigImportModels.ImportAccepted;
+import one.nexus.p4.market.ProductConfigImportModels.ImportRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,10 +19,15 @@ import org.springframework.web.bind.annotation.*;
 public class ProductDefinitionController {
     private final ProductDefinitionService service;
     private final ProductConfigExportService exportService;
+    private final ProductConfigImportService importService;
 
-    public ProductDefinitionController(ProductDefinitionService service, ProductConfigExportService exportService) {
+    public ProductDefinitionController(
+            ProductDefinitionService service,
+            ProductConfigExportService exportService,
+            ProductConfigImportService importService) {
         this.service = service;
         this.exportService = exportService;
+        this.importService = importService;
     }
 
     @GetMapping public List<ProductDefinition> list() { return service.list(); }
@@ -37,6 +44,17 @@ public class ProductDefinitionController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body);
+    }
+
+    /** IM5: import package; returns importJobId. Default conflict strategy = skip. */
+    @PostMapping("/import")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ImportAccepted importPackage(
+            @RequestBody ImportRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        Map<String, Object> body = request == null ? null : request.packageBody();
+        String strategy = request == null ? null : request.conflictStrategy();
+        return importService.importPackage(body, strategy, idempotencyKey);
     }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
