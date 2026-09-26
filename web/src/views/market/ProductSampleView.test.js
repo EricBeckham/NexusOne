@@ -7,9 +7,10 @@ const mocks = vi.hoisted(() => ({
   productDefinitions: vi.fn(),
   productLedgerSample: vi.fn(),
   productPrintSample: vi.fn(),
+  productReportSample: vi.fn(),
 }));
 vi.mock("../../api/client", () => ({
-  p4: { productDefinitions: mocks.productDefinitions, productLedgerSample: mocks.productLedgerSample, productPrintSample: mocks.productPrintSample },
+  p4: { productDefinitions: mocks.productDefinitions, productLedgerSample: mocks.productLedgerSample, productPrintSample: mocks.productPrintSample, productReportSample: mocks.productReportSample },
 }));
 
 import ProductSampleView from "./ProductSampleView.vue";
@@ -20,6 +21,8 @@ async function mountAt(path) {
     routes: [
       { path: "/p4/product-samples/ledger", component: ProductSampleView, meta: { sample: "ledger" } },
       { path: "/p4/product-samples/print", component: ProductSampleView, meta: { sample: "print" } },
+      { path: "/p4/product-samples/print/designer", component: { template: "<div />" } },
+      { path: "/p4/product-samples/report", component: ProductSampleView, meta: { sample: "report" } },
       { path: "/p4/product-config-wizard", component: { template: "<div />" } },
       { path: "/p4/product-definitions", component: { template: "<div />" } },
       { path: "/p1/form-templates", component: { template: "<div />" } },
@@ -169,5 +172,45 @@ describe("product sample print (PC10)", () => {
     await err.get("button").trigger("click");
     await flushPromises();
     expect(wrapper.find("[data-testid='sample-print-paper']").exists()).toBe(true);
+  });
+});
+const REPORT = {
+  product_definition_id: "d1",
+  product_name: "请假报销",
+  as_of: "2026-09-26T12:00:00Z",
+  metrics: [
+    { key: "form_fields", label: "表单字段", value: 4, note: "字段数。" },
+    { key: "bound_skus", label: "绑定 SKU", value: 0, note: "SKU 数。" },
+    { key: "active_subscriptions", label: "生效订阅", note: "暂时无法统计。" },
+    { key: "installed_tenants", label: "已开通租户", value: null, note: "暂时无法统计。" },
+  ],
+  trend_available: false,
+  trend_note: "没有按时间聚合的统计数据，趋势暂无。",
+  note: "只统计平台现有记录的当前数量（跨租户合计，不含租户明细、不含金额）。",
+};
+
+describe("product sample report (PC12)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }]);
+    mocks.productReportSample.mockResolvedValue(REPORT);
+  });
+
+  it("shows real zeros as 0 and uncountable values as 暂无, never 0", async () => {
+    const wrapper = await mountAt("/p4/product-samples/report?definition=d1");
+    expect(mocks.productReportSample).toHaveBeenCalledWith("d1");
+    const value = (key) => wrapper.get(`[data-testid='sample-report-metric-${key}'] .metric-value`).text();
+    expect(value("form_fields")).toBe("4");
+    expect(value("bound_skus")).toBe("0");
+    expect(value("active_subscriptions")).toBe("暂无");
+    expect(value("installed_tenants")).toBe("暂无");
+    expect(wrapper.get("[data-testid='sample-report-meta']").text()).toContain("不含金额");
+  });
+
+  it("states that there is no trend and draws no chart", async () => {
+    const wrapper = await mountAt("/p4/product-samples/report");
+    expect(wrapper.get("[data-testid='sample-report-trend']").text()).toContain("趋势暂无");
+    expect(wrapper.find("svg, canvas, polyline, [data-testid*='chart']").exists()).toBe(false);
+    expect(wrapper.text()).not.toMatch(/同比|环比|增长|%/);
   });
 });

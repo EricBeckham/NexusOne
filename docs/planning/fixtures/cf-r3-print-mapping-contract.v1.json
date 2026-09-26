@@ -1,0 +1,43 @@
+{
+  "contractVersion": "1.0",
+  "source": "STATIC",
+  "note": "CF-R3 静态契约：字段→槽位映射与纸张枚举。零 Flyway；供 CF-R1/R2 壳与后续设计器对齐。非拖拽设计器。",
+  "paperSizes": [
+    { "code": "A4", "label": "A4", "widthMm": 210, "heightMm": 297 },
+    { "code": "A5", "label": "A5", "widthMm": 148, "heightMm": 210 },
+    { "code": "LETTER", "label": "Letter", "widthMm": 216, "heightMm": 279 }
+  ],
+  "orientations": [
+    { "code": "PORTRAIT", "label": "纵向" },
+    { "code": "LANDSCAPE", "label": "横向" }
+  ],
+  "builtinTemplate": {
+    "code": "builtin.approval-form.a4.v1",
+    "name": "内置样例 · 审批单（A4 纵向）",
+    "defaultPaper": "A4",
+    "defaultOrientation": "PORTRAIT",
+    "slots": [
+      { "id": "header.title", "label": "标题", "section": "header", "accepts": ["TEXT"], "repeatable": false },
+      { "id": "header.application_no", "label": "单号", "section": "header", "accepts": ["TEXT"], "repeatable": false },
+      { "id": "header.applicant", "label": "申请人", "section": "header", "accepts": ["PERSON", "TEXT"], "repeatable": false },
+      { "id": "header.submitted_at", "label": "提交时间", "section": "header", "accepts": ["DATE", "DATETIME"], "repeatable": false },
+      { "id": "form.fields", "label": "表单字段区", "section": "form", "accepts": ["*"], "repeatable": true },
+      { "id": "approval.opinion", "label": "审批意见", "section": "approval", "accepts": ["TEXTAREA", "TEXT"], "repeatable": false },
+      { "id": "approval.approver_sign", "label": "审批人签字", "section": "approval", "accepts": ["PERSON", "TEXT"], "repeatable": false },
+      { "id": "approval.approved_at", "label": "审批日期", "section": "approval", "accepts": ["DATE", "DATETIME"], "repeatable": false }
+    ]
+  },
+  "defaultFieldMappings": [
+    { "fieldKey": "application_no", "slotId": "header.application_no" },
+    { "fieldKey": "applicant", "slotId": "header.applicant" },
+    { "fieldKey": "submitted_at", "slotId": "header.submitted_at" },
+    { "fieldKey": "opinion", "slotId": "approval.opinion" },
+    { "fieldKey": "approver_sign", "slotId": "approval.approver_sign" },
+    { "fieldKey": "approved_at", "slotId": "approval.approved_at" }
+  ],
+  "mappingRules": {
+    "oneFieldOneSlot": true,
+    "unmappedSpillSlotId": "form.fields",
+    "description": "每个表单字段 key 最多映射一个槽位；未映射字段落入 form.fields 可重复区。内置样例字段值留空，仅预览版式。"
+  }
+}

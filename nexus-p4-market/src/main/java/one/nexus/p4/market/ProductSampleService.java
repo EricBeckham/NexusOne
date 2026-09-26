@@ -10,6 +10,10 @@ import one.nexus.p4.market.ProductSampleModels.LedgerSample;
 import one.nexus.p4.market.ProductSampleModels.PrintField;
 import one.nexus.p4.market.ProductSampleModels.PrintSample;
 import one.nexus.p4.market.ProductSampleModels.PrintSection;
+import one.nexus.p4.market.ProductSampleModels.ReportMetric;
+import one.nexus.p4.market.ProductSampleModels.ReportSample;
+import one.nexus.p4.market.MarketModels.ProductUsageCounts;
+import one.nexus.p1.port.ClockPort;
 import one.nexus.p4.market.ProductSampleModels.SampleColumn;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
@@ -19,14 +23,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 /** PC9+: read-only samples anchored on one product definition; platform SYSTEM_ADMIN like the definition reads. */
 @Service
-@ConditionalOnBean(IsolationGuard.class)
+@ConditionalOnBean({IsolationGuard.class, ClockPort.class})
 public class ProductSampleService {
     private final MarketRepository market;
     private final IsolationGuard isolation;
+    private final ClockPort clock;
 
-    public ProductSampleService(MarketRepository market, IsolationGuard isolation) {
+    public ProductSampleService(MarketRepository market, IsolationGuard isolation, ClockPort clock) {
         this.market = market;
         this.isolation = isolation;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -65,6 +71,33 @@ public class ProductSampleService {
         }
         return new PrintSample(definition.id(), definition.name(), PrintSample.SOURCE, PrintSample.TEMPLATE_CODE,
                 PrintSample.TEMPLATE_NAME, "A4", "PORTRAIT", definition.name() + " 申请单", sections, PrintSample.NOTE);
+    }
+
+    /** PC13: current counts only; a failed count is null with a note, and there is never a trend. */
+    @Transactional(readOnly = true)
+    public ReportSample report(UUID productDefinitionId) {
+        isolation.requirePlatformContext("product-sample.report", PlatformDuty.SYSTEM_ADMIN);
+        ProductDefinition definition = require(productDefinitionId);
+        int formFields = market.formTemplateVersionSnapshot(definition.formTemplateVersionId())
+                .map(form -> form.fields().size()).orElse(-1);
+        ProductUsageCounts counts;
+        try {
+            counts = market.productUsageCounts(definition.id());
+        } catch (RuntimeException unavailable) {
+            counts = null;
+        }
+        String unknown = "暂时无法统计。";
+        List<ReportMetric> metrics = List.of(
+                new ReportMetric("form_fields", "表单字段", formFields < 0 ? null : (long) formFields,
+                        formFields < 0 ? "读不到产品绑定的表单版本。" : "产品绑定的已发布表单版本中的字段数。"),
+                new ReportMetric("bound_skus", "绑定 SKU", counts == null ? null : counts.boundSkus(),
+                        counts == null ? unknown : "绑定到本产品的 SKU 数。"),
+                new ReportMetric("active_subscriptions", "生效订阅", counts == null ? null : counts.activeSubscriptions(),
+                        counts == null ? unknown : "这些 SKU 当前状态为生效的订阅数。"),
+                new ReportMetric("installed_tenants", "已开通租户", counts == null ? null : counts.installedTenants(),
+                        counts == null ? unknown : "已安装且锁定本产品版本的租户数。"));
+        return new ReportSample(definition.id(), definition.name(), clock.now(), metrics, false,
+                ReportSample.TREND_NOTE, ReportSample.NOTE);
     }
 
     static List<SampleColumn> columns(FormTemplateVersionSnapshot form) {

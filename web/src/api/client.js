@@ -273,6 +273,8 @@ export const p4 = {
   productLedgerSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/ledger`, { platform: true, auth: false }),
   // PC11: built-in print layout filled with the current product's form fields (values always blank).
   productPrintSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/print`, { platform: true, auth: false }),
+  // PC13: current counts for the product (null = could not count); trend_available is always false.
+  productReportSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/report`, { platform: true, auth: false }),
   // IM4: download product-config format 1.0 JSON bundle for one definition.
   exportProductDefinition: (id) => apiBlob(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/export`, { platform: true, auth: false }),
   // IM5: import package → importJobId (ConflictStrategy skip|new-version|fail; Idempotency-Key).
