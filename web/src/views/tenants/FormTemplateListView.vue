@@ -73,12 +73,13 @@
               <th scope="col">发布态</th>
               <th scope="col">版本</th>
               <th scope="col">字段数</th>
+              <th scope="col">被产品引用</th>
               <th scope="col">操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="loading-cell">
+              <td colspan="7" class="loading-cell">
                 <NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在加载模板目录" compact />
               </td>
             </tr>
@@ -96,6 +97,7 @@
                 </td>
                 <td class="version-cell" data-testid="template-version">{{ versionText(row) }}</td>
                 <td>{{ Array.isArray(row.fields) ? row.fields.length : "暂无" }}</td>
+                <td data-testid="template-ref-count">{{ refCountText(row) }}</td>
                 <td>
                   <router-link class="text-action" :to="`/p1/form-templates/${row.id}`">
                     {{ normalizeStatus(row.status) === "PUBLISHED" ? "查看" : "编辑" }}
@@ -145,6 +147,12 @@ function statusLabel(status) {
     || status
     || "暂无"
   );
+}
+
+function refCountText(row) {
+  const count = row?.productReferenceCount ?? row?.product_reference_count;
+  if (count === 0 || count) return String(count);
+  return "暂不可用";
 }
 
 function statusTone(status) {
