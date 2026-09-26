@@ -93,6 +93,8 @@ describe("P2 permissions management", () => {
     const wrapper = await mountPermission();
 
     expect(wrapper.get("h1").text()).toBe("角色与分配");
+    expect(wrapper.get("[data-testid='permission-explainer']").text()).toContain("谁能做什么");
+    expect(wrapper.get("[data-testid='nx-page-header']").text()).not.toContain("PermissionEngine");
     expect(wrapper.get('[data-testid="role-table"]').text()).toContain("role-from-api");
     expect(wrapper.get('[data-testid="assignment-table"]').text()).toContain("person-id-from-api");
     expect(mocks.matrix).toHaveBeenCalledOnce();
