@@ -203,7 +203,8 @@ describe("P4 management subpages", () => {
     mocks.commercialEntitlements.mockResolvedValue([
       { subscription_id: "sub-1", summary: { enabled_count: 2, total_count: 3, projected: false } },
       { subscription_id: "sub-2", summary: { enabled_count: 3, total_count: 3, projected: true, projection_version: 4, projected_at: "2026-02-01T00:00:00Z" } },
-      { subscription_id: "sub-3", summary: { enabled_count: 0, total_count: 0, projected: null } },
+      // XB14: the product mapper omits an unknown `projected`, so the key is absent on the real wire.
+      { subscription_id: "sub-3", summary: { enabled_count: 0, total_count: 0 } },
     ]);
     const wrapper = await mountPage("/p4/subscriptions");
     const cells = wrapper.findAll('[data-testid="subscription-entitlement"]').map((cell) => cell.text());
