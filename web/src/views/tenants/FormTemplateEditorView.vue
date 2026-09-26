@@ -43,8 +43,15 @@
       <router-link class="primary" to="/p4/product-definitions" data-testid="template-next-bind">下一步：绑定到产品</router-link>
     </template>
   </NxResult>
-  <ul v-if="formErrors.length" class="errors" data-testid="template-validate-errors">
-    <li v-for="(message, index) in formErrors" :key="index">{{ message }}</li>
+  <ul v-if="validationIssues.length" class="errors" data-testid="template-validate-errors">
+    <li v-for="(issue, index) in validationIssues" :key="index">
+      <button
+        type="button"
+        class="error-anchor"
+        :data-testid="issue.fieldKey ? `validate-anchor-${issue.fieldKey}` : `validate-anchor-form-${index}`"
+        @click="focusValidationIssue(issue)"
+      >{{ issue.message }}</button>
+    </li>
   </ul>
 
   <div class="designer">
@@ -124,6 +131,7 @@
           tabindex="0"
           role="button"
           :aria-pressed="field.uid === selectedUid"
+            :data-field-key="field.key"
           :aria-label="`字段 ${field.label || '未命名字段'}`"
           data-testid="template-field"
           @click="select(field)"
@@ -152,6 +160,7 @@
             tabindex="0"
             role="button"
             :aria-pressed="field.uid === selectedUid"
+            :data-field-key="field.key"
             :aria-label="`字段 ${field.label || '未命名字段'}`"
             data-testid="template-field"
             @click="select(field)"
@@ -348,7 +357,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p1 } from "../../api/client";
 import { NxEmpty, NxErrorState, NxPageHeader, NxPropertyPanel, NxRequestAlert, NxResult } from "../../components";
@@ -646,6 +655,33 @@ const formErrors = computed(() => {
     .filter(Boolean);
 });
 
+/** CF-F3: all validation issues for click-to-anchor feedback. */
+const validationIssues = computed(() => {
+  const errors = validation.value?.errors;
+  if (!Array.isArray(errors)) return [];
+  return errors
+    .map((item) => ({
+      fieldKey: item?.fieldKey || null,
+      message: item?.message || "",
+    }))
+    .filter((item) => item.message);
+});
+
+function focusValidationIssue(issue) {
+  tab.value = "field";
+  fieldPropTab.value = "validation";
+  if (issue?.fieldKey) {
+    const target = fields.value.find((field) => field.key === issue.fieldKey);
+    if (target) select(target);
+    nextTick(() => {
+      const el = document.querySelector(`[data-field-key="${CSS.escape(issue.fieldKey)}"]`);
+      el?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    });
+  } else {
+    tab.value = "template";
+  }
+}
+
 function applyTemplate(row) {
   code.value = row?.code || "";
   name.value = row?.name || "";
@@ -798,6 +834,15 @@ async function validate() {
     const result = normalizeValidationResult(await p1.validateFormTemplate(route.params.id));
     validation.value = result;
     if (result?.status) status.value = result.status;
+    if (result?.valid) {
+      nxMessage.success("校验通过");
+    } else {
+      const issues = Array.isArray(result?.errors) ? result.errors : [];
+      const firstField = issues.find((item) => item?.fieldKey);
+      nxMessage.error(firstField?.message || issues[0]?.message || "校验未通过，请按列表逐项处理");
+      if (firstField) focusValidationIssue(firstField);
+      else if (issues[0]?.message) focusValidationIssue({ fieldKey: null, message: issues[0].message });
+    }
   } catch (err) {
     failAction("validate", err);
   } finally {
@@ -878,6 +923,7 @@ onMounted(load);
 .meta-text { color: var(--nx-text-secondary); }
 .dirty { color: var(--nx-warning); }
 .ok { color: var(--nx-success); font-weight: 600; }
+.error-anchor { display: inline; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: underline; cursor: pointer; }
 .errors {
   margin: 0 0 16px;
   padding: 10px 12px 10px 30px;
