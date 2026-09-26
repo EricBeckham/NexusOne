@@ -53,3 +53,39 @@ export function omitLayout(field) {
   const { layout, ...rest } = field;
   return rest;
 }
+
+/**
+ * Z4: persist layout inside field `options` JSON (no new DB column).
+ * SELECT stays a choices array when layout is absent; with layout becomes
+ * `{ layout, choices }`. Non-SELECT uses `{ layout }` or null.
+ */
+export function readWireOptions(options, topLevelLayout) {
+  let layout = topLevelLayout && typeof topLevelLayout === "object" && !Array.isArray(topLevelLayout)
+    ? topLevelLayout
+    : null;
+  let choices = [];
+  if (Array.isArray(options)) {
+    choices = options;
+  } else if (options && typeof options === "object") {
+    if (options.layout && typeof options.layout === "object") layout = options.layout;
+    if (Array.isArray(options.choices)) choices = options.choices;
+  }
+  return {
+    layout: layout ? normalizeLayout(layout) : null,
+    choices,
+  };
+}
+
+/** Build API `options` value; pass SELECT choices already filtered. */
+export function wireOptions(type, choices, layout) {
+  const normalized = layout && typeof layout === "object" && !Array.isArray(layout)
+    ? normalizeLayout(layout)
+    : null;
+  if (type === "SELECT") {
+    const list = Array.isArray(choices) ? choices : [];
+    if (normalized) return { layout: normalized, choices: list };
+    return list;
+  }
+  if (normalized) return { layout: normalized };
+  return null;
+}

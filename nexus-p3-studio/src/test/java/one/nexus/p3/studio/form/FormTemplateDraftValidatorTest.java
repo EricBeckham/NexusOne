@@ -19,8 +19,12 @@ class FormTemplateDraftValidatorTest {
                 field("subject", "TEXT", null),
                 field("category", "SELECT", mapper.readTree("[{\"label\":\"A\",\"value\":\"a\"}]")));
 
-        assertTrue(FormTemplateDraftValidator.validate(fields).isEmpty());
-    }
+    assertTrue(FormTemplateDraftValidator.validate(fields).isEmpty());
+    var withLayout = List.of(
+            field("category", "SELECT", mapper.readTree(
+                    "{\"layout\":{\"x\":1,\"y\":0,\"w\":6,\"h\":1},\"choices\":[{\"label\":\"A\",\"value\":\"a\"}]}")));
+    assertTrue(FormTemplateDraftValidator.validate(withLayout).isEmpty());
+  }
 
     @Test
     void reportsEmptyDraftDuplicateAndIllegalKeysAndMissingSelectOptions() {

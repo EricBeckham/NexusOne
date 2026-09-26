@@ -30,12 +30,22 @@ public final class FormTemplateDraftValidator {
                 errors.add(new FormTemplateDraftService.ValidationError(field.id(), field.key(),
                         "field.key.duplicate", "字段 key 不可重复"));
             }
-            if ("SELECT".equals(field.type())
-                    && (field.options() == null || !field.options().isArray() || field.options().isEmpty())) {
+            if ("SELECT".equals(field.type()) && !hasSelectChoices(field.options())) {
                 errors.add(new FormTemplateDraftService.ValidationError(field.id(), field.key(),
                         "field.options.required", "单选字段至少需要一个选项"));
             }
         }
         return List.copyOf(errors);
+    }
+
+    /** Legacy array or Z4 `{ layout, choices: [...] }` envelope. */
+    private static boolean hasSelectChoices(tools.jackson.databind.JsonNode options) {
+        if (options == null || options.isNull()) return false;
+        if (options.isArray()) return !options.isEmpty();
+        if (options.isObject()) {
+            var choices = options.get("choices");
+            return choices != null && choices.isArray() && !choices.isEmpty();
+        }
+        return false;
     }
 }
