@@ -1,0 +1,13 @@
+name: nexus-keycloak-dev
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${NEXUS_DEV_KEYCLOAK_ADMIN_USER:?set local admin username}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${NEXUS_DEV_KEYCLOAK_ADMIN_PASSWORD:?inject local admin password}
+    ports:
+      - "127.0.0.1:18080:8080"
+    volumes:
+      - ../../.local/dpo-keycloak/data:/opt/keycloak/data
+      - ./import:/opt/keycloak/data/import:ro

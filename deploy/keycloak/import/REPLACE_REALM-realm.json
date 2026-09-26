@@ -1,0 +1,17 @@
+{
+  "realm": "REPLACE_REALM",
+  "enabled": true,
+  "registrationAllowed": false,
+  "clients": [{
+    "clientId": "REPLACE_CLIENT_ID",
+    "enabled": false,
+    "protocol": "openid-connect",
+    "publicClient": false,
+    "secret": "REPLACE_CLIENT_SECRET",
+    "standardFlowEnabled": true,
+    "directAccessGrantsEnabled": false,
+    "redirectUris": ["http://127.0.0.1:REPLACE_APP_PORT/REPLACE_CALLBACK_PATH"],
+    "webOrigins": ["http://127.0.0.1:REPLACE_WEB_PORT"]
+  }],
+  "users": []
+}
