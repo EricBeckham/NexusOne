@@ -79,6 +79,9 @@ describe("P4 management subpages", () => {
     expect(installations.get(".installation-title [data-testid='installation-status']").text()).toBe("已开通");
     expect(installations.get(".installation-meta").text()).toContain("crm");
     expect(installations.get('[data-testid="installations-count"]').text()).toBe("共 1 个已开通产品");
+    // S8: the fixed "暂无数据" upgrade facts are a developer note, not shown in the demo.
+    expect(installations.find('[data-testid="upgrade-facts"]').exists()).toBe(false);
+    expect(installations.get('[data-testid="installation-upgrade"]').text()).not.toContain("Schema 变更");
     const crumb = installations.get('[data-testid="nx-page-crumb"]');
     expect(crumb.get("a").attributes("href")).toBe("/p4/market");
     expect(crumb.get('[aria-current="page"]').text()).toBe("我的已开通");

@@ -61,4 +61,19 @@ describe("W4 Market home", () => {
     await flushPromises();
     expect(wrapper.findAll(".value").map((value) => value.text())).toEqual(["0", "0", "0"]);
   });
+
+  it("shows no placeholder charts or empty stub panels, and offers the tenant path (S8)", async () => {
+    mocks.catalog.mockResolvedValue([{ app: { id: "app-1", name: "CRM", code: "crm" }, version: { id: "v-1", version: "1.0.0" }, skus: [] }]);
+    const wrapper = await mountHome();
+    for (const noise of ["聚合接口", "上架趋势", "目录构成", "运行健康", "待处理", "目录接口"]) {
+      expect(wrapper.text()).not.toContain(noise);
+    }
+    expect(wrapper.find("[data-testid='nx-chart-placeholder']").exists()).toBe(false);
+    expect(wrapper.findAll("[data-testid='market-home-start'] a").map((link) => link.attributes("href"))).toEqual([
+      "/p4/market",
+      "/p4/installations",
+      "/p3/todos?box=requests",
+    ]);
+    expect(wrapper.get("[data-testid='market-home-versions'] [data-testid='nx-status-tag']").text()).toBe("已发布");
+  });
 });
