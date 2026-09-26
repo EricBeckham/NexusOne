@@ -70,6 +70,8 @@ public class ProcessDefinitionValidator {
         if (ends.isEmpty()) errors.add(error("END_REQUIRED", "流程至少需要一个结束节点", null, null));
 
         Map<String, List<String>> outgoing = new HashMap<>();
+        Map<String, List<Element>> outgoingFlows = new HashMap<>();
+        Map<String, Integer> incomingCounts = new HashMap<>();
         for (String id : nodes.keySet()) outgoing.put(id, new ArrayList<>());
         for (Element flow : flows) {
             String id = flow.getAttribute("id");
@@ -79,6 +81,28 @@ public class ProcessDefinitionValidator {
                 errors.add(error("DANGLING_FLOW", "连线必须引用当前流程中的节点", null, id));
             } else {
                 outgoing.get(source).add(target);
+                outgoingFlows.computeIfAbsent(source, ignored -> new ArrayList<>()).add(flow);
+                incomingCounts.merge(target, 1, Integer::sum);
+            }
+            for (Node child = flow.getFirstChild(); child != null; child = child.getNextSibling()) {
+                if (child instanceof Element condition && "conditionExpression".equals(localName(condition))
+                        && condition.getTextContent().isBlank()) {
+                    errors.add(error("FLOW_CONDITION_EMPTY", "连线条件不能为空；无条件连线请移除条件", null, id));
+                }
+            }
+        }
+
+        for (var entry : nodes.entrySet()) {
+            Element gateway = entry.getValue();
+            if (!"exclusiveGateway".equals(localName(gateway))) continue;
+            String id = entry.getKey();
+            List<Element> exits = outgoingFlows.getOrDefault(id, List.of());
+            if (incomingCounts.getOrDefault(id, 0) == 0 || exits.isEmpty()) {
+                errors.add(error("GATEWAY_CONNECTION_REQUIRED", "网关必须有进入和离开的连线", id, null));
+            }
+            String defaultFlow = gateway.getAttribute("default");
+            if (!defaultFlow.isBlank() && exits.stream().noneMatch(flow -> defaultFlow.equals(flow.getAttribute("id")))) {
+                errors.add(error("GATEWAY_DEFAULT_FLOW_INVALID", "默认连线必须是当前网关的出线", id, defaultFlow));
             }
         }
 
