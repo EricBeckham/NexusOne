@@ -51,7 +51,8 @@ describe("W4 Connect home", () => {
     expect(wrapper.text()).toContain("运行记录");
     expect(wrapper.text()).toContain("SUCCESS");
     expect(wrapper.get("a.primary").attributes("href")).toBe("/p5/connect");
-    expect(wrapper.findAll(".subpages a").map((link) => link.attributes("href"))).toEqual([
+    expect(wrapper.findAll(".quick-actions a").map((link) => link.attributes("href"))).toEqual([
+      "/p5/connect",
       "/p5/apis",
       "/p5/clients",
       "/p5/webhooks",
@@ -62,6 +63,7 @@ describe("W4 Connect home", () => {
     expect(wrapper.text()).toContain("自检");
     expect(wrapper.text()).toContain("停用连接器");
     expect(wrapper.text()).toContain("停用");
+    expect(wrapper.get(".nx-table").classes()).toContain("nx-table--compact");
   });
 
   it("shows empty data honestly when no connector or run exists", async () => {
