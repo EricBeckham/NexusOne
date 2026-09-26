@@ -1,0 +1,62 @@
+{
+  "manifest": {
+    "format": "nexusone.product-config",
+    "formatVersion": "1.0",
+    "exportedAt": "2026-09-26T15:00:00Z",
+    "source": {
+      "env": "demo",
+      "productDefinitionId": "0199a100-0000-7000-8000-00000000pd01"
+    },
+    "checksum": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
+  "formTemplates": [
+    {
+      "id": "0199a100-0000-7000-8000-00000000ft01",
+      "code": "demo.leave",
+      "name": "请假申请",
+      "version": 1,
+      "status": "PUBLISHED",
+      "fields": [
+        { "code": "reason", "type": "textarea", "label": "事由", "required": true },
+        { "code": "days", "type": "number", "label": "天数", "required": true },
+        { "code": "approver", "type": "person", "label": "审批人", "required": true }
+      ]
+    }
+  ],
+  "processDefinitions": [
+    {
+      "key": "demo.simple-approval",
+      "name": "一级审批",
+      "version": 1,
+      "nodes": [
+        { "id": "start", "type": "start", "name": "开始" },
+        { "id": "approve", "type": "userTask", "name": "审批" },
+        { "id": "end", "type": "end", "name": "结束" }
+      ],
+      "edges": [
+        { "from": "start", "to": "approve" },
+        { "from": "approve", "to": "end" }
+      ]
+    }
+  ],
+  "productDefinition": {
+    "id": "0199a100-0000-7000-8000-00000000pd01",
+    "code": "demo.leave-approval",
+    "name": "请假审批产品",
+    "description": "演示用一级审批产品配置样例（无运行时数据）",
+    "status": "PUBLISHED",
+    "formTemplateCode": "demo.leave",
+    "formTemplateVersion": 1,
+    "processDefinitionKey": "demo.simple-approval",
+    "processDefinitionVersion": 1
+  },
+  "skuBindings": [
+    {
+      "skuCode": "demo.simple-approval",
+      "skuName": "标准请假开通",
+      "entitlementKeys": ["approval"]
+    }
+  ],
+  "printTemplates": [],
+  "printSupport": "config+preview-later"
+}

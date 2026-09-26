@@ -6,6 +6,13 @@
       description="把已发布的表单模板版本和流程版本组合成产品，再绑定 SKU，租户即可在应用目录订阅开通。此页仅平台管理员使用。"
     >
       <template #actions>
+        <button
+          class="ghost"
+          type="button"
+          data-testid="export-config"
+          :disabled="exporting"
+          @click="exportConfig()"
+        >{{ exporting ? "导出中…" : "导出配置" }}</button>
         <router-link class="primary" to="/p4/product-config-wizard" data-testid="open-config-wizard">配置向导</router-link>
         <router-link class="ghost" to="/p1/form-templates">表单模板</router-link>
         <router-link class="ghost" to="/p3/workflow">流程设计器</router-link>
@@ -15,6 +22,14 @@
     </NxPageHeader>
 
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
+    <NxErrorState
+      v-if="exportError"
+      title="配置未能导出"
+      :description="exportError"
+      retry-label="重试导出"
+      data-testid="export-config-error"
+      @retry="exportConfig(exportTarget)"
+    />
     <template v-else>
       <ol class="nx-card journey" aria-label="上架步骤" data-testid="binding-journey">
         <li v-for="(step, index) in journey" :key="step.id" :data-done="step.done" :data-testid="`journey-${step.id}`">
@@ -56,6 +71,7 @@
                 <span v-else class="unbound">未绑定</span>
               </td>
               <td class="row-actions">
+                <button type="button" class="ghost small" :data-testid="`export-config-${row.code}`" :disabled="exporting" @click="exportConfig(row)">导出配置</button>
                 <button type="button" class="ghost small" :data-testid="`bind-open-${row.code}`" @click="openBind(row.id)">绑定 SKU</button>
                 <button v-if="row.status === 'DRAFT'" type="button" class="ghost small" @click="edit(row)">编辑</button>
               </td>
@@ -156,6 +172,10 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { p1, p4 } from "../../api/client";
 import { p3 } from "../../api/p3";
 import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
+import { nxMessage } from "../../feedback/nxMessage";
+
+/** IM2: static format 1.0 sample until IM4 export BE lands. Honest — not a live product snapshot. */
+const SAMPLE_EXPORT_URL = "/fixtures/product-config-1.0/sample-demo-leave.product-config.json";
 
 const permissionNote = "租户成员可发起；审批人来自表单中的成员字段，且必须是本租户成员。";
 
@@ -178,6 +198,9 @@ const bindingFor = ref("");
 const bindSkuCode = ref("");
 const binding = ref(false);
 const bindError = ref("");
+const exporting = ref(false);
+const exportError = ref("");
+const exportTarget = ref(null);
 const form = reactive({
   code: "",
   name: "",
@@ -359,6 +382,40 @@ async function loadBindings() {
   }
 }
 
+
+async function exportConfig(row = null) {
+  exportError.value = "";
+  exportTarget.value = row;
+  exporting.value = true;
+  try {
+    const response = await fetch(SAMPLE_EXPORT_URL, { headers: { Accept: "application/json" } });
+    if (!response.ok) {
+      throw new Error(`样例配置包暂时不可用（${response.status}）。导出接口尚未接通，请稍后重试。`);
+    }
+    const blob = await response.blob();
+    if (!blob || blob.size === 0) {
+      throw new Error("下载内容为空，未生成配置文件。");
+    }
+    const code = row?.code || "sample";
+    const filename = `nexusone-product-config-${code}.json`;
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    nxMessage.success(row
+      ? `已下载 format 1.0 样例包（当前为静态样例，尚未按「${row.name || row.code}」组装真包）`
+      : "已下载 format 1.0 样例配置包（导出接口尚未接通，此为静态样例）");
+  } catch (err) {
+    exportError.value = err?.message || "导出失败，请稍后重试";
+  } finally {
+    exporting.value = false;
+  }
+}
 async function load() {
   loaded.value = false;
   error.value = "";

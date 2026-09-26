@@ -86,10 +86,13 @@
 
 | 项 | 状态 |
 |---|---|
-| 本 PR 截图 | **无**（代码审计；未跑 `npm run dev` + 登录） |
-| 预留目录 | `docs/planning/screenshots/ui-audit/`（UI10 补） |
+| 初稿截图 | **无**（代码审计；未跑 `npm run dev` + 登录） |
+| 目录 | `docs/planning/screenshots/ui-audit/`（UI10） |
+| UI10 截图 | **未拍 PNG**（worktree 无 demo 登录）；约定文件名与补拍说明见该目录 README |
 | 复验建议页 | `/p1` `/p2` `/p3/forms/:id` `/p3/exports/wizard` `/p4/installations` `/p4/product-config-wizard` |
+| UI10 复评结论 | 上表 6 页：首页/填报成功/导出向导/配置向导 → **合格**；已开通 → **合格**（空态表壳 + 有数据卡片）；详见 `screenshots/ui-audit/README.md` |
 
 ## 6. 修订记录
 
 - 2026-09-26：V0.1 初稿。基线 `2eb9b971`；代码+规范审计；无浏览器截图。
+- 2026-09-26：UI10 复评记账。UI1–UI9 已合；6 页截图诚实注明未拍；复评见 `docs/planning/screenshots/ui-audit/README.md`。
