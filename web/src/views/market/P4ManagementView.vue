@@ -84,7 +84,7 @@
           <details class="upgrade" data-testid="installation-upgrade">
             <summary>版本升级</summary>
             <div class="stepper" aria-label="升级步骤"><span v-for="step in upgradeSteps" :key="step">{{ step }}</span></div>
-            <div class="upgrade-facts"><p><span>兼容范围</span><strong>暂无数据</strong></p><p><span>Schema 变更</span><strong>暂无数据</strong></p><p><span>数据迁移</span><strong>暂无数据</strong></p><p><span>回滚能力</span><strong>服务端未提供独立回滚说明</strong></p></div>
+            <div v-if="devNotes" class="upgrade-facts" data-testid="upgrade-facts"><p><span>兼容范围</span><strong>暂无数据</strong></p><p><span>Schema 变更</span><strong>暂无数据</strong></p><p><span>数据迁移</span><strong>暂无数据</strong></p><p><span>回滚能力</span><strong>服务端未提供独立回滚说明</strong></p></div>
             <form class="upgrade-form" @submit.prevent="upgrade(installation)"><label>目标版本<select v-model="targets[installation.id]" required><option value="">请选择已发布版本</option><option v-for="version in publishedVersions(installation.appId)" :key="version.id" :value="version.id">{{ version.version }}</option></select></label><button class="nx-btn nx-btn--default" type="submit" data-testid="upgrade-submit" :disabled="busyId === installation.id || !targets[installation.id]">{{ busyId === installation.id ? "提交中…" : "提交升级" }}</button></form>
           </details>
           <small class="nx-muted installation-id" data-testid="installation-id">安装编号 <code :title="installation.id">{{ installation.id }}</code></small>
@@ -101,6 +101,7 @@ import { useRoute } from "vue-router";
 import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
+import { devNotesEnabled } from "../../utils/devNotes";
 
 const route = useRoute();
 const apps = ref([]); const skus = ref([]); const subscriptions = ref([]); const installations = ref([]);
@@ -115,6 +116,8 @@ const title = computed(() => titles[section.value][0]); const description = comp
 const crumbs = computed(() => (section.value === "installations"
   ? [{ label: "应用目录", to: "/p4/market" }, { label: "我的已开通" }]
   : []));
+// S8: the upgrade facts are fixed "暂无数据" placeholders (no API yet) — a developer note, hidden in the demo.
+const devNotes = devNotesEnabled();
 const upgradeSteps = ["预检", "依赖检查", "结构扩展与迁移", "配置", "切换", "验证"];
 
 // The product's JSON is SNAKE_CASE (app_id, version_id, sku_code, updated_at…); this page reads camelCase.
