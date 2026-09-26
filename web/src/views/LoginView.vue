@@ -8,6 +8,10 @@
     <div class="nx-page-header">
       <h1>会话与登录</h1>
       <p>本机 Stub IdP 或已有 access token。产品路径是 Keycloak 授权码；M0-12 不把 stub 当作正式验收登录。</p>
+      <p v-if="idp.configured" class="nx-muted" data-testid="keycloak-login-configured">
+        公开 issuer 已配置。下面的 Keycloak 入口只带公开参数，不宣称真机已验收。
+      </p>
+      <p v-else class="nx-muted" data-testid="idp-unconfigured">{{ idp.unconfiguredCopy }}。Stub 登录仍可用，不是 Keycloak 真机验收。</p>
     </div>
     <div class="nx-grid" style="grid-template-columns: 1fr 1fr;">
       <form class="nx-card" @submit.prevent="onStubLogin">
@@ -36,6 +40,13 @@
         </div>
         <button class="primary" type="submit">登录</button>
       </form>
+    </div>
+    <div v-if="idp.configured" class="nx-card" style="margin-top:16px;" data-testid="keycloak-login-shell">
+      <h3>Keycloak 登录</h3>
+      <p class="nx-muted">跳转到已配置的公开 issuer 授权端点，回跳 <code>/callback</code>。不在浏览器里保存密钥。</p>
+      <button class="primary" type="button" data-testid="keycloak-login" @click="onKeycloakLogin">
+        使用 Keycloak 登录
+      </button>
     </div>
     <div class="nx-card" style="margin-top:16px;">
       <h3>Authorization Code + PKCE（桌面 leftover）</h3>
@@ -99,12 +110,15 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { p2, stubAccessToken } from "../api/client";
 import { DESKTOP_PKCE_TRACE, startDesktopPkceLogin } from "../api/pkce-desktop";
 import { loginWithAccessToken, persist, rememberTrace, session } from "../api/session";
 import { MFA_REQUIRED_COPY, isMfaRequiredError } from "../auth/totpEnrollment";
+import { keycloakAuthorizeHref, keycloakPublicConfig } from "../auth/keycloakPublic";
+
+const idp = computed(() => keycloakPublicConfig(import.meta.env));
 
 const router = useRouter();
 const email = ref("admin-a@example.com");
@@ -143,6 +157,19 @@ async function onAdminPasswordLogin() {
 
 async function onTokenLogin() {
   await submit(token.value.trim());
+}
+
+function onKeycloakLogin() {
+  error.value = "";
+  const cfg = idp.value;
+  if (!cfg.configured) return;
+  const href = keycloakAuthorizeHref({
+    issuer: cfg.issuer,
+    clientId: cfg.clientId,
+    redirectUri: `${window.location.origin}/callback`,
+    state: "dpo-c1",
+  });
+  window.location.assign(href);
 }
 
 async function onPkceLogin() {

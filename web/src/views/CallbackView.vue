@@ -9,6 +9,9 @@
       </p>
     </div>
     <div class="nx-card">
+      <p v-if="idp.configured" class="nx-muted" data-testid="keycloak-callback-shell">
+        Keycloak 授权码回跳壳。公开 issuer 已配置；不宣称真机已验收。
+      </p>
       <p class="nx-muted" data-testid="pkce-callback-state">state {{ state || "—" }}</p>
       <p v-if="status" class="nx-muted" data-testid="pkce-callback-status">{{ status }}</p>
       <p v-if="error" class="nx-error" data-testid="pkce-callback-error">{{ error }}</p>
@@ -22,6 +25,9 @@ import { useRoute, useRouter } from "vue-router";
 import { p2 } from "../api/client";
 import { applySessionView, rememberTrace } from "../api/session";
 import { DESKTOP_PKCE_AFTER, completeDesktopPkceCallback } from "../api/pkce-desktop";
+import { keycloakPublicConfig } from "../auth/keycloakPublic";
+
+const idp = keycloakPublicConfig(import.meta.env);
 
 const route = useRoute();
 const router = useRouter();
