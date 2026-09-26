@@ -237,7 +237,7 @@
             ><title>{{ flow.condition }}</title>{{ shortCondition(describeCondition(flow.condition)) }}</text>
           </g>
           <g
-            v-for="node in graph.nodes"
+            v-for="node in graph.nodes" :data-node-id="node.id"
             :key="node.id"
             class="node"
             :class="{ current: node.id === selectedId, invalid: nodeErrors(node.id).length > 0 }"
@@ -538,9 +538,16 @@ const selectedFlow = computed(() => (selectedFlowId.value
   ? definition.value?.flows?.find((flow) => flow.id === selectedFlowId.value) || null
   : null));
 
+
 function selectNode(id) {
   selectedFlowId.value = "";
   selectedId.value = id;
+  queueMicrotask(() => {
+    const safe = CSS.escape(String(id));
+    const el = document.querySelector(`[data-node-id="${safe}"]`)
+      || document.querySelector(`.step[data-step-id="${safe}"]`);
+    el?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  });
 }
 
 function selectFlow(id) {
@@ -1000,6 +1007,12 @@ async function validateDraft() {
   try {
     validationResult.value = await p3.validateProcessDraft(definition.value.key);
     if (validationResult.value?.valid) nxMessage.success("校验通过，可以发布");
+    else {
+      // CF-P2: auto-focus first locatable finding; list items remain clickable.
+      const first = validationItems.value?.find((item) => item.node || item.flow);
+      if (first?.flow) selectFlow(first.flow);
+      else if (first?.node) selectNode(first.node);
+    }
   } catch (err) {
     validationError.value = err;
     nxMessage.error(`校验请求没有完成：${describeFailure(err)}`, { traceId: err?.traceId || "", durationMs: 8000 });
