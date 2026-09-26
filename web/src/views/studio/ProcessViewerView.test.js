@@ -336,4 +336,39 @@ describe("process viewer", () => {
     expect(wrapper.get("[data-testid='nx-error-state']").text()).toContain("trace-n13");
     expect(wrapper.find("[data-testid='process-canvas']").exists()).toBe(false);
   });
+
+  it("adds and removes an exclusive gateway on an editable draft and saves it (Z6)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    await wrapper.get(".step").trigger("click");
+    await wrapper.get("[data-testid='add-gateway']").trigger("click");
+
+    // The draft is no longer sequential: the graph view takes over, with the new gateway selected.
+    expect(wrapper.find("[data-testid='flow-steps']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='process-nonsequential']").text()).toContain("添加、删除条件分支");
+    expect(wrapper.findAll("[data-testid='process-node']")).toHaveLength(5);
+    expect(wrapper.get("[data-testid='node-type']").text()).toBe("条件分支（exclusiveGateway）");
+    expect(wrapper.get("svg.graph").text()).toContain("条件分支");
+    expect(wrapper.get("[data-testid='node-name']").element.value).toBe("条件分支");
+
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    const xml = p3.saveProcessDraft.mock.calls[0][1].bpmn_xml;
+    expect(xml).toContain('<exclusiveGateway id="gateway" name="条件分支"/>');
+    expect((xml.match(/<sequenceFlow /g) || []).length).toBe(5);
+
+    await wrapper.get("[data-testid='remove-gateway']").trigger("click");
+    expect(wrapper.find("[data-testid='flow-steps']").exists()).toBe(true);
+    expect(wrapper.findAll(".step")).toHaveLength(1);
+  });
+
+  it("offers no branch actions on a read-only published definition (Z6)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([definition]);
+    p3.getProcessDefinition.mockResolvedValue(definition);
+    const wrapper = await mountAt("/p3/workflow/nexusSequentialApproval");
+    await wrapper.findAll("[data-testid='process-node']")[1].trigger("click");
+    expect(wrapper.find("[data-testid='add-gateway']").exists()).toBe(false);
+  });
 });
