@@ -168,6 +168,34 @@ public class JdbcMarketRepository implements MarketRepository {
                 WHERE b.product_definition_id=:definition ORDER BY s.code
                 """).param("definition",productDefinitionId).query(this::mapSku).list();
     }
+    @Override public Optional<FormTemplateVersionSnapshot> formTemplateVersionSnapshot(UUID formTemplateVersionId) {
+        return jdbc.sql("""
+                SELECT v.id,v.version,t.code,t.name,v.fields_snapshot::text snapshot
+                FROM platform.form_template_version v JOIN platform.form_template t ON t.id=v.template_id
+                WHERE v.id=:id
+                """).param("id",formTemplateVersionId).query((r,n) -> new FormTemplateVersionSnapshot(uuid(r,"id"),
+                        r.getString("code"),r.getString("name"),r.getInt("version"),formFields(r.getString("snapshot")))).optional();
+    }
+    /** Snapshot rows are the published FieldView list; tolerate snake_case keys and skip malformed entries. */
+    private List<FormFieldSnapshot> formFields(String snapshot) {
+        if (snapshot == null || snapshot.isBlank()) return List.of();
+        try {
+            List<Map<String,Object>> rows = json.readValue(snapshot, new TypeReference<List<Map<String,Object>>>(){});
+            return rows.stream().map(row -> {
+                String key = text(row.getOrDefault("key", row.get("field_key")));
+                if (key == null) return null;
+                String label = text(row.get("label"));
+                String type = text(row.getOrDefault("type", row.get("field_type")));
+                return new FormFieldSnapshot(key, label == null ? key : label, type == null ? "TEXT" : type,
+                        Boolean.TRUE.equals(row.get("required")));
+            }).filter(java.util.Objects::nonNull).toList();
+        } catch (RuntimeException malformed) {
+            return List.of();
+        }
+    }
+    private static String text(Object value) {
+        return value instanceof String s && !s.isBlank() ? s : null;
+    }
     @Override public void saveInstallationProductPin(InstallationProductPin pin) {
         assertCurrentTenantForInstallation(pin.installationId());
         jdbc.sql("""

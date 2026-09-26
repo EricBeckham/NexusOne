@@ -29,6 +29,7 @@ public interface MarketRepository {
     void bindSkuToProductDefinition(String skuCode, UUID productDefinitionId);
     Optional<ProductDefinition> productDefinitionForSku(String skuCode);
     List<Sku> skusBoundToProductDefinition(UUID productDefinitionId);
+    Optional<FormTemplateVersionSnapshot> formTemplateVersionSnapshot(UUID formTemplateVersionId);
     void saveInstallationProductPin(InstallationProductPin pin);
     Optional<InstallationProductPin> installationProductPin(UUID installationId);
 }
