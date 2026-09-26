@@ -16,6 +16,7 @@
         <router-link class="primary" to="/p4/product-config-wizard" data-testid="open-config-wizard">配置向导</router-link>
         <router-link class="ghost" to="/p1/form-templates">表单模板</router-link>
         <router-link class="ghost" to="/p3/workflow">流程设计器</router-link>
+        <router-link class="ghost" to="/p4/product-samples/ledger" data-testid="definition-sample-ledger">样例台账</router-link>
         <router-link class="ghost" to="/p4/market">应用目录</router-link>
       </template>
     </NxPageHeader>
