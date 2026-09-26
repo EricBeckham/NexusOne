@@ -6,6 +6,15 @@
 
 ## 1. 必做项（环境所有者 / 运维）
 
+### DPO 预备索引（不勾真机验收）
+
+- 本地 [Keycloak compose / realm stub](../../deploy/keycloak/README.md)（DPO-X1）：client 默认禁用、REPLACE_* 占位；不是演示机部署。
+- [DPO 卡正文](WEB演示部署打印星市加深任务卡_DPO波_V0.1.md)：L1 为后端配置守卫；C1 为公开 issuer 登录入口；C2 为只读部署 presence 状态。代码合入/本地绿都不能替代本清单 §1.5 真机登录。
+- DPO-X3 可跳过探活：`scripts/demo-host/keycloak-smoke.ps1`；变量 `NEXUS_DEMO_KEYCLOAK_SMOKE_URL`。未设时 exit 0 + skipped 是“未执行”，不是验收通过；即使 HTTPS 200 也仅探活，不证明 token/租户登录。
+- [prod 部署步骤](../engineering/runbooks/demo-host-prod-deployment.md) 与本清单双向对照。§2 的主机、DNS/证书、密钥仓、IdP 管理权和受控账号仍为外部阻塞，未关闭。
+
+状态：预备 ≠ 已部署 ≠ Keycloak 真机已验收；本次仅补链接，不勾选 §1。
+
 ### 1.1 Realm 与 Client
 
 - [ ] 创建**演示机专用** Keycloak realm（勿与本地开发 stub / 其它环境共用）。
