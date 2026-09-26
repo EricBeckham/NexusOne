@@ -29,7 +29,7 @@ describe("product config wizard shell (PC1)", () => {
     expect(wrapper.get("[data-testid='wizard-steps']").text()).toContain("配流程");
     expect(wrapper.get("[data-testid='wizard-steps']").text()).toContain("绑 SKU");
     expect(wrapper.get("[data-testid='wizard-steps']").text()).toContain("发布");
-    const steps = wrapper.findAll("[data-testid^='wizard-step-']");
+    const steps = wrapper.findAll("[data-testid='wizard-steps'] [data-testid^='wizard-step-']");
     expect(steps).toHaveLength(4);
     expect(steps.every((node) => node.attributes("data-status") === "PENDING")).toBe(true);
     expect(wrapper.get("[data-testid='wizard-step-status']").text()).toContain("待开始");
