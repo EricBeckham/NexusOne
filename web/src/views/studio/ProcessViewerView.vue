@@ -225,7 +225,7 @@
               :x="flow.labelX"
               :y="flow.labelY - 6"
               text-anchor="middle"
-            >{{ shortCondition(flow.condition) }}</text>
+            ><title>{{ flow.condition }}</title>{{ shortCondition(describeCondition(flow.condition)) }}</text>
           </g>
           <g
             v-for="node in graph.nodes"
@@ -281,6 +281,18 @@
           <button type="button" class="nx-btn nx-btn--text danger-text" data-testid="remove-parallel" @click="removeParallel(selected.id)">删除并行分支</button>
           <small class="nx-muted">连同配对的并行开始 / 汇合和其间的并行审批一起删除。</small>
         </div>
+        <section v-if="selected?.type === 'exclusiveGateway'" class="branch-summary" data-testid="branch-summary">
+          <h3>分支条件</h3>
+          <ol>
+            <li v-for="(flow, index) in gatewayBranches(selected.id)" :key="flow.id">
+              <button type="button" class="branch-line" data-testid="branch-summary-item" :title="flow.condition || undefined" @click="selectFlow(flow.id)">
+                <span class="branch-index">分支 {{ index + 1 }}</span>
+                <span class="branch-target">→ {{ nodeName(flow.target_ref) }}</span>
+                <span class="branch-condition" :class="{ none: !flow.condition, bad: Boolean(checkConditionText(flow.condition)) }">{{ flow.condition ? describeCondition(flow.condition) : "无条件" }}</span>
+              </button>
+            </li>
+          </ol>
+        </section>
         <p v-if="selected?.type === 'exclusiveGateway' && gatewayWithoutConditions(selected.id)" class="gateway-warning" data-testid="gateway-warning">
           所有分支都没有设置条件，运行时会始终走第一条分支。点选分支连线设置条件。
         </p>
@@ -293,8 +305,8 @@
           <dl>
             <dt>从</dt><dd>{{ nodeName(selectedFlow.source_ref) }}</dd>
             <dt>到</dt><dd>{{ nodeName(selectedFlow.target_ref) }}</dd>
-            <dt>条件</dt>
-            <dd v-if="isEditing && conditionEditable(selectedFlow)" class="condition-editor" data-testid="condition-editor">
+            <dt class="condition-label">条件</dt>
+            <dd v-if="isEditing && conditionEditable(selectedFlow)" class="condition-editor wide" data-testid="condition-editor">
               <!-- ZA7: thin structured editor (variable · operator · value) ↔ the condition string; 原文 keeps any expression. -->
               <div class="mode-switch" role="group" aria-label="条件编辑方式">
                 <button type="button" :class="{ active: conditionMode === 'builder' }" data-testid="condition-mode-builder" @click="switchConditionMode('builder')">条件</button>
@@ -390,7 +402,7 @@
           <li v-for="flow in selectedFlows" :key="flow.id || `${flow.source_ref}-${flow.target_ref}`">
             <button type="button" class="related-flow" data-testid="related-flow" @click="selectFlow(flow.id)">
               {{ nodeName(flow.source_ref) }} → {{ nodeName(flow.target_ref) }}
-              <span>{{ flow.condition ? `条件 ${flow.condition}` : "无条件" }}</span>
+              <span :title="flow.condition || undefined">{{ flow.condition ? describeCondition(flow.condition) : "无条件" }}</span>
             </button>
           </li>
         </ul>
@@ -426,7 +438,7 @@ import {
 import { layoutDefinition, showText } from "./processLayout";
 import { nxMessage } from "../../feedback/nxMessage";
 import {
-  CONDITION_OPERATORS, CONDITION_VARIABLES, catalogVariable, checkConditionDraft, checkConditionText, formatCondition, operatorsFor, parseCondition,
+  CONDITION_OPERATORS, CONDITION_VARIABLES, catalogVariable, checkConditionDraft, checkConditionText, describeCondition, formatCondition, operatorsFor, parseCondition,
 } from "./conditionDsl";
 import { fromSequence, newStep, toSequence } from "./sequentialFlow";
 import { devNotesEnabled } from "../../utils/devNotes";
@@ -583,6 +595,10 @@ function switchConditionMode(mode) {
 }
 
 watch(selectedFlowId, loadConditionDraft);
+
+function gatewayBranches(id) {
+  return (definition.value?.flows || []).filter((flow) => flow.source_ref === id);
+}
 
 function shortCondition(value) {
   const text = String(value || "");
@@ -1027,6 +1043,19 @@ svg.graph { display: block; min-width: 100%; }
 .flow-props dd { display: grid; gap: 4px; margin: 0; overflow-wrap: anywhere; }
 .flow-props input, .flow-props select { box-sizing: border-box; width: 100%; min-height: 32px; }
 .condition-editor { display: grid; gap: 6px; }
+/* ZA9: the condition row uses the full panel width (label above), instead of the 64px/rest grid. */
+.flow-props .condition-label { grid-column: 1 / -1; margin-top: var(--nx-space-1); }
+.flow-props dd.wide { grid-column: 1 / -1; }
+.branch-summary { margin-top: var(--nx-space-3); }
+.branch-summary h3 { margin: 0 0 var(--nx-space-1); color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); font-weight: 500; }
+.branch-summary ol { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.branch-line { display: grid; grid-template-columns: auto 1fr; gap: 0 var(--nx-space-2); width: 100%; padding: 6px; border: 0; border-radius: var(--nx-radius-sm); background: none; color: inherit; text-align: left; cursor: pointer; }
+.branch-line:hover { background: var(--nx-bg-page); }
+.branch-index { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.branch-target { color: var(--nx-text-primary); font-size: var(--nx-font-size-sm); }
+.branch-condition { grid-column: 2; color: var(--nx-product); font-size: var(--nx-font-size-sm); }
+.branch-condition.none { color: var(--nx-text-secondary); }
+.branch-condition.bad { color: var(--nx-danger); }
 .mode-switch { display: inline-flex; width: max-content; padding: 2px; border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
 .mode-switch button { padding: 2px 10px; border: 0; border-radius: 4px; background: none; color: var(--nx-text-secondary); cursor: pointer; font-size: var(--nx-font-size-xs); }
 .mode-switch button.active { background: var(--nx-surface); color: var(--nx-text-primary); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
