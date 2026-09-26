@@ -190,7 +190,7 @@
           <NxIcon name="plus" :size="16" />添加审批节点
         </button>
         <p v-if="definition && graph.nodes.length && !sequence.sequential" class="nonsequential" data-testid="process-nonsequential">
-          <template v-if="isEditing">此草稿{{ sequence.reason }}，以流程图显示：点选节点后在右侧修改名称，或添加、删除条件分支。</template>
+          <template v-if="isEditing">此草稿{{ sequence.reason }}，以流程图编辑：点选节点修改名称或添加、删除分支，点选连线设置条件。</template>
           <template v-else>此流程{{ sequence.reason }}，顺序编辑器不支持，仅可查看。</template>
         </p>
         <svg
@@ -212,7 +212,7 @@
             v-for="flow in graph.flows"
             :key="flow.id || `${flow.source_ref}-${flow.target_ref}`"
             class="flow"
-            :class="{ current: flow.id && flow.id === selectedFlowId, conditional: Boolean(flow.condition) }"
+            :class="{ current: flow.id && flow.id === selectedFlowId, conditional: Boolean(flow.condition), invalid: flowErrors(flow.id).length > 0 }"
             data-testid="process-flow"
             :data-flow-id="flow.id"
             @click="selectFlow(flow.id)"
@@ -231,7 +231,7 @@
             v-for="node in graph.nodes"
             :key="node.id"
             class="node"
-            :class="{ current: node.id === selectedId }"
+            :class="{ current: node.id === selectedId, invalid: nodeErrors(node.id).length > 0 }"
             data-testid="process-node"
             @click="selectNode(node.id)"
           >
@@ -281,6 +281,9 @@
           <button type="button" class="nx-btn nx-btn--text danger-text" data-testid="remove-parallel" @click="removeParallel(selected.id)">删除并行分支</button>
           <small class="nx-muted">连同配对的并行开始 / 汇合和其间的并行审批一起删除。</small>
         </div>
+        <p v-if="selected?.type === 'exclusiveGateway' && gatewayWithoutConditions(selected.id)" class="gateway-warning" data-testid="gateway-warning">
+          所有分支都没有设置条件，运行时会始终走第一条分支。点选分支连线设置条件。
+        </p>
         <div v-if="isEditing && selected?.type === 'exclusiveGateway'" class="branch-actions">
           <button type="button" class="nx-btn nx-btn--text danger-text" data-testid="remove-gateway" @click="removeGateway(selected.id)">删除条件分支</button>
           <small class="nx-muted">保留第一条分支，其他分支上独有的审批节点一并删除。</small>
@@ -300,18 +303,25 @@
               <small v-if="isEditing" class="preset-hint">{{ parallelFlow(selectedFlow) ? "并行分支的连线不设条件，各分支同时进行。" : "只有从条件分支出发的连线可以设置条件。" }}</small>
             </dd>
           </dl>
+          <p v-if="flowErrors(selectedFlow.id).length" class="step-error" data-testid="flow-error">{{ flowErrors(selectedFlow.id).join("；") }}</p>
         </section>
         <p v-if="!selected && !selectedFlow" class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
         <p v-if="isEditing && selected && nodeErrors(selected.id).length" class="step-error" data-testid="node-error">{{ nodeErrors(selected.id).join("；") }}</p>
         <section v-if="validationResult" class="validation-result" data-testid="process-validation" :data-valid="validationResult.valid">
-          <strong>{{ validationResult.valid ? "校验通过" : "校验未通过" }}</strong>
+          <strong>{{ validationResult.valid ? "校验通过" : `校验未通过 · ${validationItems.length} 处需要修改` }}</strong>
           <p v-if="validationResult.valid" class="nx-muted">当前草稿满足基础结构要求。</p>
-          <ul v-else>
-            <li v-for="(item, index) in validationResult.errors || []" :key="`${item.code}-${index}`">
-              <strong>{{ item.code }}</strong> {{ item.message }}
-              <span v-if="item.node_id || item.flow_id">（{{ item.node_id || item.flow_id }}）</span>
-            </li>
-          </ul>
+          <template v-else>
+            <p class="nx-muted">点选下面的问题可定位到对应节点或连线，修改并保存后重新校验。</p>
+            <ul>
+              <li v-for="(item, index) in validationItems" :key="`${item.code}-${index}`">
+                <button v-if="item.target" type="button" class="validation-item" data-testid="validation-item" @click="item.flow ? selectFlow(item.flow) : selectNode(item.node)">
+                  <span class="validation-where">{{ item.target }}</span>{{ item.message }}
+                </button>
+                <span v-else data-testid="validation-item">{{ item.message }}</span>
+                <code v-if="devNotes" class="validation-code">{{ item.code }}</code>
+              </li>
+            </ul>
+          </template>
         </section>
         <p v-if="validationError" class="validation-error" role="alert" data-testid="process-validation-error">
           校验请求失败：{{ validationError.message || "请稍后重试" }}
@@ -365,6 +375,7 @@ import {
   addDraftNode, createBlankDraft, parallelRole, parseDraftXml, removeExclusiveGateway, removeParallelBlock, serializeDraftXml,
 } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
+import { nxMessage } from "../../feedback/nxMessage";
 import { fromSequence, newStep, toSequence } from "./sequentialFlow";
 import { devNotesEnabled } from "../../utils/devNotes";
 
@@ -600,6 +611,32 @@ function endStepDrag() {
   dropIndex.value = null;
 }
 
+function flowErrors(id) {
+  const errors = validationResult.value?.errors;
+  if (!id || !Array.isArray(errors)) return [];
+  return errors.filter((item) => item?.flow_id === id || item?.flowId === id).map((item) => item.message).filter(Boolean);
+}
+
+// Z10: validation errors read "where: what" and can be clicked to select the node or flow.
+const validationItems = computed(() => (validationResult.value?.errors || []).map((item) => {
+  const node = item?.node_id ?? item?.nodeId ?? "";
+  const flow = item?.flow_id ?? item?.flowId ?? "";
+  const flowRef = flow ? definition.value?.flows?.find((candidate) => candidate.id === flow) : null;
+  const target = node
+    ? `${nodeName(node)}：`
+    : flowRef ? `连线 ${nodeName(flowRef.source_ref)} → ${nodeName(flowRef.target_ref)}：` : "";
+  return { code: item?.code || "", message: item?.message || "校验未通过", node, flow: flowRef ? flow : "", target };
+}));
+
+function gatewayWithoutConditions(id) {
+  const exits = (definition.value?.flows || []).filter((flow) => flow.source_ref === id);
+  return exits.length > 1 && exits.every((flow) => !String(flow.condition || "").trim());
+}
+
+function describeFailure(err) {
+  return [err?.code, err?.message].filter(Boolean).join(" ") || "请稍后重试";
+}
+
 function nodeErrors(id) {
   const errors = validationResult.value?.errors;
   if (!Array.isArray(errors)) return [];
@@ -720,8 +757,10 @@ async function saveDraft() {
     const existing = definitions.value.find((item) => item.key === definition.value.key);
     if (existing) existing.name = definition.value.name;
     else definitions.value.unshift({ key: definition.value.key, name: definition.value.name, source: "draft" });
+    nxMessage.success("草稿已保存，下一步校验草稿");
   } catch (err) {
-    error.value = err;
+    // Z10: a failed save keeps the editor (and unsaved work) — it used to replace the page with a load error.
+    nxMessage.error(`保存没有完成：${describeFailure(err)}`, { traceId: err?.traceId || "", durationMs: 8000 });
   } finally {
     saving.value = false;
   }
@@ -734,8 +773,10 @@ async function validateDraft() {
   validationResult.value = null;
   try {
     validationResult.value = await p3.validateProcessDraft(definition.value.key);
+    if (validationResult.value?.valid) nxMessage.success("校验通过，可以发布");
   } catch (err) {
     validationError.value = err;
+    nxMessage.error(`校验请求没有完成：${describeFailure(err)}`, { traceId: err?.traceId || "", durationMs: 8000 });
   } finally {
     validating.value = false;
   }
@@ -748,6 +789,7 @@ async function publishDraft() {
   try {
     publication.value = await p3.publishProcessDraft(definition.value.key);
     publishConfirm.value = false;
+    nxMessage.success(publication.value?.version ? `流程已发布为 v${publication.value.version}` : "流程已发布");
   } catch (err) {
     publishError.value = err;
   } finally {
@@ -769,6 +811,13 @@ watch(() => route.params.key, reload, { immediate: true });
 <style scoped>
 .process-loading { display: grid; gap: var(--nx-space-2); max-width: 760px; }
 .later-note { margin-top: 0; }
+.node.invalid rect { stroke: var(--nx-danger); stroke-width: 2; }
+.flow.invalid .edge { stroke: var(--nx-danger); }
+.validation-item { display: block; width: 100%; padding: 2px 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.validation-item:hover { color: var(--nx-primary); }
+.validation-where { color: var(--nx-text-primary); font-weight: 600; }
+.validation-code { margin-left: 4px; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.gateway-warning { margin: var(--nx-space-2) 0 0; padding: var(--nx-space-2); border-radius: var(--nx-radius-sm); background: var(--nx-warning-light); color: var(--nx-warning); font-size: var(--nx-font-size-sm); }
 .branch-actions { display: grid; gap: 4px; justify-items: start; margin-top: var(--nx-space-2); }
 .danger-text { color: var(--nx-danger); padding-left: 0; }
 .draft-state { margin: 0 0 var(--nx-space-3); padding: var(--nx-space-2) var(--nx-space-3); border-radius: var(--nx-radius-sm); font-size: var(--nx-font-size-sm); background: var(--nx-info-light); color: var(--nx-info); }

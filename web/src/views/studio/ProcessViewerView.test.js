@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProcessViewerView from "./ProcessViewerView.vue";
 import { p3 } from "../../api/p3";
+import { clearToasts, useNxToastState } from "../../feedback/nxMessage";
 
 vi.mock("../../api/p3", () => ({
   p3: {
@@ -57,6 +58,7 @@ describe("process viewer", () => {
     p3.saveProcessDraft.mockReset();
     p3.validateProcessDraft.mockReset();
     p3.publishProcessDraft.mockReset();
+    clearToasts();
   });
 
   it("edits a published definition only as a draft and saves it for reopening", async () => {
@@ -98,7 +100,9 @@ describe("process viewer", () => {
     await flushPromises();
     expect(p3.validateProcessDraft).toHaveBeenCalledWith("nexusSequentialApproval");
     expect(wrapper.get("[data-testid='process-validation']").text()).toContain("校验未通过");
-    expect(wrapper.get("[data-testid='process-validation']").text()).toContain("USER_TASK_ASSIGNEE_REQUIRED");
+    // Z10: "where: what" without the raw code (the code is a dev note).
+    expect(wrapper.get("[data-testid='validation-item']").text()).toBe("审批单据：用户任务必须填写审批人引用");
+    expect(wrapper.get("[data-testid='process-validation']").text()).not.toContain("USER_TASK_ASSIGNEE_REQUIRED");
     await wrapper.get("[data-testid='node-name']").setValue("已修改但尚未保存");
     expect(wrapper.find("[data-testid='process-validation']").exists()).toBe(false);
     expect(wrapper.get("[data-testid='process-validate']").attributes("disabled")).toBeDefined();
@@ -346,7 +350,7 @@ describe("process viewer", () => {
 
     // The draft is no longer sequential: the graph view takes over, with the new gateway selected.
     expect(wrapper.find("[data-testid='flow-steps']").exists()).toBe(false);
-    expect(wrapper.get("[data-testid='process-nonsequential']").text()).toContain("添加、删除条件分支");
+    expect(wrapper.get("[data-testid='process-nonsequential']").text()).toContain("此草稿包含条件分支或并行分支，以流程图编辑");
     expect(wrapper.findAll("[data-testid='process-node']")).toHaveLength(5);
     expect(wrapper.get("[data-testid='node-type']").text()).toBe("条件分支（exclusiveGateway）");
     expect(wrapper.get("svg.graph").text()).toContain("条件分支");
@@ -462,5 +466,78 @@ describe("process viewer", () => {
     await wrapper.get("[data-testid='remove-parallel']").trigger("click");
     expect(wrapper.find("[data-testid='flow-steps']").exists()).toBe(true);
     expect(wrapper.findAll(".step")).toHaveLength(1);
+  });
+
+  it("marks server validation errors on graph nodes and flows and locates them from the summary (Z10)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    p3.listProcessDrafts.mockResolvedValue([{ key: "branchy", name: "Branchy" }]);
+    p3.getProcessDraft.mockResolvedValue({
+      key: "branchy",
+      name: "Branchy",
+      bpmn_xml: '<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="branchy"><startEvent id="start"/><exclusiveGateway id="gate" name="金额判断"/><userTask id="big" name="大额审批"/><userTask id="small" name="小额审批"/><endEvent id="end"/>'
+        + '<sequenceFlow id="f0" sourceRef="start" targetRef="gate"/><sequenceFlow id="f1" sourceRef="gate" targetRef="big"/><sequenceFlow id="f2" sourceRef="gate" targetRef="small"/>'
+        + '<sequenceFlow id="f3" sourceRef="big" targetRef="end"/><sequenceFlow id="f4" sourceRef="small" targetRef="end"/></process></definitions>',
+    });
+    p3.getProcessPublication.mockRejectedValue(Object.assign(new Error("not published"), { status: 404 }));
+    const wrapper = await mountAt("/p3/workflow/branchy");
+
+    // Before validating: a gateway whose branches have no conditions gets a non-blocking warning.
+    await wrapper.findAll("[data-testid='process-node']").find((node) => node.text().includes("金额判断")).trigger("click");
+    expect(wrapper.get("[data-testid='gateway-warning']").text()).toContain("始终走第一条分支");
+
+    p3.validateProcessDraft.mockResolvedValue({
+      valid: false,
+      errors: [
+        { code: "USER_TASK_ASSIGNEE_REQUIRED", message: "用户任务必须填写审批人引用", node_id: "big" },
+        { code: "FLOW_CONDITION_EMPTY", message: "连线条件不能为空；无条件连线请移除条件", flow_id: "f2" },
+        { code: "END_REQUIRED", message: "流程至少需要一个结束节点" },
+      ],
+    });
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    const summary = wrapper.get("[data-testid='process-validation']");
+    expect(summary.text()).toContain("校验未通过 · 3 处需要修改");
+    expect(wrapper.findAll("[data-testid='validation-item']").map((item) => item.text())).toEqual([
+      "大额审批：用户任务必须填写审批人引用",
+      "连线 金额判断 → 小额审批：连线条件不能为空；无条件连线请移除条件",
+      "流程至少需要一个结束节点",
+    ]);
+    expect(wrapper.findAll("svg.graph g.node.invalid")).toHaveLength(1);
+    expect(wrapper.get("[data-testid='process-flow'].invalid").attributes("data-flow-id")).toBe("f2");
+
+    // Clicking a flow item selects the flow and shows its error in the flow panel.
+    await wrapper.findAll("[data-testid='validation-item']")[1].trigger("click");
+    expect(wrapper.get("[data-testid='flow-error']").text()).toContain("连线条件不能为空");
+    await wrapper.findAll("[data-testid='validation-item']")[0].trigger("click");
+    expect(wrapper.get("[data-testid='node-error']").text()).toContain("审批人引用");
+    expect(useNxToastState().items).toHaveLength(0);
+  });
+
+  it("reports save, validate and publish results as toasts and keeps the editor when saving fails (Z10)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    p3.saveProcessDraft.mockRejectedValueOnce(Object.assign(new Error("draft storage unavailable"), { status: 500, code: "CORE.API.0099", traceId: "trace-z10" }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "error", message: "保存没有完成：CORE.API.0099 draft storage unavailable", traceId: "trace-z10" });
+    expect(wrapper.find("[data-testid='nx-error-state']").exists()).toBe(false);
+    expect(wrapper.findAll("[data-testid='process-node']")).toHaveLength(3);
+
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "草稿已保存，下一步校验草稿" });
+
+    p3.validateProcessDraft.mockResolvedValue({ valid: true, errors: [] });
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "校验通过，可以发布" });
+
+    p3.publishProcessDraft.mockResolvedValue({ version: 2 });
+    await wrapper.get("[data-testid='process-publish']").trigger("click");
+    await wrapper.get("[data-testid='process-publish-confirm-submit']").trigger("click");
+    await flushPromises();
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "流程已发布为 v2" });
   });
 });

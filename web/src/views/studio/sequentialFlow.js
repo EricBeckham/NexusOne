@@ -9,7 +9,7 @@ export function toSequence(definition) {
   const nodes = Array.isArray(definition?.nodes) ? definition.nodes : [];
   const flows = Array.isArray(definition?.flows) ? definition.flows : [];
   if (nodes.some((node) => !SEQUENTIAL_TYPES.has(node.type))) {
-    return { sequential: false, reason: "包含网关等顺序编辑器不支持的节点" };
+    return { sequential: false, reason: "包含条件分支或并行分支" };
   }
   if (flows.some((flow) => flow.condition)) {
     return { sequential: false, reason: "包含带条件的连线" };
