@@ -187,7 +187,7 @@ public class FormTemplateDraftService {
                 rs.getString("label"), rs.getString("field_type"), rs.getBoolean("required"),
                 parseJson(rs.getString("options")), rs.getInt("position")), id);
         return new TemplateView(row.id, row.code, row.name, row.description, row.status,
-                row.runningVersionId, row.createdAt, row.updatedAt, row.version, fields);
+                row.runningVersionId, row.createdAt, row.updatedAt, row.version, fields, countProductReferences(id));
     }
 
     private void appendAudit(PlatformContext platform, String action, UUID id, String code) {
@@ -227,6 +227,22 @@ public class FormTemplateDraftService {
         catch (JacksonException e) { throw new IllegalStateException("stored form template options are invalid", e); }
     }
 
+
+    /** CF-T2: how many product definitions bind any published version of this template. */
+    private Integer countProductReferences(UUID templateId) {
+        try {
+            Integer count = jdbc.queryForObject("""
+                    SELECT COUNT(*)::int
+                      FROM market.product_definition pd
+                      JOIN platform.form_template_version v ON v.id = pd.form_template_version_id
+                     WHERE v.template_id = ?
+                    """, Integer.class, templateId);
+            return count == null ? 0 : count;
+        } catch (RuntimeException unavailable) {
+            // Market schema may be absent in isolated module tests — FE shows honest empty.
+            return null;
+        }
+    }
     private static ResponseStatusException notFound() {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, "form template not found");
     }
@@ -235,7 +251,8 @@ public class FormTemplateDraftService {
     public record FieldWrite(String key, String label, String type, boolean required, JsonNode options) { }
     public record FieldView(UUID id, String key, String label, String type, boolean required, JsonNode options, int position) { }
     public record TemplateView(UUID id, String code, String name, String description, String status,
-            UUID runningVersionId, Instant createdAt, Instant updatedAt, long version, List<FieldView> fields) { }
+            UUID runningVersionId, Instant createdAt, Instant updatedAt, long version, List<FieldView> fields,
+            Integer productReferenceCount) { }
     /** Wire names (SNAKE_CASE): field_id, field_key, code, message. field_key locates the canvas card (N6). */
     public record ValidationError(UUID fieldId, String fieldKey, String code, String message) { }
     /** Wire names: template_id, valid, status, errors. */
