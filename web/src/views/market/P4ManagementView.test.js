@@ -44,12 +44,14 @@ describe("P4 management subpages", () => {
     const wrapper = await mountPage("/p4/packages");
     expect(mocks.apps).toHaveBeenCalledOnce(); expect(mocks.versions).toHaveBeenCalledWith("app-1");
     expect(wrapper.text()).toContain("CRM"); expect(wrapper.text()).toContain("1.0.0");
-    expect(wrapper.text()).toContain("当前读模型未提供");
+    expect(wrapper.get("[data-testid='package-declarations']").text()).toBe("暂未开放查看");
+    // S9: no read-model / API wording on the tenant path.
+    expect(wrapper.text()).not.toMatch(/读模型|接口|Product/);
   });
 
   it("keeps Product and SKU as separate rows with the returned entitlement", async () => {
     const wrapper = await mountPage("/p4/skus");
-    expect(wrapper.text()).toContain("PRODUCT · crm"); expect(wrapper.text()).toContain("专业版");
+    expect(wrapper.text()).toContain("商品 · crm"); expect(wrapper.text()).not.toMatch(/PRODUCT|Product|app-1/); expect(wrapper.text()).toContain("专业版");
     expect(wrapper.text()).toContain("reports"); expect(wrapper.text()).toContain("20");
   });
 
@@ -96,6 +98,6 @@ describe("P4 management subpages", () => {
   it("does not request tenant data without a server tenant context", async () => {
     mocks.session.contextId = "";
     const wrapper = await mountPage("/p4/subscriptions");
-    expect(wrapper.text()).toContain("需要租户上下文"); expect(mocks.subscriptions).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("需要先进入租户"); expect(wrapper.text()).not.toContain("上下文"); expect(mocks.subscriptions).not.toHaveBeenCalled();
   });
 });
