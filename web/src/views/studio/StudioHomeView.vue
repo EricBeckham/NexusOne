@@ -94,7 +94,7 @@ const ENTRY_GROUPS = [
     entries: [
       { label: "报表", hint: "按权限查询与导出", to: "/p3/reports", icon: "chart" },
       { label: "导出向导", hint: "分步导出台账数据", to: "/p3/exports/wizard", icon: "download" },
-      { label: "物理 dump", hint: "原始数据导出", to: "/p3/dumps", icon: "archive" },
+      { label: "物理导出", hint: "原始数据导出", to: "/p3/dumps", icon: "archive" },
       { label: "审计", hint: "审计哈希链追踪", to: "/p3/audit", icon: "shield" },
     ],
   },
