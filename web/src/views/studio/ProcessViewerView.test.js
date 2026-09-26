@@ -371,4 +371,62 @@ describe("process viewer", () => {
     await wrapper.findAll("[data-testid='process-node']")[1].trigger("click");
     expect(wrapper.find("[data-testid='add-gateway']").exists()).toBe(false);
   });
+
+  it("selects a branch flow and edits its condition, which is saved as conditionExpression (Z7)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    await wrapper.get(".step").trigger("click");
+    await wrapper.get("[data-testid='add-gateway']").trigger("click");
+
+    // From the gateway's related flows, pick the branch to 分支审批.
+    const related = wrapper.findAll("[data-testid='related-flow']");
+    const toBranch = related.find((item) => item.text().includes("分支审批"));
+    expect(toBranch.text()).toContain("无条件");
+    await toBranch.trigger("click");
+    expect(wrapper.get("[data-testid='process-properties'] h2").text()).toBe("连线属性");
+    expect(wrapper.get("[data-testid='flow-properties']").text()).toContain("条件分支");
+    await wrapper.get("[data-testid='flow-condition']").setValue("${amount > 1000}");
+    expect(wrapper.get("[data-testid='process-flow'].current").classes()).toContain("conditional");
+    expect(wrapper.get(".flow-condition").text()).toBe("${amount > 1000}");
+
+    // A flow that does not leave a gateway explains why it has no condition.
+    await wrapper.findAll("[data-testid='process-flow']")[0].trigger("click");
+    expect(wrapper.find("[data-testid='flow-condition']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='flow-condition-text']").text()).toContain("只有从条件分支出发的连线可以设置条件");
+
+    // Clicking a node switches back to node properties.
+    await wrapper.findAll("[data-testid='process-node']")[0].trigger("click");
+    expect(wrapper.find("[data-testid='flow-properties']").exists()).toBe(false);
+
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    const xml = p3.saveProcessDraft.mock.calls[0][1].bpmn_xml;
+    expect(xml).toMatch(/<sequenceFlow id="flow_gateway_branch_task" sourceRef="gateway" targetRef="branch_task">\s*<conditionExpression xsi:type="bpmn:tFormalExpression">\$\{amount &gt; 1000\}<\/conditionExpression>/);
+    expect((xml.match(/<conditionExpression/g) || []).length).toBe(1);
+  });
+
+  it("shows conditions read-only on a published definition (Z7)", async () => {
+    const branched = {
+      key: "branchy",
+      name: "Branchy",
+      source: "classpath",
+      nodes: [
+        { id: "start", name: "Start", type: "startEvent" },
+        { id: "gate", name: "Gate", type: "exclusiveGateway" },
+        { id: "a", name: "A", type: "userTask" },
+      ],
+      flows: [
+        { id: "f1", source_ref: "start", target_ref: "gate", condition: null },
+        { id: "f2", source_ref: "gate", target_ref: "a", condition: "${ok}" },
+      ],
+    };
+    p3.listProcessDefinitions.mockResolvedValue([branched]);
+    p3.getProcessDefinition.mockResolvedValue(branched);
+    const wrapper = await mountAt("/p3/workflow/branchy");
+    await wrapper.get("[data-testid='process-flow'][data-flow-id='f2']").trigger("click");
+    expect(wrapper.find("[data-testid='flow-condition']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='flow-condition-text']").text()).toBe("${ok}");
+  });
 });
