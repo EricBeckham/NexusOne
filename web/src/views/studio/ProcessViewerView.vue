@@ -27,6 +27,8 @@
         <button v-if="isEditing" type="button" class="primary" data-testid="process-save" :disabled="saving" @click="saveDraft">
           {{ saving ? "保存中…" : "保存草稿" }}
         </button>
+        <router-link class="ghost" to="/p1/form-templates" data-testid="process-open-templates">表单模板</router-link>
+        <router-link class="ghost" to="/p4/product-definitions" data-testid="process-open-definitions">产品定义</router-link>
       </template>
     </NxPageHeader>
     <p class="nx-muted later-note">审批节点按从上到下的顺序依次流转，可增删、拖拽排序；在节点属性中可添加条件分支。发布前须保存并通过校验。</p>
