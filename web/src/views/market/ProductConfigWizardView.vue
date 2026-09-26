@@ -36,6 +36,10 @@
           <button class="ghost" type="button" @click="loadReadiness">重试</button>
         </span>
         <span v-else-if="readiness?.complete" class="nx-muted" data-testid="wizard-complete">四步都已就绪。</span>
+        <nav class="wizard-samples" aria-label="当前产品样例" data-testid="wizard-samples">
+          <span class="nx-muted">样例：</span>
+          <router-link :to="{ path: '/p4/product-samples/ledger', query: { definition: selectedDefinitionId } }" data-testid="wizard-sample-ledger">台账</router-link>
+        </nav>
       </section>
 
       <ol class="wizard-steps" aria-label="产品配置步骤" data-testid="wizard-steps">
@@ -441,6 +445,11 @@ onMounted(load);
 .wizard-product select {
   min-width: 240px;
   max-width: 100%;
+}
+.wizard-samples {
+  display: inline-flex;
+  gap: var(--nx-space-2);
+  margin-left: auto;
 }
 .readiness-error {
   color: var(--nx-text-secondary);

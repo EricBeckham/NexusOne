@@ -65,6 +65,7 @@ const routes = [
   { path: "/p4/skus", name: "p4-skus", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "商品与 SKU", product: "p4" } },
   { path: "/p4/product-definitions", name: "p4-product-definitions", component: () => import("./views/market/ProductDefinitionBindingView.vue"), meta: { title: "产品定义", product: "p4" } },
   { path: "/p4/product-config-wizard", name: "p4-product-config-wizard", component: () => import("./views/market/ProductConfigWizardView.vue"), meta: { title: "产品配置向导", product: "p4" } },
+  { path: "/p4/product-samples/ledger", name: "p4-product-sample-ledger", component: () => import("./views/market/ProductSampleView.vue"), meta: { title: "样例台账", product: "p4", sample: "ledger" } },
   { path: "/p4/subscriptions", name: "p4-subscriptions", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "开通记录", product: "p4" } },
   { path: "/p4/activation-applications", name: "p4-activation-applications", component: () => import("./views/market/ActivationApplicationReviewView.vue"), meta: { title: "开通申请审订", product: "p4" } },
   { path: "/p4/installations", name: "p4-installations", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "我的已开通", product: "p4" } },
