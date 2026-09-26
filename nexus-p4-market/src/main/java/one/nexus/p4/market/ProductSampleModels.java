@@ -31,4 +31,28 @@ public final class ProductSampleModels {
             rows = List.copyOf(rows);
         }
     }
+
+    public record PrintField(String key, String label, String type) {}
+    public record PrintSection(String key, String label, List<PrintField> fields) {
+        public PrintSection {
+            fields = List.copyOf(fields);
+        }
+    }
+
+    /**
+     * PC11: one built-in print layout filled with the product's form fields. It lives in code (no table, no
+     * migration); every field prints as a blank line — there is no tenant data and no print designer.
+     */
+    public record PrintSample(UUID productDefinitionId, String productName, String source, String templateCode,
+            String templateName, String paper, String orientation, String title, List<PrintSection> sections,
+            String note) {
+        public static final String SOURCE = "BUILTIN";
+        public static final String TEMPLATE_CODE = "builtin.approval-form.a4.v1";
+        public static final String TEMPLATE_NAME = "内置样例 · 审批单（A4 纵向）";
+        public static final String NOTE = "内置样例版式，字段值留空，只用于预览打印效果；不是打印设计器。";
+
+        public PrintSample {
+            sections = List.copyOf(sections);
+        }
+    }
 }
