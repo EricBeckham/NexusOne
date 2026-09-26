@@ -1,8 +1,9 @@
 <template>
+  <main class="template-editor-page">
   <NxPageHeader
     eyebrow="星域 / 表单模板"
     :title="creating ? '新建表单模板' : (name || '表单模板')"
-    description="从左侧拖入字段，拖动卡片调整顺序，点选字段在右侧修改属性。"
+    description="按顺序添加字段，选择字段后在右侧修改属性；申请人将依次看到这些字段。"
   >
     <template #actions>
       <router-link class="ghost" to="/p1/form-templates">返回列表</router-link>
@@ -10,9 +11,6 @@
         {{ validating ? "校验中…" : "校验" }}
       </button>
       <button class="ghost" type="button" data-testid="template-publish" :disabled="creating || busy" @click="openPublish">发布</button>
-      <button class="primary" type="button" data-testid="template-save" :disabled="busy" @click="save">
-        {{ saving ? "保存中…" : "保存草稿" }}
-      </button>
     </template>
   </NxPageHeader>
 
@@ -46,7 +44,7 @@
   <div class="designer">
     <aside class="nx-card palette" data-testid="field-palette" aria-label="字段类型">
       <h2>字段类型</h2>
-      <p class="hint">拖入画布，或点击添加到末尾</p>
+      <p class="hint">点击添加到末尾，也可拖动调整顺序</p>
       <section v-for="group in FIELD_GROUPS" :key="group.id" class="group">
         <h3>{{ group.label }}</h3>
         <div class="tiles">
@@ -82,7 +80,7 @@
     >
       <header class="canvas-head">
         <div>
-          <h2>画布</h2>
+          <h2>字段顺序</h2>
           <p class="hint">字段自上而下依次展示给申请人</p>
         </div>
         <button class="ghost small" type="button" data-testid="add-field" @click="addBlankField">
@@ -93,7 +91,7 @@
       <div v-if="!fields.length" class="dropzone" :class="{ active: drag }" data-testid="template-fields-empty">
         <span class="dropzone-icon"><NxIcon name="layers" :size="24" /></span>
         <strong>暂无字段</strong>
-        <span>从左侧拖入字段类型开始设计</span>
+        <span>从左侧选择字段类型，按顺序组成表单</span>
       </div>
 
       <ol v-else class="field-list" @click.self="selectedUid = null">
@@ -119,7 +117,7 @@
             <span class="grip" aria-hidden="true"><NxIcon name="grip" :size="18" /></span>
             <div class="card-body">
               <div class="card-head">
-                <span class="field-name">{{ field.label || "未命名字段" }}<em v-if="field.required" aria-label="必填">*</em></span>
+                <span class="field-name">{{ field.label || "未命名字段" }}<em v-if="field.required" class="nx-req" aria-label="必填">*</em></span>
                 <span class="type-chip"><NxIcon :name="fieldType(field.type).icon" :size="14" />{{ fieldType(field.type).label }}</span>
                 <code class="field-key" :class="{ missing: !field.key }">{{ field.key || "未设置 key" }}</code>
               </div>
@@ -159,7 +157,7 @@
             <small v-if="localFieldError(selected, 'key')" class="nx-field-error" data-testid="field-key-error">{{ localFieldError(selected, "key") }}</small>
             <small class="hint">小写字母开头，仅小写字母、数字、下划线；同一模板内唯一</small>
           </label>
-          <label class="nx-field">类型
+          <label class="nx-field"><span>类型</span>
             <select v-model="selected.type" data-testid="field-type">
               <option v-for="item in FIELD_TYPES" :key="item.value" :value="item.value">{{ item.label }}</option>
             </select>
@@ -200,7 +198,7 @@
         <label class="nx-field"><span>名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="name" data-testid="template-name" maxlength="160" required :aria-invalid="!!templateErrors.name" />
           <small v-if="templateErrors.name" class="nx-field-error" data-testid="template-name-error">{{ templateErrors.name }}</small>
         </label>
-        <label class="nx-field">说明<textarea v-model="description" data-testid="template-description" rows="3" /></label>
+        <label class="nx-field"><span>说明</span><textarea v-model="description" data-testid="template-description" rows="3" /></label>
       </div>
 
       <div v-show="tab === 'preview'" role="tabpanel" class="preview" data-testid="template-preview">
@@ -222,6 +220,13 @@
     </aside>
   </div>
 
+  <footer class="editor-actions" aria-label="模板操作">
+    <span class="editor-actions-note">{{ dirty ? "有未保存的修改" : "字段按列表顺序展示" }}</span>
+    <button class="primary" type="button" data-testid="template-save" :disabled="busy" @click="save">
+      {{ saving ? "保存中…" : "保存草稿" }}
+    </button>
+  </footer>
+
   <div v-if="publishConfirm" class="confirm-backdrop" data-testid="template-publish-confirm">
     <section class="confirm-dialog nx-card" role="dialog" aria-modal="true" aria-labelledby="template-publish-title">
       <h2 id="template-publish-title">确认发布？</h2>
@@ -234,6 +239,7 @@
       </div>
     </section>
   </div>
+  </main>
 </template>
 
 <script setup>
@@ -630,6 +636,10 @@ onMounted(load);
 </script>
 
 <style scoped>
+.template-editor-page { display: grid; gap: var(--nx-space-4); }
+.template-editor-page :deep(.page-header) { margin-bottom: 0; }
+.editor-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--nx-space-3); padding: var(--nx-space-3) var(--nx-space-4); border: 1px solid var(--nx-border); border-radius: var(--nx-radius); background: var(--nx-surface); }
+.editor-actions-note { color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); }
 .action-failure { margin-bottom: 16px; }
 .statusbar {
   display: flex;
