@@ -33,10 +33,10 @@ describe("P1 tenant directory V4", () => {
 
   it("filters the real list by tenant name/code and status", async () => {
     const wrapper = await mountList();
-    expect(wrapper.get("[data-testid='tenant-table']").text()).toContain("Acme Ltd");
+    expect(wrapper.get("[data-testid='nx-data-table']").text()).toContain("Acme Ltd");
     expect(wrapper.text()).toContain("Northwind");
     await wrapper.get("[data-testid='tenant-search']").setValue("ACM");
-    expect(wrapper.get("[data-testid='tenant-table']").text()).toContain("Acme Ltd");
+    expect(wrapper.get("[data-testid='nx-data-table']").text()).toContain("Acme Ltd");
     expect(wrapper.text()).not.toContain("Northwind");
     await wrapper.get("[data-testid='tenant-search']").setValue("");
     await wrapper.get("[data-testid='tenant-status-filter']").setValue("DISABLED");
@@ -80,17 +80,16 @@ describe("P1 tenant directory V4", () => {
     await router.push("/p1/tenants");
     await router.isReady();
     const wrapper = mount(TenantListView, { global: { plugins: [router] } });
-    expect(wrapper.get("[data-testid='tenant-loading']").findAll("[data-testid='nx-skeleton']").length).toBeGreaterThan(0);
+    expect(wrapper.get("[data-testid='nx-data-table-loading']").findAll("[data-testid='nx-skeleton']").length).toBeGreaterThan(0);
     resolveList(tenants);
     await flushPromises();
-    expect(wrapper.find("[data-testid='tenant-loading']").exists()).toBe(false);
-    expect(wrapper.get("[data-testid='tenant-table']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='nx-data-table-loading']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='nx-data-table']").exists()).toBe(true);
   });
 
   it("shows a retryable error when the platform directory is unavailable", async () => {
     mocks.listTenants.mockRejectedValueOnce(new Error("平台服务暂不可用"));
     const wrapper = await mountList();
-    expect(wrapper.text()).toContain("平台服务暂不可用");
-    expect(wrapper.find("[data-testid='nx-error-state']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='nx-data-table-error']").text()).toContain("平台服务暂不可用");
   });
 });

@@ -12,64 +12,66 @@
       </template>
     </NxPageHeader>
 
-    <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
-    <template v-else>
-      <NxFilterBar label="租户筛选" testid="tenant" @reset="resetFilters">
-        <label class="nx-filter-field wide">
-          租户名称 / 编码
-          <input v-model="search" type="search" placeholder="搜索名称或编码" data-testid="tenant-search" />
-        </label>
-        <label class="nx-filter-field">
-          状态
-          <select v-model="statusFilter" data-testid="tenant-status-filter">
-            <option value="">全部状态</option>
-            <option v-for="status in availableStatuses" :key="status" :value="status">{{ statusLabel(status) }}</option>
-          </select>
-        </label>
-        <template #summary>{{ loading ? "正在加载租户…" : `共 ${visibleRows.length} 个租户` }}</template>
-      </NxFilterBar>
-      <p class="data-note">管理员、用户数、应用数、行业、配额状态、创建时间与最近活动未包含在当前租户列表读模型中，显示“暂无”。</p>
+    <NxFilterBar label="租户筛选" testid="tenant" @reset="resetFilters">
+      <label class="nx-filter-field wide">
+        租户名称 / 编码
+        <input v-model="search" type="search" placeholder="搜索名称或编码" data-testid="tenant-search" />
+      </label>
+      <label class="nx-filter-field">
+        状态
+        <select v-model="statusFilter" data-testid="tenant-status-filter">
+          <option value="">全部状态</option>
+          <option v-for="status in availableStatuses" :key="status" :value="status">{{ statusLabel(status) }}</option>
+        </select>
+      </label>
+      <template #summary>{{ loading ? "正在加载租户…" : `共 ${visibleRows.length} 个租户` }}</template>
+    </NxFilterBar>
+    <p class="data-note">管理员、用户数、应用数、行业、配额状态、创建时间与最近活动未包含在当前租户列表读模型中，显示“暂无”。</p>
 
-      <div v-if="loading" class="tenant-skeleton" data-testid="tenant-loading" role="status">
-        <NxSkeleton v-for="n in 4" :key="n" variant="list-row" label="正在加载租户目录" />
-      </div>
-      <NxEmpty v-else-if="!visibleRows.length" title="暂无租户" :description="emptyDescription" data-testid="tenant-empty">
-        <template #next>
-          <router-link v-if="!rows.length" class="primary" to="/p1/tenants/new">新建租户</router-link>
-          <button v-else class="ghost" type="button" data-testid="tenant-empty-reset" @click="resetFilters">清空筛选</button>
-        </template>
-      </NxEmpty>
-      <div v-else class="table-scroll">
-        <table class="nx-table nx-table--compact" data-testid="tenant-table">
-          <thead>
-            <tr>
-              <th scope="col">租户名称</th>
-              <th scope="col">租户编码</th>
-              <th scope="col">状态</th>
-              <th scope="col">管理员</th>
-              <th scope="col">用户数</th>
-              <th scope="col">应用数</th>
-              <th scope="col">配额状态</th>
-              <th scope="col">创建时间</th>
-              <th scope="col">最近活动</th>
-              <th scope="col">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in visibleRows" :key="row.id" :data-testid="`tenant-row-${row.id}`">
-              <td><button class="tenant-name" type="button" @click="openDrawer(row)">{{ row.name || "暂无" }}</button></td>
-              <td class="nx-code">{{ row.code || "暂无" }}</td>
-              <td><NxStatusTag :status="row.status" :label="statusLabel(row.status)" /></td>
-              <td>暂无</td><td>暂无</td><td>暂无</td><td>暂无</td><td>暂无</td><td>暂无</td>
-              <td class="actions-cell">
-                <button class="text-action" type="button" @click="openDrawer(row)">详情</button>
-                <router-link class="text-action" :to="`/p1/tenants/${row.id}`">完整详情</router-link>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </template>
+    <NxDataTable
+      :loading="loading"
+      :error="tableError"
+      :empty="!loading && !error && !visibleRows.length"
+      empty-title="暂无租户"
+      :empty-description="emptyDescription"
+      :empty-compact="!!rows.length"
+      density="compact"
+      loading-label="正在加载租户目录"
+      :skeleton-count="4"
+      aria-label="租户目录"
+      testid="tenant-table-root"
+      card
+      @retry="load"
+    >
+      <template #empty-next>
+        <router-link v-if="!rows.length" class="primary" to="/p1/tenants/new">新建租户</router-link>
+        <button v-else class="ghost" type="button" data-testid="tenant-empty-reset" @click="resetFilters">清空筛选</button>
+      </template>
+      <template #header>
+        <tr>
+          <th scope="col">租户名称</th>
+          <th scope="col">租户编码</th>
+          <th scope="col">状态</th>
+          <th scope="col">管理员</th>
+          <th scope="col">用户数</th>
+          <th scope="col">应用数</th>
+          <th scope="col">配额状态</th>
+          <th scope="col">创建时间</th>
+          <th scope="col">最近活动</th>
+          <th scope="col">操作</th>
+        </tr>
+      </template>
+      <tr v-for="row in visibleRows" :key="row.id" :data-testid="`tenant-row-${row.id}`">
+        <td><button class="tenant-name" type="button" @click="openDrawer(row)">{{ row.name || "暂无" }}</button></td>
+        <td class="nx-code">{{ row.code || "暂无" }}</td>
+        <td><NxStatusTag :status="row.status" :label="statusLabel(row.status)" /></td>
+        <td>暂无</td><td>暂无</td><td>暂无</td><td>暂无</td><td>暂无</td><td>暂无</td>
+        <td class="actions-cell">
+          <button class="text-action" type="button" @click="openDrawer(row)">详情</button>
+          <router-link class="text-action" :to="`/p1/tenants/${row.id}`">完整详情</router-link>
+        </td>
+      </tr>
+    </NxDataTable>
 
     <div v-if="selectedTenant" class="drawer-backdrop" data-testid="tenant-drawer-backdrop" @click.self="closeDrawer" @keydown.esc="closeDrawer">
       <aside class="tenant-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" data-testid="tenant-drawer">
@@ -97,7 +99,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { NxEmpty, NxErrorState, NxFilterBar, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import { NxDataTable, NxFilterBar, NxPageHeader, NxStatusTag } from "../../components";
 import { p1 } from "../../api/client";
 
 const rows = ref([]);
@@ -119,6 +121,7 @@ const emptyDescription = computed(() => (
     ? "没有符合当前筛选条件的租户，请调整筛选。"
     : "平台租户目录当前没有可展示的记录。创建第一个租户后，可开始配置组织和业务应用。"
 ));
+const tableError = computed(() => (error.value ? { title: "租户目录暂时无法加载", description: error.value } : ""));
 
 function statusLabel(status) {
   return ({ ENABLED: "启用", DISABLED: "停用", PENDING: "待处理" })[status] || status || "暂无";
@@ -153,16 +156,12 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
 .tenant-list-page { display: grid; gap: var(--nx-space-3); }
 .tenant-list-page :deep(.page-header) { margin-bottom: 0; }
 .data-note { margin: 0; color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
-.tenant-skeleton { display: grid; gap: var(--nx-space-2); }
-.table-scroll {
-  overflow-x: auto;
+.tenant-list-page :deep(.nx-data-table__scroll) {
   border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
-  background: var(--nx-surface);
 }
-.nx-table { min-width: 1120px; border: 0; }
-.nx-table th,
-.nx-table td { white-space: nowrap; }
+.tenant-list-page :deep(.nx-table) { min-width: 1120px; }
+.tenant-list-page :deep(.nx-table) th,
+.tenant-list-page :deep(.nx-table) td { white-space: nowrap; }
 .tenant-name,
 .text-action {
   padding: 0;
