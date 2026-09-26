@@ -390,6 +390,8 @@ describe("process viewer", () => {
     await toBranch.trigger("click");
     expect(wrapper.get("[data-testid='process-properties'] h2").text()).toBe("连线属性");
     expect(wrapper.get("[data-testid='flow-properties']").text()).toContain("条件分支");
+    // ZA7: the builder is the default; 原文 still takes any expression.
+    await wrapper.get("[data-testid='condition-mode-raw']").trigger("click");
     await wrapper.get("[data-testid='flow-condition']").setValue("${amount > 1000}");
     expect(wrapper.get("[data-testid='process-flow'].current").classes()).toContain("conditional");
     expect(wrapper.get(".flow-condition").text()).toBe("${amount > 1000}");
@@ -539,5 +541,75 @@ describe("process viewer", () => {
     await wrapper.get("[data-testid='process-publish-confirm-submit']").trigger("click");
     await flushPromises();
     expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "流程已发布为 v2" });
+  });
+
+  it("builds a branch condition from variable, operator and value and reads it back (ZA7)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    await wrapper.get(".step").trigger("click");
+    await wrapper.get("[data-testid='add-gateway']").trigger("click");
+    await wrapper.get("[data-testid='process-flow'][data-flow-id='flow_gateway_branch_task']").trigger("click");
+
+    const generated = () => wrapper.get("[data-testid='condition-generated']").text();
+    expect(generated()).toBe("无条件");
+    await wrapper.get("[data-testid='condition-variable']").setValue("outcome");
+    // Catalog enums only offer 等于 / 不等于 and a value list.
+    expect(wrapper.findAll("[data-testid='condition-operator'] option").map((option) => option.text())).toEqual(["等于", "不等于"]);
+    expect(generated()).toBe("无条件"); // incomplete: nothing written yet
+    await wrapper.get("[data-testid='condition-value']").setValue("REJECT");
+    expect(generated()).toBe("${outcome == 'REJECT'}");
+    await wrapper.get("[data-testid='condition-operator']").setValue("!=");
+    expect(generated()).toBe("${outcome != 'REJECT'}");
+
+    // A free variable with a number value.
+    await wrapper.get("[data-testid='condition-variable']").setValue("__custom");
+    await wrapper.get("[data-testid='condition-custom']").setValue("amount");
+    await wrapper.get("[data-testid='condition-operator']").setValue(">");
+    await wrapper.get("[data-testid='condition-value']").setValue("1000");
+    expect(generated()).toBe("${amount > 1000}");
+    expect(wrapper.text()).toContain("申请表单的字段目前不会传入流程");
+
+    // Re-selecting the flow reads the string back into the builder.
+    await wrapper.findAll("[data-testid='process-node']")[0].trigger("click");
+    await wrapper.get("[data-testid='process-flow'][data-flow-id='flow_gateway_branch_task']").trigger("click");
+    expect(wrapper.get("[data-testid='condition-variable']").element.value).toBe("__custom");
+    expect(wrapper.get("[data-testid='condition-custom']").element.value).toBe("amount");
+    expect(wrapper.get("[data-testid='condition-value']").element.value).toBe("1000");
+
+    await wrapper.get("[data-testid='condition-clear']").trigger("click");
+    expect(generated()).toBe("无条件");
+
+    await wrapper.get("[data-testid='condition-variable']").setValue("outcome");
+    await wrapper.get("[data-testid='condition-value']").setValue("APPROVE");
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    expect(p3.saveProcessDraft.mock.calls[0][1].bpmn_xml).toContain("<conditionExpression xsi:type=\"bpmn:tFormalExpression\">${outcome == &apos;APPROVE&apos;}</conditionExpression>");
+  });
+
+  it("opens an advanced expression in 原文 and never rewrites it (ZA7)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    p3.listProcessDrafts.mockResolvedValue([{ key: "adv", name: "Adv" }]);
+    p3.getProcessDraft.mockResolvedValue({
+      key: "adv",
+      name: "Adv",
+      bpmn_xml: '<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="adv"><startEvent id="start"/><exclusiveGateway id="gate" name="判断"/><userTask id="a" name="A"/><userTask id="b" name="B"/><endEvent id="end"/>'
+        + '<sequenceFlow id="f0" sourceRef="start" targetRef="gate"/><sequenceFlow id="f1" sourceRef="gate" targetRef="a"><conditionExpression>${x &gt; 1 &amp;&amp; y &lt; 2}</conditionExpression></sequenceFlow>'
+        + '<sequenceFlow id="f2" sourceRef="gate" targetRef="b"/><sequenceFlow id="f3" sourceRef="a" targetRef="end"/><sequenceFlow id="f4" sourceRef="b" targetRef="end"/></process></definitions>',
+    });
+    p3.getProcessPublication.mockRejectedValue(Object.assign(new Error("not published"), { status: 404 }));
+    const wrapper = await mountAt("/p3/workflow/adv");
+    await wrapper.get("[data-testid='process-flow'][data-flow-id='f1']").trigger("click");
+    expect(wrapper.get("[data-testid='flow-condition']").element.value).toBe("${x > 1 && y < 2}");
+    await wrapper.get("[data-testid='condition-mode-builder']").trigger("click");
+    expect(wrapper.get("[data-testid='condition-mode-note']").text()).toContain("高级表达式");
+    expect(wrapper.find("[data-testid='condition-variable']").exists()).toBe(false);
+
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='draft-name']").setValue("Adv 2");
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    expect(p3.saveProcessDraft.mock.calls[0][1].bpmn_xml).toContain("${x &gt; 1 &amp;&amp; y &lt; 2}");
   });
 });
