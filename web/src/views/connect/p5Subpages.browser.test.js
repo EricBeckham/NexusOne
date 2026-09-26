@@ -65,7 +65,7 @@ describe("X5 P5 subpages", () => {
     mocks.issueClient.mockResolvedValue({ id: "c2", secret: "once-secret" });
     const wrapper = await mountAt("/p5/clients", ClientsView);
     expect(wrapper.text()).toContain("暂无");
-    expect(wrapper.get("[data-testid='nx-stat-card'] .value").text()).toBe("暂无");
+    expect(wrapper.get("[data-testid='nx-stat-card'] .value").text()).toBe("0");
     await wrapper.get("input").setValue("billing");
     await wrapper.get("button.primary").trigger("click");
     await flushPromises();
