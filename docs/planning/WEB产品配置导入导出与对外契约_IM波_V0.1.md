@@ -109,18 +109,18 @@
 
 ## 6. 薄卡 IM1–IM8
 
-| 卡 | 标题 | 建议方 | 前置 | 估时 |
+| 卡 | 标题 | 状态 | PR | 备注 |
 |---|---|---|---|---|
-| **IM1** | 配置包 `format 1.0` JSON Schema + 样例包（docs + `docs/planning/fixtures/`） | Cursor | 无 | 1–2h |
-| **IM2** | 导出 FE 壳：产品定义页「导出配置」按钮 + 下载中/失败 `NxErrorState`（可先打静态样例） | Cursor | IM1 | 1–2h |
-| **IM3** | 导入 FE 壳：上传 + 冲突策略单选 + 校验结果表 + `NxResult` | Cursor | IM1 | 1–2h |
-| **IM4** | 导出 BE：组装 form/process/definition/sku → zip/json；无迁移优先 | Claude | IM1 | 1–2h |
-| **IM5** | 导入 BE：校验 + `skip|new-version|fail` + Idempotency-Key | Claude | IM1 | 1–2h |
-| **IM6** | 导入作业读口 + 契约测（成功/冲突/坏包） | Claude | IM5 | 1–2h |
-| **IM7** | FE 接真 API；去掉静态样例；空错态 S 壳 | Cursor | IM2/3 + IM4/5 | 1–2h |
-| **IM8** | IM 打勾记账 + 对外契约摘录（本文件勾选 + PR 链） | NexusOne / Claude | 大部合入后 | 1h |
+| **IM1** | format 1.0 Schema + 样例包 | ✅ 合入 | [#605](https://github.com/EricBeckham/NexusOne/pull/605) | `docs/planning/fixtures/product-config-1.0/` |
+| **IM2** | 导出 FE 壳 | ✅ 合入 | [#607](https://github.com/EricBeckham/NexusOne/pull/607) | 产品定义「导出配置」；静态样例直至 IM7 |
+| **IM3** | 导入 FE 壳 | ⏳ Cursor | — | **勿抢**：Cursor 负责上传 + 冲突策略 UI |
+| **IM4** | 导出 BE | ✅ 合入 | [#614](https://github.com/EricBeckham/NexusOne/pull/614) | `GET .../product-definitions/{id}/export` |
+| **IM5** | 导入 BE | ✅ 合入 | [#616](https://github.com/EricBeckham/NexusOne/pull/616) | `POST .../import` + Idempotency-Key |
+| **IM6** | 导入作业读口 + 契约测 | ✅ 合入 | [#618](https://github.com/EricBeckham/NexusOne/pull/618) | `GET .../import-jobs/{id}` |
+| **IM7** | FE 接真 API | ⏳ Cursor | — | 依赖 IM2/3 + IM4/5 |
+| **IM8** | 打勾记账 + 对外契约摘录 | ✅ 本卡 | （本 PR） | 见 §10 + `docs/planning/IM_对外契约摘录_V0.1.md` |
 
-≥5 张；Cursor 4 · Claude 3 · 收口 1。
+≥5 张已交付；Cursor 负责 IM3/IM7 FE 收口。
 
 ## 7. 硬禁
 
@@ -143,3 +143,12 @@
 ## 9. 修订记录
 
 - 2026-09-26：V0.1 初稿。对照 ProductDefinition / FormTemplate / Process API；PC6 就绪口可复用；打印 later；Flyway V705 之上。
+- 2026-09-26：IM8 打勾 IM1/2/4/5/6；注明 Cursor IM3/IM7；新增对外契约摘录。
+
+
+## 10. IM8 记账（2026-09-26）
+
+- BE 导出/导入/作业：#614 / #616 / #618（NexusOne）。
+- Docs/FE 导出壳：#605 / #607。
+- **Cursor 仍持有 IM3 导入 FE、IM7 接真 API**——本波不抢。
+- 对外契约短摘录：docs/planning/IM_对外契约摘录_V0.1.md。
