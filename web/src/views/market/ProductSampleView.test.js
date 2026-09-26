@@ -21,6 +21,7 @@ async function mountAt(path) {
     routes: [
       { path: "/p4/product-samples/ledger", component: ProductSampleView, meta: { sample: "ledger" } },
       { path: "/p4/product-samples/print", component: ProductSampleView, meta: { sample: "print" } },
+      { path: "/p4/product-samples/print/designer", component: { template: "<div />" } },
       { path: "/p4/product-samples/report", component: ProductSampleView, meta: { sample: "report" } },
       { path: "/p4/product-config-wizard", component: { template: "<div />" } },
       { path: "/p4/product-definitions", component: { template: "<div />" } },
