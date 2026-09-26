@@ -697,4 +697,47 @@ describe("process viewer", () => {
     expect(parts(items()[1])).toEqual(["分支 2", "→ 分支审批", "审批结果 等于 驳回"]);
     expect(items()[1].attributes("title")).toBe("${outcome == 'REJECT'}");
   });
+
+  it("explains a parallel block read-only: shaded scope on the graph and 并行范围 in the panel (ZA13)", async () => {
+    const parallel = {
+      key: "parallel",
+      name: "Parallel",
+      source: "classpath",
+      nodes: [
+        { id: "start", name: "开始", type: "startEvent" },
+        { id: "fork", name: "并行开始", type: "parallelGateway" },
+        { id: "finance", name: "财务审批", type: "userTask" },
+        { id: "legal", name: "法务审批", type: "userTask" },
+        { id: "legal2", name: "法务复核", type: "userTask" },
+        { id: "join", name: "并行汇合", type: "parallelGateway" },
+        { id: "end", name: "结束", type: "endEvent" },
+      ],
+      flows: [
+        { id: "f0", source_ref: "start", target_ref: "fork" },
+        { id: "f1", source_ref: "fork", target_ref: "finance" },
+        { id: "f2", source_ref: "fork", target_ref: "legal" },
+        { id: "f3", source_ref: "legal", target_ref: "legal2" },
+        { id: "f4", source_ref: "finance", target_ref: "join" },
+        { id: "f5", source_ref: "legal2", target_ref: "join" },
+        { id: "f6", source_ref: "join", target_ref: "end" },
+      ],
+    };
+    p3.listProcessDefinitions.mockResolvedValue([parallel]);
+    p3.getProcessDefinition.mockResolvedValue(parallel);
+    const wrapper = await mountAt("/p3/workflow/parallel");
+
+    const box = wrapper.get("[data-testid='parallel-scope-box']");
+    expect(box.attributes("data-fork")).toBe("fork");
+    expect(box.text()).toBe("并行");
+
+    await wrapper.findAll("[data-testid='process-node']").find((node) => node.text().includes("法务复核")).trigger("click");
+    const scope = wrapper.get("[data-testid='parallel-scope']");
+    expect(scope.findAll("[data-testid='parallel-scope-branch']").map((item) => item.text())).toEqual(["分支 1财务审批", "分支 2法务审批 → 法务复核"]);
+    expect(scope.text()).toContain("2 条分支同时进行，全部完成后在「并行汇合」继续");
+    // Read-only: no editing controls appear for the published definition.
+    expect(wrapper.find("[data-testid='remove-parallel']").exists()).toBe(false);
+
+    await wrapper.findAll("[data-testid='process-node']")[0].trigger("click");
+    expect(wrapper.find("[data-testid='parallel-scope']").exists()).toBe(false);
+  });
 });
