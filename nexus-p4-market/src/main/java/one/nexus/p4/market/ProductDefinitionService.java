@@ -12,7 +12,12 @@ import one.nexus.p1.port.ClockPort;
 import one.nexus.p1.port.IsolationGuard;
 import one.nexus.p1.port.PlatformContext;
 import one.nexus.p3.flow.ProcessDefinitionPublishService;
+import one.nexus.p4.market.MarketModels.ConfigReadinessStep;
+import one.nexus.p4.market.MarketModels.ProductConfigReadiness;
 import one.nexus.p4.market.MarketModels.ProductDefinition;
+import one.nexus.p4.market.MarketModels.ReadinessStatus;
+import one.nexus.p4.market.MarketModels.Sku;
+import one.nexus.p4.market.MarketModels.VersionStatus;
 import one.nexus.p4.market.MarketModels.ProductDefinitionWrite;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -51,6 +56,63 @@ public class ProductDefinitionService {
     public ProductDefinition get(UUID id) {
         isolation.requirePlatformContext("product-definition.get", PlatformDuty.SYSTEM_ADMIN);
         return require(id);
+    }
+
+    /**
+     * PC6: wizard readiness (配表单 → 配流程 → 绑 SKU → 发布) computed from stored data only.
+     * "发布" means a bound SKU belongs to an app with a PUBLISHED version, i.e. the product is in the catalog;
+     * product definitions themselves have no publish action today, so their DRAFT status is reported as-is.
+     */
+    @Transactional(readOnly = true)
+    public ProductConfigReadiness readiness(UUID id) {
+        isolation.requirePlatformContext("product-definition.readiness", PlatformDuty.SYSTEM_ADMIN);
+        ProductDefinition definition = require(id);
+        List<Sku> skus = market.skusBoundToProductDefinition(id);
+        return ProductConfigReadiness.of(definition, List.of(formStep(definition), processStep(definition),
+                skuStep(skus), publishStep(skus)));
+    }
+
+    private ConfigReadinessStep formStep(ProductDefinition definition) {
+        boolean published = market.publishedFormTemplateVersion(definition.formTemplateVersionId()).isPresent();
+        return published
+                ? new ConfigReadinessStep("form", "配表单", ReadinessStatus.DONE, "绑定的表单模板版本已发布。")
+                : new ConfigReadinessStep("form", "配表单", ReadinessStatus.NOT_READY, "绑定的表单模板版本未发布或不存在。");
+    }
+
+    private ConfigReadinessStep processStep(ProductDefinition definition) {
+        String key = definition.processDefinitionKey();
+        Integer version = definition.processDefinitionVersion();
+        if (key == null || version == null) {
+            return new ConfigReadinessStep("process", "配流程", ReadinessStatus.NOT_READY, "还没有绑定流程。");
+        }
+        ProcessDefinitionPublishService publish = processes.getIfAvailable();
+        if (publish == null) {
+            return new ConfigReadinessStep("process", "配流程", ReadinessStatus.UNKNOWN, "流程服务不可用，无法确认流程是否已发布。");
+        }
+        try {
+            return publish.isPublishedVersionAvailable(key, version)
+                    ? new ConfigReadinessStep("process", "配流程", ReadinessStatus.DONE, "流程 " + key + " v" + version + " 已发布。")
+                    : new ConfigReadinessStep("process", "配流程", ReadinessStatus.NOT_READY, "绑定的流程版本未发布或不存在。");
+        } catch (RuntimeException unavailable) {
+            return new ConfigReadinessStep("process", "配流程", ReadinessStatus.UNKNOWN, "暂时无法确认流程是否已发布。");
+        }
+    }
+
+    private static ConfigReadinessStep skuStep(List<Sku> skus) {
+        if (skus.isEmpty()) return new ConfigReadinessStep("sku", "绑 SKU", ReadinessStatus.NOT_READY, "还没有绑定 SKU。");
+        return new ConfigReadinessStep("sku", "绑 SKU", ReadinessStatus.DONE,
+                "已绑定 " + String.join("、", skus.stream().map(Sku::code).toList()) + "。");
+    }
+
+    private ConfigReadinessStep publishStep(List<Sku> skus) {
+        if (skus.isEmpty()) {
+            return new ConfigReadinessStep("publish", "发布", ReadinessStatus.NOT_READY, "绑定 SKU 后，产品随应用的已发布版本在星市上架。");
+        }
+        boolean listed = skus.stream().map(Sku::appId).distinct()
+                .anyMatch(appId -> market.versions(appId).stream().anyMatch(v -> v.status() == VersionStatus.PUBLISHED));
+        return listed
+                ? new ConfigReadinessStep("publish", "发布", ReadinessStatus.DONE, "绑定的 SKU 所属应用有已发布版本，产品已在星市上架。")
+                : new ConfigReadinessStep("publish", "发布", ReadinessStatus.NOT_READY, "绑定的 SKU 所属应用还没有已发布版本。");
     }
 
     @Transactional
