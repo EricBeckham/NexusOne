@@ -16,10 +16,29 @@
       <div class="split-layout">
         <section class="nx-card">
           <h2>应用包目录</h2>
-          <NxEmpty v-if="!apps.length" title="暂无应用包" description="平台创建并发布应用后，会在此显示真实应用包与版本。" />
-          <button v-for="app in apps" :key="app.id" class="list-item" :class="{ selected: selectedApp?.id === app.id }" type="button" @click="selectApp(app)">
-            <span><strong>{{ app.name }}</strong><small>{{ app.code }} · {{ app.id }}</small></span><span>查看版本 →</span>
-          </button>
+          <NxDataTable
+            :empty="!apps.length"
+            empty-title="暂无应用包"
+            empty-description="平台创建并发布应用后，会在此显示真实应用包与版本。"
+            density="compact"
+            aria-label="应用包目录"
+            testid="packages-table"
+          >
+            <template #header>
+              <tr><th>应用包</th><th></th></tr>
+            </template>
+            <tr
+              v-for="app in apps"
+              :key="app.id"
+              class="selectable-row"
+              :class="{ selected: selectedApp?.id === app.id }"
+              data-testid="package-row"
+              @click="selectApp(app)"
+            >
+              <td><strong>{{ app.name }}</strong><div class="nx-muted">{{ app.code }}</div></td>
+              <td class="row-action">查看版本 →</td>
+            </tr>
+          </NxDataTable>
         </section>
         <section class="nx-card detail-card">
           <template v-if="selectedApp">
@@ -27,11 +46,24 @@
             <p>{{ selectedApp.summary || "暂无简介" }}</p>
             <dl class="facts"><dt>创建时间</dt><dd>{{ formatDate(selectedApp.createdAt) }}</dd><dt>包内容与声明</dt><dd data-testid="package-declarations">暂未开放查看</dd></dl>
             <h3>版本与发布记录</h3>
-            <NxEmpty v-if="!versions.length" title="暂无版本" description="此应用尚无版本记录。" compact />
-            <div v-for="version in versions" :key="version.id" class="version-row">
-              <div><strong>{{ version.version }}</strong><small>{{ version.id }}</small><p>{{ version.releaseNotes || "暂无发布说明" }}</p></div>
-              <NxStatusTag :status="version.status" :label="version.status" />
-            </div>
+            <NxDataTable
+              :empty="!versions.length"
+              empty-title="暂无版本"
+              empty-description="此应用尚无版本记录。"
+              empty-compact
+              density="compact"
+              aria-label="版本与发布记录"
+              testid="package-versions-table"
+            >
+              <template #header>
+                <tr><th>版本</th><th>说明</th><th>状态</th></tr>
+              </template>
+              <tr v-for="version in versions" :key="version.id">
+                <td><strong>{{ version.version }}</strong><div class="nx-muted">{{ version.id }}</div></td>
+                <td>{{ version.releaseNotes || "暂无发布说明" }}</td>
+                <td><NxStatusTag :status="version.status" :label="version.status" /></td>
+              </tr>
+            </NxDataTable>
           </template>
           <NxEmpty v-else title="选择一个应用包" description="应用包详情和版本记录将显示在这里。" />
         </section>
@@ -44,10 +76,34 @@
         <NxEmpty v-if="!apps.length" title="暂无商品" description="平台发布应用后，商品会显示在这里。" />
         <article v-for="app in apps" :key="app.id" class="product-block">
           <div class="product-heading"><div><span class="eyebrow">商品 · {{ app.code }}</span><h3>{{ app.name }}</h3><p>{{ app.summary || "暂无简介" }}</p></div><code v-if="devNotes">{{ app.id }}</code></div>
-          <NxEmpty v-if="!skusFor(app).length" title="暂无 SKU" description="该商品还没有 SKU。" compact />
-          <table v-else class="nx-table"><thead><tr><th>SKU</th><th>权益</th><th>配额 / 属性</th></tr></thead><tbody>
-            <tr v-for="sku in skusFor(app)" :key="sku.code"><td><strong>{{ sku.name || sku.code }}</strong><div class="nx-muted">{{ sku.code }}</div></td><td><span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无权益定义</span><ul v-else class="entitlements"><li v-for="(entitlement, name) in sku.entitlements" :key="name"><code>{{ name }}</code><span>{{ entitlement.enabled ? "启用" : "停用" }}</span></li></ul></td><td><span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无</span><ul v-else class="entitlements"><li v-for="(entitlement, name) in sku.entitlements" :key="name"><span>{{ name }}</span><span>{{ entitlement.quota ?? "未设置" }} · {{ formatAttributes(entitlement.attributes) }}</span></li></ul></td></tr>
-          </tbody></table>
+          <NxDataTable
+            :empty="!skusFor(app).length"
+            empty-title="暂无 SKU"
+            empty-description="该商品还没有 SKU。"
+            empty-compact
+            density="compact"
+            :aria-label="`${app.name} SKU`"
+            :testid="`sku-table-${app.id}`"
+          >
+            <template #header>
+              <tr><th>SKU</th><th>权益</th><th>配额 / 属性</th></tr>
+            </template>
+            <tr v-for="sku in skusFor(app)" :key="sku.code">
+              <td><strong>{{ sku.name || sku.code }}</strong><div class="nx-muted">{{ sku.code }}</div></td>
+              <td>
+                <span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无权益定义</span>
+                <ul v-else class="entitlements">
+                  <li v-for="(entitlement, name) in sku.entitlements" :key="name"><code>{{ name }}</code><span>{{ entitlement.enabled ? "启用" : "停用" }}</span></li>
+                </ul>
+              </td>
+              <td>
+                <span v-if="!Object.keys(sku.entitlements || {}).length" class="nx-muted">暂无</span>
+                <ul v-else class="entitlements">
+                  <li v-for="(entitlement, name) in sku.entitlements" :key="name"><span>{{ name }}</span><span>{{ entitlement.quota ?? "未设置" }} · {{ formatAttributes(entitlement.attributes) }}</span></li>
+                </ul>
+              </td>
+            </tr>
+          </NxDataTable>
         </article>
       </section>
     </template>
@@ -56,10 +112,38 @@
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="订阅按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="nx-card">
         <div class="section-heading"><div><h2>开通记录</h2><p class="nx-muted">当前租户已开通记录及其安装状态。无支付。</p></div><span class="nx-muted">{{ subscriptions.length }} 条记录</span></div>
-        <NxEmpty v-if="!subscriptions.length" title="还没有开通记录" description="在应用目录选择 SKU 开通后，记录会显示在这里。" data-testid="subscriptions-empty"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
-        <div v-else class="table-scroll"><table class="nx-table"><thead><tr><th>租户</th><th>商品</th><th>SKU</th><th>状态</th><th>开始</th><th>到期</th><th>权益状态</th><th>安装状态</th></tr></thead><tbody>
-          <tr v-for="sub in subscriptions" :key="sub.id"><td><code>{{ sub.tenantId }}</code></td><td>{{ appForSku(sub.skuCode)?.name || appForSku(sub.skuCode)?.code || "暂无" }}</td><td>{{ skuByCode(sub.skuCode)?.name || sub.skuCode }}</td><td><NxStatusTag :status="sub.status" :label="sub.status" /></td><td>{{ formatDate(sub.startedAt) }}</td><td>{{ formatDate(sub.endedAt) }}</td><td data-testid="subscription-entitlement"><template v-if="entitlementFor(sub)"><span class="entitlement-count">{{ entitlementFor(sub).total ? `${entitlementFor(sub).enabled}/${entitlementFor(sub).total} 项启用` : "无权益项" }}</span><NxStatus v-if="entitlementFor(sub).projected === true" label="当前生效" tone="success" /><NxStatus v-else-if="entitlementFor(sub).projected === false" label="未生效" tone="neutral" title="租户当前生效的是另一条订阅或默认权益包" /></template><span v-else class="nx-muted">暂无</span></td><td>{{ installationStatus(sub) }}</td></tr>
-        </tbody></table></div>
+        <NxDataTable
+          :empty="!subscriptions.length"
+          empty-title="还没有订阅"
+          empty-description="在应用目录选择 SKU 订阅开通后，记录会显示在这里。"
+          density="compact"
+          aria-label="开通记录"
+          testid="subscriptions-empty"
+        >
+          <template #empty-next>
+            <router-link class="primary" to="/p4/market">前往应用目录</router-link>
+          </template>
+          <template #header>
+            <tr><th>租户</th><th>商品</th><th>SKU</th><th>状态</th><th>开始</th><th>到期</th><th>权益状态</th><th>安装状态</th></tr>
+          </template>
+          <tr v-for="sub in subscriptions" :key="sub.id">
+            <td><code>{{ sub.tenantId }}</code></td>
+            <td>{{ appForSku(sub.skuCode)?.name || appForSku(sub.skuCode)?.code || "暂无" }}</td>
+            <td>{{ skuByCode(sub.skuCode)?.name || sub.skuCode }}</td>
+            <td><NxStatusTag :status="sub.status" :label="sub.status" /></td>
+            <td>{{ formatDate(sub.startedAt) }}</td>
+            <td>{{ formatDate(sub.endedAt) }}</td>
+            <td data-testid="subscription-entitlement">
+              <template v-if="entitlementFor(sub)">
+                <span class="entitlement-count">{{ entitlementFor(sub).total ? `${entitlementFor(sub).enabled}/${entitlementFor(sub).total} 项启用` : "无权益项" }}</span>
+                <NxStatus v-if="entitlementFor(sub).projected === true" label="当前生效" tone="success" />
+                <NxStatus v-else-if="entitlementFor(sub).projected === false" label="未生效" tone="neutral" title="租户当前生效的是另一条订阅或默认权益包" />
+              </template>
+              <span v-else class="nx-muted">暂无</span>
+            </td>
+            <td>{{ installationStatus(sub) }}</td>
+          </tr>
+        </NxDataTable>
       </section>
     </template>
 
@@ -67,7 +151,19 @@
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="已开通产品按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="installations">
         <p v-if="installations.length" class="installations-count nx-muted" data-testid="installations-count">共 {{ installations.length }} 个已开通产品</p>
-        <NxEmpty v-if="!installations.length" class="nx-card" title="还没有已开通可用的产品" description="从应用目录开通后，产品会显示在这里，并可直接发起申请。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
+        <NxDataTable
+          v-if="!installations.length"
+          :empty="true"
+          empty-title="还没有已开通可用的产品"
+          empty-description="从应用目录开通后，产品会显示在这里，并可直接发起申请。"
+          aria-label="已开通产品"
+          testid="installations-table"
+          card
+        >
+          <template #empty-next>
+            <router-link class="primary" to="/p4/market">前往应用目录</router-link>
+          </template>
+        </NxDataTable>
         <div v-else class="installation-list"><article v-for="installation in installations" :key="installation.id" class="installation-card">
           <div class="installation-summary">
             <div class="installation-identity">
@@ -120,7 +216,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import { NxDataTable, NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import { p4 } from "../../api/client";
 import { session } from "../../api/session";
@@ -275,7 +371,7 @@ onMounted(load);
 .upgrade{border-top:1px solid var(--nx-divider);padding-top:var(--nx-space-3)}.upgrade summary{cursor:pointer;color:var(--nx-text-regular);font-size:var(--nx-font-size-sm);font-weight:600;list-style-position:inside}.upgrade[open] summary{margin-bottom:12px}.upgrade summary:hover{color:var(--nx-product)}
 .installation-id{font-size:var(--nx-font-size-xs)}.installation-id code{font-size:var(--nx-font-size-xs)}
 .p4-tabs{display:flex;gap:8px;overflow:auto;margin:0 0 16px;border-bottom:1px solid var(--nx-divider)}.p4-tabs a{padding:10px 14px;color:var(--nx-text-secondary);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}.p4-tabs a.router-link-active{color:var(--nx-product);border-color:var(--nx-product);font-weight:600}
-.split-layout{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(0,1.5fr);gap:16px}.nx-card h2{margin-top:0}.list-item{display:flex;width:100%;justify-content:space-between;gap:12px;align-items:center;text-align:left;background:transparent;color:inherit;border:0;border-top:1px solid var(--nx-divider);padding:14px 4px;cursor:pointer}.list-item span:first-child{display:flex;flex-direction:column;gap:4px}.list-item small,.version-row small{color:var(--nx-text-secondary);overflow-wrap:anywhere}.list-item.selected{color:var(--nx-product)}.detail-card p{line-height:1.6}.facts{display:grid;grid-template-columns:minmax(140px,.7fr) 2fr;gap:10px;margin:20px 0}.facts dt{color:var(--nx-text-secondary)}.facts dd{margin:0;overflow-wrap:anywhere}.version-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-top:1px solid var(--nx-divider);padding:14px 0}.version-row p{margin:5px 0 0;color:var(--nx-text-secondary)}.section-heading,.product-heading,.installation-summary{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.section-heading h2,.product-heading h3,.installation-summary h3{margin:0}.product-block{border-top:1px solid var(--nx-divider);padding:20px 0}.product-heading{margin-bottom:14px}.product-heading p{color:var(--nx-text-secondary)}.eyebrow{font-size:12px;color:var(--nx-product);font-weight:600;letter-spacing:.04em}.entitlements{list-style:none;padding:0;margin:0}.entitlements li{display:flex;flex-direction:column;gap:3px;margin:0 0 5px}.table-scroll{overflow:auto}.installation-list{display:grid;gap:var(--nx-space-3)}.installation-card{display:grid;gap:var(--nx-space-3);padding:var(--nx-space-4) var(--nx-space-5);background:var(--nx-surface);border:1px solid var(--nx-border);border-radius:var(--nx-radius,12px);box-shadow:var(--nx-shadow-card)}.installation-summary code{display:block;margin-top:6px;overflow-wrap:anywhere}.installation-summary .nx-btn--primary{align-self:center;white-space:nowrap}.stepper{display:flex;gap:6px;overflow:auto;margin:18px 0}.stepper .step{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:8px;background:var(--nx-bg-sidebar);font-size:12px;display:flex;flex-direction:column;gap:4px;border:1px solid transparent;color:var(--nx-text-regular)}.stepper .step-label{font-weight:600}.stepper .step-status{color:var(--nx-text-secondary);font-size:11px}.stepper .step[data-status="UNKNOWN"]{background:var(--nx-bg-sidebar);color:var(--nx-text-regular)}.stepper .step[data-status="ACTIVE"]{border-color:var(--nx-product);color:var(--nx-product);background:var(--nx-product-light)}.stepper .step[data-status="FAILED"]{border-color:var(--nx-danger);color:var(--nx-danger);background:var(--nx-danger-light)}.stepper .step[data-status="DONE"]{border-color:var(--nx-success);color:var(--nx-success);background:var(--nx-success-light)}.upgrade-form{display:flex;align-items:flex-end;gap:12px;margin:16px 0}.upgrade-form label{display:flex;flex-direction:column;gap:6px;flex:1}.upgrade-form select{height:var(--nx-control-height,36px);padding:0 10px;border:1px solid var(--nx-border-strong);border-radius:var(--nx-control-radius,6px);background:var(--nx-surface);color:inherit}.notice{padding:12px;border-radius:8px;background:var(--nx-success-light);color:var(--nx-success)}
+.split-layout{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(0,1.5fr);gap:16px}.nx-card h2{margin-top:0}.selectable-row{cursor:pointer}.selectable-row.selected{color:var(--nx-product)}.selectable-row.selected td{background:var(--nx-product-light)}.row-action{color:var(--nx-text-secondary);white-space:nowrap;text-align:right}.detail-card p{line-height:1.6}.facts{display:grid;grid-template-columns:minmax(140px,.7fr) 2fr;gap:10px;margin:20px 0}.facts dt{color:var(--nx-text-secondary)}.facts dd{margin:0;overflow-wrap:anywhere}.section-heading,.product-heading,.installation-summary{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.section-heading h2,.product-heading h3,.installation-summary h3{margin:0}.product-block{border-top:1px solid var(--nx-divider);padding:20px 0}.product-heading{margin-bottom:14px}.product-heading p{color:var(--nx-text-secondary)}.eyebrow{font-size:12px;color:var(--nx-product);font-weight:600;letter-spacing:.04em}.entitlements{list-style:none;padding:0;margin:0}.entitlements li{display:flex;flex-direction:column;gap:3px;margin:0 0 5px}.installation-list{display:grid;gap:var(--nx-space-3)}.installation-card{display:grid;gap:var(--nx-space-3);padding:var(--nx-space-4) var(--nx-space-5);background:var(--nx-surface);border:1px solid var(--nx-border);border-radius:var(--nx-radius,12px);box-shadow:var(--nx-shadow-card)}.installation-summary code{display:block;margin-top:6px;overflow-wrap:anywhere}.installation-summary .nx-btn--primary{align-self:center;white-space:nowrap}.stepper{display:flex;gap:6px;overflow:auto;margin:18px 0}.stepper .step{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:8px;background:var(--nx-bg-sidebar);font-size:12px;display:flex;flex-direction:column;gap:4px;border:1px solid transparent;color:var(--nx-text-regular)}.stepper .step-label{font-weight:600}.stepper .step-status{color:var(--nx-text-secondary);font-size:11px}.stepper .step[data-status="UNKNOWN"]{background:var(--nx-bg-sidebar);color:var(--nx-text-regular)}.stepper .step[data-status="ACTIVE"]{border-color:var(--nx-product);color:var(--nx-product);background:var(--nx-product-light)}.stepper .step[data-status="FAILED"]{border-color:var(--nx-danger);color:var(--nx-danger);background:var(--nx-danger-light)}.stepper .step[data-status="DONE"]{border-color:var(--nx-success);color:var(--nx-success);background:var(--nx-success-light)}.upgrade-form{display:flex;align-items:flex-end;gap:12px;margin:16px 0}.upgrade-form label{display:flex;flex-direction:column;gap:6px;flex:1}.upgrade-form select{height:var(--nx-control-height,36px);padding:0 10px;border:1px solid var(--nx-border-strong);border-radius:var(--nx-control-radius,6px);background:var(--nx-surface);color:inherit}.notice{padding:12px;border-radius:8px;background:var(--nx-success-light);color:var(--nx-success)}
 @media(max-width:800px){.split-layout{grid-template-columns:1fr}.upgrade-form{align-items:stretch;flex-direction:column}}
 .upgrade-note{margin:0 0 8px;color:var(--nx-text-secondary);font-size:var(--nx-font-size-xs)}.upgrade-note.error{color:var(--nx-danger)}
 .upgrade-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:0 0 4px}

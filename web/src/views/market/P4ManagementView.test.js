@@ -46,6 +46,8 @@ describe("P4 management subpages", () => {
     expect(mocks.apps).toHaveBeenCalledOnce(); expect(mocks.versions).toHaveBeenCalledWith("app-1");
     expect(wrapper.text()).toContain("CRM"); expect(wrapper.text()).toContain("1.0.0");
     expect(wrapper.get("[data-testid='package-declarations']").text()).toBe("暂未开放查看");
+    expect(wrapper.get("[data-testid='packages-table']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='package-versions-table']").exists()).toBe(true);
     // S9: no read-model / API wording on the tenant path.
     expect(wrapper.text()).not.toMatch(/读模型|接口|Product/);
   });
@@ -54,6 +56,7 @@ describe("P4 management subpages", () => {
     const wrapper = await mountPage("/p4/skus");
     expect(wrapper.text()).toContain("商品 · crm"); expect(wrapper.text()).not.toMatch(/PRODUCT|Product|app-1/); expect(wrapper.text()).toContain("专业版");
     expect(wrapper.text()).toContain("reports"); expect(wrapper.text()).toContain("20");
+    expect(wrapper.get("[data-testid='sku-table-app-1']").exists()).toBe(true);
   });
 
   it("lists subscriptions and installations from tenant-context APIs and submits a selected upgrade", async () => {
