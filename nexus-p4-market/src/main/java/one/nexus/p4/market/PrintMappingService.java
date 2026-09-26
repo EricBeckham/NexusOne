@@ -31,15 +31,18 @@ public class PrintMappingService {
     private final IsolationGuard isolation;
     private final MarketRepository market;
     private final InMemoryPrintMappingStore store;
-    private final ObjectMapper objectMapper;
+    /**
+     * The contract file is camelCase and read once at startup. It must not depend on an injected mapper: the
+     * application context has no Jackson 2 {@code ObjectMapper} bean (the product mapper is Jackson 3, SNAKE_CASE),
+     * and requiring one stopped the application from starting.
+     */
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private PrintMappingContract contract;
 
-    public PrintMappingService(IsolationGuard isolation, MarketRepository market, InMemoryPrintMappingStore store,
-            ObjectMapper objectMapper) {
+    public PrintMappingService(IsolationGuard isolation, MarketRepository market, InMemoryPrintMappingStore store) {
         this.isolation = isolation;
         this.market = market;
         this.store = store;
-        this.objectMapper = objectMapper;
     }
 
     @PostConstruct
