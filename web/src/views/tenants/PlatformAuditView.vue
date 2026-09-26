@@ -1,17 +1,18 @@
 <template>
+  <main class="platform-audit-page">
   <NxPageHeader eyebrow="星域 / 平台治理" title="平台审计中心" description="检索平台审计事件。结果为只读摘要，不包含事件详情载荷。哈希链校验只返回是否完整、校验条数和失败原因。" />
 
   <NxPanelCard title="哈希链" eyebrow="平台校验" description="校验当前平台审计链，不展示事件载荷。">
     <button class="primary" type="button" data-testid="verify-chain" :disabled="verifying" @click="verifyChain">{{ verifying ? "校验中…" : "校验哈希链" }}</button>
     <p v-if="chainError" class="nx-error" role="alert">{{ chainError }}</p>
     <dl v-else-if="chainResult" class="chain-result">
-      <div><dt>结果</dt><dd>{{ chainResult.intact ? "链完整" : "链已破坏" }}</dd></div>
+      <div><dt>结果</dt><dd><NxStatusTag :status="chainResult.intact ? 'SUCCESS' : 'FAILED'" :label="chainResult.intact ? '链完整' : '链已破坏'" :tone="chainResult.intact ? 'success' : 'danger'" /></dd></div>
       <div><dt>校验条数</dt><dd>{{ chainResult.checked == null ? "暂无" : chainResult.checked }}</dd></div>
       <div><dt>失败原因</dt><dd>{{ chainResult.failure || "暂无" }}</dd></div>
     </dl>
   </NxPanelCard>
 
-  <NxPanelCard title="筛选条件" eyebrow="Filter">
+  <NxPanelCard title="筛选条件" eyebrow="审计检索">
     <form class="filters" @submit.prevent="applyFilters">
       <label>开始时间<input v-model="filters.from" aria-label="开始时间" type="datetime-local" /></label>
       <label>结束时间<input v-model="filters.to" aria-label="结束时间" type="datetime-local" /></label>
@@ -36,10 +37,12 @@
 
   <NxPanelCard title="审计事件" eyebrow="只读检索" :description="result ? `共 ${result.total} 条 · 第 ${result.page} 页` : '暂无检索结果'">
     <NxErrorState v-if="error" :title="error" :trace-id="traceId" @retry="load" />
-    <NxEmpty v-else-if="result && !result.items.length" title="暂无" description="没有符合当前筛选条件的审计事件。" />
+    <NxEmpty v-else-if="result && !result.items.length" title="暂无审计事件" description="没有符合当前筛选条件的事件。可清空条件后查看全部审计摘要。">
+      <template #next><button class="ghost" type="button" @click="clearFilters">清空筛选</button></template>
+    </NxEmpty>
     <div v-else-if="result" class="table-wrap">
-      <table class="nx-table audit-table">
-        <thead><tr><th>时间</th><th>租户</th><th>Actor</th><th>事件</th><th>资源</th><th>结果</th><th>Trace ID</th><th></th></tr></thead>
+      <table class="nx-table nx-table--compact audit-table" data-testid="audit-table">
+        <thead><tr><th scope="col">时间</th><th scope="col">租户</th><th scope="col">Actor</th><th scope="col">事件</th><th scope="col">资源</th><th scope="col">结果</th><th scope="col">Trace ID</th><th scope="col">操作</th></tr></thead>
         <tbody>
           <tr v-for="event in result.items" :key="event.eventId">
             <td>{{ formatTime(event.occurredAt) }}</td>
@@ -47,7 +50,7 @@
             <td>{{ show(event.actorId) }}</td>
             <td>{{ show(event.action) }}</td>
             <td>{{ resourceLabel(event) }}</td>
-            <td><span class="result-pill" :data-result="event.result">{{ resultLabel(event.result) }}</span></td>
+            <td><NxStatusTag :status="event.result" :label="resultLabel(event.result)" :tone="resultTone(event.result)" /></td>
             <td class="trace-cell">{{ show(event.traceId) }}</td>
             <td><button class="text-button" type="button" @click="selected = event">详情</button></td>
           </tr>
@@ -63,7 +66,7 @@
         @next="goPage(result.page + 1)"
       />
     </div>
-    <p v-else-if="loading" class="loading-note" role="status">正在检索审计事件…</p>
+    <div v-else-if="loading" class="audit-loading"><NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在检索审计事件" compact /></div>
   </NxPanelCard>
 
   <div v-if="selected" class="drawer-backdrop" @click.self="selected = null">
@@ -87,13 +90,14 @@
       <p class="privacy-note">为保护审计载荷，详情面板不展示 details、凭据或敏感 Payload。</p>
     </aside>
   </div>
+  </main>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { audit } from "../../api/client";
-import { NxEmpty, NxErrorState, NxListFooter, NxPageHeader, NxPanelCard } from "../../components";
+import { NxEmpty, NxErrorState, NxListFooter, NxPageHeader, NxPanelCard, NxSkeleton, NxStatusTag } from "../../components";
 
 const PAGE_SIZE = 20;
 const route = useRoute();
@@ -240,6 +244,10 @@ function resultLabel(value) {
   return ({ ACCEPTED: "成功", REJECTED: "拒绝" })[value] || show(value);
 }
 
+function resultTone(value) {
+  return ({ ACCEPTED: "success", REJECTED: "danger" })[value] || "neutral";
+}
+
 onMounted(() => {
   syncFromUrl();
   load();
@@ -251,6 +259,9 @@ watch(() => route.fullPath, () => {
 </script>
 
 <style scoped>
+.platform-audit-page { display: grid; gap: var(--nx-space-4); }
+.platform-audit-page :deep(.page-header) { margin-bottom: 0; }
+.audit-loading { display: grid; gap: var(--nx-space-2); }
 .filters { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 14px; align-items: end; }
 .filters label { display: flex; flex-direction: column; gap: 6px; color: var(--nx-text-secondary); font-size: 12px; }
 .filters input, .filters select { width: 100%; min-height: 38px; box-sizing: border-box; padding: 7px 10px; color: var(--nx-text-primary); background: var(--nx-surface); border: 1px solid var(--nx-border); border-radius: 7px; font: inherit; }
@@ -266,9 +277,6 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .chain-result div { display: grid; grid-template-columns: 96px 1fr; gap: 8px; }
 .chain-result dd { margin: 0; overflow-wrap: anywhere; }
 .trace-cell { max-width: 180px; overflow-wrap: anywhere; }
-.result-pill { display: inline-flex; padding: 3px 8px; border-radius: 999px; color: #58677c; background: #edf1f6; font-size: 12px; white-space: nowrap; }
-.result-pill[data-result="ACCEPTED"] { color: #18794e; background: #e7f7ee; }
-.result-pill[data-result="REJECTED"] { color: #b42318; background: #fff0ee; }
 .drawer-backdrop { position: fixed; z-index: 1200; inset: 0; display: flex; justify-content: flex-end; background: rgb(12 25 45 / 38%); }
 .drawer { width: min(520px, 100%); height: 100%; box-sizing: border-box; overflow-y: auto; padding: 26px; background: var(--nx-surface, #fff); box-shadow: -12px 0 36px rgb(20 37 63 / 16%); }
 .drawer-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--nx-border); }
