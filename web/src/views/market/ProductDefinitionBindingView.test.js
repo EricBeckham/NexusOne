@@ -283,3 +283,70 @@ describe("IM2 export config shell", () => {
     expect(err.text()).toMatch(/样例配置包暂时不可用|404/);
   });
 });
+
+describe("IM3 import config shell", () => {
+  beforeEach(() => {
+    for (const fn of [...Object.values(p1), ...Object.values(p4), ...Object.values(p3)]) fn.mockReset();
+    p4.productDefinitions.mockResolvedValue([DEFINITION]);
+    p4.skus.mockResolvedValue([]);
+    p4.catalog.mockResolvedValue([]);
+    p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
+    publishedProcess();
+  });
+
+  function setImportFile(wrapper, content, name = "pack.json") {
+    const input = wrapper.get('[data-testid="import-config-file"]');
+    const file = new File([content], name, { type: "application/json" });
+    Object.defineProperty(input.element, "files", { value: [file], configurable: true });
+    return input.trigger("change");
+  }
+
+  it("opens import panel with skip as the default conflict strategy", async () => {
+    const wrapper = await mountPage();
+    expect(wrapper.find('[data-testid="import-config-panel"]').exists()).toBe(false);
+    await wrapper.get('[data-testid="import-config"]').trigger("click");
+    expect(wrapper.get('[data-testid="import-config-panel"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="import-conflict-strategy"] input[value="skip"]').element.checked).toBe(true);
+    expect(wrapper.get('[data-testid="import-config-panel"]').text()).toContain("导入接口尚未接通");
+  });
+
+  it("validates a format 1.0 package and shows NxResult without writing", async () => {
+    const pack = {
+      manifest: { format: "nexusone.product-config", formatVersion: "1.0", exportedAt: "2026-09-26T00:00:00Z", source: { env: "demo" } },
+      formTemplates: [{ code: "demo.leave", version: 1 }],
+      processDefinitions: [{ key: "demo.flow", version: 1 }],
+      productDefinition: { code: "demo.product", name: "演示" },
+      skuBindings: [],
+    };
+    const wrapper = await mountPage();
+    await wrapper.get('[data-testid="import-config"]').trigger("click");
+    await setImportFile(wrapper, JSON.stringify(pack));
+    await flushPromises();
+    await wrapper.get('[data-testid="import-config-validate"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.get('[data-testid="import-config-result"]').text()).toContain("校验通过");
+    expect(wrapper.find('[data-testid="import-validation-table"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="import-config-result"]').text()).toContain("未写入");
+  });
+
+  it("lists validation issues in a table for a bad package", async () => {
+    const wrapper = await mountPage();
+    await wrapper.get('[data-testid="import-config"]').trigger("click");
+    await setImportFile(wrapper, JSON.stringify({ manifest: { format: "other", formatVersion: "9.0" } }));
+    await flushPromises();
+    await wrapper.get('[data-testid="import-config-validate"]').trigger("click");
+    await flushPromises();
+    const table = wrapper.get('[data-testid="import-validation-table"]');
+    expect(table.text()).toContain("manifest");
+    expect(table.text()).toMatch(/formatVersion|不支持/);
+    expect(wrapper.get('[data-testid="import-config-result"]').text()).toContain("校验未通过");
+  });
+
+  it("shows NxErrorState when the file is not JSON", async () => {
+    const wrapper = await mountPage();
+    await wrapper.get('[data-testid="import-config"]').trigger("click");
+    await setImportFile(wrapper, "not-json{{{", "bad.txt");
+    await flushPromises();
+    expect(wrapper.get('[data-testid="import-config-error"]').text()).toContain("合法 JSON");
+  });
+});

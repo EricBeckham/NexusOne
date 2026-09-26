@@ -13,6 +13,13 @@
           :disabled="exporting"
           @click="exportConfig()"
         >{{ exporting ? "导出中…" : "导出配置" }}</button>
+        <button
+          class="ghost"
+          type="button"
+          data-testid="import-config"
+          :aria-expanded="importOpen ? 'true' : 'false'"
+          @click="openImport"
+        >导入配置</button>
         <router-link class="primary" to="/p4/product-config-wizard" data-testid="open-config-wizard">配置向导</router-link>
         <router-link class="ghost" to="/p1/form-templates">表单模板</router-link>
         <router-link class="ghost" to="/p3/workflow">流程设计器</router-link>
@@ -30,7 +37,96 @@
       data-testid="export-config-error"
       @retry="exportConfig(exportTarget)"
     />
-    <template v-else>
+
+    <section
+      v-if="importOpen"
+      class="nx-card import-panel"
+      aria-label="导入产品配置"
+      data-testid="import-config-panel"
+    >
+      <div class="section-heading">
+        <div>
+          <h2>导入配置</h2>
+          <p class="nx-muted">上传 format 1.0 配置包并选择冲突策略。当前仅做前端校验预览，导入接口尚未接通，不会写入平台。</p>
+        </div>
+        <button class="ghost" type="button" data-testid="import-config-close" @click="closeImport">关闭</button>
+      </div>
+
+      <div class="import-fields">
+        <label class="nx-field">
+          <span>配置包（JSON）</span>
+          <input
+            data-testid="import-config-file"
+            type="file"
+            accept="application/json,.json"
+            @change="onImportFile"
+          />
+        </label>
+        <fieldset class="conflict-strategy" data-testid="import-conflict-strategy">
+          <legend>冲突策略</legend>
+          <label><input v-model="importConflict" type="radio" name="import-conflict" value="skip" />跳过已有（skip）</label>
+          <label><input v-model="importConflict" type="radio" name="import-conflict" value="new-version" />创建新版本（new-version）</label>
+          <label><input v-model="importConflict" type="radio" name="import-conflict" value="fail" />遇冲突整包失败（fail）</label>
+        </fieldset>
+        <div class="import-actions">
+          <button
+            class="primary"
+            type="button"
+            data-testid="import-config-validate"
+            :disabled="!importFileName || importValidating"
+            @click="validateImport"
+          >{{ importValidating ? "校验中…" : "校验并预览" }}</button>
+        </div>
+      </div>
+
+      <NxErrorState
+        v-if="importError"
+        title="配置包无法校验"
+        :description="importError"
+        retry-label=""
+        data-testid="import-config-error"
+      />
+
+      <template v-else-if="importValidated">
+        <NxResult
+          v-if="!importIssues.length"
+          compact
+          tone="success"
+          title="校验通过"
+          :description="`冲突策略：${conflictLabel}。导入接口尚未接通，未写入任何产品定义。`"
+          data-testid="import-config-result"
+        >
+          <template #next>
+            <button class="ghost" type="button" data-testid="import-config-reset" @click="resetImport">重新选择文件</button>
+          </template>
+        </NxResult>
+        <template v-else>
+          <NxResult
+            compact
+            tone="warning"
+            title="校验未通过"
+            :description="`发现 ${importIssues.length} 处问题。按当前策略不会写入（导入接口尚未接通）。`"
+            data-testid="import-config-result"
+          />
+          <div class="table-scroll">
+            <table class="nx-table nx-table--compact" data-testid="import-validation-table">
+              <thead>
+                <tr><th scope="col">资产</th><th scope="col">编号</th><th scope="col">原因</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="(issue, index) in importIssues" :key="`${issue.asset}-${issue.code}-${index}`">
+                  <td>{{ issue.asset }}</td>
+                  <td><code>{{ issue.code || "—" }}</code></td>
+                  <td>{{ issue.reason }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+      </template>
+    </section>
+
+    <template v-if="!exportError">
       <ol class="nx-card journey" aria-label="上架步骤" data-testid="binding-journey">
         <li v-for="(step, index) in journey" :key="step.id" :data-done="step.done" :data-testid="`journey-${step.id}`">
           <span class="journey-index">{{ step.done ? "✓" : index + 1 }}</span>
@@ -171,11 +267,17 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { p1, p4 } from "../../api/client";
 import { p3 } from "../../api/p3";
-import { NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxStatusTag } from "../../components";
 import { nxMessage } from "../../feedback/nxMessage";
 
 /** IM2: static format 1.0 sample until IM4 export BE lands. Honest — not a live product snapshot. */
 const SAMPLE_EXPORT_URL = "/fixtures/product-config-1.0/sample-demo-leave.product-config.json";
+
+const CONFLICT_LABELS = {
+  skip: "跳过已有（skip）",
+  "new-version": "创建新版本（new-version）",
+  fail: "遇冲突整包失败（fail）",
+};
 
 const permissionNote = "租户成员可发起；审批人来自表单中的成员字段，且必须是本租户成员。";
 
@@ -201,6 +303,15 @@ const bindError = ref("");
 const exporting = ref(false);
 const exportError = ref("");
 const exportTarget = ref(null);
+const importOpen = ref(false);
+const importConflict = ref("skip");
+const importFileName = ref("");
+const importPayload = ref(null);
+const importValidating = ref(false);
+const importValidated = ref(false);
+const importError = ref("");
+const importIssues = ref([]);
+const conflictLabel = computed(() => CONFLICT_LABELS[importConflict.value] || importConflict.value);
 const form = reactive({
   code: "",
   name: "",
@@ -416,6 +527,98 @@ async function exportConfig(row = null) {
     exporting.value = false;
   }
 }
+
+function openImport() {
+  importOpen.value = true;
+  exportError.value = "";
+}
+
+function closeImport() {
+  importOpen.value = false;
+}
+
+function resetImport() {
+  importFileName.value = "";
+  importPayload.value = null;
+  importValidated.value = false;
+  importError.value = "";
+  importIssues.value = [];
+}
+
+async function onImportFile(event) {
+  resetImport();
+  const file = event.target?.files?.[0];
+  if (!file) return;
+  importFileName.value = file.name;
+  try {
+    const text = await file.text();
+    importPayload.value = JSON.parse(text);
+    importError.value = "";
+  } catch (err) {
+    importPayload.value = null;
+    importError.value = err instanceof SyntaxError
+      ? "文件不是合法 JSON，请选择 format 1.0 配置包。"
+      : "读取文件失败，请重试。";
+  }
+}
+
+/** IM3: client-side format 1.0 checks only — no import BE / no writes. */
+function validateProductConfigPackage(pack) {
+  const issues = [];
+  if (!pack || typeof pack !== "object") {
+    return [{ asset: "包", code: "", reason: "根对象缺失" }];
+  }
+  const manifest = pack.manifest;
+  if (!manifest || typeof manifest !== "object") {
+    issues.push({ asset: "manifest", code: "", reason: "缺少清单" });
+  } else {
+    if (manifest.format !== "nexusone.product-config") {
+      issues.push({ asset: "manifest", code: "format", reason: `不支持的 format：${manifest.format || "空"}` });
+    }
+    if (manifest.formatVersion !== "1.0") {
+      issues.push({ asset: "manifest", code: "formatVersion", reason: `仅支持 formatVersion 1.0，当前为 ${manifest.formatVersion || "空"}` });
+    }
+  }
+  if (!Array.isArray(pack.formTemplates) || !pack.formTemplates.length) {
+    issues.push({ asset: "formTemplates", code: "", reason: "至少需要一份已发布表单模板快照" });
+  }
+  if (!Array.isArray(pack.processDefinitions) || !pack.processDefinitions.length) {
+    issues.push({ asset: "processDefinitions", code: "", reason: "至少需要一份已发布流程定义" });
+  }
+  if (!pack.productDefinition || typeof pack.productDefinition !== "object") {
+    issues.push({ asset: "productDefinition", code: "", reason: "缺少产品定义" });
+  } else if (!pack.productDefinition.code) {
+    issues.push({ asset: "productDefinition", code: "", reason: "产品定义缺少 code" });
+  }
+  if (!Array.isArray(pack.skuBindings)) {
+    issues.push({ asset: "skuBindings", code: "", reason: "缺少 skuBindings 数组（可为 []）" });
+  }
+  return issues;
+}
+
+async function validateImport() {
+  importValidating.value = true;
+  importValidated.value = false;
+  importError.value = "";
+  importIssues.value = [];
+  try {
+    if (!importPayload.value) {
+      importError.value = importFileName.value
+        ? "配置包未能解析，请重新选择 JSON 文件。"
+        : "请先选择配置包文件。";
+      return;
+    }
+    // Yield so the button can show 校验中… without inventing a network hop.
+    await Promise.resolve();
+    importIssues.value = validateProductConfigPackage(importPayload.value);
+    importValidated.value = true;
+    if (!importIssues.value.length) {
+      nxMessage.info("校验通过（导入接口尚未接通，未写入）");
+    }
+  } finally {
+    importValidating.value = false;
+  }
+}
 async function load() {
   loaded.value = false;
   error.value = "";
@@ -510,6 +713,13 @@ onMounted(load);
 <style scoped>
 .binding-page { display: grid; gap: var(--nx-space-4); }
 .binding-page :deep(.page-header) { margin-bottom: 0; }
+.import-panel .section-heading { align-items: flex-start; }
+.import-panel .section-heading p { margin: var(--nx-space-1) 0 0; max-width: 48rem; }
+.import-fields { display: grid; gap: var(--nx-space-4); margin-top: var(--nx-space-3); }
+.conflict-strategy { margin: 0; padding: var(--nx-space-3); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); display: grid; gap: var(--nx-space-2); }
+.conflict-strategy legend { padding: 0 var(--nx-space-1); color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); }
+.conflict-strategy label { display: flex; align-items: center; gap: var(--nx-space-2); color: var(--nx-text-regular); font-size: var(--nx-font-size-sm); }
+.import-actions { display: flex; gap: var(--nx-space-2); }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nx-space-3); }
 .section-heading span { color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); }
 .table-scroll { overflow-x: auto; }
