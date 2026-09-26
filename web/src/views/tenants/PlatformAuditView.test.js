@@ -38,6 +38,8 @@ describe("P1 platform audit center", () => {
     expect(wrapper.get('input[aria-label="租户 ID"]').element.value).toBe("tenant-1");
     expect(wrapper.text()).toContain("p1.tenant.disabled");
     expect(wrapper.text()).toContain("拒绝");
+    expect(wrapper.get("[data-testid='audit-table']").classes()).toContain("nx-table--compact");
+    expect(wrapper.get("[data-testid='audit-table'] [data-testid='nx-status-tag']").text()).toBe("拒绝");
     expect(audit.platformEvents).toHaveBeenCalledWith(expect.objectContaining({
       tenantId: "tenant-1", action: "p1.tenant.disabled", page: "2", size: "20",
     }));
@@ -61,6 +63,7 @@ describe("P1 platform audit center", () => {
     expect(router.currentRoute.value.query.action).toBe("new.event");
     expect(router.currentRoute.value.query.page).toBe("1");
     expect(wrapper.text()).toContain("暂无");
+    expect(wrapper.get("[data-testid='nx-empty-next'] button").text()).toBe("清空筛选");
   });
 
   it("shows API errors and supports retry without exposing payload fields", async () => {
