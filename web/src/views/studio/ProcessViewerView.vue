@@ -7,13 +7,14 @@
     >
       <template #actions>
         <button type="button" class="ghost" data-testid="process-new" @click="newDraft">新建草稿</button>
-        <button v-if="!isEditing" type="button" class="ghost" data-testid="process-edit-copy" :disabled="!definition" @click="editAsDraft">创建可编辑草稿</button>
+        <button v-if="!isEditing" type="button" class="ghost" data-testid="process-edit-copy" :disabled="!definition" :title="!definition ? '请先在左侧选择一个流程' : undefined" @click="editAsDraft">创建可编辑草稿</button>
         <button
           v-if="isPersistedDraft"
           type="button"
           class="ghost"
           data-testid="process-validate"
           :disabled="dirty || saving || validating"
+          :title="validateDisabledReason || undefined"
           @click="validateDraft"
         >{{ validating ? "校验中…" : "校验草稿" }}</button>
         <button
@@ -22,6 +23,7 @@
           class="primary"
           data-testid="process-publish"
           :disabled="publishing"
+          title="校验已通过，可以发布"
           @click="publishConfirm = true"
         >发布流程</button>
         <button v-if="isEditing" type="button" class="primary" data-testid="process-save" :disabled="saving" @click="saveDraft">
@@ -156,9 +158,9 @@
                 <span v-for="(message, messageIndex) in nodeErrors(step.id)" :key="messageIndex" class="step-error" data-testid="step-error">{{ message }}</span>
               </span>
               <span v-if="isEditing" class="step-actions">
-                <button type="button" class="icon-btn" data-testid="step-up" aria-label="上移" title="上移" :disabled="index === 0" @click.stop="moveStep(index, index - 1)"><NxIcon name="arrowUp" :size="16" /></button>
-                <button type="button" class="icon-btn" data-testid="step-down" aria-label="下移" title="下移" :disabled="index === sequence.steps.length - 1" @click.stop="moveStep(index, index + 2)"><NxIcon name="arrowDown" :size="16" /></button>
-                <button type="button" class="icon-btn danger-hover" data-testid="step-remove" aria-label="删除审批节点" title="删除" :disabled="sequence.steps.length === 1" @click.stop="removeStep(index)"><NxIcon name="trash" :size="16" /></button>
+                <button type="button" class="icon-btn" data-testid="step-up" aria-label="上移" :title="index === 0 ? '已经是第一个节点' : '上移'" :disabled="index === 0" @click.stop="moveStep(index, index - 1)"><NxIcon name="arrowUp" :size="16" /></button>
+                <button type="button" class="icon-btn" data-testid="step-down" aria-label="下移" :title="index === sequence.steps.length - 1 ? '已经是最后一个节点' : '下移'" :disabled="index === sequence.steps.length - 1" @click.stop="moveStep(index, index + 2)"><NxIcon name="arrowDown" :size="16" /></button>
+                <button type="button" class="icon-btn danger-hover" data-testid="step-remove" aria-label="删除审批节点" :title="sequence.steps.length === 1 ? '至少保留一个审批节点' : '删除'" :disabled="sequence.steps.length === 1" @click.stop="removeStep(index)"><NxIcon name="trash" :size="16" /></button>
               </span>
             </li>
           </template>
@@ -906,16 +908,23 @@ function removeParallel(id) {
   }
 }
 
-// N4: say where the draft is in 保存 → 校验 → 发布, so a disabled button is never unexplained.
+// N4 / CF-P4: say where the draft is in 保存 → 校验 → 发布, so a disabled button is never unexplained.
 const draftState = computed(() => {
   if (!definition.value) return null;
-  if (!isEditing.value) return { tone: "neutral", text: "已发布只读：点「创建可编辑草稿」在副本上修改，原流程不受影响。" };
-  if (!isPersistedDraft.value) return { tone: "warning", text: "未保存的草稿：先「保存草稿」，保存后才能校验和发布。" };
-  if (dirty.value) return { tone: "warning", text: "有未保存的修改：保存后再校验，校验针对已保存的版本。" };
+  if (!isEditing.value) return { tone: "neutral", text: "当前为已发布只读。若要修改，请点「创建可编辑草稿」在副本上编辑，原流程不受影响。" };
+  if (!isPersistedDraft.value) return { tone: "warning", text: "草稿尚未保存：先点「保存草稿」，保存后才能校验和发布。" };
+  if (dirty.value) return { tone: "warning", text: "有未保存的修改：请先保存，再点「校验草稿」。" };
   if (publication.value && validationResult.value?.valid !== true) return { tone: "success", text: "已保存，并有已发布版本；再次发布前需重新校验。" };
   if (validationResult.value?.valid === true) return { tone: "success", text: "已保存并校验通过：可以发布。" };
   if (validationResult.value) return { tone: "danger", text: "校验未通过：按节点上的提示修改，保存后再校验。" };
   return { tone: "info", text: "已保存：下一步「校验草稿」。" };
+});
+
+const validateDisabledReason = computed(() => {
+  if (saving.value) return "正在保存，请稍候";
+  if (validating.value) return "正在校验，请稍候";
+  if (dirty.value) return "有未保存的修改，请先保存再校验";
+  return "";
 });
 
 function assigneeLabel(value) {
