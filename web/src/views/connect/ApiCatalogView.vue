@@ -1,5 +1,5 @@
 <template>
-  <main>
+  <main class="api-catalog-page">
     <NxPageHeader
       eyebrow="星联 / 自用接口"
       title="自用 API 目录"
@@ -56,23 +56,32 @@
     </template>
 
     <template v-else>
-      <NxEmpty v-if="loaded && rows && !rows.length" title="暂无" description="当前租户还没有可见的自用 API。" />
-      <table v-else-if="rows?.length" class="nx-table">
+      <NxFilterBar label="自用 API 筛选" testid="api-catalog" @reset="query = ''">
+        <label class="nx-filter-field wide">搜索<input v-model.trim="query" type="search" placeholder="API 名称、Method 或 Path" aria-label="搜索 API" /></label>
+        <template #summary>{{ loaded && rows ? `显示 ${visibleRows.length} / ${rows.length} 个 API` : "正在加载…" }}</template>
+      </NxFilterBar>
+      <NxEmpty v-if="loaded && rows && !rows.length" title="暂无自用 API" description="当前租户还没有可见的自用 API；请先在接入配置中登记接口。">
+        <template #next><router-link class="ghost" to="/p5/connect">查看接入总览</router-link></template>
+      </NxEmpty>
+      <NxEmpty v-else-if="loaded && rows && !visibleRows.length" title="没有匹配的 API" description="调整搜索词或重置筛选后重试。" compact>
+        <template #next><button class="ghost" type="button" @click="query = ''">重置筛选</button></template>
+      </NxEmpty>
+      <div v-else-if="visibleRows.length" class="table-scroll"><table class="nx-table nx-table--compact" data-testid="api-catalog-table">
         <thead>
           <tr>
-            <th>API 名称</th>
-            <th>Method</th>
-            <th>Path</th>
-            <th>Version</th>
-            <th>Scope</th>
-            <th>状态</th>
-            <th>调用量</th>
-            <th>成功率</th>
-            <th>更新时间</th>
+            <th scope="col">API 名称</th>
+            <th scope="col">Method</th>
+            <th scope="col">Path</th>
+            <th scope="col">Version</th>
+            <th scope="col">Scope</th>
+            <th scope="col">状态</th>
+            <th scope="col">调用量</th>
+            <th scope="col">成功率</th>
+            <th scope="col">更新时间</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in rows" :key="row.id">
+          <tr v-for="row in visibleRows" :key="row.id">
             <td><router-link :to="`/p5/apis/${row.id}`">{{ row.name || "暂无" }}</router-link></td>
             <td><span class="method" :data-method="row.httpMethod || 'OTHER'">{{ row.httpMethod || "暂无" }}</span></td>
             <td>{{ row.path || "暂无" }}</td>
@@ -84,8 +93,8 @@
             <td>{{ formatTime(row.updatedAt) }}</td>
           </tr>
         </tbody>
-      </table>
-      <p v-else-if="!loaded" class="nx-muted" role="status">正在加载自用 API 目录…</p>
+      </table></div>
+      <div v-else-if="!loaded" class="loading-list"><NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在加载自用 API 目录" compact /></div>
     </template>
   </main>
 </template>
@@ -94,7 +103,7 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p5 } from "../../api/client";
-import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxFilterBar, NxNoPermission, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { CATALOG_TABS, catalogEntry, catalogRows, formatTime } from "./catalogDisplay";
 
 const route = useRoute();
@@ -105,6 +114,11 @@ const loaded = ref(false);
 const error = ref("");
 const traceId = ref("");
 const denied = ref(false);
+const query = ref("");
+const visibleRows = computed(() => {
+  const term = query.value.toLocaleLowerCase();
+  return (rows.value || []).filter((row) => !term || [row.name, row.httpMethod, row.path].some((value) => String(value || "").toLocaleLowerCase().includes(term)));
+});
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -179,6 +193,11 @@ watch(() => [route.name, route.params.id], load, { immediate: true });
 </script>
 
 <style scoped>
+.api-catalog-page { display: grid; gap: var(--nx-space-4); }
+.api-catalog-page :deep(.page-header) { margin-bottom: 0; }
+.table-scroll { overflow-x: auto; }
+.table-scroll .nx-table { min-width: 1040px; }
+.loading-list { display: grid; gap: var(--nx-space-2); }
 .detail-head { display: flex; align-items: center; gap: 12px; }
 .detail-head h2 { margin: 0; }
 .method { display: inline-block; min-width: 64px; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700; text-align: center; color: var(--nx-text-secondary, #526176); background: var(--nx-surface-muted, #f2f4f7); }

@@ -66,12 +66,17 @@ describe("self-use API catalog page", () => {
     expect(wrapper.text()).not.toMatch(/\d+%/);
     expect(wrapper.text()).not.toMatch(/curl/i);
     expect(wrapper.get('a[href="/p5/apis/shared"]').text()).toContain("列出租户");
+    expect(wrapper.get("[data-testid='api-catalog-table']").classes()).toContain("nx-table--compact");
+    await wrapper.get("input[aria-label='搜索 API']").setValue("创建");
+    expect(wrapper.findAll("tbody tr")).toHaveLength(1);
+    expect(wrapper.text()).toContain("显示 1 / 2 个 API");
   });
 
   it("shows 暂无 for an empty catalog and permission errors without rows", async () => {
     p5.apiCatalog.mockResolvedValueOnce([]);
     const empty = await open();
-    expect(empty.wrapper.text()).toContain("暂无");
+    expect(empty.wrapper.text()).toContain("暂无自用 API");
+    expect(empty.wrapper.get("[data-testid='nx-empty-next'] a").attributes("href")).toBe("/p5/connect");
     expect(empty.wrapper.find("tbody tr").exists()).toBe(false);
 
     p5.apiCatalog.mockRejectedValueOnce(Object.assign(new Error("需要租户上下文"), { status: 403, traceId: "trace-n18" }));
