@@ -106,4 +106,28 @@ describe("process draft editing", () => {
     }
     expect(() => removeParallelBlock(block, "approveTask")).toThrow("只能删除并行分支节点");
   });
+
+  it("serializes a parallel block in the exact shape the backend contract test validates (ZA14)", () => {
+    // Mirrors ProcessDraftParallelContractTest.webZ9ParallelBlockIsValid (nexus-p3-studio).
+    const block = addDraftNode(createBlankDraft("za14-block"), "parallelGateway", { after: "approveTask" });
+    block.nodes.forEach((node) => { if (node.type === "userTask") node.assignee = "${assignee}"; });
+    const xml = serializeDraftXml(block);
+    expect(xml).toContain('xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"');
+    expect(xml).toContain('xmlns:flowable="http://flowable.org/bpmn"');
+    for (const element of [
+      '<parallelGateway id="fork" name="并行开始"/>',
+      '<userTask id="parallel_task" name="并行审批 1" flowable:assignee="${assignee}"/>',
+      '<userTask id="parallel_task_2" name="并行审批 2" flowable:assignee="${assignee}"/>',
+      '<parallelGateway id="join" name="并行汇合"/>',
+      '<sequenceFlow id="flow_approveTask_fork" sourceRef="approveTask" targetRef="fork">',
+      '<sequenceFlow id="flow_fork_parallel_task" sourceRef="fork" targetRef="parallel_task">',
+      '<sequenceFlow id="flow_fork_parallel_task_2" sourceRef="fork" targetRef="parallel_task_2">',
+      '<sequenceFlow id="flow_parallel_task_join" sourceRef="parallel_task" targetRef="join">',
+      '<sequenceFlow id="flow_parallel_task_2_join" sourceRef="parallel_task_2" targetRef="join">',
+      '<sequenceFlow id="flow_join_end" sourceRef="join" targetRef="end">',
+    ]) {
+      expect(xml).toContain(element);
+    }
+    expect(xml).not.toContain("conditionExpression");
+  });
 });
