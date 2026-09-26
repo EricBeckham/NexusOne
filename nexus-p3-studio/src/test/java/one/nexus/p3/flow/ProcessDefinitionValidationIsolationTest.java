@@ -54,10 +54,14 @@ class ProcessDefinitionValidationIsolationTest {
         for (String type : new String[]{"exclusiveGateway", "parallelGateway"}) {
             String condition = type.equals("exclusiveGateway")
                     ? "<conditionExpression>${approved}</conditionExpression>" : "";
-            String xml = "<definitions><process id='p'><startEvent id='s'/><" + type + " id='g'/><endEvent id='e'/>"
+            // ZA11: parallel branches must meet at a parallel join, so the parallel case forks and joins.
+            String target = type.equals("parallelGateway") ? "j" : "e";
+            String join = type.equals("parallelGateway")
+                    ? "<parallelGateway id='j'/><sequenceFlow id='out' sourceRef='j' targetRef='e'/>" : "";
+            String xml = "<definitions><process id='p'><startEvent id='s'/><" + type + " id='g'/><endEvent id='e'/>" + join
                     + "<sequenceFlow id='in' sourceRef='s' targetRef='g'/>"
-                    + "<sequenceFlow id='a' sourceRef='g' targetRef='e'>" + condition + "</sequenceFlow>"
-                    + "<sequenceFlow id='b' sourceRef='g' targetRef='e'/></process></definitions>";
+                    + "<sequenceFlow id='a' sourceRef='g' targetRef='" + target + "'>" + condition + "</sequenceFlow>"
+                    + "<sequenceFlow id='b' sourceRef='g' targetRef='" + target + "'/></process></definitions>";
             when(store.find(TENANT_A, type)).thenReturn(Optional.of(new ProcessDefinitionDraft(
                     UUID.randomUUID(), TENANT_A, type, type, xml, 1, PERSON, Instant.now(), Instant.now())));
             var result = service.validateDraft(type);
