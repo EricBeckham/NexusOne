@@ -72,13 +72,17 @@
       <div v-else-if="!loaded" class="loading-list"><NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在加载 Webhook" compact /></div>
 
       <section id="create-webhook" class="nx-card issue">
-        <h2>创建订阅</h2>
+        <h2>创建事件订阅</h2>
         <div class="nx-field"><label>名称</label><input v-model="name" /></div>
         <div class="nx-field"><label>HTTPS 端点</label><input v-model="endpoint" /></div>
         <div class="nx-field"><label>事件类型（逗号分隔）</label><input v-model="events" /></div>
         <p v-if="formError" class="nx-error">{{ formError }}</p>
         <button class="primary" type="button" :disabled="saving" @click="create">创建订阅</button>
-        <p v-if="createdId" class="nx-muted">已创建：{{ createdId }}</p>
+        <section v-if="createdId" class="created-feedback" role="status" data-testid="webhook-created">
+          <strong>订阅已创建</strong>
+          <p>可在详情页查看订阅配置和后续投递记录。</p>
+          <router-link class="ghost" :to="`/p5/webhooks/${createdId}`">查看订阅详情</router-link>
+        </section>
       </section>
     </template>
   </main>
@@ -214,6 +218,9 @@ onMounted(load);
 .table-scroll { overflow-x: auto; }
 .table-scroll .nx-table { min-width: 700px; }
 .loading-list { display: grid; gap: var(--nx-space-2); }
+.created-feedback { display: grid; justify-items: start; gap: var(--nx-space-2); margin-top: var(--nx-space-4); padding: var(--nx-space-3); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); background: var(--nx-success-light); }
+.created-feedback strong { color: var(--nx-success); }
+.created-feedback p { margin: 0; color: var(--nx-text-secondary); }
 .detail, .issue, .deliveries { margin-top: 0; }
 .detail h2, .issue h2, .deliveries h2 { margin-top: 0; font-size: 16px; }
 dl { display: grid; gap: var(--nx-space-3); margin: 0; }
