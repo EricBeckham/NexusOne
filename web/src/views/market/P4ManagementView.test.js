@@ -100,4 +100,13 @@ describe("P4 management subpages", () => {
     const wrapper = await mountPage("/p4/subscriptions");
     expect(wrapper.text()).toContain("需要先进入租户"); expect(wrapper.text()).not.toContain("上下文"); expect(mocks.subscriptions).not.toHaveBeenCalled();
   });
+
+  it("gives an empty subscription list a reason and the next step (S10)", async () => {
+    mocks.subscriptions.mockResolvedValue([]);
+    const wrapper = await mountPage("/p4/subscriptions");
+    const empty = wrapper.get('[data-testid="subscriptions-empty"]');
+    expect(empty.text()).toContain("还没有订阅");
+    expect(empty.text()).toContain("在应用目录选择 SKU 订阅开通后");
+    expect(empty.get("a").attributes("href")).toBe("/p4/market");
+  });
 });

@@ -50,7 +50,7 @@ describe("P4 catalog V11", () => {
     expect(wrapper.findAll('[data-testid="catalog-version"]').map((node) => node.text())).toEqual(["版本 1.2.0", "版本 2.0.0"]);
     expect(wrapper.get(".app-identity h2").text()).toBe("星辰 CRM");
     expect(wrapper.get(".app-logo").attributes("aria-label")).toBe("应用标识占位");
-    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("暂无 SKU");
+    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("还没有可开通的 SKU");
     expect(wrapper.text()).not.toContain("分类");
     await wrapper.get('[data-testid="catalog-search"]').setValue("BASIC");
     await flushPromises();
@@ -174,7 +174,9 @@ describe("P4 catalog V11", () => {
   it("shows empty and the server failure text", async () => {
     mocks.catalog.mockResolvedValueOnce([]);
     const empty = await mountCatalog();
-    expect(empty.text()).toContain("暂无");
+    // S10: reason + next step.
+    expect(empty.get('[data-testid="catalog-empty"]').text()).toContain("目录里还没有应用");
+    expect(empty.get('[data-testid="catalog-empty-reload"]').text()).toBe("刷新目录");
     empty.unmount();
 
     mocks.catalog.mockResolvedValueOnce([
@@ -186,5 +188,26 @@ describe("P4 catalog V11", () => {
     await flushPromises();
     expect(failed.text()).toContain("tenant already has an active subscription for this SKU");
     expect(failed.router.currentRoute.value.path).toBe("/p4/market");
+  });
+
+  it("explains a filter with no match and clears it, and titles a load failure (S10)", async () => {
+    const wrapper = await mountCatalog();
+    await wrapper.get('[data-testid="catalog-search"]').setValue("不存在的应用");
+    await flushPromises();
+    const noMatch = wrapper.get('[data-testid="catalog-no-match"]');
+    expect(noMatch.text()).toContain("没有匹配的应用");
+    expect(noMatch.text()).toContain("「不存在的应用」");
+    await noMatch.get('[data-testid="catalog-no-match-clear"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="catalog-no-match"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("星辰 CRM");
+    wrapper.unmount();
+
+    mocks.catalog.mockRejectedValueOnce(new Error("catalog unavailable"));
+    const failed = await mountCatalog();
+    const state = failed.get('[data-testid="nx-error-state"]');
+    expect(state.text()).toContain("应用目录暂时无法加载");
+    expect(state.text()).toContain("catalog unavailable");
+    expect(state.get("button").text()).toBe("重新加载");
   });
 });

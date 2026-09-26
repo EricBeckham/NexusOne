@@ -4,7 +4,8 @@
       <template #actions><button class="ghost" type="button" :disabled="loading" @click="load">刷新目录</button></template>
     </NxPageHeader>
 
-    <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
+    <!-- S10: error and empty states say what happened, why, and what to do next. -->
+    <NxErrorState v-if="error" title="应用目录暂时无法加载" :description="error" retry-label="重新加载" @retry="load" />
     <template v-else>
       <NxFilterBar label="目录筛选" testid="catalog" data-testid="catalog-filter" @reset="resetSearch">
         <label class="nx-filter-field wide">关键词<input v-model="search" type="search" placeholder="应用名称、编码、简介或 SKU" data-testid="catalog-search" /></label>
@@ -28,7 +29,22 @@
       <div v-if="loading" class="catalog-skeleton" role="status" data-testid="catalog-loading">
         <NxSkeleton v-for="n in 3" :key="n" variant="list-row" label="正在加载应用目录" />
       </div>
-      <NxEmpty v-else-if="!visibleItems.length" :title="items.length ? '没有匹配的应用' : '暂无'" :description="items.length ? '请调整搜索词后重试。' : '应用审核并发布后，会出现在这里。'" />
+      <NxEmpty
+        v-else-if="!items.length"
+        title="目录里还没有应用"
+        description="平台审核并发布应用后，会出现在这里，届时可以选择 SKU 订阅开通。"
+        data-testid="catalog-empty"
+      >
+        <template #action><button class="ghost" type="button" data-testid="catalog-empty-reload" @click="load">刷新目录</button></template>
+      </NxEmpty>
+      <NxEmpty
+        v-else-if="!visibleItems.length"
+        title="没有匹配的应用"
+        :description="`没有应用的名称、编码、简介或 SKU 包含「${search.trim()}」。`"
+        data-testid="catalog-no-match"
+      >
+        <template #action><button class="ghost" type="button" data-testid="catalog-no-match-clear" @click="resetSearch">清空筛选</button></template>
+      </NxEmpty>
       <section v-else class="catalog-grid" aria-label="已发布应用目录" data-testid="catalog-grid">
         <article v-for="item in visibleItems" :key="item.version.id" class="app-card">
           <header class="card-header">
@@ -41,7 +57,7 @@
           </header>
           <p class="summary" :title="item.app.summary">{{ item.app.summary || "暂无简介" }}</p>
           <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span data-testid="catalog-sku-count">{{ catalogSkus(item).length }} 个</span></div>
-            <NxEmpty v-if="!catalogSkus(item).length" title="暂无 SKU" description="当前版本没有可安装的 SKU。" compact />
+            <NxEmpty v-if="!catalogSkus(item).length" title="还没有可开通的 SKU" description="平台为该版本配置 SKU 后即可订阅开通。" compact />
             <ul v-else class="sku-list">
               <li v-for="sku in catalogSkus(item)" :key="sku.code" class="sku-item" data-testid="catalog-sku">
                 <div class="sku-meta">
