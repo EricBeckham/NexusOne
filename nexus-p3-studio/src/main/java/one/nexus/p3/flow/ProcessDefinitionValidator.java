@@ -94,13 +94,30 @@ public class ProcessDefinitionValidator {
 
         for (var entry : nodes.entrySet()) {
             Element gateway = entry.getValue();
-            if (!"exclusiveGateway".equals(localName(gateway))) continue;
+            boolean parallel = "parallelGateway".equals(localName(gateway));
+            if (!parallel && !"exclusiveGateway".equals(localName(gateway))) continue;
             String id = entry.getKey();
             List<Element> exits = outgoingFlows.getOrDefault(id, List.of());
             if (incomingCounts.getOrDefault(id, 0) == 0 || exits.isEmpty()) {
                 errors.add(error("GATEWAY_CONNECTION_REQUIRED", "网关必须有进入和离开的连线", id, null));
             }
             String defaultFlow = gateway.getAttribute("default");
+            if (parallel) {
+                if (!defaultFlow.isBlank()) {
+                    errors.add(error("PARALLEL_DEFAULT_FLOW_UNSUPPORTED", "并行网关不使用默认连线", id, defaultFlow));
+                }
+                if (incomingCounts.getOrDefault(id, 0) == 1 && exits.size() == 1) {
+                    errors.add(error("PARALLEL_BRANCH_REQUIRED", "并行网关至少需要两条进入或离开的连线", id, null));
+                }
+                for (Element exit : exits) {
+                    for (Node child = exit.getFirstChild(); child != null; child = child.getNextSibling()) {
+                        if (child instanceof Element condition && "conditionExpression".equals(localName(condition))) {
+                            errors.add(error("PARALLEL_FLOW_CONDITION_UNSUPPORTED", "并行网关的出线不能带条件", id, exit.getAttribute("id")));
+                        }
+                    }
+                }
+                continue;
+            }
             if (!defaultFlow.isBlank() && exits.stream().noneMatch(flow -> defaultFlow.equals(flow.getAttribute("id")))) {
                 errors.add(error("GATEWAY_DEFAULT_FLOW_INVALID", "默认连线必须是当前网关的出线", id, defaultFlow));
             }

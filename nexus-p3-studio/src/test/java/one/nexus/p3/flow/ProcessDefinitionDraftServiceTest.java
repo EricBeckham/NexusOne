@@ -62,6 +62,15 @@ class ProcessDefinitionDraftServiceTest {
     }
 
     @Test
+    void preservesParallelForkJoinXml() {
+        bind(TENANT_A);
+        String xml = "<definitions><process id='expense'><parallelGateway id='fork'/><parallelGateway id='join'/>"
+                + "<sequenceFlow id='a' sourceRef='fork' targetRef='join'/></process></definitions>";
+        service.save("expense", "Expense", xml);
+        verify(store).save(TENANT_A, PERSON, "expense", "Expense", xml);
+    }
+
+    @Test
     void preservesExclusiveGatewayAndConditionXmlWithoutEvaluation() {
         bind(TENANT_A);
         String xml = "<definitions><process id='expense'><exclusiveGateway id='choice'/>"
