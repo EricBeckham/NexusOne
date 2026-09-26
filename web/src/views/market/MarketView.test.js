@@ -4,7 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { useNxToastState } from "../../feedback/nxMessage";
 import { createMemoryHistory, createRouter } from "vue-router";
 
-const mocks = vi.hoisted(() => ({ catalog: vi.fn(), subscribe: vi.fn(), subscriptions: vi.fn(), session: { tenantId: "tenant-1", contextId: "" } }));
+const mocks = vi.hoisted(() => ({ catalog: vi.fn(), subscribe: vi.fn(), requestActivation: vi.fn(), subscriptions: vi.fn(), activationApplications: vi.fn(), session: { tenantId: "tenant-1", contextId: "" } }));
 vi.mock("../../api/client", () => ({ p4: mocks }));
 vi.mock("../../api/session", () => ({ session: mocks.session }));
 
@@ -35,8 +35,10 @@ async function mountCatalog() {
 
 describe("P4 catalog V11", () => {
   beforeEach(() => {
-    mocks.catalog.mockReset(); mocks.subscribe.mockReset(); mocks.subscriptions.mockReset();
+    mocks.catalog.mockReset(); mocks.subscribe.mockReset(); mocks.requestActivation.mockReset();
+    mocks.subscriptions.mockReset(); mocks.activationApplications.mockReset();
     mocks.subscriptions.mockResolvedValue([]);
+    mocks.activationApplications.mockResolvedValue([]);
     mocks.session.contextId = "";
     mocks.catalog.mockResolvedValue([
       { app: { id: "app-1", name: "星辰 CRM", code: "crm", summary: "客户关系管理" }, version: { id: "v1", version: "1.2.0", status: "PUBLISHED" }, skus: [BOUND_BASIC] },
@@ -48,11 +50,11 @@ describe("P4 catalog V11", () => {
     const wrapper = await mountCatalog();
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("星辰 CRM");
     // Q7: the corner badge is what the tenant can do (all entries are published); version sits in the title meta.
-    expect(wrapper.findAll('[data-testid="catalog-card-badge"]').map((node) => node.text())).toEqual(["可开通", "暂不可开通"]);
+    expect(wrapper.findAll('[data-testid="catalog-card-badge"]').map((node) => node.text())).toEqual(["可申请", "暂不可申请"]);
     expect(wrapper.findAll('[data-testid="catalog-version"]').map((node) => node.text())).toEqual(["版本 1.2.0", "版本 2.0.0"]);
     expect(wrapper.get(".app-identity h2").text()).toBe("星辰 CRM");
     expect(wrapper.get(".app-logo").attributes("aria-label")).toBe("应用标识占位");
-    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("还没有可开通的 SKU");
+    expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("还没有可申请的 SKU");
     expect(wrapper.text()).not.toContain("分类");
     await wrapper.get('[data-testid="catalog-search"]').setValue("BASIC");
     await flushPromises();
@@ -67,16 +69,15 @@ describe("P4 catalog V11", () => {
     expect(wrapper.get('[data-testid="catalog-grid"]').text()).toContain("财务平台");
   });
 
-  it("subscribes without payment and opens 已开通可用", async () => {
-    mocks.subscribe.mockResolvedValue({ id: "install-1" });
+  it("requests activation without payment and stays for platform review", async () => {
+    mocks.requestActivation.mockResolvedValue({ id: "app-1", status: "PENDING", sku_code: "basic" });
     const wrapper = await mountCatalog();
     expect(wrapper.text()).toContain("无支付");
-    expect(wrapper.get(".install-button").text()).toContain("订阅开通");
+    expect(wrapper.get(".install-button").text()).toContain("申请开通");
     await wrapper.get(".install-button").trigger("click");
     await flushPromises();
-    expect(mocks.subscribe).toHaveBeenCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
-    expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
-    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "已开通可用「基础版」，可在已开通列表发起申请" });
+    expect(mocks.requestActivation).toHaveBeenCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "开通申请已提交「基础版」，等待平台审订" });
   });
 
   it("reads the nested SKU fields instead of rendering undefined", async () => {
@@ -87,8 +88,8 @@ describe("P4 catalog V11", () => {
     expect(sku.text()).toContain("basic");
     expect(sku.get('[data-testid="catalog-sku-product"]').text()).toContain("CRM 基础审批");
     expect(sku.text()).toContain("approval · 配额 10");
-    expect(sku.get('[data-testid="catalog-subscribe"]').text()).toBe("订阅开通");
-    expect(sku.get('[data-testid="catalog-subscribe"]').attributes("aria-label")).toBe("订阅开通 基础版");
+    expect(sku.get('[data-testid="catalog-subscribe"]').text()).toBe("申请开通");
+    expect(sku.get('[data-testid="catalog-subscribe"]').attributes("aria-label")).toBe("申请开通 基础版");
     expect(wrapper.get('[data-testid="catalog-sku-count"]').text()).toBe("1 个");
     await wrapper.get('[data-testid="catalog-search"]').setValue("基础版");
     await flushPromises();
@@ -134,11 +135,11 @@ describe("P4 catalog V11", () => {
     expect(button.attributes("disabled")).toBeDefined();
     expect(button.classes()).not.toContain("ready");
     await button.trigger("click");
-    expect(mocks.subscribe).not.toHaveBeenCalled();
+    expect(mocks.requestActivation).not.toHaveBeenCalled();
   });
 
   it("keeps the catalog on a subscribe failure, explains it, and retries the same SKU", async () => {
-    mocks.subscribe.mockRejectedValueOnce(Object.assign(new Error("catalog SKU has no product definition"), {
+    mocks.requestActivation.mockRejectedValueOnce(Object.assign(new Error("catalog SKU has no product definition"), {
       status: 404, code: "CORE.API.0002", traceId: "trace-h6",
     }));
     const wrapper = await mountCatalog();
@@ -147,22 +148,23 @@ describe("P4 catalog V11", () => {
     expect(wrapper.find('[data-testid="catalog-grid"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nx-error-state"]').exists()).toBe(false);
     const failure = wrapper.get('[data-testid="subscribe-failure"]');
-    expect(failure.text()).toContain("订阅开通失败：基础版");
+    expect(failure.text()).toContain("开通申请失败：基础版");
     expect(failure.get('[data-testid="subscribe-failure-hint"]').text()).toContain("绑定产品定义");
     expect(failure.get('[data-testid="subscribe-failure-server"]').text()).toContain("catalog SKU has no product definition");
     expect(failure.get('[data-testid="subscribe-failure-trace"]').text()).toContain("trace-h6");
     expect(wrapper.text()).not.toContain("Internal error");
 
-    mocks.subscribe.mockResolvedValueOnce({ id: "install-1" });
+    mocks.requestActivation.mockResolvedValueOnce({ id: "install-1" });
     await failure.get('[data-testid="subscribe-retry"]').trigger("click");
     await flushPromises();
-    expect(mocks.subscribe).toHaveBeenCalledTimes(2);
-    expect(mocks.subscribe).toHaveBeenLastCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
-    expect(wrapper.router.currentRoute.value.path).toBe("/p4/installations");
+    expect(mocks.requestActivation).toHaveBeenCalledTimes(2);
+    expect(mocks.requestActivation).toHaveBeenLastCalledWith("tenant-1", { sku_code: "basic", version_id: "v1" });
+    expect(wrapper.router.currentRoute.value.path).toBe("/p4/market");
+    expect(useNxToastState().items.at(-1).message).toContain("开通申请已提交");
   });
 
   it("links a duplicate subscription to 已开通可用 without a retry button", async () => {
-    mocks.subscribe.mockRejectedValueOnce(Object.assign(new Error("tenant already has an active subscription for this SKU"), { status: 409 }));
+    mocks.requestActivation.mockRejectedValueOnce(Object.assign(new Error("tenant already has an active subscription for this SKU"), { status: 409 }));
     const wrapper = await mountCatalog();
     await wrapper.get('[data-testid="catalog-subscribe"]').trigger("click");
     await flushPromises();
@@ -184,7 +186,7 @@ describe("P4 catalog V11", () => {
     mocks.catalog.mockResolvedValueOnce([
       { app: { id: "app-1", name: "星辰 CRM", code: "crm", summary: "客户关系管理" }, version: { id: "v1", version: "1.2.0", status: "PUBLISHED" }, skus: [BOUND_BASIC] },
     ]);
-    mocks.subscribe.mockRejectedValueOnce(new Error("tenant already has an active subscription for this SKU"));
+    mocks.requestActivation.mockRejectedValueOnce(new Error("tenant already has an active subscription for this SKU"));
     const failed = await mountCatalog();
     await failed.get(".install-button").trigger("click");
     await flushPromises();

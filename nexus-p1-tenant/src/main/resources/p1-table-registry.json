@@ -48,4 +48,12 @@
     "schema_version": 1,
     "owner_module": "nexus-p1-tenant"
   }
+,
+  {
+    "table_name": "platform.tenant_registration_application",
+    "scope": "platform",
+    "tenant_required": false,
+    "schema_version": 1,
+    "owner_module": "nexus-p1-tenant"
+  }
 ]

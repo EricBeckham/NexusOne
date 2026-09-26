@@ -294,4 +294,71 @@ public class JdbcMarketRepository implements MarketRepository {
     private String write(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalStateException(e);}}
     private static UUID uuid(ResultSet r,String c)throws SQLException{Object v=r.getObject(c);return v==null?null:(v instanceof UUID u?u:UUID.fromString(v.toString()));}
     private static java.time.Instant instant(ResultSet r,String c)throws SQLException{var t=r.getTimestamp(c);return t==null?null:t.toInstant();}
+
+    @Override public void saveActivationApplication(ActivationApplication a) {
+        jdbc.sql("""
+                INSERT INTO market.activation_application(
+                  id, tenant_id, sku_code, version_id, status, review_note, reviewed_at, reviewed_by,
+                  resulting_subscription_id, resulting_installation_id, created_at, created_by)
+                VALUES(
+                  :id, :tenant, :sku, :version, :status, :note, :reviewedAt, :reviewedBy,
+                  :subId, :instId, :created, :createdBy)
+                ON CONFLICT(id) DO UPDATE SET
+                  status=:status, review_note=:note, reviewed_at=:reviewedAt, reviewed_by=:reviewedBy,
+                  resulting_subscription_id=:subId, resulting_installation_id=:instId
+                """)
+                .param("id", a.id()).param("tenant", a.tenantId()).param("sku", a.skuCode())
+                .param("version", a.versionId()).param("status", a.status().name())
+                .param("note", a.reviewNote())
+                .param("reviewedAt", sqlTimestamp(a.reviewedAt()))
+                .param("reviewedBy", a.reviewedBy())
+                .param("subId", a.resultingSubscriptionId())
+                .param("instId", a.resultingInstallationId())
+                .param("created", sqlTimestamp(a.createdAt()))
+                .param("createdBy", a.createdBy())
+                .update();
+    }
+
+    /** Platform-scoped list — not tenant-filtered (开通审订购). */
+    @Override public List<ActivationApplication> activationApplications() {
+        return jdbc.sql("""
+                SELECT * FROM market.activation_application ORDER BY created_at DESC
+                """).query(this::mapActivation).list();
+    }
+
+    @Override public Optional<ActivationApplication> activationApplication(UUID id) {
+        return jdbc.sql("SELECT * FROM market.activation_application WHERE id=:id")
+                .param("id", id).query(this::mapActivation).optional();
+    }
+
+    @Override public List<ActivationApplication> activationApplicationsForCurrentTenant() {
+        return tenantRows(
+                "market.activation_application",
+                List.of("id", "tenant_id", "sku_code", "version_id", "status", "review_note",
+                        "reviewed_at", "reviewed_by", "resulting_subscription_id",
+                        "resulting_installation_id", "created_at", "created_by"),
+                Map.of(),
+                this::mapActivation);
+    }
+
+    @Override public boolean hasActiveSubscription(UUID tenantId, String skuCode) {
+        Integer count = jdbc.sql("""
+                SELECT COUNT(*) FROM market.subscription
+                WHERE tenant_id=:tenant AND sku_code=:sku AND status='ACTIVE'
+                """)
+                .param("tenant", tenantId).param("sku", skuCode)
+                .query(Integer.class).single();
+        return count != null && count > 0;
+    }
+
+    private ActivationApplication mapActivation(ResultSet r, int n) throws SQLException {
+        return new ActivationApplication(
+                uuid(r, "id"), uuid(r, "tenant_id"), r.getString("sku_code"), uuid(r, "version_id"),
+                ActivationApplicationStatus.valueOf(r.getString("status")),
+                r.getString("review_note"), instant(r, "reviewed_at"),
+                (UUID) r.getObject("reviewed_by"),
+                (UUID) r.getObject("resulting_subscription_id"),
+                (UUID) r.getObject("resulting_installation_id"),
+                instant(r, "created_at"), uuid(r, "created_by"));
+    }
 }

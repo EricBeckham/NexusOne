@@ -1,5 +1,6 @@
 package one.nexus.p1.api;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import one.nexus.p1.domain.EntitlementProjection;
 import one.nexus.p1.domain.Quota;
 import one.nexus.p1.domain.Tenant;
 import one.nexus.p1.domain.TenantConfig;
+import one.nexus.p1.domain.TenantRegistrationApplication;
 import one.nexus.p1.port.TenantAdminInitializer.AdminInitResult;
 
 public final class ApiModels {
@@ -49,6 +51,44 @@ public final class ApiModels {
     }
 
     public record ConfirmRequest(boolean confirm, String reason) {}
+
+    public record ApplyTenantRegistrationRequest(
+            @NotBlank String orgName,
+            @NotBlank String adminDisplayName,
+            @NotBlank @Email String adminEmail,
+            String contactNote
+    ) {}
+
+    public record ReviewRegistrationRequest(String note) {}
+
+    public record TenantRegistrationView(
+            UUID id,
+            String orgName,
+            String adminDisplayName,
+            String adminEmail,
+            String contactNote,
+            String status,
+            String reviewNote,
+            Instant reviewedAt,
+            UUID reviewedBy,
+            UUID resultingTenantId,
+            Instant createdAt
+    ) {
+        public static TenantRegistrationView of(TenantRegistrationApplication application) {
+            return new TenantRegistrationView(
+                    application.id(),
+                    application.orgName(),
+                    application.adminDisplayName(),
+                    application.adminEmail(),
+                    application.contactNote(),
+                    application.status().name(),
+                    application.reviewNote(),
+                    application.reviewedAt(),
+                    application.reviewedBy(),
+                    application.resultingTenantId(),
+                    application.createdAt());
+        }
+    }
 
     public record ConsumeQuotaRequest(
             @NotBlank String metric,

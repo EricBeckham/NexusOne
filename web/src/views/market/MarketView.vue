@@ -1,6 +1,6 @@
 <template>
   <main class="market-page">
-    <NxPageHeader eyebrow="P4 · 星市" title="应用目录" description="无支付、无下单。选择 SKU 后即时开通，成功后进入「已开通可用」。">
+    <NxPageHeader eyebrow="P4 · 星市" title="应用目录" description="无支付、无下单。选择 SKU 后提交开通申请，平台审订通过后进入「已开通可用」。">
       <template #actions><button class="ghost" type="button" :disabled="loading" @click="load">刷新目录</button></template>
     </NxPageHeader>
 
@@ -13,7 +13,7 @@
       </NxFilterBar>
       <section v-if="failure" class="subscribe-failure" role="alert" data-testid="subscribe-failure">
         <div class="failure-body">
-          <strong>订阅开通失败<template v-if="failure.skuLabel">：{{ failure.skuLabel }}</template></strong>
+          <strong>开通申请失败<template v-if="failure.skuLabel">：{{ failure.skuLabel }}</template></strong>
           <p data-testid="subscribe-failure-hint">{{ failure.hint }}</p>
           <p v-if="failure.serverMessage" class="server-message" data-testid="subscribe-failure-server">服务端信息：{{ failure.serverMessage }}<template v-if="failure.code">（{{ failure.code }}）</template></p>
           <code v-if="failure.traceId" data-testid="subscribe-failure-trace">追踪号 {{ failure.traceId }}</code>
@@ -21,7 +21,7 @@
         <div class="failure-actions">
           <router-link v-if="failure.action" class="ghost" :to="failure.action.to">{{ failure.action.label }}</router-link>
           <button v-if="failure.retryable && failure.skuCode" class="primary" type="button" data-testid="subscribe-retry" :disabled="Boolean(installing)" @click="subscribe(failure.skuCode, failure.versionId, failure.skuLabel)">
-            {{ installing ? "开通中…" : "重试开通" }}
+            {{ installing ? "开通中…" : "重试申请" }}
           </button>
           <button class="ghost" type="button" data-testid="subscribe-dismiss" @click="failure = null">关闭</button>
         </div>
@@ -32,7 +32,7 @@
       <NxEmpty
         v-else-if="!items.length"
         title="目录里还没有应用"
-        description="平台审核并发布应用后，会出现在这里，届时可以选择 SKU 订阅开通。"
+        description="平台审核并发布应用后，会出现在这里，届时可以选择 SKU 申请开通。"
         data-testid="catalog-empty"
       >
         <template #action><button class="ghost" type="button" data-testid="catalog-empty-reload" @click="load">刷新目录</button></template>
@@ -57,18 +57,21 @@
           </header>
           <p class="summary" :title="item.app.summary">{{ item.app.summary || "暂无简介" }}</p>
           <div class="sku-section"><div class="sku-heading"><h3>可选 SKU</h3><span data-testid="catalog-sku-count">{{ catalogSkus(item).length }} 个</span></div>
-            <NxEmpty v-if="!catalogSkus(item).length" title="还没有可开通的 SKU" description="平台为该版本配置 SKU 后即可订阅开通。" compact />
+            <NxEmpty v-if="!catalogSkus(item).length" title="还没有可申请的 SKU" description="平台为该版本配置 SKU 后即可申请开通。" compact />
             <ul v-else class="sku-list">
               <li v-for="sku in catalogSkus(item)" :key="sku.code" class="sku-item" data-testid="catalog-sku">
                 <div class="sku-meta">
                   <div class="sku-title"><strong data-testid="catalog-sku-name">{{ sku.name || sku.code || "未命名 SKU" }}</strong><code v-if="sku.code">{{ sku.code }}</code></div>
                   <p v-if="sku.definition" class="sku-product" data-testid="catalog-sku-product">产品：{{ sku.definition.name || sku.definition.code }}</p>
-                  <p v-else class="sku-warn" data-testid="catalog-sku-unbound">未绑定产品定义，暂不可开通</p>
+                  <p v-else class="sku-warn" data-testid="catalog-sku-unbound">未绑定产品定义，暂不可申请</p>
                   <div v-if="sku.entitlements.length" class="sku-chips"><span v-for="chip in sku.entitlements" :key="chip">{{ chip }}</span></div>
                 </div>
                 <div v-if="subscribedSkus.has(sku.code)" class="subscribed" data-testid="catalog-subscribed">
                   <NxStatusTag status="INSTALLED" label="已开通可用" tone="success" />
                   <router-link class="nx-btn nx-btn--text" to="/p4/installations" data-testid="catalog-open-installed">前往已开通可用</router-link>
+                </div>
+                <div v-else-if="pendingSkus.has(sku.code)" class="subscribed" data-testid="catalog-pending">
+                  <NxStatusTag status="PENDING" label="开通审订中" tone="warning" />
                 </div>
                 <button
                   v-else
@@ -76,10 +79,10 @@
                   :class="sku.code && sku.definition ? ['ready', 'nx-btn--primary'] : 'nx-btn--default'"
                   type="button"
                   data-testid="catalog-subscribe"
-                  :aria-label="`订阅开通 ${sku.name || sku.code}`"
+                  :aria-label="`申请开通 ${sku.name || sku.code}`"
                   :disabled="!sku.code || !sku.definition || installing === sku.code"
                   @click="subscribe(sku.code, item.version.id, sku.name || sku.code)"
-                >{{ installing === sku.code ? "开通中…" : "订阅开通" }}</button>
+                >{{ installing === sku.code ? "提交中…" : "申请开通" }}</button>
               </li>
             </ul>
           </div>
@@ -106,25 +109,29 @@ const items = ref([]); const loading = ref(true); const error = ref(""); const i
 const failure = ref(null);
 // SKUs this tenant already subscribed (ACTIVE): show 已开通 instead of a subscribe that would 409.
 const subscribedSkus = ref(new Set());
+const pendingSkus = ref(new Set());
 
 async function loadSubscriptions() {
-  if (!session.contextId) { subscribedSkus.value = new Set(); return; }
+  if (!session.contextId) { subscribedSkus.value = new Set(); pendingSkus.value = new Set(); return; }
   try {
     const rows = (await p4.subscriptions()) || [];
+    const apps = await p4.activationApplications(true).catch(() => []);
+    pendingSkus.value = new Set((apps || []).filter((row) => row.status === "PENDING").map((row) => row.sku_code || row.skuCode).filter(Boolean));
     subscribedSkus.value = new Set(rows
       .filter((row) => String(row?.status || "").toUpperCase() === "ACTIVE")
       .map((row) => row?.sku_code ?? row?.skuCode)
       .filter(Boolean));
   } catch {
-    subscribedSkus.value = new Set(); // Unknown: keep offering subscribe; the 409 alert still explains duplicates.
+    subscribedSkus.value = new Set(); pendingSkus.value = new Set(); // Unknown: keep offering apply; the 409 alert still explains duplicates.
   }
 }
 // Q7: the corner badge says what the tenant can do with the app — every catalog entry is already published.
 function cardBadge(item) {
   const skus = catalogSkus(item);
   if (skus.some((sku) => subscribedSkus.value.has(sku.code))) return { label: "已开通可用", tone: "success" };
-  if (skus.some((sku) => sku.code && sku.definition)) return { label: "可开通", tone: "info" };
-  return { label: "暂不可开通", tone: "neutral" };
+  if (skus.some((sku) => pendingSkus.value.has(sku.code))) return { label: "开通审订中", tone: "warning" };
+  if (skus.some((sku) => sku.code && sku.definition)) return { label: "可申请", tone: "info" };
+  return { label: "暂不可申请", tone: "neutral" };
 }
 
 const search = ref(typeof route.query.q === "string" ? route.query.q : "");
@@ -148,10 +155,10 @@ async function subscribe(skuCode, versionId, skuLabel = "") {
   }
   installing.value = skuCode; failure.value = null;
   try {
-    await p4.subscribe(session.tenantId, { sku_code: skuCode, version_id: versionId });
+    await p4.requestActivation(session.tenantId, { sku_code: skuCode, version_id: versionId });
     // S6: short success toast; failures keep the inline alert with hint, server text and retry.
-    nxMessage.success(`已开通可用${skuLabel ? `「${skuLabel}」` : ""}，可在已开通列表发起申请`);
-    await router.push("/p4/installations");
+    nxMessage.success(`开通申请已提交${skuLabel ? `「${skuLabel}」` : ""}，等待平台审订`);
+    await loadSubscriptions();
   } catch (err) {
     // A subscribe failure must not replace the catalog: keep it visible and offer a real retry.
     failure.value = { ...describeSubscribeError(err), skuCode, versionId, skuLabel };
