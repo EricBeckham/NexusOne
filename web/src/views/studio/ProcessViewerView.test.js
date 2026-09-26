@@ -394,7 +394,9 @@ describe("process viewer", () => {
     await wrapper.get("[data-testid='condition-mode-raw']").trigger("click");
     await wrapper.get("[data-testid='flow-condition']").setValue("${amount > 1000}");
     expect(wrapper.get("[data-testid='process-flow'].current").classes()).toContain("conditional");
-    expect(wrapper.get(".flow-condition").text()).toBe("${amount > 1000}");
+    // ZA9: the edge label reads in words; the raw expression is the hover title.
+    expect(wrapper.get(".flow-condition title").text()).toBe("${amount > 1000}");
+    expect(wrapper.get(".flow-condition").text()).toContain("amount 大于 1000");
 
     // A flow that does not leave a gateway explains why it has no condition.
     await wrapper.findAll("[data-testid='process-flow']")[0].trigger("click");
@@ -669,5 +671,30 @@ describe("process viewer", () => {
     await wrapper.get("[data-testid='process-save']").trigger("click");
     await flushPromises();
     expect(p3.saveProcessDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it("summarizes branch conditions in words on the gateway, the edges and related flows (ZA9)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    await wrapper.get(".step").trigger("click");
+    await wrapper.get("[data-testid='add-gateway']").trigger("click");
+
+    // The gateway panel lists its branches; picking one opens its condition editor at full width.
+    const items = () => wrapper.findAll("[data-testid='branch-summary-item']");
+    const parts = (item) => [".branch-index", ".branch-target", ".branch-condition"].map((selector) => item.get(selector).text());
+    expect(items().map(parts)).toEqual([["分支 1", "→ 结束", "无条件"], ["分支 2", "→ 分支审批", "无条件"]]);
+    await items()[1].trigger("click");
+    expect(wrapper.get("[data-testid='condition-editor']").classes()).toContain("wide");
+    await wrapper.get("[data-testid='condition-variable']").setValue("outcome");
+    await wrapper.get("[data-testid='condition-value']").setValue("REJECT");
+
+    expect(wrapper.get(".flow-condition").text()).toContain("审批结果 等于 驳回");
+    expect(wrapper.get(".flow-condition title").text()).toBe("${outcome == 'REJECT'}");
+    await wrapper.findAll("[data-testid='process-node']").find((node) => node.text().includes("条件分支")).trigger("click");
+    const related = wrapper.findAll("[data-testid='related-flow']").map((item) => item.text());
+    expect(related.some((text) => text.includes("审批结果 等于 驳回"))).toBe(true);
+    expect(parts(items()[1])).toEqual(["分支 2", "→ 分支审批", "审批结果 等于 驳回"]);
+    expect(items()[1].attributes("title")).toBe("${outcome == 'REJECT'}");
   });
 });
