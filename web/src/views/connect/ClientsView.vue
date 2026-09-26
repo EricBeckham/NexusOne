@@ -1,5 +1,5 @@
 <template>
-  <main>
+  <main class="clients-page">
     <NxPageHeader
       eyebrow="P5 · NEXUS CONNECT"
       title="API Client"
@@ -21,7 +21,7 @@
           <div><dt>密钥前缀</dt><dd>{{ show(client.keyPrefix) }}</dd></div>
           <div><dt>Scope</dt><dd>{{ client.scopes.length ? client.scopes.join("、") : "暂无" }}</dd></div>
           <div><dt>每分钟限流</dt><dd>{{ show(client.rateLimit) }}</dd></div>
-          <div><dt>状态</dt><dd><NxStatusTag v-if="client.active != null" :status="client.active ? 'ACTIVE' : 'DISABLED'" /><template v-else>暂无</template></dd></div>
+          <div><dt>状态</dt><dd><NxStatusTag v-if="client.active != null" :status="client.active ? 'ACTIVE' : 'DISABLED'" :label="client.active ? '启用' : '停用'" /><template v-else>暂无</template></dd></div>
           <div><dt>创建时间</dt><dd>{{ show(client.createdAt) }}</dd></div>
         </dl>
       </section>
@@ -29,10 +29,12 @@
 
     <template v-else>
       <NxStatCard label="API Client" :value="count" unit="个" />
-      <NxEmpty v-if="rows && !rows.length" title="暂无" description="当前租户还没有 API Client。" />
-      <table v-else-if="rows?.length" class="nx-table">
+      <NxEmpty v-if="rows && !rows.length" title="暂无 API Client" description="签发一个服务身份后，Client 会显示在这里；密钥只会在签发时展示一次。">
+        <template #next><a class="ghost" href="#issue-client">去签发</a></template>
+      </NxEmpty>
+      <div v-else-if="rows?.length" class="table-scroll"><table class="nx-table nx-table--compact" data-testid="clients-table">
         <thead>
-          <tr><th>名称</th><th>密钥前缀</th><th>Scope</th><th>每分钟限流</th><th>状态</th><th></th></tr>
+          <tr><th scope="col">名称</th><th scope="col">密钥前缀</th><th scope="col">Scope</th><th scope="col">每分钟限流</th><th scope="col">状态</th><th scope="col">操作</th></tr>
         </thead>
         <tbody>
           <tr v-for="row in listed" :key="row.id || row.name">
@@ -40,13 +42,14 @@
             <td>{{ show(row.keyPrefix) }}</td>
             <td>{{ row.scopes.length ? row.scopes.join("、") : "暂无" }}</td>
             <td>{{ show(row.rateLimit) }}</td>
-            <td><NxStatusTag v-if="row.active != null" :status="row.active ? 'ACTIVE' : 'DISABLED'" /><template v-else>暂无</template></td>
+            <td><NxStatusTag v-if="row.active != null" :status="row.active ? 'ACTIVE' : 'DISABLED'" :label="row.active ? '启用' : '停用'" /><template v-else>暂无</template></td>
             <td><router-link v-if="row.id" :to="`/p5/clients/${row.id}`">查看</router-link><template v-else>暂无</template></td>
           </tr>
         </tbody>
-      </table>
+      </table></div>
+      <div v-else-if="!loaded" class="loading-list"><NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在加载 API Client" compact /></div>
 
-      <section class="nx-card issue">
+      <section id="issue-client" class="nx-card issue">
         <h2>签发</h2>
         <div class="nx-field"><label>名称</label><input v-model="name" /></div>
         <div class="nx-field"><label>Scope（逗号分隔）</label><input v-model="scopes" /></div>
@@ -65,7 +68,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxStatCard, NxStatusTag } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton, NxStatCard, NxStatusTag } from "../../components";
 import { p5 } from "../../api/client";
 import { asRows, clientFields, show } from "./connectDisplay";
 
@@ -83,7 +86,7 @@ const saving = ref(false);
 const formError = ref("");
 
 const isDetail = computed(() => route.name === "p5-client");
-const count = computed(() => (rows.value && rows.value.length ? rows.value.length : null));
+const count = computed(() => rows.value?.length ?? null);
 const listed = computed(() => (rows.value || []).map(clientFields).filter(Boolean));
 const client = computed(() => clientFields(detail.value));
 
@@ -174,7 +177,12 @@ onMounted(load);
 </script>
 
 <style scoped>
-.detail, .issue { margin-top: var(--nx-space-4); }
+.clients-page { display: grid; gap: var(--nx-space-4); }
+.clients-page :deep(.page-header) { margin-bottom: 0; }
+.table-scroll { overflow-x: auto; }
+.table-scroll .nx-table { min-width: 700px; }
+.loading-list { display: grid; gap: var(--nx-space-2); }
+.detail, .issue { margin-top: 0; }
 .detail h2, .issue h2 { margin-top: 0; font-size: 16px; }
 dl { display: grid; gap: var(--nx-space-3); margin: 0; }
 dl div { display: grid; grid-template-columns: 120px 1fr; gap: var(--nx-space-3); }
