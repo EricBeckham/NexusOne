@@ -195,38 +195,62 @@
 
       <div v-show="tab === 'field'" data-testid="field-properties" role="tabpanel">
         <template v-if="selected">
-          <label class="nx-field"><span>名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="selected.label" data-testid="field-label" maxlength="160" required :aria-invalid="!!localFieldError(selected, 'label')" />
-            <small v-if="localFieldError(selected, 'label')" class="nx-field-error" data-testid="field-label-error">{{ localFieldError(selected, "label") }}</small>
-          </label>
-          <label class="nx-field"><span>字段编码<em class="nx-req" aria-hidden="true">*</em></span>
-            <input v-model="selected.key" class="nx-code" data-testid="field-key" maxlength="80" required :aria-invalid="!!localFieldError(selected, 'key')" />
-            <small v-if="localFieldError(selected, 'key')" class="nx-field-error" data-testid="field-key-error">{{ localFieldError(selected, "key") }}</small>
-            <small class="hint">小写字母开头，仅小写字母、数字、下划线；同一模板内唯一</small>
-          </label>
-          <label class="nx-field"><span>类型</span>
-            <select v-model="selected.type" data-testid="field-type">
-              <option v-for="item in FIELD_TYPES" :key="item.value" :value="item.value">{{ item.label }}</option>
-            </select>
-          </label>
-          <label class="switch">
-            <input v-model="selected.required" type="checkbox" data-testid="field-required" />
-            <span class="track" aria-hidden="true" />
-            <span>必填</span>
-          </label>
-          <div v-if="selected.type === 'SELECT'" class="options" data-testid="field-options">
-            <p class="section-title">选项</p>
-            <div v-for="(option, optionIndex) in selected.options" :key="optionIndex" class="option-row">
-              <input v-model="option.label" placeholder="显示名" aria-label="选项显示名" data-testid="option-label" />
-              <input v-model="option.value" placeholder="值" aria-label="选项值" class="nx-code" data-testid="option-value" />
-              <button class="icon-btn danger-hover" type="button" aria-label="删除选项" data-testid="remove-option" @click="selected.options.splice(optionIndex, 1)">
-                <NxIcon name="trash" :size="16" />
-              </button>
-            </div>
-            <button class="ghost small" type="button" data-testid="add-option" @click="selected.options.push({ label: '', value: '' })">
-              <NxIcon name="plus" :size="16" />添加选项
-            </button>
-          </div>
-          <p v-for="(message, messageIndex) in fieldErrors(selected)" :key="`e${messageIndex}`" class="nx-field-error" data-testid="field-prop-error">{{ message }}</p>
+          <NxPropertyPanel
+            v-model="fieldPropTab"
+            :tabs="FIELD_PROP_TABS"
+            compact
+            aria-label="字段属性分区"
+            tablist-label="字段属性分区"
+            data-testid="field-property-panel"
+          >
+            <template #basic>
+              <label class="nx-field"><span>名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="selected.label" data-testid="field-label" maxlength="160" required :aria-invalid="!!localFieldError(selected, 'label')" />
+                <small v-if="localFieldError(selected, 'label')" class="nx-field-error" data-testid="field-label-error">{{ localFieldError(selected, "label") }}</small>
+              </label>
+              <label class="nx-field"><span>字段编码<em class="nx-req" aria-hidden="true">*</em></span>
+                <input v-model="selected.key" class="nx-code" data-testid="field-key" maxlength="80" required :aria-invalid="!!localFieldError(selected, 'key')" />
+                <small v-if="localFieldError(selected, 'key')" class="nx-field-error" data-testid="field-key-error">{{ localFieldError(selected, "key") }}</small>
+                <small class="hint">小写字母开头，仅小写字母、数字、下划线；同一模板内唯一</small>
+              </label>
+              <label class="nx-field"><span>类型</span>
+                <select v-model="selected.type" data-testid="field-type">
+                  <option v-for="item in FIELD_TYPES" :key="item.value" :value="item.value">{{ item.label }}</option>
+                </select>
+              </label>
+              <div v-if="selected.type === 'SELECT'" class="options" data-testid="field-options">
+                <p class="section-title">选项</p>
+                <div v-for="(option, optionIndex) in selected.options" :key="optionIndex" class="option-row">
+                  <input v-model="option.label" placeholder="显示名" aria-label="选项显示名" data-testid="option-label" />
+                  <input v-model="option.value" placeholder="值" aria-label="选项值" class="nx-code" data-testid="option-value" />
+                  <button class="icon-btn danger-hover" type="button" aria-label="删除选项" data-testid="remove-option" @click="selected.options.splice(optionIndex, 1)">
+                    <NxIcon name="trash" :size="16" />
+                  </button>
+                </div>
+                <button class="ghost small" type="button" data-testid="add-option" @click="selected.options.push({ label: '', value: '' })">
+                  <NxIcon name="plus" :size="16" />添加选项
+                </button>
+              </div>
+            </template>
+            <template #validation>
+              <label class="switch">
+                <input v-model="selected.required" type="checkbox" data-testid="field-required" />
+                <span class="track" aria-hidden="true" />
+                <span>必填</span>
+              </label>
+              <p class="hint">更多校验规则由服务端在「校验」时返回；此处只配置必填。</p>
+              <p v-for="(message, messageIndex) in fieldErrors(selected)" :key="`e${messageIndex}`" class="nx-field-error" data-testid="field-prop-error">{{ message }}</p>
+            </template>
+            <template #appearance>
+              <p class="hint" data-testid="field-appearance-hint">网格位置可在左侧画布拖拽调整。本分区暂不提供独立外观表单项。</p>
+              <dl v-if="hasLayout(selected)" class="layout-facts" data-testid="field-layout-facts">
+                <div><dt>列起点</dt><dd>{{ selected.layout.x }}</dd></div>
+                <div><dt>行起点</dt><dd>{{ selected.layout.y }}</dd></div>
+                <div><dt>列跨度</dt><dd>{{ selected.layout.w }}</dd></div>
+                <div><dt>行跨度</dt><dd>{{ selected.layout.h }}</dd></div>
+              </dl>
+              <p v-else class="nx-muted" data-testid="field-layout-empty">当前字段还没有网格布局元数据。</p>
+            </template>
+          </NxPropertyPanel>
           <button class="ghost small remove" type="button" data-testid="remove-selected" @click="removeField(fields.indexOf(selected))">
             <NxIcon name="trash" :size="16" />删除此字段
           </button>
@@ -292,7 +316,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p1 } from "../../api/client";
-import { NxErrorState, NxPageHeader, NxRequestAlert, NxResult } from "../../components";
+import { NxErrorState, NxPageHeader, NxPropertyPanel, NxRequestAlert, NxResult } from "../../components";
 import { describeRequestError } from "../../utils/requestError";
 import { nxMessage } from "../../feedback/nxMessage";
 import NxIcon from "../../icons/NxIcon.vue";
@@ -308,6 +332,12 @@ const TABS = [
   { id: "field", label: "字段属性" },
   { id: "template", label: "模板设置" },
   { id: "preview", label: "预览" },
+];
+/** CF-F1: field inspector partitions — basic / validation / appearance. */
+const FIELD_PROP_TABS = [
+  { id: "basic", label: "基本" },
+  { id: "validation", label: "校验" },
+  { id: "appearance", label: "外观" },
 ];
 const DEVICES = [
   { id: "desktop", label: "桌面" },
@@ -334,6 +364,7 @@ const actionFailure = ref(null);
 const publishedVersion = ref(null);
 const selectedUid = ref(null);
 const tab = ref("template");
+const fieldPropTab = ref("basic");
 const device = ref("desktop");
 const drag = ref(null);
 const dropIndex = ref(null);
@@ -1004,6 +1035,17 @@ onMounted(load);
 .inspector { padding: 4px 16px 16px; max-height: calc(100vh - 32px); overflow: auto; }
 .inspector .nx-tabs { position: sticky; top: 0; z-index: 1; background: var(--nx-surface); padding-top: 12px; }
 .inspector textarea { resize: vertical; }
+.inspector :deep(.nx-property-panel) {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+.inspector :deep(.nx-property-panel__body) { display: grid; gap: var(--nx-space-3); padding-top: var(--nx-space-3); }
+.layout-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nx-space-2); margin: var(--nx-space-2) 0 0; }
+.layout-facts div { display: grid; gap: 2px; padding: var(--nx-space-2); border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
+.layout-facts dt { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.layout-facts dd { margin: 0; color: var(--nx-text-primary); font-size: var(--nx-font-size-sm); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .switch { display: flex; width: fit-content; align-items: center; gap: 8px; margin-bottom: 16px; cursor: pointer; color: var(--nx-text-regular); }
 .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .track {
