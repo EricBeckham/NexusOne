@@ -30,6 +30,23 @@
       </div>
     </section>
 
+    
+    <section class="nx-card section" data-testid="property-panel-gallery" aria-label="属性面板 Tab 容器">
+      <h2>属性面板 · Tab 容器（CF02）</h2>
+      <p class="nx-muted">供表单/流程设计器复用的薄壳；分区内容由各编辑器填槽。</p>
+      <NxPropertyPanel v-model="propertyTab" :tabs="propertyTabs" title="字段属性" compact>
+        <template #basic>
+          <label class="nx-field"><span>名称</span><input value="请假事由" readonly /></label>
+        </template>
+        <template #validate>
+          <p class="nx-muted">校验规则由 CF-F1 接入；此处仅演示槽位。</p>
+        </template>
+        <template #look>
+          <p class="nx-muted">外观说明由后续卡填入。</p>
+        </template>
+      </NxPropertyPanel>
+    </section>
+
     <section class="nx-card section" data-testid="toast-gallery">
       <h2>Toast（S2）</h2>
       <p class="hint">共享 nxMessage.success / error / info；短文案，错误可带可复制 Trace。不替代字段错误。</p>
@@ -79,11 +96,19 @@ import {
   NxKpiRow,
   NxNoPermission,
   NxPanelCard,
+  NxPropertyPanel,
   NxPageHeader,
   NxResult,
   NxStatusTag,
   nxMessage,
 } from "../../components";
+import { ref } from "vue";
+const propertyTab = ref("basic");
+const propertyTabs = [
+  { id: "basic", label: "基本" },
+  { id: "validate", label: "校验" },
+  { id: "look", label: "外观" },
+];
 </script>
 
 <style scoped>
