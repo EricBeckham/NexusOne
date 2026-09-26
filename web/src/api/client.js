@@ -196,6 +196,9 @@ export const p4 = {
   commercialEntitlement: (id) => api(`/api/v1/p4/commercial-entitlements/${encodeURIComponent(id)}`),
   installations: () => api("/api/v1/p4/installations"),
   installation: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}`),
+  // XB6 / XB7: honest upgrade step state and facts (UNKNOWN / null where nothing records or declares them).
+  upgradeSteps: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}/upgrade-steps`),
+  upgradeFacts: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}/upgrade-facts`),
   createApp: (body) => api("/api/v1/p4/apps", { method: "POST", body, platform: true, auth: false }),
   createVersion: (appId, body) => api(`/api/v1/p4/apps/${appId}/versions`, { method: "POST", body, platform: true, auth: false }),
   transition: (versionId, action) => api(`/api/v1/p4/versions/${versionId}/${action}`, { method: "POST", body: {}, platform: true, auth: false }),
