@@ -39,6 +39,7 @@
         <nav class="wizard-samples" aria-label="当前产品样例" data-testid="wizard-samples">
           <span class="nx-muted">样例：</span>
           <router-link :to="{ path: '/p4/product-samples/ledger', query: { definition: selectedDefinitionId } }" data-testid="wizard-sample-ledger">台账</router-link>
+          <router-link :to="{ path: '/p4/product-samples/print', query: { definition: selectedDefinitionId } }" data-testid="wizard-sample-print">打印</router-link>
         </nav>
       </section>
 

@@ -89,6 +89,35 @@
           </table>
         </div>
       </section>
+
+      <section v-else-if="kind === 'print' && sample" class="sample-card nx-card" data-testid="sample-print">
+        <header class="sample-meta">
+          <h2>{{ sample.template_name || "内置样例版式" }}</h2>
+          <p class="nx-muted" data-testid="sample-print-meta">
+            {{ paperLabel }} · {{ sample.note }}
+          </p>
+        </header>
+        <div class="paper-stage">
+          <article class="paper" :class="orientationClass" aria-label="打印预览" data-testid="sample-print-paper">
+            <h3 class="paper-title">{{ sample.title || sample.product_name }}</h3>
+            <section
+              v-for="section in printSections"
+              :key="section.key"
+              class="paper-section"
+              :data-testid="`sample-print-section-${section.key}`"
+            >
+              <h4>{{ section.label }}</h4>
+              <p v-if="!section.fields.length" class="paper-empty">（表单字段暂无）</p>
+              <dl v-else>
+                <div v-for="field in section.fields" :key="field.key" class="paper-field" :class="{ wide: field.type === 'TEXTAREA' }">
+                  <dt>{{ field.label }}</dt>
+                  <dd aria-label="留空"></dd>
+                </div>
+              </dl>
+            </section>
+          </article>
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -99,12 +128,17 @@ import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import { p4 } from "../../api/client";
 
-/** PC8+: open a read-only sample for the current product (ledger; print and report follow in PC10/PC12). */
+/** PC8+: open a read-only sample for the current product (ledger PC8, print PC10; report follows in PC12). */
 const KINDS = {
   ledger: {
     title: "样例台账",
     description: "按当前产品绑定的表单字段生成的台账样例：看得到列，平台侧不含租户记录。",
     read: (id) => p4.productLedgerSample(id),
+  },
+  print: {
+    title: "打印模板样例",
+    description: "内置版式套用当前产品的表单字段，预览打印效果；不是打印设计器。",
+    read: (id) => p4.productPrintSample(id),
   },
 };
 
@@ -133,6 +167,14 @@ const sample = ref(null);
 const sampleError = ref("");
 const sampleTraceId = ref("");
 
+const printSections = computed(() => (Array.isArray(sample.value?.sections) ? sample.value.sections : [])
+  .filter((section) => section?.key)
+  .map((section) => ({ ...section, fields: Array.isArray(section.fields) ? section.fields.filter((f) => f?.key) : [] })));
+const paperLabel = computed(() => {
+  const paper = sample.value?.paper || "A4";
+  return `${paper} ${sample.value?.orientation === "LANDSCAPE" ? "横向" : "纵向"}`;
+});
+const orientationClass = computed(() => (sample.value?.orientation === "LANDSCAPE" ? "landscape" : "portrait"));
 const columns = computed(() => (Array.isArray(sample.value?.columns) ? sample.value.columns.filter((c) => c?.key) : []));
 const wizardLink = computed(() => ({ path: "/p4/product-config-wizard", query: selectedId.value ? { definition: selectedId.value } : {} }));
 const crumbs = computed(() => [
@@ -241,5 +283,71 @@ onMounted(load);
 .empty-row span {
   margin-top: var(--nx-space-1);
   font-size: var(--nx-font-size-sm);
+}
+.paper-stage {
+  display: flex;
+  justify-content: center;
+  padding: var(--nx-space-4);
+  background: var(--nx-divider);
+  border-radius: var(--nx-radius-sm);
+  overflow: auto;
+}
+.paper {
+  width: min(100%, 560px);
+  aspect-ratio: 210 / 297;
+  padding: 36px 40px;
+  background: #fff;
+  color: #1f2329;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+}
+.paper.landscape {
+  width: min(100%, 760px);
+  aspect-ratio: 297 / 210;
+}
+.paper-title {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+.paper-section h4 {
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid #1f2329;
+  font-size: 13px;
+}
+.paper-section dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+}
+.paper-field {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  font-size: 12px;
+}
+.paper-field.wide {
+  grid-column: 1 / -1;
+  min-height: 48px;
+}
+.paper-field dt {
+  white-space: nowrap;
+}
+.paper-field dd {
+  flex: 1;
+  margin: 0;
+  min-height: 16px;
+  border-bottom: 1px solid #8f959e;
+}
+.paper-empty {
+  margin: 0;
+  font-size: 12px;
+  color: #8f959e;
 }
 </style>
