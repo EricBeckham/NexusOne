@@ -38,7 +38,7 @@ public class MarketIsolationConfiguration {
                         "version_id",
                         "status",
                         "installed_at",
-                        "updated_at"))
+                        "updated_at")
                 .registerTenant(
                         "market.activation_application",
                         "nexus-p4-market",

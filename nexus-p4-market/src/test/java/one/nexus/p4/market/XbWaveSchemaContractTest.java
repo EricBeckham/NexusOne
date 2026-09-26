@@ -71,7 +71,9 @@ class XbWaveSchemaContractTest {
             }
         }
         for (Path file : List.of(MARKET.resolve("V600__p4_market.sql"), MARKET.resolve("V601__market_product_definition.sql"),
-                MARKET.resolve("V705__market_installation_product_pin.sql"))) {
+                MARKET.resolve("V705__market_installation_product_pin.sql"),
+                // P2 #601: activation applications live next to market data and must stay payment-free too.
+                Path.of("../nexus-p1-tenant/src/main/resources/db/migration/V706__tenant_self_reg_and_activation_application.sql"))) {
             var hit = money.matcher(read(file));
             boolean found = hit.find();
             assertFalse(found, () -> file.getFileName() + " has a money column: " + hit.group());
@@ -81,12 +83,14 @@ class XbWaveSchemaContractTest {
     }
 
     @Test
-    void highestMigrationVersionIsStillV705() throws IOException {
+    void highestMigrationVersionIsTheKnownOne() throws IOException {
         try (Stream<Path> roots = Stream.of(Path.of("..")).flatMap(XbWaveSchemaContractTest::modules)) {
             int max = roots.map(path -> path.getFileName().toString())
                     .map(name -> Integer.parseInt(name.substring(1, name.indexOf("__"))))
                     .max(Integer::compare).orElseThrow();
-            assertEquals(705, max, "XB adds no migration; a real need goes through XB12 with the next global version");
+            // XB added none (V705 at XB12). V706 is P2 #601 (tenant self-registration + activation applications).
+            // A new migration must update this pin on purpose, taking the next global version.
+            assertEquals(706, max, "unexpected new migration; take the next global version in a dedicated schema card");
         }
     }
 
