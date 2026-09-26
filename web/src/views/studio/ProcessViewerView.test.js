@@ -780,5 +780,7 @@ describe("process viewer", () => {
     expect(source).not.toMatch(/color:\s*#fff\b/i);
     expect(source).toContain("border-color: var(--nx-success)");
     expect(source).toContain("color: var(--nx-surface)");
+    expect(source).toContain("validateDisabledReason");
+    expect(source).toContain("至少保留一个审批节点");
   });
 });
