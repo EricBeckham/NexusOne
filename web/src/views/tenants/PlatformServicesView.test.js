@@ -26,7 +26,20 @@ describe("P1 platform service status page", () => {
     expect(wrapper.get('[data-status="UNKNOWN"]').text()).toContain("未知");
     expect(wrapper.get('[data-status="UNKNOWN"]').text()).toContain("未提供 Redis 探测");
     expect(wrapper.get('[data-status="DOWN"]').text()).toContain("异常");
+    expect(wrapper.findAll("[data-testid='nx-status-tag']").length).toBe(3);
     expect(p1.serviceStatus).toHaveBeenCalledOnce();
+  });
+
+  it("shows list-row skeletons while probing", async () => {
+    let resolveStatus;
+    p1.serviceStatus.mockReturnValueOnce(new Promise((resolve) => { resolveStatus = resolve; }));
+    const wrapper = mount(PlatformServicesView);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get("[data-testid='services-loading']").findAll("[data-testid='nx-skeleton']").length).toBeGreaterThan(0);
+    resolveStatus({ services: [] });
+    await flushPromises();
+    expect(wrapper.find("[data-testid='services-loading']").exists()).toBe(false);
+    expect(wrapper.text()).toContain("暂无组件数据");
   });
 
   it("shows retryable API errors without fabricating green states", async () => {
