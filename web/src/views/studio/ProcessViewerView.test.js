@@ -612,4 +612,62 @@ describe("process viewer", () => {
     await flushPromises();
     expect(p3.saveProcessDraft.mock.calls[0][1].bpmn_xml).toContain("${x &gt; 1 &amp;&amp; y &lt; 2}");
   });
+
+  it("explains an incomplete builder draft next to its fields and keeps the last complete condition (ZA8)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    await wrapper.get(".step").trigger("click");
+    await wrapper.get("[data-testid='add-gateway']").trigger("click");
+    await wrapper.get("[data-testid='process-flow'][data-flow-id='flow_gateway_branch_task']").trigger("click");
+
+    expect(wrapper.find("[data-testid='condition-incomplete']").exists()).toBe(false); // empty = no condition, no nagging
+    await wrapper.get("[data-testid='condition-variable']").setValue("outcome");
+    expect(wrapper.get("[data-testid='condition-error-value']").text()).toBe("请选择一个值");
+    expect(wrapper.get("[data-testid='condition-value']").attributes("aria-invalid")).toBe("true");
+    expect(wrapper.get("[data-testid='condition-incomplete']").text()).toContain("保存时仍使用：无条件");
+    await wrapper.get("[data-testid='condition-value']").setValue("APPROVE");
+    expect(wrapper.find("[data-testid='condition-incomplete']").exists()).toBe(false);
+
+    // A numeric operator with text keeps the last complete condition and says why.
+    await wrapper.get("[data-testid='condition-variable']").setValue("__custom");
+    await wrapper.get("[data-testid='condition-value']").setValue("很多");
+    expect(wrapper.get("[data-testid='condition-error-variable']").text()).toBe("请填写变量名");
+    await wrapper.get("[data-testid='condition-custom']").setValue("amount");
+    await wrapper.get("[data-testid='condition-operator']").setValue(">");
+    expect(wrapper.get("[data-testid='condition-error-value']").text()).toBe("「大于」需要填写数字");
+    // The last complete condition (amount == 很多) stays; the mistyped > 很多 is never written.
+    expect(wrapper.get("[data-testid='condition-incomplete']").text()).toContain("${amount == '很多'}");
+    expect(wrapper.get("[data-testid='condition-generated']").text()).toBe("${amount == '很多'}");
+    await wrapper.get("[data-testid='condition-value']").setValue("1000");
+    expect(wrapper.get("[data-testid='condition-generated']").text()).toBe("${amount > 1000}");
+  });
+
+  it("blocks saving a malformed raw condition, marks the edge and lists it (ZA8)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    const wrapper = await mountAt("/p3/workflow");
+    await wrapper.get("[data-testid='process-new']").trigger("click");
+    await wrapper.get(".step").trigger("click");
+    await wrapper.get("[data-testid='add-gateway']").trigger("click");
+    await wrapper.get("[data-testid='process-flow'][data-flow-id='flow_gateway_branch_task']").trigger("click");
+    await wrapper.get("[data-testid='condition-mode-raw']").trigger("click");
+    await wrapper.get("[data-testid='flow-condition']").setValue("${note == 'x}");
+
+    expect(wrapper.get("[data-testid='condition-error-raw']").text()).toBe("引号没有成对");
+    expect(wrapper.get("[data-testid='process-flow'][data-flow-id='flow_gateway_branch_task']").classes()).toContain("invalid");
+    expect(wrapper.get("[data-testid='condition-problems']").text()).toContain("条件需要修改 · 1 处");
+    expect(wrapper.get("[data-testid='condition-problem']").text()).toBe("连线 条件分支 → 分支审批：引号没有成对");
+
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    expect(p3.saveProcessDraft).not.toHaveBeenCalled();
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "error", message: "有 1 条连线的条件格式不对，已在图上标出，修改后再保存" });
+
+    await wrapper.get("[data-testid='flow-condition']").setValue("${note == 'x'}");
+    expect(wrapper.find("[data-testid='condition-problems']").exists()).toBe(false);
+    p3.saveProcessDraft.mockImplementation(async (key, body) => ({ key, name: body.name }));
+    await wrapper.get("[data-testid='process-save']").trigger("click");
+    await flushPromises();
+    expect(p3.saveProcessDraft).toHaveBeenCalledTimes(1);
+  });
 });

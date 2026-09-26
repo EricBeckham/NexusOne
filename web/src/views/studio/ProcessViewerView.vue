@@ -212,7 +212,7 @@
             v-for="flow in graph.flows"
             :key="flow.id || `${flow.source_ref}-${flow.target_ref}`"
             class="flow"
-            :class="{ current: flow.id && flow.id === selectedFlowId, conditional: Boolean(flow.condition), invalid: flowErrors(flow.id).length > 0 }"
+            :class="{ current: flow.id && flow.id === selectedFlowId, conditional: Boolean(flow.condition), invalid: flowErrors(flow.id).length > 0 || Boolean(checkConditionText(flow.condition)) }"
             data-testid="process-flow"
             :data-flow-id="flow.id"
             @click="selectFlow(flow.id)"
@@ -301,30 +301,37 @@
                 <button type="button" :class="{ active: conditionMode === 'raw' }" data-testid="condition-mode-raw" @click="switchConditionMode('raw')">原文</button>
               </div>
               <template v-if="conditionMode === 'builder'">
-                <select v-model="conditionDraft.variable" data-testid="condition-variable" aria-label="变量" @change="onConditionVariableChange">
+                <select v-model="conditionDraft.variable" data-testid="condition-variable" aria-label="变量" :aria-invalid="draftProblems.variable ? 'true' : undefined" @change="onConditionVariableChange">
                   <option value="">选择变量</option>
                   <option v-for="variable in CONDITION_VARIABLES" :key="variable.name" :value="variable.name">{{ variable.label }}</option>
                   <option value="__custom">其他变量…</option>
                 </select>
                 <template v-if="conditionDraft.variable === '__custom'">
-                  <input v-model="conditionDraft.custom" class="nx-code" data-testid="condition-custom" aria-label="变量名" placeholder="变量名，如 amount" @input="applyConditionDraft" />
+                  <input v-model="conditionDraft.custom" class="nx-code" data-testid="condition-custom" aria-label="变量名" placeholder="变量名，如 amount" :aria-invalid="draftProblems.variable ? 'true' : undefined" @input="applyConditionDraft" />
                   <small class="preset-hint">需确保运行时存在该变量；申请表单的字段目前不会传入流程。</small>
                 </template>
+                <small v-if="draftProblems.variable" class="nx-field-error" data-testid="condition-error-variable">{{ draftProblems.variable }}</small>
                 <select v-model="conditionDraft.operator" data-testid="condition-operator" aria-label="运算符" @change="applyConditionDraft">
                   <option v-for="op in operatorsFor(draftVariableName)" :key="op.value" :value="op.value">{{ op.label }}</option>
                 </select>
-                <select v-if="draftEnumOptions" v-model="conditionDraft.value" data-testid="condition-value" aria-label="值" @change="applyConditionDraft">
+                <small v-if="draftProblems.operator" class="nx-field-error" data-testid="condition-error-operator">{{ draftProblems.operator }}</small>
+                <select v-if="draftEnumOptions" v-model="conditionDraft.value" data-testid="condition-value" aria-label="值" :aria-invalid="draftProblems.value ? 'true' : undefined" @change="applyConditionDraft">
                   <option value="">选择值</option>
                   <option v-for="option in draftEnumOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                 </select>
-                <input v-else v-model="conditionDraft.value" data-testid="condition-value" aria-label="值" placeholder="值，如 1000 或 文本" @input="applyConditionDraft" />
+                <input v-else v-model="conditionDraft.value" data-testid="condition-value" aria-label="值" placeholder="值，如 1000 或 文本" :aria-invalid="draftProblems.value ? 'true' : undefined" @input="applyConditionDraft" />
+                <small v-if="draftProblems.value" class="nx-field-error" data-testid="condition-error-value">{{ draftProblems.value }}</small>
+                <p v-if="draftIncomplete" class="condition-incomplete" data-testid="condition-incomplete">
+                  条件还没填完整，暂不生效；保存时仍使用：{{ selectedFlow.condition || "无条件" }}
+                </p>
                 <div class="condition-foot">
                   <small class="preset-hint">生成：<code data-testid="condition-generated">{{ selectedFlow.condition || "无条件" }}</code></small>
                   <button type="button" class="nx-btn nx-btn--text" data-testid="condition-clear" @click="clearCondition">清空条件</button>
                 </div>
               </template>
               <template v-else>
-                <input v-model="selectedFlow.condition" class="nx-code" data-testid="flow-condition" aria-label="分支条件原文" placeholder="例如 ${outcome == 'APPROVE'}" />
+                <input v-model="selectedFlow.condition" class="nx-code" data-testid="flow-condition" aria-label="分支条件原文" placeholder="例如 ${outcome == 'APPROVE'}" :aria-invalid="rawProblem ? 'true' : undefined" />
+                <small v-if="rawProblem" class="nx-field-error" data-testid="condition-error-raw">{{ rawProblem }}</small>
                 <small class="preset-hint">原文按表达式原样保存；留空表示无条件。</small>
                 <small v-if="conditionModeNote" class="preset-hint" data-testid="condition-mode-note">{{ conditionModeNote }}</small>
               </template>
@@ -338,6 +345,17 @@
         </section>
         <p v-if="!selected && !selectedFlow" class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
         <p v-if="isEditing && selected && nodeErrors(selected.id).length" class="step-error" data-testid="node-error">{{ nodeErrors(selected.id).join("；") }}</p>
+        <section v-if="conditionProblems.length" class="validation-result" data-testid="condition-problems" data-valid="false">
+          <strong>条件需要修改 · {{ conditionProblems.length }} 处</strong>
+          <p class="nx-muted">这些条件的格式不对，修改后才能保存。点选可定位到对应连线。</p>
+          <ul>
+            <li v-for="item in conditionProblems" :key="item.flow">
+              <button type="button" class="validation-item" data-testid="condition-problem" @click="selectFlow(item.flow)">
+                <span class="validation-where">{{ item.target }}</span>{{ item.message }}
+              </button>
+            </li>
+          </ul>
+        </section>
         <section v-if="validationResult" class="validation-result" data-testid="process-validation" :data-valid="validationResult.valid">
           <strong>{{ validationResult.valid ? "校验通过" : `校验未通过 · ${validationItems.length} 处需要修改` }}</strong>
           <p v-if="validationResult.valid" class="nx-muted">当前草稿满足基础结构要求。</p>
@@ -407,7 +425,9 @@ import {
 } from "./processDraft";
 import { layoutDefinition, showText } from "./processLayout";
 import { nxMessage } from "../../feedback/nxMessage";
-import { CONDITION_OPERATORS, CONDITION_VARIABLES, catalogVariable, formatCondition, operatorsFor, parseCondition } from "./conditionDsl";
+import {
+  CONDITION_OPERATORS, CONDITION_VARIABLES, catalogVariable, checkConditionDraft, checkConditionText, formatCondition, operatorsFor, parseCondition,
+} from "./conditionDsl";
 import { fromSequence, newStep, toSequence } from "./sequentialFlow";
 import { devNotesEnabled } from "../../utils/devNotes";
 
@@ -509,6 +529,18 @@ function draftValueType() {
   return "string";
 }
 
+const draftProblems = computed(() => {
+  if (conditionDraft.variable === "__custom" && !conditionDraft.custom.trim() && String(conditionDraft.value).trim()) {
+    return { ...checkConditionDraft({ variable: "x", operator: conditionDraft.operator, value: conditionDraft.value }), variable: "请填写变量名" };
+  }
+  return checkConditionDraft({ variable: draftVariableName.value, operator: conditionDraft.operator, value: conditionDraft.value });
+});
+const draftIncomplete = computed(() => Object.keys(draftProblems.value).length > 0);
+const rawProblem = computed(() => checkConditionText(selectedFlow.value?.condition));
+const conditionProblems = computed(() => (definition.value?.flows || [])
+  .map((flow) => ({ flow: flow.id, message: checkConditionText(flow.condition), target: `连线 ${nodeName(flow.source_ref)} → ${nodeName(flow.target_ref)}：` }))
+  .filter((item) => item.flow && item.message));
+
 function applyConditionDraft() {
   if (!selectedFlow.value) return;
   const variable = draftVariableName.value;
@@ -517,6 +549,8 @@ function applyConditionDraft() {
     selectedFlow.value.condition = "";
     return;
   }
+  // ZA8: an incomplete or mistyped draft never replaces the last complete condition.
+  if (Object.keys(draftProblems.value).length) return;
   try {
     selectedFlow.value.condition = formatCondition({ variable, operator: conditionDraft.operator, value, valueType: draftValueType() });
   } catch {
@@ -847,6 +881,12 @@ function editableType(type) {
 
 async function saveDraft() {
   if (!definition.value || saving.value) return;
+  // ZA8: never save a malformed condition; the problems are marked on the graph and listed in the panel.
+  if (conditionProblems.value.length) {
+    nxMessage.error(`有 ${conditionProblems.value.length} 条连线的条件格式不对，已在图上标出，修改后再保存`);
+    selectFlow(conditionProblems.value[0].flow);
+    return;
+  }
   saving.value = true;
   error.value = null;
   try {
@@ -990,6 +1030,7 @@ svg.graph { display: block; min-width: 100%; }
 .mode-switch { display: inline-flex; width: max-content; padding: 2px; border-radius: var(--nx-radius-sm); background: var(--nx-bg-page); }
 .mode-switch button { padding: 2px 10px; border: 0; border-radius: 4px; background: none; color: var(--nx-text-secondary); cursor: pointer; font-size: var(--nx-font-size-xs); }
 .mode-switch button.active { background: var(--nx-surface); color: var(--nx-text-primary); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
+.condition-incomplete { margin: 0; padding: 6px 8px; border-radius: var(--nx-radius-sm); background: var(--nx-warning-light); color: var(--nx-warning); font-size: var(--nx-font-size-xs); }
 .condition-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px; }
 .related-flow { display: grid; width: 100%; padding: 4px 6px; border: 0; border-radius: var(--nx-radius-sm); background: none; color: inherit; text-align: left; cursor: pointer; }
 .related-flow:hover { background: var(--nx-bg-page); }
