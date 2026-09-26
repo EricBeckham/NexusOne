@@ -1,6 +1,11 @@
 <template>
   <main class="start-page">
-    <NxPageHeader eyebrow="P4 · 星市" title="发起申请" description="按已开通时钉住的模板填写。无支付。提交后进入我的申请。" />
+    <NxPageHeader
+      eyebrow="P4 · 星市"
+      title="发起申请"
+      description="按已开通时钉住的模板填写。无支付。提交后进入我的申请。"
+      :crumbs="startCrumbs"
+    />
     <p v-if="product" class="product-context" data-testid="start-product">
       <span class="product-label">申请产品</span>
       <strong>{{ product.name }}</strong>
@@ -93,6 +98,13 @@ const error = ref("");
 const fieldErrors = ref([]);
 const submitFailure = ref(null);
 const product = ref(null);
+
+/** Q5 pilot: in-page crumb slot; shell crumb stays in GlobalHeader. No route-tree change. */
+const startCrumbs = [
+  { label: "应用目录", to: "/p4/market" },
+  { label: "我的已开通", to: "/p4/installations" },
+  { label: "发起申请" },
+];
 
 const unmatchedErrors = computed(() => {
   const keys = new Set(fields.value.map((field) => field.key));
