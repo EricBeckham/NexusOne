@@ -23,13 +23,14 @@ describe("NxPropertyPanel", () => {
 
     expect(wrapper.get("[data-testid='nx-property-panel']").exists()).toBe(true);
     expect(wrapper.get("[data-testid='nx-property-tab-basic']").attributes("aria-selected")).toBe("true");
-    expect(wrapper.get("[data-testid='slot-basic']").isVisible()).toBe(true);
-    expect(wrapper.find("[data-testid='slot-validate']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='nx-property-tab-basic']").attributes("aria-selected")).toBe("true");
+    expect(wrapper.get("[data-testid='nx-property-tab-validate']").attributes("aria-selected")).toBe("false");
 
     await wrapper.get("[data-testid='nx-property-tab-validate']").trigger("click");
     await nextTick();
     expect(wrapper.props("modelValue")).toBe("validate");
-    expect(wrapper.get("[data-testid='slot-validate']").isVisible()).toBe(true);
+    expect(wrapper.get("[data-testid='nx-property-tab-validate']").attributes("aria-selected")).toBe("true");
+    expect(wrapper.get("[data-testid='slot-validate']").exists()).toBe(true);
   });
 
   it("falls back to first tab when modelValue is unknown", () => {

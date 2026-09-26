@@ -30,20 +30,20 @@
       </button>
     </div>
 
-    <template v-for="item in tabs" :key="`panel-${item.id}`">
-      <div
-        v-if="activeId === item.id"
-        :id="panelId(item.id)"
-        class="nx-property-panel__body"
-        role="tabpanel"
-        :aria-labelledby="tabId(item.id)"
-        :data-testid="`nx-property-panel-${item.id}`"
-      >
-        <slot :name="item.id" :tab="item" :active="true">
-          <p class="nx-property-panel__placeholder nx-muted">暂无内容</p>
-        </slot>
-      </div>
-    </template>
+    <div
+      v-for="item in tabs"
+      :key="`panel-${item.id}`"
+      v-show="activeId === item.id"
+      :id="panelId(item.id)"
+      class="nx-property-panel__body"
+      role="tabpanel"
+      :aria-labelledby="tabId(item.id)"
+      :data-testid="`nx-property-panel-${item.id}`"
+    >
+      <slot :name="item.id" :tab="item" :active="activeId === item.id">
+        <p class="nx-property-panel__placeholder nx-muted">暂无内容</p>
+      </slot>
+    </div>
   </aside>
 </template>
 

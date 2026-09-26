@@ -253,28 +253,55 @@
       <aside class="nx-card props" data-testid="process-properties">
         <h2>{{ selectedFlow ? "连线属性" : "节点属性" }}</h2>
         <label v-if="isEditing" class="draft-name">草稿名称<input v-model="definition.name" data-testid="draft-name" aria-label="草稿名称" /></label>
-        <dl v-if="selected">
-          <dt>标识</dt>
-          <dd>{{ showText(selected.id) }}</dd>
-          <dt>名称</dt>
-          <dd v-if="isEditing && editableType(selected.type)"><input v-model="selected.name" data-testid="node-name" aria-label="节点名称" /></dd>
-          <dd v-else>{{ showText(selected.name) }}</dd>
-          <dt>类型</dt>
-          <dd data-testid="node-type">{{ nodeTypeLabel(selected.type, selected.id) }}</dd>
-          <template v-if="selected.type === 'userTask'">
-            <dt>审批人引用</dt>
-            <dd v-if="isEditing">
-              <input v-model="selected.assignee" data-testid="node-assignee" aria-label="审批人引用" placeholder="例如 ${assignee}" />
-              <span class="presets">
+        <NxPropertyPanel
+          v-if="selected && !selectedFlow"
+          v-model="propTab"
+          :tabs="PROP_TABS"
+          compact
+          aria-label="节点属性分区"
+          data-testid="process-property-sections"
+        >
+          <template #basic>
+            <dl>
+              <dt>标识</dt>
+              <dd>{{ showText(selected.id) }}</dd>
+              <dt>名称</dt>
+              <dd v-if="isEditing && editableType(selected.type)"><input v-model="selected.name" data-testid="node-name" aria-label="节点名称" /></dd>
+              <dd v-else>{{ showText(selected.name) }}</dd>
+              <dt>类型</dt>
+              <dd data-testid="node-type">{{ nodeTypeLabel(selected.type, selected.id) }}</dd>
+            </dl>
+          </template>
+          <template #assignee>
+            <template v-if="selected.type === 'userTask'">
+              <label class="nx-field"><span>审批人引用</span>
+                <input v-if="isEditing" v-model="selected.assignee" data-testid="node-assignee" aria-label="审批人引用" placeholder="例如发起时选择的审批人" />
+                <span v-else>{{ selected.assignee ? assigneeLabel(selected.assignee) : "暂无" }}</span>
+              </label>
+              <span v-if="isEditing" class="presets">
                 <button v-for="preset in ASSIGNEE_PRESETS" :key="preset.value" type="button" class="preset"
                   :class="{ active: selected.assignee === preset.value }" data-testid="assignee-preset"
                   @click="selected.assignee = preset.value">{{ preset.label }}</button>
               </span>
-              <small class="preset-hint">目前发起时只选一位审批人；多个节点都用它时会由同一人依次审批。</small>
-            </dd>
-            <dd v-else>{{ selected.assignee ? assigneeLabel(selected.assignee) : "暂无" }}</dd>
+              <small v-if="isEditing" class="preset-hint">目前发起时只选一位审批人；多个节点都用它时会由同一人依次审批。</small>
+            </template>
+            <p v-else class="nx-muted" data-testid="assignee-not-applicable">此节点无需指定审批人。</p>
           </template>
-        </dl>
+          <template #condition>
+            <section v-if="selected?.type === 'exclusiveGateway'" class="branch-summary" data-testid="branch-summary">
+              <ol>
+                <li v-for="(flow, index) in gatewayBranches(selected.id)" :key="flow.id">
+                  <button type="button" class="branch-line" data-testid="branch-summary-item" :title="flow.condition || undefined" @click="selectFlow(flow.id)">
+                    <span class="branch-index">分支 {{ index + 1 }}</span>
+                    <span class="branch-target">→ {{ nodeName(flow.target_ref) }}</span>
+                    <span class="branch-condition" :class="{ none: !flow.condition, bad: Boolean(checkConditionText(flow.condition)) }">{{ flow.condition ? describeCondition(flow.condition) : "无条件" }}</span>
+                  </button>
+                </li>
+              </ol>
+            </section>
+            <p v-else class="nx-muted" data-testid="condition-summary-empty">点选条件分支节点或分支连线，可在此查看条件摘要。</p>
+          </template>
+        </NxPropertyPanel>
         <!-- Z6: exclusive-gateway add/remove on editable drafts. Conditions are edited on branch flows (Z7). -->
         <div v-if="isEditing && selected && canBranchAfter(selected)" class="branch-actions">
           <button type="button" class="nx-btn nx-btn--default nx-btn--sm" data-testid="add-gateway" @click="addGatewayAfter(selected.id)">
@@ -290,18 +317,7 @@
           <button type="button" class="nx-btn nx-btn--text danger-text" data-testid="remove-parallel" @click="removeParallel(selected.id)">删除并行分支</button>
           <small class="nx-muted">连同配对的并行开始 / 汇合和其间的并行审批一起删除。</small>
         </div>
-        <section v-if="selected?.type === 'exclusiveGateway'" class="branch-summary" data-testid="branch-summary">
-          <h3>分支条件</h3>
-          <ol>
-            <li v-for="(flow, index) in gatewayBranches(selected.id)" :key="flow.id">
-              <button type="button" class="branch-line" data-testid="branch-summary-item" :title="flow.condition || undefined" @click="selectFlow(flow.id)">
-                <span class="branch-index">分支 {{ index + 1 }}</span>
-                <span class="branch-target">→ {{ nodeName(flow.target_ref) }}</span>
-                <span class="branch-condition" :class="{ none: !flow.condition, bad: Boolean(checkConditionText(flow.condition)) }">{{ flow.condition ? describeCondition(flow.condition) : "无条件" }}</span>
-              </button>
-            </li>
-          </ol>
-        </section>
+
         <p v-if="selected?.type === 'exclusiveGateway' && gatewayWithoutConditions(selected.id)" class="gateway-warning" data-testid="gateway-warning">
           所有分支都没有设置条件，运行时会始终走第一条分支。点选分支连线设置条件。
         </p>
@@ -448,7 +464,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxPropertyPanel, NxSkeleton } from "../../components";
 import NxIcon from "../../icons/NxIcon.vue";
 import { p3 } from "../../api/p3";
 import { insertAt, moveToGap } from "../../utils/listMove";
@@ -490,6 +506,12 @@ const validationError = ref(null);
 const selectedId = ref("");
 // Z7: a selected sequence flow (edge) — mutually exclusive with a selected node.
 const selectedFlowId = ref("");
+const PROP_TABS = [
+  { id: "basic", label: "节点基本" },
+  { id: "assignee", label: "审批人" },
+  { id: "condition", label: "条件摘要" },
+];
+const propTab = ref("basic");
 const error = ref(null);
 const loading = ref(false);
 // No tenant session: process APIs answer 401 P2.IAM.UNAUTHORIZED "missing bearer token" (M2); retrying cannot help.
