@@ -15,107 +15,88 @@
       </template>
     </NxPageHeader>
 
-    <NxErrorState v-if="error" :title="error" :trace-id="traceId" retry-label="重试" @retry="load" />
-    <template v-else>
-      <div class="list-toolbar nx-card" data-testid="template-list-toolbar">
-        <div class="list-meta" aria-live="polite">
-          <h2>模板目录</h2>
-          <span data-testid="template-list-summary">{{ summaryText }}</span>
-        </div>
-        <div class="status-chips" role="group" aria-label="按发布态筛选">
-          <button
-            v-for="chip in STATUS_CHIPS"
-            :key="chip.id"
-            type="button"
-            class="status-chip"
-            :class="{ active: statusFilter === chip.id }"
-            :data-testid="`template-filter-${chip.id}`"
-            :aria-pressed="statusFilter === chip.id"
-            @click="statusFilter = chip.id"
-          >
-            {{ chip.label }}
-            <em v-if="!loading" class="chip-count">{{ chipCount(chip.id) }}</em>
-          </button>
-        </div>
+    <div class="list-toolbar nx-card" data-testid="template-list-toolbar">
+      <div class="list-meta" aria-live="polite">
+        <h2>模板目录</h2>
+        <span data-testid="template-list-summary">{{ summaryText }}</span>
       </div>
+      <div class="status-chips" role="group" aria-label="按发布态筛选">
+        <button
+          v-for="chip in STATUS_CHIPS"
+          :key="chip.id"
+          type="button"
+          class="status-chip"
+          :class="{ active: statusFilter === chip.id }"
+          :data-testid="`template-filter-${chip.id}`"
+          :aria-pressed="statusFilter === chip.id"
+          @click="statusFilter = chip.id"
+        >
+          {{ chip.label }}
+          <em v-if="!loading && !error" class="chip-count">{{ chipCount(chip.id) }}</em>
+        </button>
+      </div>
+    </div>
 
-      <NxEmpty
-        v-if="!loading && !rows.length"
-        data-testid="template-list-empty"
-        title="还没有表单模板"
-        description="新建并发布模板后，可在产品配置向导的「配表单」步骤中继续；也可先到产品定义绑定。"
-      >
-        <template #next>
+    <NxDataTable
+      :loading="loading"
+      :error="tableError"
+      :trace-id="traceId"
+      :empty="tableEmpty"
+      :empty-title="emptyTitle"
+      :empty-description="emptyDescription"
+      :empty-compact="filterEmpty"
+      density="compact"
+      loading-label="正在加载模板目录"
+      aria-label="表单模板列表"
+      testid="template-list"
+      card
+      @retry="load"
+    >
+      <template #empty-next>
+        <template v-if="catalogEmpty">
           <router-link class="primary" to="/p1/form-templates/new">新建模板</router-link>
           <router-link class="ghost" :to="links.wizard.to" data-testid="template-empty-wizard">打开{{ links.wizard.fullLabel }}</router-link>
           <router-link class="ghost" :to="links.definitions.to" data-testid="template-empty-definitions">打开{{ links.definitions.label }}</router-link>
         </template>
-      </NxEmpty>
-
-      <NxEmpty
-        v-else-if="!loading && !filteredRows.length"
-        data-testid="template-list-filter-empty"
-        title="没有符合筛选的模板"
-        description="试试切换到「全部」，或新建一份草稿。"
-        compact
-      >
-        <template #next>
-          <button type="button" class="ghost" data-testid="template-filter-reset" @click="statusFilter = 'all'">查看全部</button>
-        </template>
-      </NxEmpty>
-
-      <div v-else class="table-scroll">
-        <table class="nx-table nx-table--compact template-table" data-testid="template-list">
-          <thead>
-            <tr>
-              <th scope="col">名称</th>
-              <th scope="col">编码</th>
-              <th scope="col">发布态</th>
-              <th scope="col">版本</th>
-              <th scope="col">字段数</th>
-              <th scope="col">被产品引用</th>
-              <th scope="col">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="7" class="loading-cell">
-                <NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在加载模板目录" compact />
-              </td>
-            </tr>
-            <template v-else>
-              <tr v-for="row in filteredRows" :key="row.id" :data-status="normalizeStatus(row.status)">
-                <td class="template-name">{{ row.name || "未命名模板" }}</td>
-                <td class="nx-code">{{ row.code || "暂无" }}</td>
-                <td>
-                  <NxStatusTag
-                    :status="normalizeStatus(row.status)"
-                    :label="statusLabel(row.status)"
-                    :tone="statusTone(row.status)"
-                    :data-testid="`template-status-${normalizeStatus(row.status) || 'none'}`"
-                  />
-                </td>
-                <td class="version-cell" data-testid="template-version">{{ versionText(row) }}</td>
-                <td>{{ Array.isArray(row.fields) ? row.fields.length : "暂无" }}</td>
-                <td data-testid="template-ref-count">{{ refCountText(row) }}</td>
-                <td>
-                  <router-link class="text-action" :to="`/p1/form-templates/${row.id}`">
-                    {{ normalizeStatus(row.status) === "PUBLISHED" ? "查看" : "编辑" }}
-                  </router-link>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-    </template>
+        <button v-else type="button" class="ghost" data-testid="template-filter-reset" @click="statusFilter = 'all'">查看全部</button>
+      </template>
+      <template #header>
+        <tr>
+          <th scope="col">名称</th>
+          <th scope="col">编码</th>
+          <th scope="col">发布态</th>
+          <th scope="col">版本</th>
+          <th scope="col">字段数</th>
+          <th scope="col">操作</th>
+        </tr>
+      </template>
+      <tr v-for="row in filteredRows" :key="row.id" :data-status="normalizeStatus(row.status)">
+        <td class="template-name">{{ row.name || "未命名模板" }}</td>
+        <td class="nx-code">{{ row.code || "暂无" }}</td>
+        <td>
+          <NxStatusTag
+            :status="normalizeStatus(row.status)"
+            :label="statusLabel(row.status)"
+            :tone="statusTone(row.status)"
+            :data-testid="`template-status-${normalizeStatus(row.status) || 'none'}`"
+          />
+        </td>
+        <td class="version-cell" data-testid="template-version">{{ versionText(row) }}</td>
+        <td>{{ Array.isArray(row.fields) ? row.fields.length : "暂无" }}</td>
+        <td>
+          <router-link class="text-action" :to="`/p1/form-templates/${row.id}`">
+            {{ normalizeStatus(row.status) === "PUBLISHED" ? "查看" : "编辑" }}
+          </router-link>
+        </td>
+      </tr>
+    </NxDataTable>
   </main>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { p1 } from "../../api/client";
-import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
+import { NxDataTable, NxPageHeader, NxStatusTag } from "../../components";
 import { PLATFORM_CONFIG_LINKS } from "../../config/platformConfigLinks";
 
 const links = PLATFORM_CONFIG_LINKS;
@@ -149,12 +130,6 @@ function statusLabel(status) {
   );
 }
 
-function refCountText(row) {
-  const count = row?.productReferenceCount ?? row?.product_reference_count;
-  if (count === 0 || count) return String(count);
-  return "暂不可用";
-}
-
 function statusTone(status) {
   return (
     { DRAFT: "neutral", VALIDATED: "info", PUBLISHED: "success", ARCHIVED: "neutral" }[normalizeStatus(status)]
@@ -178,8 +153,20 @@ const filteredRows = computed(() => {
   return rows.value.filter((row) => normalizeStatus(row.status) === statusFilter.value);
 });
 
+const catalogEmpty = computed(() => !rows.value.length);
+const filterEmpty = computed(() => rows.value.length > 0 && !filteredRows.value.length);
+const tableEmpty = computed(() => catalogEmpty.value || filterEmpty.value);
+const emptyTitle = computed(() => (filterEmpty.value ? "没有符合筛选的模板" : "还没有表单模板"));
+const emptyDescription = computed(() => (
+  filterEmpty.value
+    ? "试试切换到「全部」，或新建一份草稿。"
+    : "新建并发布模板后，可在产品配置向导的「配表单」步骤中继续；也可先到产品定义绑定。"
+));
+const tableError = computed(() => (error.value ? { title: "表单模板暂时无法加载", description: error.value } : ""));
+
 const summaryText = computed(() => {
   if (loading.value) return "正在加载模板…";
+  if (error.value) return "目录暂时无法读取";
   const published = chipCount("PUBLISHED");
   const drafts = chipCount("DRAFT");
   return `共 ${rows.value.length} 个 · 已发布 ${published} · 草稿 ${drafts}`;
@@ -241,18 +228,12 @@ onMounted(load);
   font-variant-numeric: tabular-nums;
 }
 .status-chip.active .chip-count { color: var(--nx-product); }
-.table-scroll { overflow-x: auto; border: 1px solid var(--nx-border); border-radius: var(--nx-radius); background: var(--nx-surface); }
-.template-table { min-width: 640px; border: 0; }
-.template-table :deep(th),
-.template-table :deep(td) {
-  height: var(--nx-table-row-height-compact);
-  padding: var(--nx-space-2) var(--nx-table-cell-padding-x);
-  vertical-align: middle;
+.template-list-page :deep(.nx-data-table__scroll) {
+  border: 1px solid var(--nx-border);
 }
+.template-list-page :deep(.nx-table) { min-width: 640px; }
 .template-name { font-weight: 600; }
 .version-cell { color: var(--nx-text-secondary); font-variant-numeric: tabular-nums; }
-.loading-cell { padding: var(--nx-space-2) !important; }
-.loading-cell :deep(.nx-skeleton) { margin-bottom: var(--nx-space-2); border: 0; }
 .text-action { color: var(--nx-product); text-decoration: none; font-weight: 600; }
 .text-action:hover { text-decoration: underline; }
 .primary,.ghost { display: inline-flex; align-items: center; justify-content: center; min-height: var(--nx-control-height); padding: 0 var(--nx-space-3); border-radius: var(--nx-control-radius); text-decoration: none; cursor: pointer; }
