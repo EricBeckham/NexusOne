@@ -74,6 +74,12 @@ describe("P4 management subpages", () => {
     expect(card.get('[data-testid="upgrade-submit"]').attributes("disabled")).toBeDefined();
     expect(card.text()).toContain("预检");
     expect(card.text()).not.toContain("Precheck");
+    const stepper = installations.get('[data-testid="upgrade-stepper"]');
+    expect(stepper.findAll("[data-status]")).toHaveLength(6);
+    expect(stepper.findAll('[data-status="UNKNOWN"]')).toHaveLength(6);
+    expect(stepper.findAll('[data-status="DONE"], [data-status="ACTIVE"]').length).toBe(0);
+    expect(stepper.text()).toContain("暂无");
+    expect(stepper.text()).not.toMatch(/完成|进行中/);
     expect(installations.text()).toContain("当前版本 1.0.0");
     expect(installations.get(".installation-identity h3").text()).toBe("CRM");
     // Q8: a flat list of product cards (no card-in-card); status beside the name; code and version in the meta line.

@@ -83,7 +83,18 @@
           </div>
           <details class="upgrade" data-testid="installation-upgrade">
             <summary>版本升级</summary>
-            <div class="stepper" aria-label="升级步骤"><span v-for="step in upgradeSteps" :key="step">{{ step }}</span></div>
+            <div class="stepper" aria-label="升级步骤" data-testid="upgrade-stepper">
+              <span
+                v-for="step in upgradeSteps"
+                :key="step.id"
+                class="step"
+                :data-status="step.status"
+                :data-testid="`upgrade-step-${step.id}`"
+              >
+                <span class="step-label">{{ step.label }}</span>
+                <span class="step-status">{{ stepStatusLabel(step.status) }}</span>
+              </span>
+            </div>
             <div v-if="devNotes" class="upgrade-facts" data-testid="upgrade-facts"><p><span>兼容范围</span><strong>暂无数据</strong></p><p><span>Schema 变更</span><strong>暂无数据</strong></p><p><span>数据迁移</span><strong>暂无数据</strong></p><p><span>回滚能力</span><strong>服务端未提供独立回滚说明</strong></p></div>
             <form class="upgrade-form" @submit.prevent="upgrade(installation)"><label>目标版本<select v-model="targets[installation.id]" required><option value="">请选择已发布版本</option><option v-for="version in publishedVersions(installation.appId)" :key="version.id" :value="version.id">{{ version.version }}</option></select></label><button class="nx-btn nx-btn--default" type="submit" data-testid="upgrade-submit" :disabled="busyId === installation.id || !targets[installation.id]">{{ busyId === installation.id ? "提交中…" : "提交升级" }}</button></form>
           </details>
@@ -118,7 +129,23 @@ const crumbs = computed(() => (section.value === "installations"
   : []));
 // S8: the upgrade facts are fixed "暂无数据" placeholders (no API yet) — a developer note, hidden in the demo.
 const devNotes = devNotesEnabled();
-const upgradeSteps = ["预检", "依赖检查", "结构扩展与迁移", "配置", "切换", "验证"];
+/** XB4: honest shell — no BE step state yet, so every step is UNKNOWN (never fake-green DONE). */
+const UPGRADE_STEP_DEFS = [
+  { id: "precheck", label: "预检" },
+  { id: "deps", label: "依赖检查" },
+  { id: "migrate", label: "结构扩展与迁移" },
+  { id: "config", label: "配置" },
+  { id: "switch", label: "切换" },
+  { id: "verify", label: "验证" },
+];
+const upgradeSteps = UPGRADE_STEP_DEFS.map((step) => ({ ...step, status: "UNKNOWN" }));
+
+function stepStatusLabel(status) {
+  if (status === "DONE") return "完成";
+  if (status === "ACTIVE") return "进行中";
+  if (status === "FAILED") return "失败";
+  return "暂无";
+}
 
 // The product's JSON is SNAKE_CASE (app_id, version_id, sku_code, updated_at…); this page reads camelCase.
 const camelKey = (key) => key.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
@@ -178,6 +205,6 @@ onMounted(load);
 .upgrade{border-top:1px solid var(--nx-divider);padding-top:var(--nx-space-3)}.upgrade summary{cursor:pointer;color:var(--nx-text-regular);font-size:var(--nx-font-size-sm);font-weight:600;list-style-position:inside}.upgrade[open] summary{margin-bottom:12px}.upgrade summary:hover{color:var(--nx-product)}
 .installation-id{font-size:var(--nx-font-size-xs)}.installation-id code{font-size:var(--nx-font-size-xs)}
 .p4-tabs{display:flex;gap:8px;overflow:auto;margin:0 0 16px;border-bottom:1px solid var(--nx-divider)}.p4-tabs a{padding:10px 14px;color:var(--nx-text-secondary);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}.p4-tabs a.router-link-active{color:var(--nx-product);border-color:var(--nx-product);font-weight:600}
-.split-layout{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(0,1.5fr);gap:16px}.nx-card h2{margin-top:0}.list-item{display:flex;width:100%;justify-content:space-between;gap:12px;align-items:center;text-align:left;background:transparent;color:inherit;border:0;border-top:1px solid var(--nx-divider);padding:14px 4px;cursor:pointer}.list-item span:first-child{display:flex;flex-direction:column;gap:4px}.list-item small,.version-row small{color:var(--nx-text-secondary);overflow-wrap:anywhere}.list-item.selected{color:var(--nx-product)}.detail-card p{line-height:1.6}.facts{display:grid;grid-template-columns:minmax(140px,.7fr) 2fr;gap:10px;margin:20px 0}.facts dt{color:var(--nx-text-secondary)}.facts dd{margin:0;overflow-wrap:anywhere}.version-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-top:1px solid var(--nx-divider);padding:14px 0}.version-row p{margin:5px 0 0;color:var(--nx-text-secondary)}.section-heading,.product-heading,.installation-summary{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.section-heading h2,.product-heading h3,.installation-summary h3{margin:0}.product-block{border-top:1px solid var(--nx-divider);padding:20px 0}.product-heading{margin-bottom:14px}.product-heading p{color:var(--nx-text-secondary)}.eyebrow{font-size:12px;color:var(--nx-product);font-weight:600;letter-spacing:.04em}.entitlements{list-style:none;padding:0;margin:0}.entitlements li{display:flex;flex-direction:column;gap:3px;margin:0 0 5px}.table-scroll{overflow:auto}.installation-list{display:grid;gap:var(--nx-space-3)}.installation-card{display:grid;gap:var(--nx-space-3);padding:var(--nx-space-4) var(--nx-space-5);background:var(--nx-surface);border:1px solid var(--nx-border);border-radius:var(--nx-radius,12px);box-shadow:var(--nx-shadow-card)}.installation-summary code{display:block;margin-top:6px;overflow-wrap:anywhere}.installation-summary .nx-btn--primary{align-self:center;white-space:nowrap}.stepper{display:flex;gap:6px;overflow:auto;margin:18px 0}.stepper span{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:8px;background:var(--nx-bg-sidebar);font-size:12px}.upgrade-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.upgrade-facts p{display:flex;flex-direction:column;gap:5px;margin:0;padding:10px;background:var(--nx-bg-sidebar);border-radius:8px}.upgrade-facts span,.upgrade-facts strong{font-size:13px}.upgrade-facts span{color:var(--nx-text-secondary)}.upgrade-form{display:flex;align-items:flex-end;gap:12px;margin:16px 0}.upgrade-form label{display:flex;flex-direction:column;gap:6px;flex:1}.upgrade-form select{height:var(--nx-control-height,36px);padding:0 10px;border:1px solid var(--nx-border-strong);border-radius:var(--nx-control-radius,6px);background:var(--nx-surface);color:inherit}.notice{padding:12px;border-radius:8px;background:var(--nx-success-light);color:var(--nx-success)}
+.split-layout{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(0,1.5fr);gap:16px}.nx-card h2{margin-top:0}.list-item{display:flex;width:100%;justify-content:space-between;gap:12px;align-items:center;text-align:left;background:transparent;color:inherit;border:0;border-top:1px solid var(--nx-divider);padding:14px 4px;cursor:pointer}.list-item span:first-child{display:flex;flex-direction:column;gap:4px}.list-item small,.version-row small{color:var(--nx-text-secondary);overflow-wrap:anywhere}.list-item.selected{color:var(--nx-product)}.detail-card p{line-height:1.6}.facts{display:grid;grid-template-columns:minmax(140px,.7fr) 2fr;gap:10px;margin:20px 0}.facts dt{color:var(--nx-text-secondary)}.facts dd{margin:0;overflow-wrap:anywhere}.version-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-top:1px solid var(--nx-divider);padding:14px 0}.version-row p{margin:5px 0 0;color:var(--nx-text-secondary)}.section-heading,.product-heading,.installation-summary{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.section-heading h2,.product-heading h3,.installation-summary h3{margin:0}.product-block{border-top:1px solid var(--nx-divider);padding:20px 0}.product-heading{margin-bottom:14px}.product-heading p{color:var(--nx-text-secondary)}.eyebrow{font-size:12px;color:var(--nx-product);font-weight:600;letter-spacing:.04em}.entitlements{list-style:none;padding:0;margin:0}.entitlements li{display:flex;flex-direction:column;gap:3px;margin:0 0 5px}.table-scroll{overflow:auto}.installation-list{display:grid;gap:var(--nx-space-3)}.installation-card{display:grid;gap:var(--nx-space-3);padding:var(--nx-space-4) var(--nx-space-5);background:var(--nx-surface);border:1px solid var(--nx-border);border-radius:var(--nx-radius,12px);box-shadow:var(--nx-shadow-card)}.installation-summary code{display:block;margin-top:6px;overflow-wrap:anywhere}.installation-summary .nx-btn--primary{align-self:center;white-space:nowrap}.stepper{display:flex;gap:6px;overflow:auto;margin:18px 0}.stepper .step{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:8px;background:var(--nx-bg-sidebar);font-size:12px;display:flex;flex-direction:column;gap:4px;border:1px solid transparent;color:var(--nx-text-regular)}.stepper .step-label{font-weight:600}.stepper .step-status{color:var(--nx-text-secondary);font-size:11px}.stepper .step[data-status="UNKNOWN"]{background:var(--nx-bg-sidebar);color:var(--nx-text-regular)}.stepper .step[data-status="ACTIVE"]{border-color:var(--nx-product);color:var(--nx-product);background:var(--nx-product-light)}.stepper .step[data-status="FAILED"]{border-color:var(--nx-danger);color:var(--nx-danger);background:var(--nx-danger-light)}.stepper .step[data-status="DONE"]{border-color:var(--nx-success);color:var(--nx-success);background:var(--nx-success-light)}.upgrade-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.upgrade-facts p{display:flex;flex-direction:column;gap:5px;margin:0;padding:10px;background:var(--nx-bg-sidebar);border-radius:8px}.upgrade-facts span,.upgrade-facts strong{font-size:13px}.upgrade-facts span{color:var(--nx-text-secondary)}.upgrade-form{display:flex;align-items:flex-end;gap:12px;margin:16px 0}.upgrade-form label{display:flex;flex-direction:column;gap:6px;flex:1}.upgrade-form select{height:var(--nx-control-height,36px);padding:0 10px;border:1px solid var(--nx-border-strong);border-radius:var(--nx-control-radius,6px);background:var(--nx-surface);color:inherit}.notice{padding:12px;border-radius:8px;background:var(--nx-success-light);color:var(--nx-success)}
 @media(max-width:800px){.split-layout{grid-template-columns:1fr}.upgrade-form{align-items:stretch;flex-direction:column}}
 </style>
