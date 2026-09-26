@@ -17,6 +17,7 @@ const components = [
   "NxSkeleton.vue",
   "NxListFooter.vue",
   "NxToastHost.vue",
+  "NxResult.vue",
 ];
 
 describe("W1 component design tokens", () => {

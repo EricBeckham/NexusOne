@@ -40,6 +40,17 @@
       </div>
     </section>
 
+    <section class="nx-card section" data-testid="result-gallery">
+      <h2>Result 壳（S3）</h2>
+      <p class="hint">提交后结果态：图标 + 标题 + 描述 + 下一步槽；页卡自行决定何时展示。</p>
+      <NxResult title="申请已提交" description="可在我的申请中查看进度。" compact>
+        <template #next>
+          <button type="button" class="primary">查看我的申请</button>
+          <button type="button" class="ghost">返回已开通</button>
+        </template>
+      </NxResult>
+    </section>
+
     <section class="gallery-grid states" aria-label="页面状态示例">
       <div class="nx-card"><NxEmpty description="创建第一条记录后会显示在这里" compact /></div>
       <div class="nx-card"><NxErrorState trace-id="dev-trace-id" /></div>
@@ -57,6 +68,7 @@ import {
   NxNoPermission,
   NxPanelCard,
   NxPageHeader,
+  NxResult,
   NxStatusTag,
   nxMessage,
 } from "../../components";

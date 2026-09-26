@@ -11,6 +11,7 @@ export { default as NxActivityTimeline } from "./NxActivityTimeline.vue";
 export { default as NxTodoList } from "./NxTodoList.vue";
 export { default as NxPageHeader } from "./NxPageHeader.vue";
 export { default as NxRequestAlert } from "./NxRequestAlert.vue";
+export { default as NxResult } from "./NxResult.vue";
 export { default as NxSkeleton } from "./NxSkeleton.vue";
 export { default as NxStatCard } from "./NxStatCard.vue";
 export { default as NxStatusTag } from "./NxStatusTag.vue";
