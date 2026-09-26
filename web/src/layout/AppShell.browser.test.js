@@ -133,7 +133,8 @@ describe("W0 product shell", () => {
     const router = await boot("/p4");
     const wrapper = mount(AppShell, { global: { plugins: [router] } });
     expect(wrapper.findAll("[data-testid='nav-section']").map((node) => node.text())).toEqual(["目录与开通", "商品配置"]);
-    expect(wrapper.get(".later .tag").text()).toBe("后续");
+    expect(wrapper.find(".later").exists()).toBe(false);
+    expect(wrapper.get('a[href="/p4/operations"]').text()).toContain("运营分析");
     expect(wrapper.get(".switcher").text()).toContain("切换产品");
     expect(wrapper.get(".switcher a[aria-current='true']").attributes("data-product")).toBe("p4");
     await wrapper.get(".fold").trigger("click");
