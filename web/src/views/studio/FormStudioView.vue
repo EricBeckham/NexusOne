@@ -10,14 +10,38 @@
       </template>
     </NxPageHeader>
     <p v-if="error" class="nx-error">{{ error }}</p>
-    <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-tabs">
       <button :class="{ active: tab === 'fill' }" type="button" data-testid="form-fill-tab" @click="tab = 'fill'">填报 / 启动审批</button>
       <button :class="{ active: tab === 'designer' }" type="button" @click="tab = 'designer'">设计壳</button>
       <button :class="{ active: tab === 'publish' }" type="button" data-testid="form-publish-tab" @click="tab = 'publish'">发布</button>
     </div>
 
-    <form v-if="tab === 'fill'" class="nx-card" style="max-width:720px;" @submit.prevent="submitFill">
+    <NxResult
+      v-if="tab === 'fill' && pathResult"
+      compact
+      title="已提交并启动审批"
+      :description="submitDescription"
+      data-testid="form-submit-result"
+    >
+      <template #next>
+        <router-link
+          v-if="pathResult.todo?.id"
+          class="primary"
+          :to="`/p3/todos/${pathResult.todo.id}?box=inbox`"
+          data-testid="approval-open-todo"
+        >打开待办</router-link>
+        <router-link
+          v-if="pathResult.ledger_id && pathResult.record_id"
+          class="ghost"
+          :to="`/p3/ledgers/${pathResult.ledger_id}/records/${pathResult.record_id}`"
+          data-testid="approval-open-record"
+        >查看业务记录</router-link>
+        <button class="ghost" type="button" data-testid="form-submit-again" @click="resetFill">再填一条</button>
+      </template>
+    </NxResult>
+    <pre v-if="tab === 'fill' && pathResult && devNotes" class="nx-code" data-testid="form-submit-dev-notes">{{ JSON.stringify(pathResult, null, 2) }}</pre>
+
+    <form v-else-if="tab === 'fill'" class="nx-card" style="max-width:720px;" @submit.prevent="submitFill">
       <NxEmpty v-if="!runningFields.length" compact title="暂无运行版本" description="先到发布页校验并发布草稿，才能填报并启动审批。">
         <template #next><button class="ghost" type="button" @click="tab = 'publish'">去发布</button></template>
       </NxEmpty>
@@ -49,21 +73,6 @@
       <button class="primary" type="submit" data-testid="form-fill-submit" :disabled="!runningFields.length">
         提交并启动审批
       </button>
-      <div v-if="pathResult" class="nx-row" style="margin-top:12px;" data-testid="approval-start-links">
-        <router-link
-          v-if="pathResult.todo?.id"
-          class="primary"
-          :to="`/p3/todos/${pathResult.todo.id}?box=inbox`"
-          data-testid="approval-open-todo"
-        >打开待办</router-link>
-        <router-link
-          v-if="pathResult.ledger_id && pathResult.record_id"
-          class="ghost"
-          :to="`/p3/ledgers/${pathResult.ledger_id}/records/${pathResult.record_id}`"
-          data-testid="approval-open-record"
-        >查看业务记录</router-link>
-      </div>
-      <pre v-if="devNotes && pathResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(pathResult, null, 2) }}</pre>
     </form>
 
     <div v-else-if="tab === 'designer'" class="nx-designer">
@@ -124,8 +133,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxSkeleton } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
+import { nxMessage } from "../../feedback/nxMessage";
 import { devNotesEnabled } from "../../utils/devNotes";
 import { p3 } from "../../api/p3";
 import { p2 } from "../../api/client";
@@ -136,7 +146,6 @@ const devNotes = devNotesEnabled();
 const form = ref(null);
 const tab = ref(route.query.tab === "publish" ? "publish" : "fill");
 const error = ref("");
-const notice = ref("");
 const validation = ref(null);
 const publishResult = ref(null);
 const pathResult = ref(null);
@@ -146,6 +155,12 @@ const assigneeRef = ref("");
 const processKey = ref("nexusSequentialApproval");
 
 const runningFields = computed(() => form.value?.running_fields || []);
+const submitDescription = computed(() => {
+  const note = pathResult.value?.note;
+  if (note) return String(note);
+  if (pathResult.value?.todo?.id) return "审批已创建待办，可继续打开待办或查看业务记录。";
+  return "提交已完成。可查看业务记录，或再填一条。";
+});
 
 // Thin read-only consumer: zero-based 12-column grid, persisted as options.layout.
 // Never invent placement for legacy, mixed or invalid metadata: retain list order.
@@ -208,10 +223,22 @@ async function submitFill() {
       assignee_ref: assigneeRef.value || session.personId,
     });
     pathResult.value = result;
-    notice.value = `submit-start 完成。record ${result.record_id || "?"} · todo ${result.todo?.id || "?"} · trace ${result.trace_id || ""}。${result.note || ""}`;
     error.value = "";
+    nxMessage.success("已提交并启动审批", {
+      traceId: result.trace_id || "",
+    });
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
+    nxMessage.error(`提交没有完成：${err.code || ""} ${err.message}`.trim(), {
+      traceId: err.traceId || err.trace_id || "",
+    });
+  }
+}
+
+function resetFill() {
+  pathResult.value = null;
+  for (const field of runningFields.value) {
+    values[field.code] = "";
   }
 }
 
