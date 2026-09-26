@@ -243,3 +243,43 @@ describe("product definition binding page", () => {
     expect(wrapper.get("[data-testid='bind-error']").text()).toBe("sku not found");
   });
 });
+
+describe("IM2 export config shell", () => {
+  beforeEach(() => {
+    for (const fn of [...Object.values(p1), ...Object.values(p4), ...Object.values(p3)]) fn.mockReset();
+    p4.productDefinitions.mockResolvedValue([DEFINITION]);
+    p4.skus.mockResolvedValue([]);
+    p4.catalog.mockResolvedValue([]);
+    p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
+    publishedProcess();
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  it("shows 导出配置 CTA and downloads a real file on success", async () => {
+    const blob = new Blob([JSON.stringify({ formatVersion: "1.0" })], { type: "application/json" });
+    fetch.mockResolvedValue({ ok: true, blob: async () => blob });
+    const createObjectURL = vi.fn(() => "blob:export");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
+    const wrapper = await mountPage();
+    expect(wrapper.get('[data-testid="export-config"]').text()).toContain("导出配置");
+    await wrapper.get('[data-testid="export-config"]').trigger("click");
+    await flushPromises();
+    expect(fetch).toHaveBeenCalledWith(
+      "/fixtures/product-config-1.0/sample-demo-leave.product-config.json",
+      expect.objectContaining({ headers: { Accept: "application/json" } }),
+    );
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="export-config-error"]').exists()).toBe(false);
+  });
+
+  it("shows S-shell error without fake success when download fails", async () => {
+    fetch.mockResolvedValue({ ok: false, status: 404 });
+    const wrapper = await mountPage();
+    await wrapper.get('[data-testid="export-config"]').trigger("click");
+    await flushPromises();
+    const err = wrapper.get('[data-testid="export-config-error"]');
+    expect(err.text()).toContain("配置未能导出");
+    expect(err.text()).toMatch(/样例配置包暂时不可用|404/);
+  });
+});
