@@ -47,9 +47,11 @@ public final class PrintMappingModels {
     /**
      * Per-product mapping view. {@code source=DEFAULT} means derived from the static contract;
      * {@code IN_MEMORY} means a process-local override (lost on restart).
+     * CF-RD3: {@code revision} is 0 for the contract default and +1 per accepted PUT in this process. It is not a
+     * durable version: a restart drops the override and the product is back at the default, revision 0.
      */
     public record ProductPrintMapping(UUID productDefinitionId, String source, String paper, String orientation,
-            String templateCode, List<FieldSlotMapping> mappings, String note) {
+            String templateCode, List<FieldSlotMapping> mappings, String note, long revision) {
         public static final String SOURCE_DEFAULT = "DEFAULT";
         public static final String SOURCE_IN_MEMORY = "IN_MEMORY";
         public static final String NOTE_DEFAULT = "来自 CF-R3 静态契约默认映射；尚未进程内覆盖。";
@@ -60,10 +62,19 @@ public final class PrintMappingModels {
         }
     }
 
-    /** PUT body: optional paper/orientation; mappings replace the in-memory override. */
-    public record ProductPrintMappingPut(String paper, String orientation, List<FieldSlotMapping> mappings) {
+    /**
+     * PUT body: optional paper/orientation; mappings replace the in-memory override.
+     * CF-RD3: {@code expectedRevision}, when present, must equal the current revision or the PUT is refused (409),
+     * so an editor never silently overwrites a mapping it has not seen.
+     */
+    public record ProductPrintMappingPut(String paper, String orientation, List<FieldSlotMapping> mappings,
+            Long expectedRevision) {
         public ProductPrintMappingPut {
             mappings = mappings == null ? List.of() : List.copyOf(mappings);
+        }
+
+        public ProductPrintMappingPut(String paper, String orientation, List<FieldSlotMapping> mappings) {
+            this(paper, orientation, mappings, null);
         }
     }
 }

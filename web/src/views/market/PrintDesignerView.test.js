@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../api/client", () => ({ p4: mocks }));
 
 import PrintDesignerView from "./PrintDesignerView.vue";
+import { clearToasts, useNxToastState } from "../../feedback/nxMessage";
 import { bindingRows, designerFromSample, mappingsFromRows, sameMappings, validateBindings } from "./printDesigner";
 
 const PRINT = {
@@ -219,5 +220,97 @@ describe("field → slot binding UI (CF-RD2)", () => {
     await wrapper.get("[data-testid='designer-binding-error'] button").trigger("click");
     await flushPromises();
     expect(wrapper.find("[data-testid='designer-binding-table']").exists()).toBe(true);
+  });
+});
+describe("honest save and revision (CF-RD3)", () => {
+  const withRevision = (mapping, revision, source = "IN_MEMORY") => ({ ...mapping, source, revision });
+
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    clearToasts();
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }, { id: "d2", code: "crm", name: "CRM" }]);
+    mocks.productPrintSample.mockResolvedValue(PRINT);
+    mocks.printMappingContract.mockResolvedValue(CONTRACT);
+    mocks.productPrintMapping.mockResolvedValue(withRevision(DEFAULT_MAPPING, 0, "DEFAULT"));
+  });
+
+  it("shows the process-local revision honestly and sends the revision it was based on", async () => {
+    const wrapper = await mountAt();
+    expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("契约默认 r0");
+    expect(wrapper.get("[data-testid='designer-binding-durability']").text()).toContain("重启丢失");
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("");
+    expect(wrapper.get("[data-testid='designer-binding-dirty']").text()).toContain("未保存");
+    expect(wrapper.get("[data-testid='designer-product-select']").attributes("disabled")).toBeDefined();
+    mocks.saveProductPrintMapping.mockResolvedValue({});
+    mocks.productPrintMapping.mockImplementationOnce(async () => {
+      const sent = mocks.saveProductPrintMapping.mock.calls[0][1].mappings;
+      return withRevision({ ...DEFAULT_MAPPING, mappings: sent }, 1);
+    });
+    await wrapper.get("[data-testid='designer-binding-save']").trigger("click");
+    await flushPromises();
+    expect(mocks.saveProductPrintMapping.mock.calls[0][1].expected_revision).toBe(0);
+    expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("进程内修订 r1");
+    expect(wrapper.get("[data-testid='designer-binding-durability']").text()).toContain("不是持久版本号");
+    expect(useNxToastState().items.map((t) => [t.tone, t.message])).toContainEqual(["success", "打印绑定已保存（进程内修订 r1）"]);
+    expect(wrapper.get("[data-testid='designer-product-select']").attributes("disabled")).toBeUndefined();
+  });
+
+  it("refuses to overwrite on 409 and lets the user reload or overwrite explicitly", async () => {
+    const wrapper = await mountAt();
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("");
+    mocks.saveProductPrintMapping.mockRejectedValueOnce(Object.assign(new Error("print mapping changed"), { status: 409 }));
+    const theirs = withRevision({ ...DEFAULT_MAPPING, mappings: [{ field_key: "title", slot_id: "header.application_no" }] }, 4);
+    mocks.productPrintMapping.mockResolvedValueOnce(theirs);
+    await wrapper.get("[data-testid='designer-binding-save']").trigger("click");
+    await flushPromises();
+    const panel = wrapper.get("[data-testid='designer-binding-conflict']").text();
+    expect(panel).toContain("本次没有保存");
+    expect(panel).toContain("基于 r0");
+    expect(panel).toContain("服务器现在是 r4");
+    expect(wrapper.find("[data-testid='designer-binding-readback']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='designer-binding-days']").element.value).toBe("");
+    expect(wrapper.get("[data-testid='designer-binding-save']").attributes("disabled")).toBeDefined();
+    expect(useNxToastState().items.some((t) => t.tone === "error")).toBe(true);
+
+    mocks.saveProductPrintMapping.mockResolvedValueOnce({});
+    mocks.productPrintMapping.mockResolvedValueOnce(withRevision(DEFAULT_MAPPING, 5));
+    await wrapper.get("[data-testid='designer-conflict-overwrite']").trigger("click");
+    await flushPromises();
+    expect(mocks.saveProductPrintMapping.mock.calls[1][1].expected_revision).toBe(4);
+    expect(wrapper.find("[data-testid='designer-binding-conflict']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("进程内修订 r5");
+  });
+
+  it("reloading the server version after a conflict drops the draft", async () => {
+    const wrapper = await mountAt();
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("");
+    mocks.saveProductPrintMapping.mockRejectedValueOnce(Object.assign(new Error("changed"), { status: 409 }));
+    mocks.productPrintMapping.mockResolvedValueOnce(withRevision(DEFAULT_MAPPING, 2));
+    await wrapper.get("[data-testid='designer-binding-save']").trigger("click");
+    await flushPromises();
+    await wrapper.get("[data-testid='designer-conflict-reload']").trigger("click");
+    expect(wrapper.get("[data-testid='designer-binding-days']").element.value).toBe("form.fields");
+    expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("进程内修订 r2");
+    expect(wrapper.find("[data-testid='designer-binding-dirty']").exists()).toBe(false);
+  });
+
+  it("keeps the draft and the table on other save failures", async () => {
+    const wrapper = await mountAt();
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("");
+    mocks.saveProductPrintMapping.mockRejectedValueOnce(Object.assign(new Error("unknown slotId: x"), { status: 400, traceId: "tr-rd3" }));
+    await wrapper.get("[data-testid='designer-binding-save']").trigger("click");
+    await flushPromises();
+    const error = wrapper.get("[data-testid='designer-binding-save-error']").text();
+    expect(error).toContain("unknown slotId: x");
+    expect(error).toContain("tr-rd3");
+    expect(wrapper.find("[data-testid='designer-binding-table']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='designer-binding-days']").element.value).toBe("");
+    expect(wrapper.get("[data-testid='designer-binding-save']").attributes("disabled")).toBeUndefined();
+  });
+
+  it("says there is no version number when the server does not send one", async () => {
+    mocks.productPrintMapping.mockResolvedValue(DEFAULT_MAPPING);
+    const wrapper = await mountAt();
+    expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("版本号：暂无");
   });
 });

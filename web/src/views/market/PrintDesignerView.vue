@@ -36,7 +36,14 @@
     <template v-else>
       <section class="designer-product nx-card" data-testid="designer-product">
         <label for="designer-product-select">当前产品</label>
-        <select id="designer-product-select" v-model="selectedId" data-testid="designer-product-select" @change="onProductChange">
+        <select
+          id="designer-product-select"
+          v-model="selectedId"
+          data-testid="designer-product-select"
+          :disabled="dirty"
+          :title="dirty ? '有未保存的绑定：先保存或撤销，再切换产品' : ''"
+          @change="onProductChange"
+        >
           <option v-for="definition in definitions" :key="definition.id" :value="definition.id">
             {{ definition.name }}（{{ definition.code }}）
           </option>
@@ -137,10 +144,33 @@
             <h2>字段 → 槽位</h2>
             <p class="nx-muted">每个字段放进一个槽位；没指定的表单字段放在「{{ slotLabel(spillId) }}」。</p>
           </div>
-          <span v-if="mapping" class="nx-muted" data-testid="designer-binding-source">
-            {{ mapping.source === "IN_MEMORY" ? "已读回：服务器进程内映射" : "已读回：契约默认映射" }}
-          </span>
+          <div v-if="mapping" class="binding-version">
+            <span class="nx-muted" data-testid="designer-binding-source">
+              {{ mapping.source === "IN_MEMORY" ? "已读回：服务器进程内映射" : "已读回：契约默认映射" }}
+            </span>
+            <span class="version-tag" data-testid="designer-binding-version" :title="versionHint">{{ versionLabel }}</span>
+          </div>
         </header>
+
+        <p v-if="mapping" class="binding-durability nx-muted" data-testid="designer-binding-durability">{{ versionHint }}</p>
+
+        <NxResult
+          v-if="conflict"
+          compact
+          tone="warning"
+          data-testid="designer-binding-conflict"
+          title="服务器上的映射已经变了，本次没有保存"
+          :description="conflictText"
+        >
+          <template #next>
+            <button class="primary" type="button" data-testid="designer-conflict-reload" :disabled="saving" @click="reloadFromServer">载入服务器版本</button>
+            <button class="ghost" type="button" data-testid="designer-conflict-overwrite" :disabled="saving" @click="overwriteServer">用我的修改覆盖</button>
+          </template>
+        </NxResult>
+
+        <p v-if="saveError" class="save-error" role="alert" data-testid="designer-binding-save-error">
+          保存失败：{{ saveError }}<span v-if="saveTraceId" class="nx-muted">（追踪号 {{ saveTraceId }}）</span>。修改仍在本页，可以再试。
+        </p>
 
         <NxErrorState
           v-if="bindingError"
@@ -190,11 +220,12 @@
               class="primary"
               type="button"
               data-testid="designer-binding-save"
-              :disabled="saving || !dirty || hasBindingErrors"
-              @click="saveBinding"
+              :disabled="saving || !dirty || hasBindingErrors || Boolean(conflict)"
+              @click="saveBinding()"
             >{{ saving ? "保存中…" : "保存绑定" }}</button>
             <button class="ghost" type="button" :disabled="saving || !dirty" data-testid="designer-binding-reset" @click="resetBinding">撤销修改</button>
             <span v-if="hasBindingErrors" class="nx-muted">先修正标红的槽位。</span>
+            <span v-else-if="dirty" class="nx-muted" data-testid="designer-binding-dirty">有未保存的修改。</span>
             <span v-else-if="readBack" class="nx-muted" data-testid="designer-binding-readback">{{ readBack }}</span>
           </div>
         </template>
@@ -206,7 +237,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxSkeleton, nxMessage } from "../../components";
 import { p4 } from "../../api/client";
 import {
   allSlots,
@@ -262,6 +293,8 @@ function resetBinding() {
 }
 
 async function loadBinding() {
+  conflict.value = null;
+  saveError.value = "";
   bindingError.value = "";
   bindingTraceId.value = "";
   readBack.value = "";
@@ -283,25 +316,80 @@ async function loadBinding() {
   }
 }
 
-async function saveBinding() {
+// CF-RD3: honest save. The revision is the server's process-local counter (CF-R3 store), never a durable
+// version; a save names the revision it was based on so the server refuses (409) instead of overwriting.
+const conflict = ref(null);
+const saveError = ref("");
+const saveTraceId = ref("");
+const revisionOf = (value) => (typeof value?.revision === "number" ? value.revision : null);
+const versionLabel = computed(() => {
+  const revision = revisionOf(mapping.value);
+  if (revision == null) return "版本号：暂无";
+  return mapping.value?.source === "IN_MEMORY" ? `进程内修订 r${revision}` : `契约默认 r${revision}`;
+});
+const versionHint = computed(() => (mapping.value?.source === "IN_MEMORY"
+  ? "保存在服务器进程内存里：服务重启后丢失，回到契约默认；这个修订号不是持久版本号。"
+  : "还没有覆盖，显示的是契约默认映射；保存后会存在服务器进程内存里（重启丢失）。"));
+const conflictText = computed(() => {
+  if (!conflict.value) return "";
+  const theirs = revisionOf(conflict.value.server);
+  const mine = conflict.value.basedOn;
+  return `你基于 ${mine == null ? "未知修订" : `r${mine}`} 修改，服务器现在是 ${theirs == null ? "未知修订" : `r${theirs}`}。为避免静默覆盖，本次没有保存；可以载入服务器版本，或明确用你的修改覆盖。`;
+});
+
+async function saveBinding(basedOn = revisionOf(mapping.value)) {
   if (saving.value || hasBindingErrors.value || !mapping.value) return;
   const id = selectedId.value;
   saving.value = true;
   readBack.value = "";
+  saveError.value = "";
+  saveTraceId.value = "";
+  const sent = mappingsFromRows(rows.value);
   try {
-    const sent = mappingsFromRows(rows.value);
-    await p4.saveProductPrintMapping(id, { paper: mapping.value.paper, orientation: mapping.value.orientation, mappings: sent });
+    const body = { paper: mapping.value.paper, orientation: mapping.value.orientation, mappings: sent };
+    if (basedOn != null) body.expected_revision = basedOn;
+    await p4.saveProductPrintMapping(id, body);
     const fresh = await p4.productPrintMapping(id);
     if (selectedId.value !== id) return;
+    conflict.value = null;
     mapping.value = fresh;
     resetBinding();
-    readBack.value = sameMappings(fresh?.mappings, sent) ? "已保存并读回，一致。" : "已保存，但读回内容与提交不同，请核对。";
+    const consistent = sameMappings(fresh?.mappings, sent);
+    readBack.value = consistent ? "已保存并读回，一致。" : "已保存，但读回内容与提交不同，请核对。";
+    const revision = revisionOf(fresh);
+    nxMessage[consistent ? "success" : "info"](`打印绑定已保存${revision == null ? "" : `（进程内修订 r${revision}）`}`);
   } catch (err) {
-    bindingError.value = err?.message || "保存失败";
-    bindingTraceId.value = err?.traceId || "";
+    if (selectedId.value !== id) return;
+    if (err?.status === 409) {
+      let server = null;
+      try {
+        server = await p4.productPrintMapping(id);
+      } catch {
+        server = null;
+      }
+      conflict.value = { basedOn, server };
+      nxMessage.error("服务器上的映射已经变了，本次没有保存");
+    } else {
+      saveError.value = err?.message || "服务器没有接受这次保存";
+      saveTraceId.value = err?.traceId || "";
+      nxMessage.error("打印绑定保存失败", { traceId: err?.traceId });
+    }
   } finally {
     saving.value = false;
   }
+}
+
+function reloadFromServer() {
+  if (conflict.value?.server) mapping.value = conflict.value.server;
+  conflict.value = null;
+  resetBinding();
+  if (!mapping.value) loadBinding();
+}
+
+function overwriteServer() {
+  const theirs = revisionOf(conflict.value?.server);
+  conflict.value = null;
+  saveBinding(theirs);
 }
 const paperText = computed(() => {
   const paper = `${designer.value?.paper || "A4"} ${designer.value?.orientation === "LANDSCAPE" ? "横向" : "纵向"}`;
@@ -564,6 +652,32 @@ onMounted(load);
 .designer-binding select {
   min-width: 220px;
   max-width: 100%;
+}
+.binding-version {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-2);
+  font-size: var(--nx-font-size-sm);
+}
+.version-tag {
+  padding: 2px var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  font-size: var(--nx-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+.binding-durability {
+  margin: 0;
+  font-size: var(--nx-font-size-xs);
+}
+.save-error {
+  margin: 0;
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-danger-light, var(--nx-divider));
+  color: var(--nx-danger, inherit);
+  font-size: var(--nx-font-size-sm);
 }
 .binding-actions {
   display: flex;
