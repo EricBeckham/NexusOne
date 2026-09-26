@@ -113,6 +113,67 @@
           description="拖拽排版、页眉页脚引擎不在本波。当前只提供内置样例预览；配置映射与纸张枚举若已接通，仍不会变成完整设计器。"
         />
 
+        <section class="print-config" aria-label="打印配置" data-testid="sample-print-config">
+          <NxErrorState
+            v-if="mappingError"
+            title="打印映射暂时无法读取"
+            :description="mappingError"
+            :trace-id="mappingTraceId"
+            retry-label="重试"
+            data-testid="sample-print-mapping-error"
+            @retry="loadPrintMapping"
+          />
+          <template v-else>
+            <div class="print-paper-row">
+              <label class="nx-field">
+                <span>纸张</span>
+                <select v-model="printPaper" data-testid="sample-print-paper-size">
+                  <option v-for="paper in paperSizes" :key="paper.code" :value="paper.code">{{ paper.label || paper.code }}</option>
+                </select>
+              </label>
+              <label class="nx-field">
+                <span>方向</span>
+                <select v-model="printOrientation" data-testid="sample-print-orientation">
+                  <option v-for="item in orientations" :key="item.code" :value="item.code">{{ item.label || item.code }}</option>
+                </select>
+              </label>
+              <button
+                class="ghost"
+                type="button"
+                data-testid="sample-print-mapping-save"
+                :disabled="mappingSaving || !selectedId"
+                @click="savePrintMapping"
+              >{{ mappingSaving ? "保存中…" : "保存映射" }}</button>
+            </div>
+            <p v-if="mappingSaveMessage" class="nx-muted" data-testid="sample-print-mapping-saved">{{ mappingSaveMessage }}</p>
+            <NxEmpty
+              v-if="!mappingRows.length"
+              compact
+              data-testid="sample-print-mapping-empty"
+              title="暂无字段映射"
+              description="当前产品还没有可映射的表单字段。绑定已发布表单后会出现字段→槽位表。"
+            />
+            <div v-else class="table-scroll">
+              <table class="nx-table nx-table--compact" data-testid="sample-print-mapping-table">
+                <thead>
+                  <tr><th scope="col">表单字段</th><th scope="col">打印槽位</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in mappingRows" :key="row.fieldKey" :data-testid="`sample-print-map-${row.fieldKey}`">
+                    <td><code>{{ row.fieldKey }}</code><small class="nx-muted">{{ row.fieldLabel }}</small></td>
+                    <td>
+                      <select v-model="row.slotId" :data-testid="`sample-print-slot-${row.fieldKey}`">
+                        <option value="">未映射（落入表单区）</option>
+                        <option v-for="slot in printSlots" :key="slot.id" :value="slot.id">{{ slot.label }}（{{ slot.id }}）</option>
+                      </select>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
+        </section>
+
         <NxEmpty
           v-if="!printSections.length"
           compact
@@ -226,15 +287,33 @@ const selectedId = ref("");
 const sample = ref(null);
 const sampleError = ref("");
 const sampleTraceId = ref("");
+const printContract = ref(null);
+const printPaper = ref("A4");
+const printOrientation = ref("PORTRAIT");
+const mappingRows = ref([]);
+const mappingError = ref("");
+const mappingTraceId = ref("");
+const mappingSaving = ref(false);
+const mappingSaveMessage = ref("");
 
 const printSections = computed(() => (Array.isArray(sample.value?.sections) ? sample.value.sections : [])
   .filter((section) => section?.key)
   .map((section) => ({ ...section, fields: Array.isArray(section.fields) ? section.fields.filter((f) => f?.key) : [] })));
-const paperLabel = computed(() => {
-  const paper = sample.value?.paper || "A4";
-  return `${paper} ${sample.value?.orientation === "LANDSCAPE" ? "横向" : "纵向"}`;
+const paperSizes = computed(() => {
+  const rows = printContract.value?.paper_sizes ?? printContract.value?.paperSizes ?? [];
+  return Array.isArray(rows) && rows.length ? rows : [{ code: "A4", label: "A4" }, { code: "A5", label: "A5" }, { code: "LETTER", label: "Letter" }];
 });
-const orientationClass = computed(() => (sample.value?.orientation === "LANDSCAPE" ? "landscape" : "portrait"));
+const orientations = computed(() => {
+  const rows = printContract.value?.orientations ?? [];
+  return Array.isArray(rows) && rows.length ? rows : [{ code: "PORTRAIT", label: "纵向" }, { code: "LANDSCAPE", label: "横向" }];
+});
+const printSlots = computed(() => {
+  const template = printContract.value?.builtin_template ?? printContract.value?.builtinTemplate ?? {};
+  const slots = template.slots ?? [];
+  return (Array.isArray(slots) ? slots : []).filter((slot) => slot?.id);
+});
+const paperLabel = computed(() => `${printPaper.value || sample.value?.paper || "A4"} ${printOrientation.value === "LANDSCAPE" ? "横向" : "纵向"}`);
+const orientationClass = computed(() => (printOrientation.value === "LANDSCAPE" || sample.value?.orientation === "LANDSCAPE" ? "landscape" : "portrait"));
 // PC12: a count the backend could not make arrives as null or an absent key — both read as 暂无, never 0.
 const metrics = computed(() => (Array.isArray(sample.value?.metrics) ? sample.value.metrics : [])
   .filter((metric) => metric?.key)
@@ -262,15 +341,100 @@ function typeLabel(type) {
   return TYPE_LABELS[String(type || "").toUpperCase()] || type || "文本";
 }
 
+function collectPrintFields() {
+  const fields = [];
+  const seen = new Set();
+  for (const section of printSections.value) {
+    for (const field of section.fields || []) {
+      if (!field?.key || seen.has(field.key)) continue;
+      seen.add(field.key);
+      fields.push({ key: field.key, label: field.label || field.key });
+    }
+  }
+  return fields;
+}
+
+function applyMappingPayload(mapping) {
+  const maps = mapping?.mappings ?? [];
+  const byField = new Map(
+    (Array.isArray(maps) ? maps : []).map((row) => [
+      row.field_key ?? row.fieldKey,
+      row.slot_id ?? row.slotId ?? "",
+    ]),
+  );
+  mappingRows.value = collectPrintFields().map((field) => ({
+    fieldKey: field.key,
+    fieldLabel: field.label,
+    slotId: byField.get(field.key) || "",
+  }));
+  printPaper.value = mapping?.paper || sample.value?.paper || "A4";
+  printOrientation.value = mapping?.orientation || sample.value?.orientation || "PORTRAIT";
+}
+
+async function ensurePrintContract() {
+  if (printContract.value) return printContract.value;
+  printContract.value = await p4.printMappingContract();
+  return printContract.value;
+}
+
+async function loadPrintMapping() {
+  mappingError.value = "";
+  mappingTraceId.value = "";
+  mappingSaveMessage.value = "";
+  const id = selectedId.value;
+  if (!id || kind.value !== "print") return;
+  try {
+    await ensurePrintContract();
+    const mapping = await p4.productPrintMapping(id);
+    if (selectedId.value === id) applyMappingPayload(mapping);
+  } catch (err) {
+    if (selectedId.value !== id) return;
+    mappingError.value = err?.message || "打印映射暂时无法读取";
+    mappingTraceId.value = err?.traceId || "";
+    mappingRows.value = collectPrintFields().map((field) => ({
+      fieldKey: field.key,
+      fieldLabel: field.label,
+      slotId: "",
+    }));
+  }
+}
+
+async function savePrintMapping() {
+  if (!selectedId.value) return;
+  mappingSaving.value = true;
+  mappingSaveMessage.value = "";
+  mappingError.value = "";
+  try {
+    const saved = await p4.putProductPrintMapping(selectedId.value, {
+      paper: printPaper.value,
+      orientation: printOrientation.value,
+      mappings: mappingRows.value
+        .filter((row) => row.slotId)
+        .map((row) => ({ field_key: row.fieldKey, slot_id: row.slotId })),
+    });
+    applyMappingPayload(saved);
+    mappingSaveMessage.value = "映射已保存（进程内覆盖，重启后恢复默认）。";
+  } catch (err) {
+    mappingError.value = err?.message || "保存映射失败";
+    mappingTraceId.value = err?.traceId || "";
+  } finally {
+    mappingSaving.value = false;
+  }
+}
+
 async function loadSample() {
   sample.value = null;
   sampleError.value = "";
   sampleTraceId.value = "";
+  mappingRows.value = [];
+  mappingError.value = "";
+  mappingSaveMessage.value = "";
   const id = selectedId.value;
   if (!id) return;
   try {
     const result = await meta.value.read(id);
     if (selectedId.value === id) sample.value = result;
+    if (kind.value === "print" && selectedId.value === id) await loadPrintMapping();
   } catch (err) {
     if (selectedId.value !== id) return;
     sampleError.value = err?.message || "样例暂时无法读取";
@@ -464,4 +628,20 @@ onMounted(load);
   margin: 4px 0 0;
   padding: var(--nx-space-2) 0;
 }
+.print-config {
+  display: grid;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-3);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-secondary, var(--nx-surface));
+}
+.print-paper-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-3);
+  align-items: end;
+}
+.print-paper-row .nx-field { min-width: 140px; }
+.print-config :deep(small.nx-muted) { display: block; margin-top: 2px; }
 </style>

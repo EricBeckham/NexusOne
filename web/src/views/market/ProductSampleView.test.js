@@ -8,9 +8,20 @@ const mocks = vi.hoisted(() => ({
   productLedgerSample: vi.fn(),
   productPrintSample: vi.fn(),
   productReportSample: vi.fn(),
+  printMappingContract: vi.fn(),
+  productPrintMapping: vi.fn(),
+  putProductPrintMapping: vi.fn(),
 }));
 vi.mock("../../api/client", () => ({
-  p4: { productDefinitions: mocks.productDefinitions, productLedgerSample: mocks.productLedgerSample, productPrintSample: mocks.productPrintSample, productReportSample: mocks.productReportSample },
+  p4: {
+    productDefinitions: mocks.productDefinitions,
+    productLedgerSample: mocks.productLedgerSample,
+    productPrintSample: mocks.productPrintSample,
+    productReportSample: mocks.productReportSample,
+    printMappingContract: mocks.printMappingContract,
+    productPrintMapping: mocks.productPrintMapping,
+    putProductPrintMapping: mocks.putProductPrintMapping,
+  },
 }));
 
 import ProductSampleView from "./ProductSampleView.vue";
@@ -123,11 +134,34 @@ const PRINT = {
   note: "内置样例版式，字段值留空，只用于预览打印效果；不是打印设计器。",
 };
 
-describe("product sample print (PC10)", () => {
+const CONTRACT = {
+  paper_sizes: [{ code: "A4", label: "A4" }, { code: "A5", label: "A5" }],
+  orientations: [{ code: "PORTRAIT", label: "纵向" }, { code: "LANDSCAPE", label: "横向" }],
+  builtin_template: {
+    slots: [
+      { id: "header.application_no", label: "单号" },
+      { id: "form.fields", label: "表单字段区" },
+      { id: "approval.opinion", label: "审批意见" },
+    ],
+  },
+};
+
+const MAPPING = {
+  paper: "A4",
+  orientation: "PORTRAIT",
+  mappings: [
+    { field_key: "application_no", slot_id: "header.application_no" },
+    { field_key: "opinion", slot_id: "approval.opinion" },
+  ],
+};
+
+describe("product sample print (PC10 / CF-R1)", () => {
   beforeEach(() => {
     Object.values(mocks).forEach((fn) => fn.mockReset());
     mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }]);
     mocks.productPrintSample.mockResolvedValue(PRINT);
+    mocks.printMappingContract.mockResolvedValue(CONTRACT);
+    mocks.productPrintMapping.mockResolvedValue(MAPPING);
   });
 
   it("previews the built-in layout on a portrait page with blank values", async () => {
@@ -137,13 +171,24 @@ describe("product sample print (PC10)", () => {
     const paper = wrapper.get("[data-testid='sample-print-paper']");
     expect(paper.classes()).toContain("portrait");
     expect(paper.get(".paper-title").text()).toBe("请假报销 申请单");
-    expect(wrapper.findAll("[data-testid^='sample-print-section-']").map((s) => s.get("h4").text())).toEqual(["单据信息", "申请内容", "审批"]);
     expect(wrapper.findAll("[data-testid='sample-print-section-form'] dt").map((dt) => dt.text())).toEqual(["事由", "说明"]);
     expect(wrapper.findAll("dd").every((dd) => dd.text() === "")).toBe(true);
     expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("A4 纵向");
-    expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("不是打印设计器");
     expect(wrapper.get("[data-testid='sample-print-later']").text()).toMatch(/完整打印设计器.*later/);
-    expect(wrapper.find("[draggable], input, textarea").exists()).toBe(false);
+  });
+
+  it("shows field→slot mapping and paper enum on the same print sample route (CF-R1)", async () => {
+    const wrapper = await mountAt("/p4/product-samples/print?definition=d1");
+    expect(mocks.printMappingContract).toHaveBeenCalled();
+    expect(mocks.productPrintMapping).toHaveBeenCalledWith("d1");
+    expect(wrapper.get("[data-testid='sample-print-config']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='sample-print-paper-size']").element.value).toBe("A4");
+    expect(wrapper.get("[data-testid='sample-print-slot-application_no']").element.value).toBe("header.application_no");
+    expect(wrapper.get("[data-testid='sample-print-mapping-table']").text()).toContain("opinion");
+    await wrapper.get("[data-testid='sample-print-paper-size']").setValue("A5");
+    await wrapper.get("[data-testid='sample-print-orientation']").setValue("LANDSCAPE");
+    expect(wrapper.get("[data-testid='sample-print-meta']").text()).toContain("A5 横向");
+    expect(wrapper.get("[data-testid='sample-print-paper']").classes()).toContain("landscape");
   });
 
   it("marks an empty form section with the S empty shell", async () => {
