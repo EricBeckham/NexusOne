@@ -60,4 +60,17 @@ describe("M9 process draft validation HTTP contract", () => {
     expect(init.headers["X-Tenant-Id"]).toBeUndefined();
     expect(result).toMatchObject({ key: "approval", version: 4, deploymentId: "dep-4" });
   });
+
+  it("passes the real snake_case pairing locators through unchanged (ZA14)", async () => {
+    // Wire shape pinned by ProcessDraftValidateWireNamingTest (SNAKE_CASE, non_null): no nodeId/flowId, absent locators omitted.
+    const errors = [
+      { code: "PARALLEL_BRANCH_NOT_JOINED", message: "并行分支没有汇合就结束了", node_id: "fork", flow_id: "fa" },
+      { code: "PARALLEL_JOIN_UNPAIRED", message: "并行汇合没有对应的并行开始", node_id: "join" },
+      { code: "END_REQUIRED", message: "流程至少需要一个结束节点" },
+    ];
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ valid: false, errors }) });
+    const result = await validateProcessDraft("parallel draft");
+    expect(result).toEqual({ valid: false, errors });
+    expect(result.errors[1]).not.toHaveProperty("flow_id");
+  });
 });

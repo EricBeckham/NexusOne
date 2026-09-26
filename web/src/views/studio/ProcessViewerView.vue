@@ -808,9 +808,10 @@ const validationItems = computed(() => (validationResult.value?.errors || []).ma
   const node = item?.node_id ?? item?.nodeId ?? "";
   const flow = item?.flow_id ?? item?.flowId ?? "";
   const flowRef = flow ? definition.value?.flows?.find((candidate) => candidate.id === flow) : null;
-  const target = node
-    ? `${nodeName(node)}：`
-    : flowRef ? `连线 ${nodeName(flowRef.source_ref)} → ${nodeName(flowRef.target_ref)}：` : "";
+  // ZA14: a finding with both locators (e.g. PARALLEL_BRANCH_NOT_JOINED: fork + exit flow) names the flow, the more specific place.
+  const target = flowRef
+    ? `连线 ${nodeName(flowRef.source_ref)} → ${nodeName(flowRef.target_ref)}：`
+    : node ? `${nodeName(node)}：` : "";
   return { code: item?.code || "", message: item?.message || "校验未通过", node, flow: flowRef ? flow : "", target };
 }));
 

@@ -740,4 +740,34 @@ describe("process viewer", () => {
     await wrapper.findAll("[data-testid='process-node']")[0].trigger("click");
     expect(wrapper.find("[data-testid='parallel-scope']").exists()).toBe(false);
   });
+
+  it("names the exit flow for a pairing finding that carries both locators (ZA14)", async () => {
+    p3.listProcessDefinitions.mockResolvedValue([]);
+    p3.listProcessDrafts.mockResolvedValue([{ key: "unjoined", name: "Unjoined" }]);
+    p3.getProcessDraft.mockResolvedValue({
+      key: "unjoined",
+      name: "Unjoined",
+      bpmn_xml: '<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="unjoined"><startEvent id="start" name="开始"/><parallelGateway id="fork" name="并行开始"/><userTask id="a" name="财务"/><userTask id="b" name="法务"/><endEvent id="e1" name="结束一"/><endEvent id="e2" name="结束二"/>'
+        + '<sequenceFlow id="f0" sourceRef="start" targetRef="fork"/><sequenceFlow id="fa" sourceRef="fork" targetRef="a"/><sequenceFlow id="fb" sourceRef="fork" targetRef="b"/>'
+        + '<sequenceFlow id="f1" sourceRef="a" targetRef="e1"/><sequenceFlow id="f2" sourceRef="b" targetRef="e2"/></process></definitions>',
+    });
+    p3.getProcessPublication.mockRejectedValue(Object.assign(new Error("not published"), { status: 404 }));
+    // Real wire shape (ProcessDraftValidateWireNamingTest): snake_case locators.
+    p3.validateProcessDraft.mockResolvedValue({
+      valid: false,
+      errors: [
+        { code: "PARALLEL_BRANCH_NOT_JOINED", message: "并行分支没有汇合就结束了；每条并行分支都要连到同一个并行汇合", node_id: "fork", flow_id: "fa" },
+        { code: "PARALLEL_BRANCH_NOT_JOINED", message: "并行分支没有汇合就结束了；每条并行分支都要连到同一个并行汇合", node_id: "fork", flow_id: "fb" },
+      ],
+    });
+    const wrapper = await mountAt("/p3/workflow/unjoined");
+    expect(wrapper.find("[data-testid='parallel-scope-box']").exists()).toBe(false);
+    await wrapper.get("[data-testid='process-validate']").trigger("click");
+    await flushPromises();
+    expect(wrapper.findAll("[data-testid='validation-item']").map((item) => item.get(".validation-where").text())).toEqual([
+      "连线 并行开始 → 财务：",
+      "连线 并行开始 → 法务：",
+    ]);
+    expect(wrapper.findAll("[data-testid='process-flow'].invalid").map((edge) => edge.attributes("data-flow-id"))).toEqual(["fa", "fb"]);
+  });
 });
