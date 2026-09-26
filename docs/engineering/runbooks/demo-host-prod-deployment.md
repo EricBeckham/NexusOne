@@ -6,6 +6,10 @@
 
 ## 0. 发布信息
 
+Keycloak 验收按 [M7 清单](../../planning/M7-Keycloak演示验收清单.md) 逐项记录；[本地 compose stub](../../../deploy/keycloak/README.md) 仅开发预备，不可直接用作 prod 部署。DPO-L1/C1/C2 配置守卫与状态壳见 [DPO 规划](../../planning/WEB演示部署打印星市加深任务卡_DPO波_V0.1.md)。
+
+可选 HTTPS 探活脚本 `scripts/demo-host/keycloak-smoke.ps1`（DPO-X3）只检查匿名 URL；缺 `NEXUS_DEMO_KEYCLOAK_SMOKE_URL` 时 skipped，不代表 Keycloak 登录通过。真机主机/发布权、DNS/证书、密钥管理器、IdP 管理权和受控账号仍需环境所有者提供。预备 ≠ 已部署 ≠ 已验收，本次不改变外部阻塞状态。
+
 - [ ] 记录待发布的 Git SHA、构建时间和操作者；只部署已合入 `main` 的 SHA。
 - [ ] 确认 JDK 21；构建机另需 Maven 3.9.x。
 - [ ] 为应用创建非 root 服务账号；工作目录和 JAR 只允许发布账号写、运行账号读。
