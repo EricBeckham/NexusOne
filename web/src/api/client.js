@@ -95,6 +95,61 @@ export async function api(path, { method = "GET", body, headers = {}, auth = tru
   return data;
 }
 
+/** Binary download helper (IM4 export). Shares auth/platform headers with `api`. */
+export async function apiBlob(path, { method = "GET", body, headers = {}, auth = true, platform = false, traceId } = {}) {
+  const settings = loadSettings();
+  const nextHeaders = { Accept: "application/json", ...headers };
+  for (const key of Object.keys(nextHeaders)) {
+    if (FORBIDDEN_TENANT_HEADERS.includes(key.toLowerCase())) {
+      throw new Error("ARCH-024: client must not send tenant identity headers");
+    }
+  }
+  if (body !== undefined && !nextHeaders["Content-Type"]) {
+    nextHeaders["Content-Type"] = "application/json";
+  }
+  if (auth && settings.accessToken) {
+    nextHeaders.Authorization = `Bearer ${settings.accessToken}`;
+  }
+  if (auth && settings.contextId) {
+    nextHeaders["X-Nexus-Context-Id"] = settings.contextId;
+  }
+  if (traceId) {
+    nextHeaders["X-Trace-Id"] = traceId;
+  }
+  if (platform || settings.platformMode) {
+    nextHeaders["X-Nexus-Demo-Actor-Id"] =
+      settings.demoActorId || "01900000-0000-7000-8000-0000000000ac";
+    nextHeaders["X-Nexus-Demo-Reason"] = settings.demoReason || "m0-12-ui";
+  }
+  const response = await fetch(path, {
+    method,
+    headers: nextHeaders,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
+    }
+    const error = new Error(data?.message || data?.raw || `HTTP ${response.status}`);
+    error.status = response.status;
+    error.body = data;
+    error.code = data?.code;
+    error.traceId = data?.trace_id || data?.traceId || response.headers.get("X-Trace-Id") || "";
+    throw error;
+  }
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = /filename\*?=(?:UTF-8''|")?([^\";]+)/i.exec(disposition);
+  const filename = match ? decodeURIComponent(match[1].replace(/"/g, "").trim()) : "";
+  const blob = await response.blob();
+  return { blob, filename, contentType: response.headers.get("Content-Type") || "" };
+}
+
 export const p1 = {
   listTenants: () => api("/api/v1/p1/tenants", { platform: true, auth: false }),
   getTenant: (id) => api(`/api/v1/p1/tenants/${id}`, { platform: true, auth: false }),
@@ -218,6 +273,18 @@ export const p4 = {
   productLedgerSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/ledger`, { platform: true, auth: false }),
   // PC11: built-in print layout filled with the current product's form fields (values always blank).
   productPrintSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/print`, { platform: true, auth: false }),
+  // IM4: download product-config format 1.0 JSON bundle for one definition.
+  exportProductDefinition: (id) => apiBlob(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/export`, { platform: true, auth: false }),
+  // IM5: import package → importJobId (ConflictStrategy skip|new-version|fail; Idempotency-Key).
+  importProductDefinition: (packageBody, conflictStrategy, idempotencyKey) => api("/api/v1/p4/product-definitions/import", {
+    method: "POST",
+    body: { package_body: packageBody, conflict_strategy: conflictStrategy },
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {},
+    platform: true,
+    auth: false,
+  }),
+  // IM6: read import job status / results.
+  productDefinitionImportJob: (id) => api(`/api/v1/p4/product-definitions/import-jobs/${encodeURIComponent(id)}`, { platform: true, auth: false }),
   createProductDefinition: (body) => api("/api/v1/p4/product-definitions", { method: "POST", body, platform: true, auth: false }),
   updateProductDefinition: (id, body) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   bindProductDefinitionSku: (id, skuCode) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/skus/${encodeURIComponent(skuCode)}`, { method: "PUT", platform: true, auth: false }),

@@ -37,4 +37,38 @@ describe("product definition HTTP", () => {
       expect(call.headers["X-Tenant-Id"]).toBeUndefined();
     }
   });
+
+  it("calls IM4/IM5/IM6 product-config export and import endpoints", async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: (name) => (name === "Content-Disposition" ? 'attachment; filename="demo.product-config.json"' : name === "Content-Type" ? "application/json" : null) },
+      blob: async () => new Blob(["{}"], { type: "application/json" }),
+    });
+    const exported = await p4.exportProductDefinition("def-1");
+    expect(exported.filename).toBe("demo.product-config.json");
+    expect(fetch.mock.calls[0][0]).toBe("/api/v1/p4/product-definitions/def-1/export");
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      text: async () => JSON.stringify({ import_job_id: "job-1", status: "COMPLETED" }),
+    });
+    await p4.importProductDefinition({ manifest: {} }, "skip", "idem-1");
+    expect(fetch.mock.calls[1][0]).toBe("/api/v1/p4/product-definitions/import");
+    expect(fetch.mock.calls[1][1].method).toBe("POST");
+    expect(fetch.mock.calls[1][1].headers["Idempotency-Key"]).toBe("idem-1");
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      package_body: { manifest: {} },
+      conflict_strategy: "skip",
+    });
+
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ id: "job-1", status: "COMPLETED" }),
+    });
+    await p4.productDefinitionImportJob("job 1");
+    expect(fetch.mock.calls[2][0]).toBe("/api/v1/p4/product-definitions/import-jobs/job%201");
+  });
 });
