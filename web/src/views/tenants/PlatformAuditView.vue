@@ -16,10 +16,10 @@
     <form class="filters" @submit.prevent="applyFilters">
       <label>开始时间<input v-model="filters.from" aria-label="开始时间" type="datetime-local" /></label>
       <label>结束时间<input v-model="filters.to" aria-label="结束时间" type="datetime-local" /></label>
-      <label>租户 ID<input v-model.trim="filters.tenantId" aria-label="租户 ID" type="text" autocomplete="off" /></label>
-      <label>Actor ID<input v-model.trim="filters.actor" aria-label="Actor ID" type="text" autocomplete="off" /></label>
-      <label>事件 / Action<input v-model.trim="filters.action" aria-label="事件 / Action" type="text" autocomplete="off" /></label>
-      <label>资源类型或 ID<input v-model.trim="filters.resource" aria-label="资源类型或 ID" type="text" autocomplete="off" /></label>
+      <label>租户编号<input v-model.trim="filters.tenantId" aria-label="租户编号" type="text" autocomplete="off" /></label>
+      <label>操作者编号<input v-model.trim="filters.actor" aria-label="操作者编号" type="text" autocomplete="off" /></label>
+      <label>事件<input v-model.trim="filters.action" aria-label="事件" type="text" autocomplete="off" /></label>
+      <label>资源类型或编号<input v-model.trim="filters.resource" aria-label="资源类型或编号" type="text" autocomplete="off" /></label>
       <label>结果
         <select v-model="filters.result" aria-label="结果">
           <option value="">全部</option>
@@ -27,7 +27,7 @@
           <option value="REJECTED">拒绝</option>
         </select>
       </label>
-      <label>Trace ID<input v-model.trim="filters.traceId" aria-label="Trace ID" type="text" autocomplete="off" /></label>
+      <label>追踪编号<input v-model.trim="filters.traceId" aria-label="追踪编号" type="text" autocomplete="off" /></label>
       <div class="filter-actions">
         <button class="primary" type="submit" :disabled="loading">查询</button>
         <button class="ghost" type="button" :disabled="loading" @click="clearFilters">清空</button>
@@ -42,7 +42,7 @@
     </NxEmpty>
     <div v-else-if="result" class="table-wrap">
       <table class="nx-table nx-table--compact audit-table" data-testid="audit-table">
-        <thead><tr><th scope="col">时间</th><th scope="col">租户</th><th scope="col">Actor</th><th scope="col">事件</th><th scope="col">资源</th><th scope="col">结果</th><th scope="col">Trace ID</th><th scope="col">操作</th></tr></thead>
+        <thead><tr><th scope="col">时间</th><th scope="col">租户</th><th scope="col">操作者</th><th scope="col">事件</th><th scope="col">资源</th><th scope="col">结果</th><th scope="col">追踪编号</th><th scope="col">操作</th></tr></thead>
         <tbody>
           <tr v-for="event in result.items" :key="event.eventId">
             <td>{{ formatTime(event.occurredAt) }}</td>
@@ -76,15 +76,15 @@
         <button class="ghost" type="button" aria-label="关闭详情" @click="selected = null">关闭</button>
       </header>
       <dl class="event-facts">
-        <div><dt>Event ID</dt><dd>{{ show(selected.eventId) }}</dd></div>
+        <div><dt>事件编号</dt><dd>{{ show(selected.eventId) }}</dd></div>
         <div><dt>发生时间</dt><dd>{{ formatTime(selected.occurredAt) }}</dd></div>
-        <div><dt>租户 ID</dt><dd>{{ show(selected.tenantId) }}</dd></div>
-        <div><dt>Actor ID</dt><dd>{{ show(selected.actorId) }}</dd></div>
-        <div><dt>Action</dt><dd>{{ show(selected.action) }}</dd></div>
+        <div><dt>租户编号</dt><dd>{{ show(selected.tenantId) }}</dd></div>
+        <div><dt>操作者编号</dt><dd>{{ show(selected.actorId) }}</dd></div>
+        <div><dt>事件</dt><dd>{{ show(selected.action) }}</dd></div>
         <div><dt>资源类型</dt><dd>{{ show(selected.resourceType) }}</dd></div>
-        <div><dt>资源 ID</dt><dd>{{ show(selected.resourceId) }}</dd></div>
+        <div><dt>资源编号</dt><dd>{{ show(selected.resourceId) }}</dd></div>
         <div><dt>结果</dt><dd>{{ resultLabel(selected.result) }}</dd></div>
-        <div><dt>Trace ID</dt><dd>{{ show(selected.traceId) }}</dd></div>
+        <div><dt>追踪编号</dt><dd>{{ show(selected.traceId) }}</dd></div>
         <div><dt>平台上下文</dt><dd>{{ selected.platformContext === true ? "是" : selected.platformContext === false ? "否" : "暂无" }}</dd></div>
       </dl>
       <p class="privacy-note">为保护审计载荷，详情面板不展示 details、凭据或敏感 Payload。</p>

@@ -35,7 +35,7 @@ describe("P1 platform audit center", () => {
     });
     const { wrapper } = await open("/p1/audit?tenantId=tenant-1&action=p1.tenant.disabled&page=2&size=20");
 
-    expect(wrapper.get('input[aria-label="租户 ID"]').element.value).toBe("tenant-1");
+    expect(wrapper.get('input[aria-label="租户编号"]').element.value).toBe("tenant-1");
     expect(wrapper.text()).toContain("p1.tenant.disabled");
     expect(wrapper.text()).toContain("拒绝");
     expect(wrapper.get("[data-testid='audit-table']").classes()).toContain("nx-table--compact");
@@ -48,13 +48,16 @@ describe("P1 platform audit center", () => {
     expect(wrapper.get('[role="dialog"]').text()).toContain("trace-1");
     expect(wrapper.get('[role="dialog"]').text()).not.toContain("must-not-render");
     expect(wrapper.get('[role="dialog"]').text()).not.toContain("secret");
+    expect(wrapper.get('[role="dialog"]').text()).toContain("追踪编号");
+    expect(wrapper.text()).not.toContain("Trace ID");
+    expect(wrapper.text()).not.toContain("Actor ID");
   });
 
   it("writes filters to the URL and restores them when navigating back to the page", async () => {
     audit.platformEvents.mockResolvedValue({ items: [], total: 0, page: 1, size: 20 });
     const { wrapper, router } = await open("/p1/audit?tenantId=tenant-a&action=old.event");
-    await wrapper.get('input[aria-label="Actor ID"]').setValue("actor-b");
-    await wrapper.get('input[aria-label="事件 / Action"]').setValue("new.event");
+    await wrapper.get('input[aria-label="操作者编号"]').setValue("actor-b");
+    await wrapper.get('input[aria-label="事件"]').setValue("new.event");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
 
