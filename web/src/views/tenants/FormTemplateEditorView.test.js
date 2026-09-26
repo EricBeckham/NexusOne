@@ -160,13 +160,17 @@ describe("form template designer", () => {
   it("edits the selected field in the property panel and mirrors it in the canvas and preview", async () => {
     const wrapper = await mountAt("/p1/form-templates/new");
     await wrapper.get("[data-testid='add-field']").trigger("click");
+    expect(wrapper.get("[data-testid='nx-property-tab-basic']").classes()).toContain("active");
     await wrapper.get("[data-testid='field-label']").setValue("类别");
     await wrapper.get("[data-testid='field-key']").setValue("category");
     await wrapper.get("[data-testid='field-type']").setValue("SELECT");
     await wrapper.get("[data-testid='add-option']").trigger("click");
     await wrapper.get("[data-testid='option-label']").setValue("差旅");
     await wrapper.get("[data-testid='option-value']").setValue("travel");
+    await wrapper.get("[data-testid='nx-property-tab-validation']").trigger("click");
     await wrapper.get("[data-testid='field-required']").setValue(true);
+    await wrapper.get("[data-testid='nx-property-tab-appearance']").trigger("click");
+    expect(wrapper.get("[data-testid='field-appearance-hint']").text()).toContain("画布拖拽");
     const card = wrapper.get("[data-testid='template-field']");
     expect(card.text()).toContain("类别");
     expect(card.text()).toContain("category");
@@ -242,6 +246,7 @@ describe("form template designer", () => {
     ]);
     expect(wrapper.findAll("[data-testid='template-field']")[0].classes()).toContain("invalid");
     await wrapper.findAll("[data-testid='template-field']")[1].trigger("click");
+    await wrapper.get("[data-testid='nx-property-tab-validation']").trigger("click");
     expect(wrapper.get("[data-testid='field-prop-error']").text()).toBe("单选字段至少需要一个选项");
     expect(wrapper.get("[data-testid='template-validate-errors']").text()).toContain("至少需要一个字段");
     expect(p1.validateFormTemplate).toHaveBeenCalledWith("tpl-1");
