@@ -69,6 +69,21 @@ class FormTemplateDraftServiceJdbcBindingTest {
     }
 
     @Test
+    void layoutInOptionsSurvivesWriteReadAndPublishedSnapshot() {
+        var mapper = JsonMapper.builder().build();
+        var options = mapper.readTree("{\"layout\":{\"x\":1,\"y\":2,\"w\":6,\"h\":2},\"choices\":[\"A\"]}");
+        var result = service.create(new FormTemplateDraftService.TemplateWrite("layout", "布局", null,
+                List.of(new FormTemplateDraftService.FieldWrite("title", "事由", "TEXT", true, options))));
+        assertTrue(writes.stream().flatMap(Arrays::stream).filter(String.class::isInstance)
+                .map(String.class::cast).anyMatch(value -> value.contains("\"layout\"")));
+        assertTrue(result.fields().getFirst().options().has("layout"));
+        writes.clear();
+        service.publishDraft(TEMPLATE_ID);
+        assertTrue(writes.stream().flatMap(Arrays::stream).filter(String.class::isInstance)
+                .map(String.class::cast).anyMatch(value -> value.contains("\"layout\"")));
+    }
+
+    @Test
     void updateBindsTimestampsNotInstants() {
         service.update(TEMPLATE_ID, write());
         assertWritesBindTimestamps(2);
@@ -113,6 +128,7 @@ class FormTemplateDraftServiceJdbcBindingTest {
         when(rs.getString("field_key")).thenReturn("title");
         when(rs.getString("label")).thenReturn("事由");
         when(rs.getString("field_type")).thenReturn("TEXT");
+        when(rs.getString("options")).thenReturn("{\"layout\":{\"x\":1,\"y\":2,\"w\":6,\"h\":2}}");
         when(rs.getBoolean("required")).thenReturn(true);
         when(rs.getObject(anyString(), eq(UUID.class))).thenReturn(TEMPLATE_ID);
         when(rs.getTimestamp(anyString())).thenReturn(Timestamp.from(NOW));

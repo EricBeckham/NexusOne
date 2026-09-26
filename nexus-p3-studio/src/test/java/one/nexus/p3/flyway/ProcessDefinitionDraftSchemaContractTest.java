@@ -9,6 +9,18 @@ import org.junit.jupiter.api.Test;
 
 class ProcessDefinitionDraftSchemaContractTest {
     @Test
+    void gatewayTypesNeedNoEnumColumnAndLayoutFitsExistingJsonContainers() throws Exception {
+        try (var in = Objects.requireNonNull(getClass().getResourceAsStream("/db/migration/V551__process_definition_draft.sql"))) {
+            String sql = new String(in.readAllBytes(), StandardCharsets.UTF_8).toLowerCase();
+            assertTrue(sql.contains("bpmn_xml text not null"));
+            assertFalse(sql.contains("gateway_type"));
+        }
+        String templates = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "../nexus-bootstrap/src/main/resources/db/migration/V005__platform_form_template.sql")).toLowerCase();
+        assertTrue(templates.contains("options jsonb"));
+        assertTrue(templates.contains("fields_snapshot jsonb not null"));
+    }
+    @Test
     void draftTableIsTenantScopedAndDoesNotDefinePublishedStateOrEngineTables() throws Exception {
         String sql;
         try (var in = Objects.requireNonNull(
