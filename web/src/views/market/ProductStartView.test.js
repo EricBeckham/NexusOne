@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
-import { useNxToastState } from "../../feedback/nxMessage";
+import { clearToasts, useNxToastState } from "../../feedback/nxMessage";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const mocks = vi.hoisted(() => ({
@@ -61,6 +61,7 @@ describe("provisioned product start form", () => {
     mocks.persons.mockReset();
     mocks.upload.mockReset();
     mocks.persons.mockResolvedValue([{ id: "person-1", displayName: "审批人 B", status: "ACTIVE" }]);
+    clearToasts();
   });
 
   it("shows an honest empty state when the pinned template has no fields", async () => {
@@ -110,8 +111,31 @@ describe("provisioned product start form", () => {
       approver: "person-1",
       evidence: "file-1",
     });
+    // S7: the form gives way to the S3 result shell; 查看我的申请 opens 我的申请.
+    expect(wrapper.find("form").exists()).toBe(false);
+    const result = wrapper.get("[data-testid='start-result']");
+    expect(result.get("[data-testid='nx-result-title']").text()).toBe("申请已提交");
+    expect(result.text()).toContain("申请编号 app-1…");
+    expect(result.findAll(".nx-btn--primary").map((node) => node.text())).toEqual(["查看我的申请"]);
+    expect(useNxToastState().items).toHaveLength(0);
+    await result.get("[data-testid='start-result-requests']").trigger("click");
+    await flushPromises();
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p3/todos?box=requests");
-    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "申请已提交，可在我的申请查看审批进度" });
+  });
+
+  it("offers 返回我的已开通 and 再发起一条 with an empty form after a submit (S7)", async () => {
+    mocks.productApplicationForm.mockResolvedValue({ fields: [{ key: "title", label: "事由", type: "TEXT", required: true, options: [] }] });
+    mocks.createProductApplication.mockResolvedValue({ id: "01a0daf7-6532-7339" });
+    const wrapper = await mountStart();
+    await wrapper.get("#field-title").setValue("请假");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='start-result-back']").attributes("href")).toBe("/p4/installations");
+    await wrapper.get("[data-testid='start-result-again']").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-testid='start-result']").exists()).toBe(false);
+    expect(wrapper.get("#field-title").element.value).toBe("");
+    expect(mocks.createProductApplication).toHaveBeenCalledTimes(1);
   });
 
   it("shows the server failure text and places snake_case field errors under their field", async () => {
@@ -197,6 +221,6 @@ describe("provisioned product start form", () => {
     await flushPromises();
     expect(mocks.createProductApplication).toHaveBeenCalledTimes(2);
     expect(mocks.createProductApplication).toHaveBeenLastCalledWith("install-1", { title: "请假" });
-    expect(wrapper.router.currentRoute.value.fullPath).toBe("/p3/todos?box=requests");
+    expect(wrapper.get("[data-testid='start-result'] [data-testid='nx-result-title']").text()).toBe("申请已提交");
   });
 });
