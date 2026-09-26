@@ -23,9 +23,9 @@ describe("P2 person directory V7", () => {
 
   it("renders the user directory and keeps details read-only with real employment data", async () => {
     const wrapper = mountList(); await flushPromises();
-    expect(wrapper.get("[data-testid='person-table']").text()).toContain("林晓");
+    expect(wrapper.get("[data-testid='nx-data-table']").text()).toContain("林晓");
     for (const heading of ["所属组织", "岗位", "角色", "账号状态", "最近登录", "来源"]) expect(wrapper.text()).toContain(heading);
-    await wrapper.get("[data-testid='person-table'] .person-name").trigger("click"); await flushPromises();
+    await wrapper.get("[data-testid='nx-data-table'] .person-name").trigger("click"); await flushPromises();
     const drawer = wrapper.get("[data-testid='person-drawer']");
     expect(drawer.text()).toContain("13800000000"); expect(drawer.text()).toContain("研发部"); expect(drawer.text()).toContain("工程师");
     expect(drawer.text()).toContain("当前接口未提供按人员关联的角色与权限查询");
@@ -45,10 +45,13 @@ describe("P2 person directory V7", () => {
     expect(mocks.persons).toHaveBeenCalledTimes(2);
   });
 
-  it("uses empty and retryable error states", async () => {
+  it("uses empty and retryable error states via NxDataTable S shells", async () => {
     mocks.persons.mockResolvedValueOnce([]);
-    const empty = mountList(); await flushPromises(); expect(empty.text()).toContain("暂无用户"); empty.unmount();
+    const empty = mountList(); await flushPromises();
+    expect(empty.get("[data-testid='nx-data-table-empty']").text()).toContain("暂无用户");
+    empty.unmount();
     mocks.persons.mockRejectedValueOnce(new Error("暂不可用"));
-    const failed = mountList(); await flushPromises(); expect(failed.get("[data-testid='nx-error-state']").text()).toContain("暂不可用");
+    const failed = mountList(); await flushPromises();
+    expect(failed.get("[data-testid='nx-data-table-error']").text()).toContain("暂不可用");
   });
 });
