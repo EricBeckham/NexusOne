@@ -94,6 +94,14 @@ public final class MarketModels {
             return new ProductConfigReadiness(definition.id(), definition.status(), complete, steps);
         }
     }
+    /** PC9: a published form template version as the product binds it (fields from {@code fields_snapshot}). */
+    public record FormFieldSnapshot(String key, String label, String type, boolean required) {}
+    public record FormTemplateVersionSnapshot(UUID versionId, String templateCode, String templateName, int version,
+            java.util.List<FormFieldSnapshot> fields) {
+        public FormTemplateVersionSnapshot {
+            fields = java.util.List.copyOf(fields);
+        }
+    }
     /** Public catalog contract: subscription identity is available directly on each SKU entry. */
     public record CatalogSku(String code, String name, Map<String, EntitlementSpec> entitlements,
             ProductDefinition productDefinition) {
