@@ -63,3 +63,89 @@ export const TYPE_LABELS = {
 export function typeLabel(type) {
   return TYPE_LABELS[String(type || "").toUpperCase()] || type || "文本";
 }
+/**
+ * CF-RD2: field → slot binding over the CF-R3 contract. Every field of the print sample (system attributes and
+ * product form fields) gets one slot; a form field with no explicit mapping sits in the contract's spill slot
+ * (form.fields). Wire keys are snake_case (product mapper).
+ */
+export function contractSlots(contract) {
+  const slots = contract?.builtin_template?.slots;
+  return (Array.isArray(slots) ? slots : []).filter((slot) => slot?.id);
+}
+
+export function spillSlotId(contract) {
+  return contract?.mapping_rules?.unmapped_spill_slot_id || "form.fields";
+}
+
+export function accepts(slot, type) {
+  const list = Array.isArray(slot?.accepts) ? slot.accepts : [];
+  return list.includes("*") || list.includes(String(type || "TEXT").toUpperCase());
+}
+
+export function slotOptions(contract, type) {
+  return contractSlots(contract).filter((slot) => accepts(slot, type));
+}
+
+export function bindingRows(designer, contract, mapping) {
+  const bound = new Map(
+    (Array.isArray(mapping?.mappings) ? mapping.mappings : [])
+      .filter((entry) => entry?.field_key)
+      .map((entry) => [entry.field_key, entry.slot_id || ""]),
+  );
+  const seen = new Set();
+  const rows = [];
+  for (const section of designer?.sections || []) {
+    for (const slot of section.slots) {
+      if (seen.has(slot.fieldKey)) continue;
+      seen.add(slot.fieldKey);
+      const fallback = slot.source === "form" ? spillSlotId(contract) : "";
+      rows.push({
+        fieldKey: slot.fieldKey,
+        label: slot.label,
+        type: slot.type,
+        source: slot.source,
+        slotId: bound.has(slot.fieldKey) ? bound.get(slot.fieldKey) : fallback,
+      });
+    }
+  }
+  return rows;
+}
+
+/** Errors by field key: unknown slot, a type the slot does not accept, or two fields in a single-use slot. */
+export function validateBindings(rows, contract) {
+  const slots = new Map(contractSlots(contract).map((slot) => [slot.id, slot]));
+  const errors = {};
+  const usage = new Map();
+  for (const row of rows) {
+    if (!row.slotId) continue;
+    const slot = slots.get(row.slotId);
+    if (!slot) {
+      errors[row.fieldKey] = "契约里没有这个槽位。";
+      continue;
+    }
+    if (!accepts(slot, row.type)) {
+      errors[row.fieldKey] = `「${slot.label}」不接受${typeLabel(row.type)}字段。`;
+      continue;
+    }
+    if (!slot.repeatable) usage.set(slot.id, [...(usage.get(slot.id) || []), row.fieldKey]);
+  }
+  for (const [slotIdValue, keys] of usage) {
+    if (keys.length < 2) continue;
+    const label = slots.get(slotIdValue)?.label || slotIdValue;
+    for (const key of keys) errors[key] = `「${label}」只能放一个字段。`;
+  }
+  return errors;
+}
+
+export function mappingsFromRows(rows) {
+  return rows.filter((row) => row.slotId).map((row) => ({ field_key: row.fieldKey, slot_id: row.slotId }));
+}
+
+/** True when the server holds exactly these field → slot pairs (order-insensitive). */
+export function sameMappings(a, b) {
+  const key = (list) => (Array.isArray(list) ? list : [])
+    .map((entry) => `${entry?.field_key}=>${entry?.slot_id}`)
+    .sort()
+    .join("|");
+  return key(a) === key(b);
+}

@@ -125,10 +125,80 @@
             <div><dt>分区</dt><dd>{{ sectionLabel(selectedSlot.section) }}</dd></div>
             <div><dt>内容来源</dt><dd>{{ selectedSlot.source === "system" ? "申请单系统属性" : "产品表单字段" }}</dd></div>
             <div><dt>字段</dt><dd>{{ selectedSlot.fieldKey }} · {{ typeLabel(selectedSlot.type) }}</dd></div>
+            <div v-if="selectedRow"><dt>绑定槽位</dt><dd data-testid="designer-props-binding">{{ slotLabel(selectedRow.slotId) }}</dd></div>
           </dl>
           <p v-else class="nx-muted" data-testid="designer-props-empty">在左侧或画板上选一个槽位。</p>
         </aside>
       </div>
+
+      <section v-if="designer && slots.length" class="designer-binding nx-card" data-testid="designer-binding">
+        <header class="binding-head">
+          <div>
+            <h2>字段 → 槽位</h2>
+            <p class="nx-muted">每个字段放进一个槽位；没指定的表单字段放在「{{ slotLabel(spillId) }}」。</p>
+          </div>
+          <span v-if="mapping" class="nx-muted" data-testid="designer-binding-source">
+            {{ mapping.source === "IN_MEMORY" ? "已读回：服务器进程内映射" : "已读回：契约默认映射" }}
+          </span>
+        </header>
+
+        <NxErrorState
+          v-if="bindingError"
+          data-testid="designer-binding-error"
+          :title="bindingError"
+          :trace-id="bindingTraceId"
+          retry-label="重试"
+          @retry="loadBinding"
+        />
+
+        <p v-else-if="!contract" class="nx-muted">正在读取映射契约…</p>
+
+        <template v-else>
+          <table class="nx-table nx-table--compact" data-testid="designer-binding-table">
+            <thead>
+              <tr><th>字段</th><th>来源</th><th>槽位</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in rows" :key="row.fieldKey" :class="{ active: selectedSlot?.fieldKey === row.fieldKey }">
+                <td>
+                  <strong>{{ row.label }}</strong>
+                  <small class="nx-muted">{{ row.fieldKey }} · {{ typeLabel(row.type) }}</small>
+                </td>
+                <td>{{ row.source === "system" ? "系统属性" : "表单字段" }}</td>
+                <td>
+                  <select
+                    v-model="row.slotId"
+                    :aria-invalid="Boolean(bindingErrors[row.fieldKey])"
+                    :aria-label="`${row.label} 的槽位`"
+                    :data-testid="`designer-binding-${row.fieldKey}`"
+                  >
+                    <option value="">不打印</option>
+                    <option v-for="slot in slotOptions(contract, row.type)" :key="slot.id" :value="slot.id">
+                      {{ slot.label }}（{{ slot.id }}）
+                    </option>
+                  </select>
+                  <small v-if="bindingErrors[row.fieldKey]" class="nx-field-error" role="alert" :data-testid="`designer-binding-error-${row.fieldKey}`">
+                    {{ bindingErrors[row.fieldKey] }}
+                  </small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="binding-actions">
+            <button
+              class="primary"
+              type="button"
+              data-testid="designer-binding-save"
+              :disabled="saving || !dirty || hasBindingErrors"
+              @click="saveBinding"
+            >{{ saving ? "保存中…" : "保存绑定" }}</button>
+            <button class="ghost" type="button" :disabled="saving || !dirty" data-testid="designer-binding-reset" @click="resetBinding">撤销修改</button>
+            <span v-if="hasBindingErrors" class="nx-muted">先修正标红的槽位。</span>
+            <span v-else-if="readBack" class="nx-muted" data-testid="designer-binding-readback">{{ readBack }}</span>
+          </div>
+        </template>
+      </section>
     </template>
   </main>
 </template>
@@ -138,7 +208,18 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import { p4 } from "../../api/client";
-import { allSlots, designerFromSample, typeLabel } from "./printDesigner";
+import {
+  allSlots,
+  bindingRows,
+  contractSlots,
+  designerFromSample,
+  mappingsFromRows,
+  sameMappings,
+  slotOptions,
+  spillSlotId,
+  typeLabel,
+  validateBindings,
+} from "./printDesigner";
 
 /** CF-RD1: designer canvas shell over the PC11 built-in print layout (slot list · board zones · properties). */
 const route = useRoute();
@@ -155,6 +236,73 @@ const sampleTraceId = ref("");
 const selectedSlotId = ref("");
 
 const slots = computed(() => allSlots(designer.value));
+
+// CF-RD2: binding state. `mapping` is what the server returned last; `rows` is the editable draft.
+const contract = ref(null);
+const mapping = ref(null);
+const rows = ref([]);
+const bindingError = ref("");
+const bindingTraceId = ref("");
+const saving = ref(false);
+const readBack = ref("");
+const spillId = computed(() => spillSlotId(contract.value));
+const bindingErrors = computed(() => validateBindings(rows.value, contract.value));
+const hasBindingErrors = computed(() => Object.keys(bindingErrors.value).length > 0);
+const dirty = computed(() => Boolean(mapping.value) && !sameMappings(mappingsFromRows(rows.value), baselineMappings.value));
+const baselineMappings = computed(() => mappingsFromRows(bindingRows(designer.value, contract.value, mapping.value)));
+const selectedRow = computed(() => rows.value.find((row) => row.fieldKey === selectedSlot.value?.fieldKey) || null);
+
+function slotLabel(id) {
+  if (!id) return "不打印";
+  return contractSlots(contract.value).find((slot) => slot.id === id)?.label || id;
+}
+
+function resetBinding() {
+  rows.value = bindingRows(designer.value, contract.value, mapping.value);
+}
+
+async function loadBinding() {
+  bindingError.value = "";
+  bindingTraceId.value = "";
+  readBack.value = "";
+  const id = selectedId.value;
+  if (!id) return;
+  try {
+    const [loadedContract, loadedMapping] = await Promise.all([
+      contract.value ? Promise.resolve(contract.value) : p4.printMappingContract(),
+      p4.productPrintMapping(id),
+    ]);
+    if (selectedId.value !== id) return;
+    contract.value = loadedContract;
+    mapping.value = loadedMapping;
+    resetBinding();
+  } catch (err) {
+    if (selectedId.value !== id) return;
+    bindingError.value = err?.message || "字段绑定暂时无法读取";
+    bindingTraceId.value = err?.traceId || "";
+  }
+}
+
+async function saveBinding() {
+  if (saving.value || hasBindingErrors.value || !mapping.value) return;
+  const id = selectedId.value;
+  saving.value = true;
+  readBack.value = "";
+  try {
+    const sent = mappingsFromRows(rows.value);
+    await p4.saveProductPrintMapping(id, { paper: mapping.value.paper, orientation: mapping.value.orientation, mappings: sent });
+    const fresh = await p4.productPrintMapping(id);
+    if (selectedId.value !== id) return;
+    mapping.value = fresh;
+    resetBinding();
+    readBack.value = sameMappings(fresh?.mappings, sent) ? "已保存并读回，一致。" : "已保存，但读回内容与提交不同，请核对。";
+  } catch (err) {
+    bindingError.value = err?.message || "保存失败";
+    bindingTraceId.value = err?.traceId || "";
+  } finally {
+    saving.value = false;
+  }
+}
 const paperText = computed(() => {
   const paper = `${designer.value?.paper || "A4"} ${designer.value?.orientation === "LANDSCAPE" ? "横向" : "纵向"}`;
   const name = designer.value?.templateName || "";
@@ -179,6 +327,8 @@ function selectSlot(id) {
 
 async function loadDesigner() {
   designer.value = null;
+  mapping.value = null;
+  rows.value = [];
   sampleError.value = "";
   sampleTraceId.value = "";
   selectedSlotId.value = "";
@@ -189,6 +339,7 @@ async function loadDesigner() {
     if (selectedId.value !== id) return;
     designer.value = designerFromSample(sample);
     selectedSlotId.value = slots.value[0]?.id || "";
+    await loadBinding();
   } catch (err) {
     if (selectedId.value !== id) return;
     sampleError.value = err?.message || "打印版式暂时无法读取";
@@ -382,6 +533,44 @@ onMounted(load);
 }
 .designer-props dd {
   margin: 0;
+}
+.designer-binding {
+  display: grid;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-4) var(--nx-space-5);
+}
+.binding-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--nx-space-2);
+}
+.binding-head h2 {
+  margin: 0;
+  font-size: var(--nx-font-size-md);
+}
+.binding-head p {
+  margin: var(--nx-space-1) 0 0;
+  font-size: var(--nx-font-size-sm);
+}
+.designer-binding td small {
+  display: block;
+  font-size: var(--nx-font-size-xs);
+}
+.designer-binding tr.active td {
+  background: var(--nx-product-light);
+}
+.designer-binding select {
+  min-width: 220px;
+  max-width: 100%;
+}
+.binding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-2);
+  font-size: var(--nx-font-size-sm);
 }
 @media (max-width: 1100px) {
   .designer-body {

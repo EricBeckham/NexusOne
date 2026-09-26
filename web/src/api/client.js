@@ -287,6 +287,10 @@ export const p4 = {
   }),
   // IM6: read import job status / results.
   productDefinitionImportJob: (id) => api(`/api/v1/p4/product-definitions/import-jobs/${encodeURIComponent(id)}`, { platform: true, auth: false }),
+  // CF-R3: static print field→slot contract and the per-product mapping (process-local override, lost on restart).
+  printMappingContract: () => api("/api/v1/p4/print-mapping/contract", { platform: true, auth: false }),
+  productPrintMapping: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/print-mapping`, { platform: true, auth: false }),
+  saveProductPrintMapping: (id, body) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/print-mapping`, { method: "PUT", body, platform: true, auth: false }),
   createProductDefinition: (body) => api("/api/v1/p4/product-definitions", { method: "POST", body, platform: true, auth: false }),
   updateProductDefinition: (id, body) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   bindProductDefinitionSku: (id, skuCode) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/skus/${encodeURIComponent(skuCode)}`, { method: "PUT", platform: true, auth: false }),
