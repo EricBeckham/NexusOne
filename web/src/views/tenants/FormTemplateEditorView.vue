@@ -11,6 +11,7 @@
         {{ validating ? "校验中…" : "校验" }}
       </button>
       <button class="ghost" type="button" data-testid="template-publish" :disabled="creating || busy" @click="openPublish">发布</button>
+      <button class="ghost" type="button" data-testid="applicant-preview-open" @click="applicantPreviewOpen = true">申请人预览</button>
     </template>
   </NxPageHeader>
 
@@ -309,6 +310,39 @@
       </div>
     </section>
   </div>
+
+  <div
+    v-if="applicantPreviewOpen"
+    class="drawer-backdrop"
+    data-testid="applicant-preview-drawer"
+    @click.self="applicantPreviewOpen = false"
+  >
+    <aside class="applicant-drawer" role="dialog" aria-modal="true" aria-labelledby="applicant-preview-title">
+      <header class="applicant-drawer__header">
+        <div>
+          <p class="drawer-eyebrow">只读</p>
+          <h2 id="applicant-preview-title">申请人预览</h2>
+          <p class="nx-muted">按申请人实际看到的顺序展示字段。此处不能编辑，请回到画布或属性区修改。</p>
+        </div>
+        <button class="ghost" type="button" data-testid="applicant-preview-close" @click="applicantPreviewOpen = false">关闭</button>
+      </header>
+      <div class="applicant-drawer__body">
+        <NxEmpty
+          v-if="!fields.length"
+          compact
+          title="暂无字段"
+          description="添加字段后，可在这里预览申请人视角。"
+        />
+        <fieldset v-else disabled data-testid="applicant-preview-form">
+          <legend>{{ name || "未命名模板" }}</legend>
+          <label v-for="field in fields" :key="field.uid" class="preview-field" data-testid="applicant-preview-field">
+            <span>{{ field.label || "未命名字段" }}<em v-if="field.required"> *</em></span>
+            <FieldControl :field="field" />
+          </label>
+        </fieldset>
+      </div>
+    </aside>
+  </div>
   </main>
 </template>
 
@@ -316,7 +350,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p1 } from "../../api/client";
-import { NxErrorState, NxPageHeader, NxPropertyPanel, NxRequestAlert, NxResult } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxPropertyPanel, NxRequestAlert, NxResult } from "../../components";
 import { describeRequestError } from "../../utils/requestError";
 import { nxMessage } from "../../feedback/nxMessage";
 import NxIcon from "../../icons/NxIcon.vue";
@@ -360,6 +394,7 @@ const validating = ref(false);
 const validation = ref(null);
 const publishing = ref(false);
 const publishConfirm = ref(false);
+const applicantPreviewOpen = ref(false);
 const actionFailure = ref(null);
 const publishedVersion = ref(null);
 const selectedUid = ref(null);
@@ -1135,6 +1170,38 @@ onMounted(load);
 .confirm-dialog { width: min(100%, 440px); display: grid; gap: 12px; }
 .confirm-dialog h2, .confirm-dialog p { margin: 0; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(0 0 0 / 40%);
+}
+.applicant-drawer {
+  width: min(100%, 420px);
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--nx-surface);
+  box-shadow: var(--nx-shadow-dialog);
+  border-left: 1px solid var(--nx-border);
+}
+.applicant-drawer__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--nx-space-3);
+  align-items: flex-start;
+  padding: var(--nx-space-4) var(--nx-space-5);
+  border-bottom: 1px solid var(--nx-divider);
+}
+.applicant-drawer__header h2 { margin: 0; font-size: var(--nx-font-size-lg); }
+.applicant-drawer__header p { margin: var(--nx-space-1) 0 0; }
+.drawer-eyebrow { margin: 0; color: var(--nx-product); font-size: var(--nx-font-size-xs); font-weight: 600; letter-spacing: 0.04em; }
+.applicant-drawer__body { overflow: auto; padding: var(--nx-space-5); }
+.applicant-drawer__body fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 16px; }
+.applicant-drawer__body legend { padding: 0; margin-bottom: 12px; font-weight: 600; color: var(--nx-text-primary); }
 
 @media (max-width: 1200px) {
   .designer { grid-template-columns: 220px minmax(0, 1fr); }

@@ -157,6 +157,23 @@ describe("form template designer", () => {
     expect(cardNames(wrapper)).toEqual(["成员选择", "天数"]);
   });
 
+  it("opens a read-only applicant preview drawer without a second editor (CF-F2)", async () => {
+    const wrapper = await mountAt("/p1/form-templates/new");
+    await wrapper.get("[data-testid='add-field']").trigger("click");
+    await wrapper.get("[data-testid='field-label']").setValue("事由");
+    await wrapper.get("[data-testid='applicant-preview-open']").trigger("click");
+    const drawer = wrapper.get("[data-testid='applicant-preview-drawer']");
+    expect(drawer.text()).toContain("申请人预览");
+    expect(drawer.text()).toContain("此处不能编辑");
+    expect(wrapper.get("[data-testid='applicant-preview-form']").attributes("disabled")).toBeDefined();
+    expect(wrapper.get("[data-testid='applicant-preview-field']").text()).toContain("事由");
+    expect(drawer.find("[data-testid='field-label']").exists()).toBe(false);
+    expect(drawer.find("[data-testid='add-field']").exists()).toBe(false);
+    expect(drawer.find("[data-testid='remove-selected']").exists()).toBe(false);
+    await wrapper.get("[data-testid='applicant-preview-close']").trigger("click");
+    expect(wrapper.find("[data-testid='applicant-preview-drawer']").exists()).toBe(false);
+  });
+
   it("edits the selected field in the property panel and mirrors it in the canvas and preview", async () => {
     const wrapper = await mountAt("/p1/form-templates/new");
     await wrapper.get("[data-testid='add-field']").trigger("click");
