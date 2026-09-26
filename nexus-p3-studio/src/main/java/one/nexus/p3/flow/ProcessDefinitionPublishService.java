@@ -165,6 +165,34 @@ public class ProcessDefinitionPublishService {
         return context;
     }
 
+
+    /**
+     * Platform export helper: load a published BPMN catalog snapshot without requiring tenant context.
+     * Prefer the first matching deployment when the same key/version exists across tenants.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<Map<String, Object>> catalogForVersion(String key, int version) {
+        ProcessDefinition definition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(key)
+                .processDefinitionVersion(version)
+                .list()
+                .stream()
+                .findFirst()
+                .orElse(null);
+        if (definition == null) return java.util.Optional.empty();
+        try (InputStream input = repositoryService.getResourceAsStream(
+                definition.getDeploymentId(), definition.getResourceName())) {
+            if (input == null) return java.util.Optional.empty();
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            input.transferTo(output);
+            Map<String, Object> catalog = ProcessDefinitionCatalog.read(
+                    output.toString(StandardCharsets.UTF_8), "platform-export");
+            catalog.put("version", version);
+            return java.util.Optional.of(catalog);
+        } catch (IOException | RuntimeException ex) {
+            return java.util.Optional.empty();
+        }
+    }
     public record PublishedDefinition(
             String key, String name, String tenantId, int version, String processDefinitionId,
             String deploymentId, java.util.Date publishedAt, String resourceName) {}
