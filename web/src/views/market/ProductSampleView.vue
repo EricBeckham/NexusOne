@@ -175,7 +175,7 @@
         </section>
 
         <NxEmpty
-          v-if="!printSections.length"
+          v-if="!previewSections.length"
           compact
           data-testid="sample-print-no-sections"
           title="暂无打印分区"
@@ -186,11 +186,14 @@
           </template>
         </NxEmpty>
 
-        <div v-else class="paper-stage">
-          <article class="paper" :class="orientationClass" aria-label="打印预览" data-testid="sample-print-paper">
+        <div v-else class="paper-stage" data-testid="sample-print-readonly-preview">
+          <p class="preview-banner nx-muted" data-testid="sample-print-preview-note">
+            只读 HTML 预览 · 字段值留空 · 非拖拽设计器
+          </p>
+          <article class="paper" :class="orientationClass" aria-label="打印只读预览" data-testid="sample-print-paper">
             <h3 class="paper-title">{{ sample.title || sample.product_name }}</h3>
             <section
-              v-for="section in printSections"
+              v-for="section in previewSections"
               :key="section.key"
               class="paper-section"
               :data-testid="`sample-print-section-${section.key}`"
@@ -205,7 +208,13 @@
                 description="表单未提供可映射到此槽位的字段，留空预览。"
               />
               <dl v-else>
-                <div v-for="field in section.fields" :key="field.key" class="paper-field" :class="{ wide: field.type === 'TEXTAREA' }">
+                <div
+                  v-for="field in section.fields"
+                  :key="field.key"
+                  class="paper-field"
+                  :class="{ wide: field.type === 'TEXTAREA' || field.wide }"
+                  :data-testid="`sample-print-preview-field-${field.key}`"
+                >
                   <dt>{{ field.label }}</dt>
                   <dd aria-label="留空"></dd>
                 </div>
@@ -312,8 +321,73 @@ const printSlots = computed(() => {
   const slots = template.slots ?? [];
   return (Array.isArray(slots) ? slots : []).filter((slot) => slot?.id);
 });
+/** CF-R2: readonly HTML preview prefers mapping-driven sections; falls back to sample sections. */
+const previewSections = computed(() => {
+  const fieldsByKey = new Map();
+  for (const section of printSections.value) {
+    for (const field of section.fields || []) {
+      if (field?.key) fieldsByKey.set(field.key, { ...field, sectionKey: section.key, sectionLabel: section.label });
+    }
+  }
+  if (!mappingRows.value.length || !printSlots.value.length) {
+    return printSections.value.map((section) => ({
+      key: section.key,
+      label: section.label,
+      fields: section.fields.map((field) => ({ ...field, wide: field.type === "TEXTAREA" })),
+    }));
+  }
+  const spillId = printContract.value?.mapping_rules?.unmapped_spill_slot_id
+    ?? printContract.value?.mappingRules?.unmappedSpillSlotId
+    ?? "form.fields";
+  const bySlot = new Map();
+  for (const row of mappingRows.value) {
+    const field = fieldsByKey.get(row.fieldKey);
+    if (!field) continue;
+    const slotId = row.slotId || spillId;
+    if (!bySlot.has(slotId)) bySlot.set(slotId, []);
+    bySlot.get(slotId).push({
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      wide: field.type === "TEXTAREA" || slotId === spillId,
+    });
+  }
+  const sectionOrder = [];
+  const sectionMap = new Map();
+  const sampleSectionKeys = new Set(printSections.value.map((section) => section.key));
+  for (const slot of printSlots.value) {
+    const sectionKey = slot.section || String(slot.id).split(".")[0] || "form";
+    const fields = bySlot.get(slot.id) || [];
+    if (!fields.length && !sampleSectionKeys.has(sectionKey)) continue;
+    if (!sectionMap.has(sectionKey)) {
+      sectionMap.set(sectionKey, {
+        key: sectionKey,
+        label: ({ header: "单据信息", form: "申请内容", approval: "审批" })[sectionKey] || sectionKey,
+        fields: [],
+      });
+      sectionOrder.push(sectionKey);
+    }
+    for (const field of fields) {
+      sectionMap.get(sectionKey).fields.push(field);
+    }
+  }
+  // Preserve explicit empty sample sections (honest empty shell).
+  for (const section of printSections.value) {
+    if (!sectionMap.has(section.key)) {
+      sectionMap.set(section.key, {
+        key: section.key,
+        label: section.label,
+        fields: section.fields.map((field) => ({ ...field, wide: field.type === "TEXTAREA" })),
+      });
+      sectionOrder.push(section.key);
+    } else if (!sectionMap.get(section.key).fields.length && !section.fields.length) {
+      // keep empty
+    }
+  }
+  return sectionOrder.map((key) => sectionMap.get(key)).filter(Boolean);
+});
 const paperLabel = computed(() => `${printPaper.value || sample.value?.paper || "A4"} ${printOrientation.value === "LANDSCAPE" ? "横向" : "纵向"}`);
-const orientationClass = computed(() => (printOrientation.value === "LANDSCAPE" || sample.value?.orientation === "LANDSCAPE" ? "landscape" : "portrait"));
+const orientationClass = computed(() => (printOrientation.value === "LANDSCAPE" ? "landscape" : "portrait"));
 // PC12: a count the backend could not make arrives as null or an absent key — both read as 暂无, never 0.
 const metrics = computed(() => (Array.isArray(sample.value?.metrics) ? sample.value.metrics : [])
   .filter((metric) => metric?.key)
@@ -565,11 +639,19 @@ onMounted(load);
 }
 .paper-stage {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--nx-space-2);
   padding: var(--nx-space-4);
   background: var(--nx-divider);
   border-radius: var(--nx-radius-sm);
   overflow: auto;
+}
+.preview-banner {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  font-size: var(--nx-font-size-sm);
 }
 .paper {
   width: min(100%, 560px);
