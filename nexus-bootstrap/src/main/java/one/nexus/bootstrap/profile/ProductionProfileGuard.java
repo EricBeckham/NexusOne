@@ -52,6 +52,9 @@ public final class ProductionProfileGuard {
                 violations.add(name + " must be jdbc; memory loses identities and grants on restart");
             }
         }
+        if ("keycloak".equals(value(env, "nexus.iam.idp", "stub"))) {
+            violations.addAll(keycloakViolations(env));
+        }
         if ("always".equals(value(env, "management.endpoint.health.show-details", "never"))) {
             violations.add("management.endpoint.health.show-details must not be always");
         }
@@ -87,6 +90,43 @@ public final class ProductionProfileGuard {
             warnings.add("nexus.iam.keycloak.issuer is not https");
         }
         return warnings;
+    }
+
+    /**
+     * DPO-L1: one Keycloak client setting that prod needs. {@code devDefault} is the local value
+     * application.yml falls back to, which must never reach prod; null when any non-blank value is acceptable.
+     */
+    record KeycloakSetting(String env, String property, String devDefault) {}
+
+    static final List<KeycloakSetting> KEYCLOAK_SETTINGS = List.of(
+            new KeycloakSetting("NEXUS_IAM_KEYCLOAK_ISSUER", "nexus.iam.keycloak.issuer",
+                    "http://127.0.0.1:8080/realms/nexus"),
+            new KeycloakSetting("NEXUS_IAM_KEYCLOAK_CLIENT_ID", "nexus.iam.keycloak.client-id", null),
+            new KeycloakSetting("NEXUS_IAM_KEYCLOAK_CLIENT_SECRET", "nexus.iam.keycloak.client-secret", null),
+            new KeycloakSetting("NEXUS_IAM_KEYCLOAK_REDIRECT_URI", "nexus.iam.keycloak.redirect-uri",
+                    "http://127.0.0.1:8080/api/v1/auth/callback"));
+
+    /**
+     * DPO-L1: prod with {@code nexus.iam.idp=keycloak} must have every client setting. Messages name the
+     * environment variable and the property only — never the value, which may be a secret.
+     */
+    static List<String> keycloakViolations(Environment env) {
+        List<String> violations = new ArrayList<>();
+        for (KeycloakSetting setting : KEYCLOAK_SETTINGS) {
+            String raw = env.getProperty(setting.property());
+            String resolved = raw == null ? "" : raw.trim();
+            if (resolved.isEmpty()) {
+                violations.add(setting.env() + " is not set (" + setting.property()
+                        + "); required when prod runs with nexus.iam.idp=keycloak");
+            } else if (resolved.contains("REPLACE_")) {
+                violations.add(setting.env() + " still holds a template placeholder (" + setting.property()
+                        + "); fill it from the secret store");
+            } else if (setting.devDefault() != null && setting.devDefault().equals(resolved)) {
+                violations.add(setting.env() + " is not set (" + setting.property()
+                        + " is still the local development default); required when prod runs with nexus.iam.idp=keycloak");
+            }
+        }
+        return violations;
     }
 
     private static boolean flag(Environment env, String name) {
