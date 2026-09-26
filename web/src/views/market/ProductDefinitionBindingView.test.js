@@ -11,6 +11,7 @@ vi.mock("../../api/client", () => ({
   p4: {
     productDefinitions: vi.fn(), createProductDefinition: vi.fn(), updateProductDefinition: vi.fn(),
     bindProductDefinitionSku: vi.fn(), skus: vi.fn(), catalog: vi.fn(),
+    exportProductDefinition: vi.fn(), importProductDefinition: vi.fn(), productDefinitionImportJob: vi.fn(),
   },
 }));
 vi.mock("../../api/p3", () => ({
@@ -244,7 +245,7 @@ describe("product definition binding page", () => {
   });
 });
 
-describe("IM2 export config shell", () => {
+describe("IM7 export config against real API", () => {
   beforeEach(() => {
     for (const fn of [...Object.values(p1), ...Object.values(p4), ...Object.values(p3)]) fn.mockReset();
     p4.productDefinitions.mockResolvedValue([DEFINITION]);
@@ -252,39 +253,35 @@ describe("IM2 export config shell", () => {
     p4.catalog.mockResolvedValue([]);
     p1.formTemplates.mockResolvedValue([PUBLISHED_TEMPLATE]);
     publishedProcess();
-    vi.stubGlobal("fetch", vi.fn());
   });
 
-  it("shows 导出配置 CTA and downloads a real file on success", async () => {
+  it("downloads the live export bundle for the selected product", async () => {
     const blob = new Blob([JSON.stringify({ formatVersion: "1.0" })], { type: "application/json" });
-    fetch.mockResolvedValue({ ok: true, blob: async () => blob });
+    p4.exportProductDefinition.mockResolvedValue({ blob, filename: "hr-basic.product-config.json" });
     const createObjectURL = vi.fn(() => "blob:export");
     const revokeObjectURL = vi.fn();
     vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
     const wrapper = await mountPage();
     expect(wrapper.get('[data-testid="export-config"]').text()).toContain("导出配置");
-    await wrapper.get('[data-testid="export-config"]').trigger("click");
+    await wrapper.get('[data-testid="export-config-hr-basic"]').trigger("click");
     await flushPromises();
-    expect(fetch).toHaveBeenCalledWith(
-      "/fixtures/product-config-1.0/sample-demo-leave.product-config.json",
-      expect.objectContaining({ headers: { Accept: "application/json" } }),
-    );
+    expect(p4.exportProductDefinition).toHaveBeenCalledWith("def-1");
     expect(createObjectURL).toHaveBeenCalled();
     expect(wrapper.find('[data-testid="export-config-error"]').exists()).toBe(false);
   });
 
-  it("shows S-shell error without fake success when download fails", async () => {
-    fetch.mockResolvedValue({ ok: false, status: 404 });
+  it("shows S-shell error without fake success when export fails", async () => {
+    p4.exportProductDefinition.mockRejectedValueOnce(Object.assign(new Error("export down"), { status: 503 }));
     const wrapper = await mountPage();
-    await wrapper.get('[data-testid="export-config"]').trigger("click");
+    await wrapper.get('[data-testid="export-config-hr-basic"]').trigger("click");
     await flushPromises();
     const err = wrapper.get('[data-testid="export-config-error"]');
     expect(err.text()).toContain("配置未能导出");
-    expect(err.text()).toMatch(/样例配置包暂时不可用|404/);
+    expect(err.text()).toContain("export down");
   });
 });
 
-describe("IM3 import config shell", () => {
+describe("IM7 import config against real API", () => {
   beforeEach(() => {
     for (const fn of [...Object.values(p1), ...Object.values(p4), ...Object.values(p3)]) fn.mockReset();
     p4.productDefinitions.mockResolvedValue([DEFINITION]);
@@ -301,35 +298,50 @@ describe("IM3 import config shell", () => {
     return input.trigger("change");
   }
 
+  const PACK = {
+    manifest: { format: "nexusone.product-config", formatVersion: "1.0", exportedAt: "2026-09-26T00:00:00Z", source: { env: "demo" } },
+    formTemplates: [{ code: "demo.leave", version: 1 }],
+    processDefinitions: [{ key: "demo.flow", version: 1 }],
+    productDefinition: { code: "demo.product", name: "演示" },
+    skuBindings: [],
+  };
+
   it("opens import panel with skip as the default conflict strategy", async () => {
     const wrapper = await mountPage();
     expect(wrapper.find('[data-testid="import-config-panel"]').exists()).toBe(false);
     await wrapper.get('[data-testid="import-config"]').trigger("click");
     expect(wrapper.get('[data-testid="import-config-panel"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="import-conflict-strategy"] input[value="skip"]').element.checked).toBe(true);
-    expect(wrapper.get('[data-testid="import-config-panel"]').text()).toContain("导入接口尚未接通");
+    expect(wrapper.get('[data-testid="import-config-panel"]').text()).toContain("开始导入");
+    expect(wrapper.get('[data-testid="import-config-panel"]').text()).not.toContain("导入接口尚未接通");
   });
 
-  it("validates a format 1.0 package and shows NxResult without writing", async () => {
-    const pack = {
-      manifest: { format: "nexusone.product-config", formatVersion: "1.0", exportedAt: "2026-09-26T00:00:00Z", source: { env: "demo" } },
-      formTemplates: [{ code: "demo.leave", version: 1 }],
-      processDefinitions: [{ key: "demo.flow", version: 1 }],
-      productDefinition: { code: "demo.product", name: "演示" },
-      skuBindings: [],
-    };
+  it("validates then imports via job read and shows resource results", async () => {
+    p4.importProductDefinition.mockResolvedValue({ import_job_id: "job-1", status: "COMPLETED" });
+    p4.productDefinitionImportJob.mockResolvedValue({
+      id: "job-1",
+      status: "COMPLETED",
+      counts: { created: 1, skipped: 0, failed: 0 },
+      results: [{ resource_type: "productDefinition", resource_key: "demo.product", outcome: "CREATED", detail: "已创建" }],
+    });
     const wrapper = await mountPage();
     await wrapper.get('[data-testid="import-config"]').trigger("click");
-    await setImportFile(wrapper, JSON.stringify(pack));
+    await setImportFile(wrapper, JSON.stringify(PACK));
     await flushPromises();
     await wrapper.get('[data-testid="import-config-validate"]').trigger("click");
     await flushPromises();
     expect(wrapper.get('[data-testid="import-config-result"]').text()).toContain("校验通过");
-    expect(wrapper.find('[data-testid="import-validation-table"]').exists()).toBe(false);
-    expect(wrapper.get('[data-testid="import-config-result"]').text()).toContain("未写入");
+    expect(wrapper.get('[data-testid="import-config-result"]').text()).toContain("可以开始导入");
+    await wrapper.get('[data-testid="import-config-submit"]').trigger("click");
+    await flushPromises();
+    expect(p4.importProductDefinition).toHaveBeenCalledWith(PACK, "skip", expect.any(String));
+    expect(p4.productDefinitionImportJob).toHaveBeenCalledWith("job-1");
+    expect(wrapper.get('[data-testid="import-config-job-result"]').text()).toContain("导入完成");
+    expect(wrapper.get('[data-testid="import-job-results-table"]').text()).toContain("demo.product");
+    expect(wrapper.get('[data-testid="import-job-results-table"]').text()).toContain("CREATED");
   });
 
-  it("lists validation issues in a table for a bad package", async () => {
+  it("lists validation issues in a table for a bad package and blocks submit", async () => {
     const wrapper = await mountPage();
     await wrapper.get('[data-testid="import-config"]').trigger("click");
     await setImportFile(wrapper, JSON.stringify({ manifest: { format: "other", formatVersion: "9.0" } }));
@@ -340,13 +352,28 @@ describe("IM3 import config shell", () => {
     expect(table.text()).toContain("manifest");
     expect(table.text()).toMatch(/formatVersion|不支持/);
     expect(wrapper.get('[data-testid="import-config-result"]').text()).toContain("校验未通过");
+    expect(wrapper.get('[data-testid="import-config-submit"]').attributes("disabled")).toBeDefined();
   });
 
   it("shows NxErrorState when the file is not JSON", async () => {
     const wrapper = await mountPage();
     await wrapper.get('[data-testid="import-config"]').trigger("click");
-    await setImportFile(wrapper, "not-json{{{", "bad.txt");
+    await setImportFile(wrapper, "not-jsonXXX", "bad.txt");
     await flushPromises();
     expect(wrapper.get('[data-testid="import-config-error"]').text()).toContain("合法 JSON");
+  });
+
+  it("surfaces import API failures with the S error shell", async () => {
+    p4.importProductDefinition.mockRejectedValueOnce(Object.assign(new Error("bad package"), { status: 400, traceId: "tr-im7" }));
+    const wrapper = await mountPage();
+    await wrapper.get('[data-testid="import-config"]').trigger("click");
+    await setImportFile(wrapper, JSON.stringify(PACK));
+    await flushPromises();
+    await wrapper.get('[data-testid="import-config-validate"]').trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-testid="import-config-submit"]').trigger("click");
+    await flushPromises();
+    const err = wrapper.get('[data-testid="import-config-error"]');
+    expect(err.text()).toContain("bad package");
   });
 });

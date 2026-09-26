@@ -10,7 +10,7 @@
           class="ghost"
           type="button"
           data-testid="export-config"
-          :disabled="exporting"
+          :disabled="exporting || !definitions.length"
           @click="exportConfig()"
         >{{ exporting ? "导出中…" : "导出配置" }}</button>
         <button
@@ -47,7 +47,7 @@
       <div class="section-heading">
         <div>
           <h2>导入配置</h2>
-          <p class="nx-muted">上传 format 1.0 配置包并选择冲突策略。当前仅做前端校验预览，导入接口尚未接通，不会写入平台。</p>
+          <p class="nx-muted">上传 format 1.0 配置包，选择冲突策略后先校验预览，再提交导入作业。</p>
         </div>
         <button class="ghost" type="button" data-testid="import-config-close" @click="closeImport">关闭</button>
       </div>
@@ -73,19 +73,57 @@
             class="primary"
             type="button"
             data-testid="import-config-validate"
-            :disabled="!importFileName || importValidating"
+            :disabled="!importFileName || importValidating || importSubmitting"
             @click="validateImport"
           >{{ importValidating ? "校验中…" : "校验并预览" }}</button>
+          <button
+            class="primary"
+            type="button"
+            data-testid="import-config-submit"
+            :disabled="!importValidated || !!importIssues.length || importSubmitting || importValidating"
+            @click="submitImport"
+          >{{ importSubmitting ? "导入中…" : "开始导入" }}</button>
         </div>
       </div>
 
       <NxErrorState
         v-if="importError"
-        title="配置包无法校验"
+        title="配置包无法处理"
         :description="importError"
+        :trace-id="importTraceId"
         retry-label=""
         data-testid="import-config-error"
       />
+
+      <template v-else-if="importJob">
+        <NxResult
+          compact
+          :tone="importJobTone"
+          :title="importJobTitle"
+          :description="importJobDescription"
+          data-testid="import-config-job-result"
+        >
+          <template #next>
+            <button class="ghost" type="button" data-testid="import-config-reset" @click="resetImport">重新选择文件</button>
+            <button class="ghost" type="button" data-testid="import-config-reload" @click="load">刷新产品定义</button>
+          </template>
+        </NxResult>
+        <div v-if="importJobResults.length" class="table-scroll">
+          <table class="nx-table nx-table--compact" data-testid="import-job-results-table">
+            <thead>
+              <tr><th scope="col">资产</th><th scope="col">编号</th><th scope="col">结果</th><th scope="col">说明</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, index) in importJobResults" :key="`${row.resourceType}-${row.resourceKey}-${index}`">
+                <td>{{ row.resourceType }}</td>
+                <td><code>{{ row.resourceKey || "—" }}</code></td>
+                <td>{{ row.outcome }}</td>
+                <td>{{ row.detail || "—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
 
       <template v-else-if="importValidated">
         <NxResult
@@ -93,19 +131,15 @@
           compact
           tone="success"
           title="校验通过"
-          :description="`冲突策略：${conflictLabel}。导入接口尚未接通，未写入任何产品定义。`"
+          :description="`冲突策略：${conflictLabel}。可以开始导入。`"
           data-testid="import-config-result"
-        >
-          <template #next>
-            <button class="ghost" type="button" data-testid="import-config-reset" @click="resetImport">重新选择文件</button>
-          </template>
-        </NxResult>
+        />
         <template v-else>
           <NxResult
             compact
             tone="warning"
             title="校验未通过"
-            :description="`发现 ${importIssues.length} 处问题。按当前策略不会写入（导入接口尚未接通）。`"
+            :description="`发现 ${importIssues.length} 处问题。请修正配置包后再导入。`"
             data-testid="import-config-result"
           />
           <div class="table-scroll">
@@ -270,9 +304,6 @@ import { p3 } from "../../api/p3";
 import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxStatusTag } from "../../components";
 import { nxMessage } from "../../feedback/nxMessage";
 
-/** IM2: static format 1.0 sample until IM4 export BE lands. Honest — not a live product snapshot. */
-const SAMPLE_EXPORT_URL = "/fixtures/product-config-1.0/sample-demo-leave.product-config.json";
-
 const CONFLICT_LABELS = {
   skip: "跳过已有（skip）",
   "new-version": "创建新版本（new-version）",
@@ -309,9 +340,40 @@ const importFileName = ref("");
 const importPayload = ref(null);
 const importValidating = ref(false);
 const importValidated = ref(false);
+const importSubmitting = ref(false);
 const importError = ref("");
+const importTraceId = ref("");
 const importIssues = ref([]);
+const importJob = ref(null);
 const conflictLabel = computed(() => CONFLICT_LABELS[importConflict.value] || importConflict.value);
+const importJobResults = computed(() => {
+  const rows = importJob.value?.results ?? importJob.value?.Results ?? [];
+  return (Array.isArray(rows) ? rows : []).map((row) => ({
+    resourceType: row?.resource_type ?? row?.resourceType ?? "",
+    resourceKey: row?.resource_key ?? row?.resourceKey ?? "",
+    outcome: row?.outcome ?? "",
+    detail: row?.detail ?? "",
+  }));
+});
+const importJobStatus = computed(() => String(importJob.value?.status || "").toUpperCase());
+const importJobTone = computed(() => (importJobStatus.value === "FAILED" ? "warning" : "success"));
+const importJobTitle = computed(() => {
+  if (importJobStatus.value === "FAILED") return "导入未完成";
+  if (importJobStatus.value === "COMPLETED") return "导入完成";
+  return "导入已受理";
+});
+const importJobDescription = computed(() => {
+  const counts = importJob.value?.counts || {};
+  const created = counts.created ?? counts.CREATED ?? 0;
+  const skipped = counts.skipped ?? counts.SKIPPED ?? 0;
+  const failed = counts.failed ?? counts.FAILED ?? 0;
+  const jobId = importJob.value?.id || "";
+  const err = importJob.value?.error || "";
+  if (importJobStatus.value === "FAILED") {
+    return err || `作业 ${jobId} 失败。冲突策略：${conflictLabel.value}。`;
+  }
+  return `作业 ${jobId} · 冲突策略：${conflictLabel.value} · 已创建 ${created} / 跳过 ${skipped} / 失败 ${failed}。`;
+});
 const form = reactive({
   code: "",
   name: "",
@@ -496,31 +558,31 @@ async function loadBindings() {
 
 async function exportConfig(row = null) {
   exportError.value = "";
-  exportTarget.value = row;
+  const target = row || (definitions.value.length === 1 ? definitions.value[0] : null);
+  exportTarget.value = target;
+  if (!target?.id) {
+    exportError.value = definitions.value.length
+      ? "请从下方列表选择产品，点击该行的「导出配置」。"
+      : "还没有产品定义可导出。请先保存一个产品定义。";
+    return;
+  }
   exporting.value = true;
   try {
-    const response = await fetch(SAMPLE_EXPORT_URL, { headers: { Accept: "application/json" } });
-    if (!response.ok) {
-      throw new Error(`样例配置包暂时不可用（${response.status}）。导出接口尚未接通，请稍后重试。`);
-    }
-    const blob = await response.blob();
+    const { blob, filename } = await p4.exportProductDefinition(target.id);
     if (!blob || blob.size === 0) {
       throw new Error("下载内容为空，未生成配置文件。");
     }
-    const code = row?.code || "sample";
-    const filename = `nexusone-product-config-${code}.json`;
+    const downloadName = filename || `${target.code || "product"}.product-config.json`;
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = filename;
+    anchor.download = downloadName;
     anchor.rel = "noopener";
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
-    nxMessage.success(row
-      ? `已下载 format 1.0 样例包（当前为静态样例，尚未按「${row.name || row.code}」组装真包）`
-      : "已下载 format 1.0 样例配置包（导出接口尚未接通，此为静态样例）");
+    nxMessage.success(`已导出「${target.name || target.code}」的 format 1.0 配置包`);
   } catch (err) {
     exportError.value = err?.message || "导出失败，请稍后重试";
   } finally {
@@ -541,8 +603,11 @@ function resetImport() {
   importFileName.value = "";
   importPayload.value = null;
   importValidated.value = false;
+  importSubmitting.value = false;
   importError.value = "";
+  importTraceId.value = "";
   importIssues.value = [];
+  importJob.value = null;
 }
 
 async function onImportFile(event) {
@@ -562,7 +627,7 @@ async function onImportFile(event) {
   }
 }
 
-/** IM3: client-side format 1.0 checks only — no import BE / no writes. */
+/** Client-side format 1.0 pre-check before calling IM5 import. */
 function validateProductConfigPackage(pack) {
   const issues = [];
   if (!pack || typeof pack !== "object") {
@@ -600,7 +665,9 @@ async function validateImport() {
   importValidating.value = true;
   importValidated.value = false;
   importError.value = "";
+  importTraceId.value = "";
   importIssues.value = [];
+  importJob.value = null;
   try {
     if (!importPayload.value) {
       importError.value = importFileName.value
@@ -608,15 +675,46 @@ async function validateImport() {
         : "请先选择配置包文件。";
       return;
     }
-    // Yield so the button can show 校验中… without inventing a network hop.
     await Promise.resolve();
     importIssues.value = validateProductConfigPackage(importPayload.value);
     importValidated.value = true;
     if (!importIssues.value.length) {
-      nxMessage.info("校验通过（导入接口尚未接通，未写入）");
+      nxMessage.info("校验通过，可以开始导入");
     }
   } finally {
     importValidating.value = false;
+  }
+}
+
+async function submitImport() {
+  if (!importPayload.value || importIssues.value.length) return;
+  importSubmitting.value = true;
+  importError.value = "";
+  importTraceId.value = "";
+  importJob.value = null;
+  const idempotencyKey = (typeof crypto !== "undefined" && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `im7-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  try {
+    const accepted = await p4.importProductDefinition(importPayload.value, importConflict.value, idempotencyKey);
+    const jobId = accepted?.import_job_id ?? accepted?.importJobId;
+    if (!jobId) {
+      throw new Error("导入已受理，但未返回作业编号。");
+    }
+    const job = await p4.productDefinitionImportJob(jobId);
+    importJob.value = job;
+    const status = String(job?.status || "").toUpperCase();
+    if (status === "FAILED") {
+      nxMessage.error(job?.error || "导入失败");
+    } else {
+      nxMessage.success("导入完成");
+      await load();
+    }
+  } catch (err) {
+    importError.value = err?.message || "导入失败，请稍后重试";
+    importTraceId.value = err?.traceId || "";
+  } finally {
+    importSubmitting.value = false;
   }
 }
 async function load() {
