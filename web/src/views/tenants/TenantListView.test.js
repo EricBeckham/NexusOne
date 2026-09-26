@@ -58,10 +58,33 @@ describe("P1 tenant directory V4", () => {
     mocks.listTenants.mockResolvedValueOnce([]);
     const empty = await mountList();
     expect(empty.text()).toContain("暂无租户");
+    expect(empty.get("[data-testid='nx-empty-next']").text()).toContain("新建租户");
     empty.unmount();
     const filtered = await mountList();
     await filtered.get("[data-testid='tenant-search']").setValue("missing");
     expect(filtered.text()).toContain("没有符合当前筛选条件的租户");
+    expect(filtered.get("[data-testid='tenant-empty-reset']").text()).toContain("清空筛选");
+  });
+
+  it("shows list-row skeletons while the directory loads", async () => {
+    let resolveList;
+    mocks.listTenants.mockReturnValueOnce(new Promise((resolve) => { resolveList = resolve; }));
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/p1/tenants", component: TenantListView },
+        { path: "/p1/tenants/new", component: { template: "<div />" } },
+        { path: "/p1/tenants/:id", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/p1/tenants");
+    await router.isReady();
+    const wrapper = mount(TenantListView, { global: { plugins: [router] } });
+    expect(wrapper.get("[data-testid='tenant-loading']").findAll("[data-testid='nx-skeleton']").length).toBeGreaterThan(0);
+    resolveList(tenants);
+    await flushPromises();
+    expect(wrapper.find("[data-testid='tenant-loading']").exists()).toBe(false);
+    expect(wrapper.get("[data-testid='tenant-table']").exists()).toBe(true);
   });
 
   it("shows a retryable error when the platform directory is unavailable", async () => {
