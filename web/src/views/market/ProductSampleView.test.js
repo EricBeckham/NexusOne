@@ -269,3 +269,28 @@ describe("product sample report (PC12)", () => {
     expect(wrapper.text()).not.toMatch(/同比|环比|增长|%/);
   });
 });
+describe("print preview opened from the designer (CF-RD4)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }]);
+    mocks.productPrintSample.mockResolvedValue(PRINT);
+    mocks.printMappingContract.mockResolvedValue(CONTRACT);
+  });
+
+  it("says which saved mapping the paper shows and links back to the designer", async () => {
+    mocks.productPrintMapping.mockResolvedValue({ ...MAPPING, source: "IN_MEMORY", revision: 3 });
+    const wrapper = await mountAt("/p4/product-samples/print?definition=d1&from=designer");
+    const banner = wrapper.get("[data-testid='sample-print-from-designer']").text();
+    expect(banner).toContain("修订 r3");
+    expect(banner).toContain("不含设计器里未保存的修改");
+    expect(wrapper.get("[data-testid='sample-print-back-designer']").attributes("href")).toBe("/p4/product-samples/print/designer?definition=d1");
+  });
+
+  it("calls a never-saved mapping the contract default and shows no banner without ?from=designer", async () => {
+    mocks.productPrintMapping.mockResolvedValue({ ...MAPPING, source: "DEFAULT", revision: 0 });
+    const fromDesigner = await mountAt("/p4/product-samples/print?definition=d1&from=designer");
+    expect(fromDesigner.get("[data-testid='sample-print-from-designer']").text()).toContain("契约默认映射");
+    const direct = await mountAt("/p4/product-samples/print?definition=d1");
+    expect(direct.find("[data-testid='sample-print-from-designer']").exists()).toBe(false);
+  });
+});
