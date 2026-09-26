@@ -39,6 +39,7 @@ async function mountAt(path) {
     routes: [
       { path: "/p3/publish-center", component: PublishCenterView },
       { path: "/p3/publish-center/:id", component: PublishCenterView },
+      { path: "/p3/forms", component: { template: "<div />" } },
     ],
   });
   await router.push(path);
@@ -72,7 +73,27 @@ describe("publish center", () => {
     p3.listPublishCenter.mockResolvedValue([]);
     const wrapper = await mountAt("/p3/publish-center");
     expect(wrapper.text()).toContain("暂无发布记录");
+    expect(wrapper.get("[data-testid='nx-empty-next']").text()).toContain("前往表单列表");
     expect(p3.getPublishCenter).not.toHaveBeenCalled();
+  });
+
+  it("shows list-row skeletons while the publish list loads", async () => {
+    let resolveList;
+    p3.listPublishCenter.mockReturnValueOnce(new Promise((resolve) => { resolveList = resolve; }));
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/p3/publish-center", component: PublishCenterView },
+        { path: "/p3/forms", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/p3/publish-center");
+    const wrapper = mount(PublishCenterView, { global: { plugins: [router] } });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get("[data-testid='publish-loading']").findAll("[data-testid='nx-skeleton']").length).toBeGreaterThan(0);
+    resolveList([]);
+    await flushPromises();
+    expect(wrapper.find("[data-testid='publish-loading']").exists()).toBe(false);
   });
 
   it("shows the request error without a table", async () => {
