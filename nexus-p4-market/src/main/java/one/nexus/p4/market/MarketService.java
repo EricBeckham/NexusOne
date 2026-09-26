@@ -203,6 +203,16 @@ public class MarketService {
         return next;
     }
 
+    /**
+     * XB6: honest read of the upgrade steps. Nothing persists step state (upgrade only switches the version),
+     * so the answer is the step catalog with every step UNKNOWN — never a fabricated DONE/COMPLETED.
+     */
+    @Transactional(readOnly = true)
+    public UpgradeSteps upgradeSteps(UUID installationId) {
+        Installation current = installation(installationId);
+        return UpgradeSteps.unrecorded(current.id());
+    }
+
     @Transactional
     public Installation uninstall(UUID installationId) {
         Installation current = installation(installationId);

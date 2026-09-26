@@ -43,6 +43,8 @@ public class MarketController {
     @GetMapping("/installations/{id}/product-pin") InstallationProductPin installationProductPin(@PathVariable UUID id){
         return service.installationProductPin(id);
     }
+    /** XB6: step state of an installation's upgrade; UNKNOWN everywhere while nothing records steps. */
+    @GetMapping("/installations/{id}/upgrade-steps") UpgradeSteps upgradeSteps(@PathVariable UUID id){return service.upgradeSteps(id);}
     @PostMapping("/installations/{id}/upgrade") Installation upgrade(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/rollback") Installation rollback(@PathVariable UUID id,@RequestBody Upgrade request){return service.upgrade(id,request.versionId());}
     @PostMapping("/installations/{id}/uninstall") Installation uninstall(@PathVariable UUID id){return service.uninstall(id);}
