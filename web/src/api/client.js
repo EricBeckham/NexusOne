@@ -206,6 +206,8 @@ export const p4 = {
   productDefinitions: () => api("/api/v1/p4/product-definitions", { platform: true, auth: false }),
   // PC6: wizard readiness for one product definition (DONE / NOT_READY / UNKNOWN per step, from stored data).
   productConfigReadiness: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/config-readiness`, { platform: true, auth: false }),
+  // PC9: sample ledger for the current product (columns from its published form; rows always empty).
+  productLedgerSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/ledger`, { platform: true, auth: false }),
   createProductDefinition: (body) => api("/api/v1/p4/product-definitions", { method: "POST", body, platform: true, auth: false }),
   updateProductDefinition: (id, body) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   bindProductDefinitionSku: (id, skuCode) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/skus/${encodeURIComponent(skuCode)}`, { method: "PUT", platform: true, auth: false }),

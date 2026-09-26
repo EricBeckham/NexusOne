@@ -1,0 +1,103 @@
+/** @vitest-environment happy-dom */
+import { flushPromises, mount } from "@vue/test-utils";
+import { createMemoryHistory, createRouter } from "vue-router";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  productDefinitions: vi.fn(),
+  productLedgerSample: vi.fn(),
+}));
+vi.mock("../../api/client", () => ({
+  p4: { productDefinitions: mocks.productDefinitions, productLedgerSample: mocks.productLedgerSample },
+}));
+
+import ProductSampleView from "./ProductSampleView.vue";
+
+async function mountAt(path) {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: "/p4/product-samples/ledger", component: ProductSampleView, meta: { sample: "ledger" } },
+      { path: "/p4/product-config-wizard", component: { template: "<div />" } },
+      { path: "/p4/product-definitions", component: { template: "<div />" } },
+      { path: "/p1/form-templates", component: { template: "<div />" } },
+    ],
+  });
+  await router.push(path);
+  const wrapper = mount(ProductSampleView, { global: { plugins: [router] } });
+  await flushPromises();
+  wrapper.router = router;
+  return wrapper;
+}
+
+const LEDGER = {
+  product_definition_id: "d1",
+  product_name: "请假报销",
+  source: "FORM_TEMPLATE_VERSION",
+  form_template_name: "请假单",
+  form_template_version: 2,
+  columns: [
+    { key: "title", label: "事由", type: "TEXT", required: true },
+    { key: "days", label: "天数", type: "NUMBER", required: false },
+  ],
+  rows: [],
+  note: "平台不保存租户业务数据，所以这里没有记录。",
+};
+
+describe("product sample ledger (PC8)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    mocks.productDefinitions.mockResolvedValue([
+      { id: "d1", code: "leave", name: "请假报销" },
+      { id: "d2", code: "crm", name: "CRM" },
+    ]);
+    mocks.productLedgerSample.mockResolvedValue(LEDGER);
+  });
+
+  it("shows the product's form fields as read-only columns and an honest empty row", async () => {
+    const wrapper = await mountAt("/p4/product-samples/ledger");
+    expect(mocks.productLedgerSample).toHaveBeenCalledWith("d1");
+    const headers = wrapper.findAll("[data-testid='sample-ledger-table'] th").map((th) => th.text());
+    expect(headers).toHaveLength(2);
+    expect(headers[0]).toMatch(/事由\s*\*\s*文本/);
+    expect(headers[1]).toMatch(/天数\s*数字/);
+    expect(wrapper.get("[data-testid='sample-ledger-col-days']").text()).toContain("数字");
+    expect(wrapper.get("[data-testid='sample-ledger-source']").text()).toContain("请假单」v2，共 2 列");
+    const empty = wrapper.get("[data-testid='sample-ledger-empty-row']");
+    expect(empty.attributes("colspan")).toBe("2");
+    expect(empty.text()).toContain("暂无记录");
+    expect(wrapper.findAll("tbody tr")).toHaveLength(1);
+    expect(wrapper.find("input, textarea, button[type='submit']").exists()).toBe(false);
+  });
+
+  it("follows ?definition= and rewrites it when the product changes", async () => {
+    const wrapper = await mountAt("/p4/product-samples/ledger?definition=d2");
+    expect(mocks.productLedgerSample).toHaveBeenLastCalledWith("d2");
+    await wrapper.get("[data-testid='sample-product-select']").setValue("d1");
+    await flushPromises();
+    expect(mocks.productLedgerSample).toHaveBeenLastCalledWith("d1");
+    expect(wrapper.router.currentRoute.value.query.definition).toBe("d1");
+    expect(wrapper.get("[data-testid='sample-back-wizard']").attributes("href")).toBe("/p4/product-config-wizard?definition=d1");
+  });
+
+  it("says so when the form version has no columns", async () => {
+    mocks.productLedgerSample.mockResolvedValue({ ...LEDGER, columns: [], form_template_name: undefined, note: "读不到产品绑定的表单版本，暂无样例列。" });
+    const wrapper = await mountAt("/p4/product-samples/ledger");
+    expect(wrapper.get("[data-testid='sample-ledger-no-columns']").text()).toContain("读不到产品绑定的表单版本");
+    expect(wrapper.find("[data-testid='sample-ledger-table']").exists()).toBe(false);
+  });
+
+  it("shows an empty state without products and an error with retry when the sample fails", async () => {
+    mocks.productDefinitions.mockResolvedValueOnce([]);
+    const empty = await mountAt("/p4/product-samples/ledger");
+    expect(empty.get("[data-testid='sample-no-product'] a").attributes("href")).toBe("/p4/product-definitions");
+    expect(mocks.productLedgerSample).not.toHaveBeenCalled();
+
+    mocks.productLedgerSample.mockRejectedValueOnce(Object.assign(new Error("sample down"), { traceId: "tr-pc8" }));
+    const failing = await mountAt("/p4/product-samples/ledger");
+    expect(failing.get("[data-testid='sample-read-error']").text()).toContain("sample down");
+    await failing.get("[data-testid='sample-read-error'] button").trigger("click");
+    await flushPromises();
+    expect(failing.find("[data-testid='sample-ledger-table']").exists()).toBe(true);
+  });
+});
