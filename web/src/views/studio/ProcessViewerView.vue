@@ -202,21 +202,33 @@
           role="group"
           aria-label="流程图"
         >
-          <line
+          <!-- Z7: flows are selectable (wide invisible hit line); a condition shows as a label at the midpoint. -->
+          <g
             v-for="flow in graph.flows"
             :key="flow.id || `${flow.source_ref}-${flow.target_ref}`"
-            :x1="flow.x1"
-            :y1="flow.y1"
-            :x2="flow.x2"
-            :y2="flow.y2"
-          />
+            class="flow"
+            :class="{ current: flow.id && flow.id === selectedFlowId, conditional: Boolean(flow.condition) }"
+            data-testid="process-flow"
+            :data-flow-id="flow.id"
+            @click="selectFlow(flow.id)"
+          >
+            <line class="hit" :x1="flow.x1" :y1="flow.y1" :x2="flow.x2" :y2="flow.y2" />
+            <line class="edge" :x1="flow.x1" :y1="flow.y1" :x2="flow.x2" :y2="flow.y2" />
+            <text
+              v-if="flow.condition && flow.x1 != null"
+              class="flow-condition"
+              :x="(flow.x1 + flow.x2) / 2"
+              :y="(flow.y1 + flow.y2) / 2 - 6"
+              text-anchor="middle"
+            >{{ shortCondition(flow.condition) }}</text>
+          </g>
           <g
             v-for="node in graph.nodes"
             :key="node.id"
             class="node"
             :class="{ current: node.id === selectedId }"
             data-testid="process-node"
-            @click="selectedId = node.id"
+            @click="selectNode(node.id)"
           >
             <rect :x="node.x" :y="node.y" :width="graph.nodeWidth" :height="graph.nodeHeight" rx="8" />
             <text :x="node.x + 12" :y="node.y + 24">{{ showText(node.name) }}</text>
@@ -225,7 +237,7 @@
         </svg>
       </section>
       <aside class="nx-card props" data-testid="process-properties">
-        <h2>节点属性</h2>
+        <h2>{{ selectedFlow ? "连线属性" : "节点属性" }}</h2>
         <label v-if="isEditing" class="draft-name">草稿名称<input v-model="definition.name" data-testid="draft-name" aria-label="草稿名称" /></label>
         <dl v-if="selected">
           <dt>标识</dt>
@@ -261,7 +273,22 @@
           <small class="nx-muted">保留第一条分支，其他分支上独有的审批节点一并删除。</small>
         </div>
         <p v-if="branchError" class="step-error" role="alert" data-testid="branch-error">{{ branchError }}</p>
-        <p v-if="!selected" class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
+        <section v-if="selectedFlow" class="flow-props" data-testid="flow-properties">
+          <dl>
+            <dt>从</dt><dd>{{ nodeName(selectedFlow.source_ref) }}</dd>
+            <dt>到</dt><dd>{{ nodeName(selectedFlow.target_ref) }}</dd>
+            <dt>条件</dt>
+            <dd v-if="isEditing && conditionEditable(selectedFlow)">
+              <input v-model="selectedFlow.condition" class="nx-code" data-testid="flow-condition" aria-label="分支条件" placeholder="例如 ${amount > 1000}" />
+              <small class="preset-hint">留空表示无条件；条件为真的分支会被选中。</small>
+            </dd>
+            <dd v-else data-testid="flow-condition-text">
+              <code v-if="selectedFlow.condition">{{ selectedFlow.condition }}</code><span v-else>无条件</span>
+              <small v-if="isEditing" class="preset-hint">只有从条件分支出发的连线可以设置条件。</small>
+            </dd>
+          </dl>
+        </section>
+        <p v-if="!selected && !selectedFlow" class="nx-muted" data-testid="process-properties-empty">点选画布中的节点，查看或修改它的属性。</p>
         <p v-if="isEditing && selected && nodeErrors(selected.id).length" class="step-error" data-testid="node-error">{{ nodeErrors(selected.id).join("；") }}</p>
         <section v-if="validationResult" class="validation-result" data-testid="process-validation" :data-valid="validationResult.valid">
           <strong>{{ validationResult.valid ? "校验通过" : "校验未通过" }}</strong>
@@ -289,8 +316,10 @@
         <h3>相关连线</h3>
         <ul v-if="selectedFlows.length">
           <li v-for="flow in selectedFlows" :key="flow.id || `${flow.source_ref}-${flow.target_ref}`">
-            {{ showText(flow.source_ref) }} → {{ showText(flow.target_ref) }}
-            <span>条件 {{ showText(flow.condition) }}</span>
+            <button type="button" class="related-flow" data-testid="related-flow" @click="selectFlow(flow.id)">
+              {{ nodeName(flow.source_ref) }} → {{ nodeName(flow.target_ref) }}
+              <span>{{ flow.condition ? `条件 ${flow.condition}` : "无条件" }}</span>
+            </button>
           </li>
         </ul>
         <p v-else class="nx-muted">暂无</p>
@@ -348,6 +377,8 @@ const publishError = ref(null);
 const validationResult = ref(null);
 const validationError = ref(null);
 const selectedId = ref("");
+// Z7: a selected sequence flow (edge) — mutually exclusive with a selected node.
+const selectedFlowId = ref("");
 const error = ref(null);
 const loading = ref(false);
 // No tenant session: process APIs answer 401 P2.IAM.UNAUTHORIZED "missing bearer token" (M2); retrying cannot help.
@@ -359,12 +390,43 @@ const sequence = computed(() => toSequence(definition.value || {}));
 const draggingId = ref("");
 const dropIndex = ref(null);
 const selected = computed(() => definition.value?.nodes?.find((node) => node.id === selectedId.value) || null);
+const selectedFlow = computed(() => (selectedFlowId.value
+  ? definition.value?.flows?.find((flow) => flow.id === selectedFlowId.value) || null
+  : null));
+
+function selectNode(id) {
+  selectedFlowId.value = "";
+  selectedId.value = id;
+}
+
+function selectFlow(id) {
+  if (!id) return;
+  selectedId.value = "";
+  selectedFlowId.value = id;
+}
+
+function nodeName(id) {
+  const node = definition.value?.nodes?.find((item) => item.id === id);
+  return node?.name || id || "暂无";
+}
+
+// Conditions only mean something on flows leaving a gateway; empty input stays "no condition".
+function conditionEditable(flow) {
+  const source = definition.value?.nodes?.find((node) => node.id === flow?.source_ref);
+  return source?.type === "exclusiveGateway";
+}
+
+function shortCondition(value) {
+  const text = String(value || "");
+  return text.length > 18 ? `${text.slice(0, 17)}…` : text;
+}
 const selectedFlows = computed(() => {
   const id = selectedId.value;
   return (definition.value?.flows || []).filter((flow) => flow.source_ref === id || flow.target_ref === id);
 });
 
 async function reload() {
+  selectedFlowId.value = "";
   loading.value = true;
   error.value = null;
   try {
@@ -437,6 +499,7 @@ function openDefinition(key) {
 }
 
 function newDraft() {
+  selectedFlowId.value = "";
   const key = `draft-${Date.now()}`;
   definition.value = createBlankDraft(key);
   isDraft.value = true;
@@ -701,7 +764,18 @@ watch(() => route.params.key, reload, { immediate: true });
 .item-state[data-source="draft"] { color: var(--nx-warning) !important; background: var(--nx-warning-light); }
 .canvas { overflow: auto; }
 svg.graph { display: block; min-width: 100%; }
-line { stroke: var(--nx-border-strong, var(--nx-border)); stroke-width: 1.5; }
+.flow { cursor: pointer; }
+.flow .edge { stroke: var(--nx-border-strong, var(--nx-border)); stroke-width: 1.5; }
+.flow .hit { stroke: transparent; stroke-width: 12; }
+.flow.conditional .edge { stroke-dasharray: 5 3; }
+.flow.current .edge { stroke: var(--nx-product); stroke-width: 2.5; }
+.flow-condition { fill: var(--nx-text-secondary); font-size: 11px; }
+.flow-props dl { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--nx-space-1) var(--nx-space-2); margin: 0; }
+.flow-props dt { color: var(--nx-text-secondary); }
+.flow-props dd { display: grid; gap: 4px; margin: 0; overflow-wrap: anywhere; }
+.flow-props input { box-sizing: border-box; width: 100%; }
+.related-flow { display: grid; width: 100%; padding: 4px 6px; border: 0; border-radius: var(--nx-radius-sm); background: none; color: inherit; text-align: left; cursor: pointer; }
+.related-flow:hover { background: var(--nx-bg-page); }
 .node { cursor: pointer; }
 .node rect { fill: var(--nx-surface); stroke: var(--nx-border); }
 .node.current rect { stroke: var(--nx-product); stroke-width: 2; }
