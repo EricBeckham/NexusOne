@@ -275,6 +275,15 @@ export const p4 = {
   productPrintSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/print`, { platform: true, auth: false }),
   // PC13: current counts for the product (null = could not count); trend_available is always false.
   productReportSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/report`, { platform: true, auth: false }),
+  // CF-R3 contract consumed by CF-R1/R2 shells (not a designer).
+  printMappingContract: () => api("/api/v1/p4/print-mapping/contract", { platform: true, auth: false }),
+  productPrintMapping: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/print-mapping`, { platform: true, auth: false }),
+  putProductPrintMapping: (id, body) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/print-mapping`, {
+    method: "PUT",
+    body,
+    platform: true,
+    auth: false,
+  }),
   // IM4: download product-config format 1.0 JSON bundle for one definition.
   exportProductDefinition: (id) => apiBlob(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/export`, { platform: true, auth: false }),
   // IM5: import package → importJobId (ConflictStrategy skip|new-version|fail; Idempotency-Key).
