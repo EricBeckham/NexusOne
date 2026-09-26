@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
+import { useNxToastState } from "../../feedback/nxMessage";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const mocks = vi.hoisted(() => ({
@@ -110,6 +111,7 @@ describe("provisioned product start form", () => {
       evidence: "file-1",
     });
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p3/todos?box=requests");
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "申请已提交，可在我的申请查看审批进度" });
   });
 
   it("shows the server failure text and places snake_case field errors under their field", async () => {

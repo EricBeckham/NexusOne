@@ -7,6 +7,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
+import { clearToasts, useNxToastState } from "../../feedback/nxMessage";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const { listTodos, getTodo, withdrawTodo, approveTodo, rejectTodo } = vi.hoisted(() => ({
@@ -97,6 +98,7 @@ describe("todo-withdraw control", () => {
     getTodo.mockReset();
     withdrawTodo.mockReset();
     getTodo.mockRejectedValue(new Error("use list row"));
+    clearToasts();
   });
 
   it.each(TYPES)("clicks data-testid=todo-withdraw on pending $type", async (spec) => {
@@ -122,8 +124,9 @@ describe("todo-withdraw control", () => {
 
     expect(withdrawTodo).toHaveBeenCalledTimes(1);
     expect(withdrawTodo).toHaveBeenCalledWith(spec.id, "", spec.instance_id);
-    expect(wrapper.text()).toContain("已 withdraw");
-    expect(wrapper.text()).toContain("approval_status=WITHDRAWN");
+    // S6: the result is a shared toast; its status still comes from the server's approval_status (WITHDRAWN).
+    expect(useNxToastState().items.at(-1)).toMatchObject({ tone: "success", message: "已撤回并办结，审批状态：已撤回" });
+    expect(wrapper.text()).not.toContain("withdraw");
     expect(wrapper.find('[data-testid="todo-withdraw"]').exists()).toBe(false);
   });
 
@@ -153,7 +156,7 @@ describe("todo-withdraw control", () => {
       const button = wrapper.get('[data-testid="todo-withdraw"]');
       await button.trigger("click");
       await flushPromises();
-      expect(wrapper.text()).toContain("已 withdraw");
+      expect(useNxToastState().items.at(-1)?.message).toBe("已撤回并办结，审批状态：已撤回");
     }
 
     expect(withdrawTodo).toHaveBeenCalledTimes(3);

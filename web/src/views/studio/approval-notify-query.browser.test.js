@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
+import { useNxToastState } from "../../feedback/nxMessage";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const mocks = vi.hoisted(() => ({
@@ -122,7 +123,7 @@ describe("T3-G sequential approval", () => {
     await flushPromises();
 
     expect(mocks[`${action}Todo`]).toHaveBeenCalledWith("todo-1", "", "record-1");
-    expect(wrapper.text()).toContain(`已${label}并办结`);
+    expect(useNxToastState().items.at(-1)?.message).toContain(`已${label}并办结`);
     expect(wrapper.get('[data-testid="todo-record-link"]').attributes("href"))
       .toBe("/p3/ledgers/ledger-1/records/record-1");
   });

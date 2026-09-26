@@ -81,6 +81,7 @@ import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 import { catalogSkus } from "./catalogSku";
 import { describeSubscribeError } from "./subscribeError";
+import { nxMessage } from "../../feedback/nxMessage";
 
 const route = useRoute();
 const router = useRouter();
@@ -132,6 +133,8 @@ async function subscribe(skuCode, versionId, skuLabel = "") {
   installing.value = skuCode; failure.value = null;
   try {
     await p4.subscribe(session.tenantId, { sku_code: skuCode, version_id: versionId });
+    // S6: short success toast; failures keep the inline alert with hint, server text and retry.
+    nxMessage.success(`已开通${skuLabel ? `「${skuLabel}」` : ""}，可以在我的已开通发起申请`);
     await router.push("/p4/installations");
   } catch (err) {
     // A subscribe failure must not replace the catalog: keep it visible and offer a real retry.
