@@ -74,6 +74,16 @@ describe("P4 management subpages", () => {
     expect(card.text()).not.toContain("Precheck");
     expect(installations.text()).toContain("当前版本 1.0.0");
     expect(installations.get(".installation-identity h3").text()).toBe("CRM");
+    // Q8: a flat list of product cards (no card-in-card); status beside the name; code and version in the meta line.
+    expect(installations.find(".installations.nx-card").exists()).toBe(false);
+    expect(installations.get(".installation-title [data-testid='installation-status']").text()).toBe("已开通");
+    expect(installations.get(".installation-meta").text()).toContain("crm");
+    expect(installations.get('[data-testid="installations-count"]').text()).toBe("共 1 个已开通产品");
+    const crumb = installations.get('[data-testid="nx-page-crumb"]');
+    expect(crumb.get("a").attributes("href")).toBe("/p4/market");
+    expect(crumb.get('[aria-current="page"]').text()).toBe("我的已开通");
+    expect(installations.findAll(".installation-card")[0].findAll(".primary, .nx-btn--primary")).toHaveLength(1);
+    expect(installations.findAll('[data-testid="nx-page-header"] .primary, [data-testid="nx-page-header"] .nx-btn--primary')).toHaveLength(0);
     expect(installations.text()).not.toContain("未命名应用");
     await installations.get("select").setValue("version-1");
     await installations.get("form").trigger("submit"); await flushPromises();

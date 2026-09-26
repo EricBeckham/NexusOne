@@ -1,6 +1,6 @@
 <template>
   <main class="p4-management">
-    <NxPageHeader eyebrow="P4 · 星市" :title="title" :description="description">
+    <NxPageHeader eyebrow="P4 · 星市" :title="title" :description="description" :crumbs="crumbs">
       <template #actions><router-link class="ghost" to="/p4/market">应用目录</router-link><button class="ghost" type="button" :disabled="loading" @click="load">刷新</button></template>
     </NxPageHeader>
 
@@ -65,18 +65,21 @@
 
     <template v-else>
       <NxNoPermission v-if="!session.contextId" title="需要租户上下文" description="安装记录按当前服务端租户上下文读取。请先登录并切换租户。" />
-      <section v-else class="nx-card">
-        <div class="section-heading count-only" data-testid="installations-count"><span class="nx-muted">{{ installations.length }} 条记录</span></div>
-        <NxEmpty v-if="!installations.length" title="还没有已开通的产品" description="从应用目录订阅开通后，产品会显示在这里，并可直接发起申请。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
+      <section v-else class="installations">
+        <p v-if="installations.length" class="installations-count nx-muted" data-testid="installations-count">共 {{ installations.length }} 个已开通产品</p>
+        <NxEmpty v-if="!installations.length" class="nx-card" title="还没有已开通的产品" description="从应用目录订阅开通后，产品会显示在这里，并可直接发起申请。"><template #action><router-link class="primary" to="/p4/market">前往应用目录</router-link></template></NxEmpty>
         <div v-else class="installation-list"><article v-for="installation in installations" :key="installation.id" class="installation-card">
           <div class="installation-summary">
             <div class="installation-identity">
-              <span class="eyebrow">{{ appById(installation.appId)?.code || "应用" }}</span>
-              <h3>{{ appById(installation.appId)?.name || "未命名应用" }}</h3>
-              <p class="installation-meta">当前版本 <strong>{{ versionLabel(installation.versionId) }}</strong><span aria-hidden="true">·</span>更新于 {{ formatDate(installation.updatedAt) }}</p>
+              <div class="installation-title">
+                <h3>{{ appById(installation.appId)?.name || "未命名应用" }}</h3>
+                <NxStatusTag :status="installation.status" :label="installStatusDisplay(installation.status).label" :tone="installStatusDisplay(installation.status).tone" data-testid="installation-status" />
+              </div>
+              <p class="installation-meta">
+                <code>{{ appById(installation.appId)?.code || "应用" }}</code><span aria-hidden="true">·</span>当前版本 <strong>{{ versionLabel(installation.versionId) }}</strong><span aria-hidden="true">·</span>更新于 {{ formatDate(installation.updatedAt) }}
+              </p>
             </div>
-            <NxStatusTag :status="installation.status" :label="installStatusDisplay(installation.status).label" :tone="installStatusDisplay(installation.status).tone" data-testid="installation-status" />
-            <router-link v-if="installation.status === 'INSTALLED'" class="primary" :to="`/p4/installations/${installation.id}/start`" data-testid="start-application">发起申请</router-link>
+            <router-link v-if="installation.status === 'INSTALLED'" class="nx-btn nx-btn--primary" :to="`/p4/installations/${installation.id}/start`" data-testid="start-application">发起申请</router-link>
           </div>
           <details class="upgrade" data-testid="installation-upgrade">
             <summary>版本升级</summary>
@@ -84,7 +87,7 @@
             <div class="upgrade-facts"><p><span>兼容范围</span><strong>暂无数据</strong></p><p><span>Schema 变更</span><strong>暂无数据</strong></p><p><span>数据迁移</span><strong>暂无数据</strong></p><p><span>回滚能力</span><strong>服务端未提供独立回滚说明</strong></p></div>
             <form class="upgrade-form" @submit.prevent="upgrade(installation)"><label>目标版本<select v-model="targets[installation.id]" required><option value="">请选择已发布版本</option><option v-for="version in publishedVersions(installation.appId)" :key="version.id" :value="version.id">{{ version.version }}</option></select></label><button class="nx-btn nx-btn--default" type="submit" data-testid="upgrade-submit" :disabled="busyId === installation.id || !targets[installation.id]">{{ busyId === installation.id ? "提交中…" : "提交升级" }}</button></form>
           </details>
-          <small class="nx-muted installation-id">安装编号 <code>{{ installation.id }}</code></small>
+          <small class="nx-muted installation-id" data-testid="installation-id">安装编号 <code :title="installation.id">{{ installation.id }}</code></small>
         </article></div>
       </section>
     </template>
@@ -108,6 +111,10 @@ const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "商品与 SK
 const titles = { packages: ["应用包", "浏览应用包、版本与发布状态；未提供的包内容或声明保持明确空态。"], skus: ["商品与 SKU", "Product 对应应用，SKU 单独维护权益与配额定义。"], subscriptions: ["订阅", "查看当前租户的订阅周期、状态与关联安装。"], installations: ["我的已开通", "无支付、即时开通后的产品记录。升级仍提交到已发布版本。"] };
 const title = computed(() => titles[section.value][0]); const description = computed(() => titles[section.value][1]);
 // O11: one Primary per card — 发起申请 is the card's action; upgrade stays secondary inside its fold.
+// Q8 / Q5: 我的已开通 sits on the tenant path 应用目录 → 我的已开通 → 发起申请 (same crumbs as the start page).
+const crumbs = computed(() => (section.value === "installations"
+  ? [{ label: "应用目录", to: "/p4/market" }, { label: "我的已开通" }]
+  : []));
 const upgradeSteps = ["预检", "依赖检查", "结构扩展与迁移", "配置", "切换", "验证"];
 
 // The product's JSON is SNAKE_CASE (app_id, version_id, sku_code, updated_at…); this page reads camelCase.
@@ -159,10 +166,15 @@ onMounted(load);
 
 <style scoped>
 .management-skeleton{display:grid;gap:var(--nx-space-3);max-width:720px}
-.installation-identity{display:grid;gap:2px;min-width:0}.installation-identity h3{margin:0}.installation-meta{margin:0;color:var(--nx-text-secondary);font-size:var(--nx-font-size-sm);display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}.installation-meta strong{color:var(--nx-text-primary)}
-.upgrade{border-top:1px solid var(--nx-divider);padding-top:8px}.upgrade summary{cursor:pointer;color:var(--nx-text-regular);font-size:var(--nx-font-size-sm);font-weight:600;list-style-position:inside}.upgrade[open] summary{margin-bottom:12px}.upgrade summary:hover{color:var(--nx-product)}
+/* Q8: installed products are a flat list of cards (no card-in-card); the status tag sits with the name, the one Primary on the right. */
+.installations{display:grid;gap:var(--nx-space-3)}
+.installations-count{margin:0;font-size:var(--nx-font-size-sm)}
+.installation-title{display:flex;flex-wrap:wrap;align-items:center;gap:var(--nx-space-2)}
+.installation-meta code{font-size:var(--nx-font-size-xs);color:var(--nx-text-secondary)}
+.installation-identity{display:grid;gap:4px;min-width:0}.installation-identity h3{margin:0;font-size:16px;font-weight:600;line-height:24px}.installation-meta{margin:0;color:var(--nx-text-secondary);font-size:var(--nx-font-size-sm);display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}.installation-meta strong{color:var(--nx-text-primary)}
+.upgrade{border-top:1px solid var(--nx-divider);padding-top:var(--nx-space-3)}.upgrade summary{cursor:pointer;color:var(--nx-text-regular);font-size:var(--nx-font-size-sm);font-weight:600;list-style-position:inside}.upgrade[open] summary{margin-bottom:12px}.upgrade summary:hover{color:var(--nx-product)}
 .installation-id{font-size:var(--nx-font-size-xs)}.installation-id code{font-size:var(--nx-font-size-xs)}
 .p4-tabs{display:flex;gap:8px;overflow:auto;margin:0 0 16px;border-bottom:1px solid var(--nx-divider)}.p4-tabs a{padding:10px 14px;color:var(--nx-text-secondary);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}.p4-tabs a.router-link-active{color:var(--nx-product);border-color:var(--nx-product);font-weight:600}
-.split-layout{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(0,1.5fr);gap:16px}.nx-card h2{margin-top:0}.list-item{display:flex;width:100%;justify-content:space-between;gap:12px;align-items:center;text-align:left;background:transparent;color:inherit;border:0;border-top:1px solid var(--nx-divider);padding:14px 4px;cursor:pointer}.list-item span:first-child{display:flex;flex-direction:column;gap:4px}.list-item small,.version-row small{color:var(--nx-text-secondary);overflow-wrap:anywhere}.list-item.selected{color:var(--nx-product)}.detail-card p{line-height:1.6}.facts{display:grid;grid-template-columns:minmax(140px,.7fr) 2fr;gap:10px;margin:20px 0}.facts dt{color:var(--nx-text-secondary)}.facts dd{margin:0;overflow-wrap:anywhere}.version-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-top:1px solid var(--nx-divider);padding:14px 0}.version-row p{margin:5px 0 0;color:var(--nx-text-secondary)}.section-heading,.product-heading,.installation-summary{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.section-heading h2,.product-heading h3,.installation-summary h3{margin:0}.product-block{border-top:1px solid var(--nx-divider);padding:20px 0}.product-heading{margin-bottom:14px}.product-heading p{color:var(--nx-text-secondary)}.eyebrow{font-size:12px;color:var(--nx-product);font-weight:600;letter-spacing:.04em}.entitlements{list-style:none;padding:0;margin:0}.entitlements li{display:flex;flex-direction:column;gap:3px;margin:0 0 5px}.table-scroll{overflow:auto}.installation-list{display:grid;gap:14px}.installation-card{border:1px solid var(--nx-divider);border-radius:var(--nx-radius,12px);padding:18px}.installation-summary code{display:block;margin-top:6px;overflow-wrap:anywhere}.installation-summary .primary{display:inline-flex;align-items:center;align-self:center;min-height:36px;white-space:nowrap}.stepper{display:flex;gap:6px;overflow:auto;margin:18px 0}.stepper span{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:8px;background:var(--nx-bg-sidebar);font-size:12px}.upgrade-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.upgrade-facts p{display:flex;flex-direction:column;gap:5px;margin:0;padding:10px;background:var(--nx-bg-sidebar);border-radius:8px}.upgrade-facts span,.upgrade-facts strong{font-size:13px}.upgrade-facts span{color:var(--nx-text-secondary)}.upgrade-form{display:flex;align-items:flex-end;gap:12px;margin:16px 0}.upgrade-form label{display:flex;flex-direction:column;gap:6px;flex:1}.upgrade-form select{height:var(--nx-control-height,36px);padding:0 10px;border:1px solid var(--nx-border-strong);border-radius:var(--nx-control-radius,6px);background:var(--nx-surface);color:inherit}.notice{padding:12px;border-radius:8px;background:var(--nx-success-light);color:var(--nx-success)}
+.split-layout{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(0,1.5fr);gap:16px}.nx-card h2{margin-top:0}.list-item{display:flex;width:100%;justify-content:space-between;gap:12px;align-items:center;text-align:left;background:transparent;color:inherit;border:0;border-top:1px solid var(--nx-divider);padding:14px 4px;cursor:pointer}.list-item span:first-child{display:flex;flex-direction:column;gap:4px}.list-item small,.version-row small{color:var(--nx-text-secondary);overflow-wrap:anywhere}.list-item.selected{color:var(--nx-product)}.detail-card p{line-height:1.6}.facts{display:grid;grid-template-columns:minmax(140px,.7fr) 2fr;gap:10px;margin:20px 0}.facts dt{color:var(--nx-text-secondary)}.facts dd{margin:0;overflow-wrap:anywhere}.version-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-top:1px solid var(--nx-divider);padding:14px 0}.version-row p{margin:5px 0 0;color:var(--nx-text-secondary)}.section-heading,.product-heading,.installation-summary{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.section-heading h2,.product-heading h3,.installation-summary h3{margin:0}.product-block{border-top:1px solid var(--nx-divider);padding:20px 0}.product-heading{margin-bottom:14px}.product-heading p{color:var(--nx-text-secondary)}.eyebrow{font-size:12px;color:var(--nx-product);font-weight:600;letter-spacing:.04em}.entitlements{list-style:none;padding:0;margin:0}.entitlements li{display:flex;flex-direction:column;gap:3px;margin:0 0 5px}.table-scroll{overflow:auto}.installation-list{display:grid;gap:var(--nx-space-3)}.installation-card{display:grid;gap:var(--nx-space-3);padding:var(--nx-space-4) var(--nx-space-5);background:var(--nx-surface);border:1px solid var(--nx-border);border-radius:var(--nx-radius,12px);box-shadow:var(--nx-shadow-card)}.installation-summary code{display:block;margin-top:6px;overflow-wrap:anywhere}.installation-summary .nx-btn--primary{align-self:center;white-space:nowrap}.stepper{display:flex;gap:6px;overflow:auto;margin:18px 0}.stepper span{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:8px;background:var(--nx-bg-sidebar);font-size:12px}.upgrade-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.upgrade-facts p{display:flex;flex-direction:column;gap:5px;margin:0;padding:10px;background:var(--nx-bg-sidebar);border-radius:8px}.upgrade-facts span,.upgrade-facts strong{font-size:13px}.upgrade-facts span{color:var(--nx-text-secondary)}.upgrade-form{display:flex;align-items:flex-end;gap:12px;margin:16px 0}.upgrade-form label{display:flex;flex-direction:column;gap:6px;flex:1}.upgrade-form select{height:var(--nx-control-height,36px);padding:0 10px;border:1px solid var(--nx-border-strong);border-radius:var(--nx-control-radius,6px);background:var(--nx-surface);color:inherit}.notice{padding:12px;border-radius:8px;background:var(--nx-success-light);color:var(--nx-success)}
 @media(max-width:800px){.split-layout{grid-template-columns:1fr}.upgrade-form{align-items:stretch;flex-direction:column}}
 </style>
