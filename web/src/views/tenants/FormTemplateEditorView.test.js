@@ -485,4 +485,62 @@ describe("form template designer", () => {
     expect(wrapper.find("ol.field-list").exists()).toBe(true);
     expect(cardNames(wrapper)).toEqual(["事由", "天数"]);
   });
+
+  it("round-trips layout via options.layout on save and reload (Z4)", async () => {
+    p1.formTemplate.mockResolvedValue({
+      ...LEAVE,
+      fields: [
+        {
+          key: "reason",
+          label: "事由",
+          type: "TEXT",
+          required: true,
+          options: { layout: { x: 1, y: 2, w: 6, h: 2 } },
+        },
+        {
+          key: "category",
+          label: "类别",
+          type: "SELECT",
+          required: false,
+          options: {
+            layout: { x: 0, y: 4, w: 4, h: 1 },
+            choices: [{ label: "年假", value: "annual" }],
+          },
+        },
+      ],
+    });
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    await wrapper.get("[data-testid='canvas-mode-free']").trigger("click");
+    const freeCards = wrapper.findAll("[data-testid='template-free-board'] [data-testid='template-field']");
+    expect(freeCards[0].attributes("style")).toContain("grid-column: 2 / span 6");
+    expect(freeCards[1].attributes("style")).toContain("grid-column: 1 / span 4");
+
+    p1.updateFormTemplate.mockResolvedValue({ ...LEAVE });
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    expect(p1.updateFormTemplate).toHaveBeenCalledWith("tpl-1", {
+      code: "leave",
+      name: "请假",
+      description: "说明",
+      fields: [
+        {
+          key: "reason",
+          label: "事由",
+          type: "TEXT",
+          required: true,
+          options: { layout: { x: 1, y: 2, w: 6, h: 2 } },
+        },
+        {
+          key: "category",
+          label: "类别",
+          type: "SELECT",
+          required: false,
+          options: {
+            layout: { x: 0, y: 4, w: 4, h: 1 },
+            choices: [{ label: "年假", value: "annual" }],
+          },
+        },
+      ],
+    });
+  });
 });

@@ -297,7 +297,7 @@ import { describeRequestError } from "../../utils/requestError";
 import { nxMessage } from "../../feedback/nxMessage";
 import NxIcon from "../../icons/NxIcon.vue";
 import FieldControl from "./form-template/FieldControl.vue";
-import { normalizeLayout, withNormalizedLayout } from "./fieldLayout";
+import { hasLayout, normalizeLayout, readWireOptions, wireOptions, withNormalizedLayout } from "./fieldLayout";
 import {
   FIELD_GROUPS, FIELD_TYPES, blankField, fieldType, filledOptions, insertAt, moveToGap, nextUid,
   normalizeOptions, paletteField,
@@ -379,7 +379,7 @@ function select(field) {
 }
 
 function addField(field, index = fields.value.length) {
-  const next = withNormalizedLayout(field, index);
+  const next = canvasMode.value === "free" ? withNormalizedLayout(field, index) : field;
   fields.value = insertAt(fields.value, index, next);
   select(next);
 }
@@ -562,14 +562,19 @@ function applyTemplate(row) {
   name.value = row?.name || "";
   description.value = row?.description || "";
   status.value = row?.status || "DRAFT";
-  fields.value = (Array.isArray(row?.fields) ? row.fields : []).map((field) => ({
-    uid: nextUid(),
-    key: field.key || "",
-    label: field.label || "",
-    type: field.type || "TEXT",
-    required: field.required === true,
-    options: normalizeOptions(field.options),
-  }));
+  fields.value = (Array.isArray(row?.fields) ? row.fields : []).map((field) => {
+    const wire = readWireOptions(field.options, field.layout);
+    const next = {
+      uid: nextUid(),
+      key: field.key || "",
+      label: field.label || "",
+      type: field.type || "TEXT",
+      required: field.required === true,
+      options: normalizeOptions(wire.choices),
+    };
+    if (wire.layout) next.layout = wire.layout;
+    return next;
+  });
   if (!fields.value.some((field) => field.uid === selectedUid.value)) selectedUid.value = null;
   draftChecked.value = false;
   savedSnapshot.value = JSON.stringify(payload());
@@ -585,7 +590,11 @@ function payload() {
       label: field.label,
       type: field.type,
       required: field.required === true,
-      options: field.type === "SELECT" ? filledOptions(field) : null,
+      options: wireOptions(
+        field.type,
+        field.type === "SELECT" ? filledOptions(field) : [],
+        hasLayout(field) ? field.layout : null,
+      ),
     })),
   };
 }
