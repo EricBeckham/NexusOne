@@ -4,6 +4,9 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import FormTemplateEditorView from "./FormTemplateEditorView.vue";
 import { p1 } from "../../api/client";
+import { nxMessage } from "../../feedback/nxMessage";
+
+vi.mock("../../feedback/nxMessage", () => ({ nxMessage: { success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("../../api/client", () => ({
   p1: {
@@ -64,6 +67,21 @@ const LEAVE = {
 describe("form template designer", () => {
   beforeEach(() => {
     for (const fn of Object.values(p1)) fn.mockReset();
+    nxMessage.success.mockReset();
+    nxMessage.error.mockReset();
+  });
+
+  it("uses short shared Toast feedback for save and keeps trace details separate", async () => {
+    p1.formTemplate.mockResolvedValue(LEAVE);
+    p1.updateFormTemplate.mockResolvedValue(LEAVE);
+    const wrapper = await mountAt("/p1/form-templates/tpl-1");
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    expect(nxMessage.success).toHaveBeenCalledWith("草稿已保存");
+    p1.updateFormTemplate.mockRejectedValue(new Error("internal stack must not become a toast"));
+    await wrapper.get("[data-testid='template-save']").trigger("click");
+    await flushPromises();
+    expect(nxMessage.error).toHaveBeenCalledWith("草稿未保存，修改已保留", { traceId: "" });
   });
 
   it("shows the palette, an empty drop zone, and keeps validate and publish disabled", async () => {
@@ -293,6 +311,7 @@ describe("form template designer", () => {
     expect(wrapper.get("[data-testid='template-publish-version']").text()).toBe("已发布版本 2");
     expect(wrapper.get("[data-testid='template-next-bind']").attributes("href")).toBe("/p4/product-definitions");
     expect(wrapper.get("[data-testid='template-status']").text()).toContain("已发布");
+    expect(nxMessage.success).toHaveBeenCalledWith("模板已发布");
     expect(wrapper.router.currentRoute.value.fullPath).toBe("/p1/form-templates/tpl-1");
   });
 
@@ -389,6 +408,7 @@ describe("form template designer", () => {
     expect(wrapper.get("[data-testid='tab-template']").classes()).toContain("active");
     expect(wrapper.get("[data-testid='template-code-error']").text()).toBe("请填写模板编码");
     expect(wrapper.get("[data-testid='template-name-error']").text()).toBe("请填写模板名称");
+    expect(nxMessage.error).not.toHaveBeenCalled();
     expect(wrapper.get("[data-testid='template-code']").attributes("aria-invalid")).toBe("true");
     expect(wrapper.get("[data-testid='template-draft-invalid']").text()).toContain("2 处");
 

@@ -248,6 +248,7 @@ import { useRoute, useRouter } from "vue-router";
 import { p1 } from "../../api/client";
 import { NxErrorState, NxPageHeader, NxRequestAlert } from "../../components";
 import { describeRequestError } from "../../utils/requestError";
+import { nxMessage } from "../../feedback/nxMessage";
 import NxIcon from "../../icons/NxIcon.vue";
 import FieldControl from "./form-template/FieldControl.vue";
 import {
@@ -538,6 +539,9 @@ function failAction(action, err) {
     title: spec.title,
     retryLabel: spec.retryLabel,
   };
+  if (action === "save" || action === "publish") {
+    nxMessage.error(spec.title, { traceId: err?.traceId || "" });
+  }
 }
 
 function retryAction() {
@@ -561,6 +565,7 @@ async function publish() {
     publishedVersion.value = result?.version ?? null;
     status.value = "PUBLISHED";
     publishConfirm.value = false;
+    nxMessage.success("模板已发布");
   } catch (err) {
     failAction("publish", err);
     publishConfirm.value = false;
@@ -622,6 +627,7 @@ async function save() {
     if (creating.value && saved?.id) {
       await router.replace(`/p1/form-templates/${saved.id}`);
     }
+    nxMessage.success("草稿已保存");
   } catch (err) {
     failAction("save", err);
   } finally {
