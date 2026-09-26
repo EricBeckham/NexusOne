@@ -75,7 +75,8 @@ describe("G4 export wizard leftover", () => {
     await wrapper.get("[data-testid=g4-export-wizard-complete]").trigger("click");
     await flushPromises();
     expect(completeExportWizard).toHaveBeenCalledWith({ wizard_id: "wiz-1" });
-    expect(wrapper.get("[data-testid=g4-export-wizard-complete-result]").text()).toContain("complete");
+    expect(wrapper.get("[data-testid=g4-export-wizard-complete-result]").text()).toContain("已完成");
+    expect(wrapper.get("[data-testid=g4-export-wizard-complete-result]").text()).toContain("ledger.export.csv");
   });
 
   it("HTTP begin deny surfaces P2.PERM.0003 without complete", async () => {
@@ -114,5 +115,38 @@ describe("G4 export wizard leftover", () => {
     await flushPromises();
     expect(completeExportWizard).toHaveBeenCalledWith({ wizard_id: "wiz-deny" });
     expect(wrapper.get("[data-testid=g4-export-wizard-error]").text()).toContain("P2.PERM.0002");
+  });
+
+  it("walks the step bar and keeps one Primary on the next step (R14)", async () => {
+    beginExportWizard.mockResolvedValue({ wizard_id: "wiz-2", step: "begin", completed: false, decision: { allowed: true } });
+    completeExportWizard.mockResolvedValue({ wizard_id: "wiz-2", step: "complete", completed: true, task_type: "ledger.export.csv" });
+    const wrapper = await mountWizard();
+    await flushPromises();
+    const states = () => wrapper.findAll("[data-testid=export-steps] li").map((li) => li.attributes("data-state"));
+    const primaries = () => wrapper.findAll(".nx-btn--primary").map((node) => node.attributes("data-testid"));
+    expect(wrapper.get("[data-testid=export-decision-status]").text()).toBe("允许导出");
+    expect(wrapper.text()).not.toContain("JSON");
+    expect(wrapper.find("[data-testid=g4-export-wizard-export-cell]").exists()).toBe(false);
+    expect(states()).toEqual(["done", "current", "todo"]);
+    expect(primaries()).toEqual(["g4-export-wizard-begin"]);
+
+    await wrapper.get("[data-testid=g4-export-wizard-begin]").trigger("click");
+    await flushPromises();
+    expect(states()).toEqual(["done", "done", "current"]);
+    expect(primaries()).toEqual(["g4-export-wizard-complete"]);
+    expect(wrapper.get("[data-testid=g4-export-wizard-begin]").text()).toBe("重新开始");
+
+    await wrapper.get("[data-testid=g4-export-wizard-complete]").trigger("click");
+    await flushPromises();
+    expect(states()).toEqual(["done", "done", "done"]);
+    expect(primaries()).toEqual([]);
+  });
+
+  it("marks the check step when export is not allowed", async () => {
+    exportWizardDecision.mockResolvedValue({ export: { allowed: false, reason: "no_grant" }, wizard: true });
+    const wrapper = await mountWizard();
+    await flushPromises();
+    expect(wrapper.get("[data-testid=export-decision-status]").text()).toBe("未获授权（no_grant）");
+    expect(wrapper.findAll("[data-testid=export-steps] li").map((li) => li.attributes("data-state"))).toEqual(["current", "todo", "todo"]);
   });
 });
