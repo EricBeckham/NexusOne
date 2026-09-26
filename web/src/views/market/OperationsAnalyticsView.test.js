@@ -1,7 +1,24 @@
 /** @vitest-environment happy-dom */
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  catalog: vi.fn(),
+  subscriptions: vi.fn(),
+  installations: vi.fn(),
+}));
+vi.mock("../../api/client", () => ({
+  p4: {
+    catalog: mocks.catalog,
+    subscriptions: mocks.subscriptions,
+    installations: mocks.installations,
+  },
+}));
+vi.mock("../../api/session", () => ({
+  session: { contextId: "ctx-1" },
+}));
+
 import OperationsAnalyticsView from "./OperationsAnalyticsView.vue";
 
 async function mountPage() {
@@ -19,17 +36,35 @@ async function mountPage() {
   return wrapper;
 }
 
-describe("operations analytics shell (XB1)", () => {
-  it("renders page header and honest empty shell without fake KPIs", async () => {
+describe("operations analytics counts (XB3)", () => {
+  beforeEach(() => {
+    mocks.catalog.mockReset();
+    mocks.subscriptions.mockReset();
+    mocks.installations.mockReset();
+  });
+
+  it("shows live counts from catalog/subscriptions/installations without a trend chart", async () => {
+    mocks.catalog.mockResolvedValue([
+      { app: { id: "app-1", name: "CRM", code: "crm" }, version: { id: "v-1", version: "1.0.0" }, skus: [{ code: "basic" }] },
+      { app: { id: "app-2", name: "HR", code: "hr" }, version: { id: "v-2", version: "2.0.0" }, skus: [] },
+    ]);
+    mocks.subscriptions.mockResolvedValue([{ id: "sub-1" }, { id: "sub-2" }, { id: "sub-3" }]);
+    mocks.installations.mockResolvedValue([{ id: "inst-1" }]);
     const wrapper = await mountPage();
-    expect(wrapper.get("[data-testid='operations-analytics']").exists()).toBe(true);
-    expect(wrapper.text()).toContain("运营分析");
-    expect(wrapper.text()).toContain("轻量运营分析");
-    expect(wrapper.text()).toContain("非独立 BI");
-    expect(wrapper.get("[data-testid='operations-empty']").text()).toContain("尚未接线");
+    expect(wrapper.get("[data-testid='ops-stat-apps']").text()).toContain("2");
+    expect(wrapper.get("[data-testid='ops-stat-subscriptions']").text()).toContain("3");
+    expect(wrapper.get("[data-testid='ops-stat-installations']").text()).toContain("1");
+    expect(wrapper.get("[data-testid='operations-catalog-table']").text()).toContain("CRM");
+    expect(wrapper.get("[data-testid='operations-trend-note']").text()).toContain("趋势暂无读模型");
     expect(wrapper.find("canvas").exists()).toBe(false);
-    expect(wrapper.find("[data-testid='ops-stat-apps']").exists()).toBe(false);
-    expect(wrapper.find(".nx-kpi, [data-testid='fake-kpi']").exists()).toBe(false);
-    expect(wrapper.get("a[href='/p4/market']").exists()).toBe(true);
+    expect(wrapper.find("[data-testid='operations-empty']").exists()).toBe(false);
+  });
+
+  it("surfaces catalog errors with retry and keeps trend honest", async () => {
+    mocks.catalog.mockRejectedValue(Object.assign(new Error("catalog down"), { traceId: "trace-ops" }));
+    const wrapper = await mountPage();
+    expect(wrapper.get("[data-testid='operations-error']").text()).toContain("catalog down");
+    expect(wrapper.text()).toContain("trace-ops");
+    expect(mocks.subscriptions).not.toHaveBeenCalled();
   });
 });
