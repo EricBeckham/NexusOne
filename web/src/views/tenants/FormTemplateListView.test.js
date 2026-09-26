@@ -16,6 +16,7 @@ async function mountList() {
       { path: "/p1/form-templates", component: FormTemplateListView },
       { path: "/p1/form-templates/new", component: { template: "<div>new</div>" } },
       { path: "/p1/form-templates/:id", component: { template: "<div>editor</div>" } },
+      { path: "/p4/product-config-wizard", component: { template: "<div>wizard</div>" } },
     ],
   });
   await router.push("/p1/form-templates");
@@ -27,11 +28,14 @@ async function mountList() {
 describe("form template list", () => {
   beforeEach(() => p1.formTemplates.mockReset());
 
-  it("shows 暂无 when the platform has no templates", async () => {
+  it("shows empty next steps toward the config wizard (PC5)", async () => {
     p1.formTemplates.mockResolvedValue([]);
     const wrapper = await mountList();
     expect(wrapper.get("[data-testid='nx-empty-title']").text()).toBe("还没有表单模板");
-    expect(wrapper.get("[data-testid='nx-empty-next'] a").attributes("href")).toBe("/p1/form-templates/new");
+    expect(wrapper.get("[data-testid='template-list-empty']").text()).toContain("配置向导");
+    expect(wrapper.get("[data-testid='nx-empty-next'] a.primary").attributes("href")).toBe("/p1/form-templates/new");
+    expect(wrapper.get("[data-testid='template-open-wizard']").attributes("href")).toBe("/p4/product-config-wizard");
+    expect(wrapper.get("[data-testid='nx-page-crumb'] a").attributes("href")).toBe("/p4/product-config-wizard");
     expect(wrapper.find("[data-testid='template-list']").exists()).toBe(false);
   });
 
@@ -50,6 +54,7 @@ describe("form template list", () => {
     const router = createRouter({ history: createMemoryHistory(), routes: [
       { path: "/p1/form-templates", component: FormTemplateListView },
       { path: "/p1/form-templates/new", component: { template: "<div>new</div>" } },
+      { path: "/p4/product-config-wizard", component: { template: "<div>wizard</div>" } },
     ] });
     await router.push("/p1/form-templates");
     const wrapper = mount(FormTemplateListView, { global: { plugins: [router] } });

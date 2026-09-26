@@ -3,10 +3,12 @@
     <NxPageHeader
       eyebrow="星域 / 平台配置"
       title="表单模板"
-      description="维护平台模板草稿，校验并发布可供产品定义选用的版本。这里不是租户台账表单。"
+      description="维护平台模板草稿，校验并发布后可供产品定义与配置向导选用。这里不是租户台账表单。"
+      :crumbs="crumbs"
     >
       <template #actions>
         <button class="ghost" type="button" :disabled="loading" @click="load">刷新</button>
+        <router-link class="ghost" to="/p4/product-config-wizard" data-testid="template-open-wizard">配置向导</router-link>
         <router-link class="primary" to="/p1/form-templates/new">新建模板</router-link>
       </template>
     </NxPageHeader>
@@ -17,8 +19,16 @@
         <h2>模板目录</h2>
         <span>{{ loading ? "正在加载模板…" : `共 ${rows.length} 个模板` }}</span>
       </div>
-      <NxEmpty v-if="!loading && !rows.length" title="还没有表单模板" description="新建模板草稿后，可在编辑器校验并发布。">
-        <template #next><router-link class="primary" to="/p1/form-templates/new">新建模板</router-link></template>
+      <NxEmpty
+        v-if="!loading && !rows.length"
+        data-testid="template-list-empty"
+        title="还没有表单模板"
+        description="新建并发布模板后，可在产品配置向导的「配表单」步骤中继续完成流程与 SKU 绑定。"
+      >
+        <template #next>
+          <router-link class="primary" to="/p1/form-templates/new">新建模板</router-link>
+          <router-link class="ghost" to="/p4/product-config-wizard">打开配置向导</router-link>
+        </template>
       </NxEmpty>
       <div v-else class="table-scroll">
         <table class="nx-table nx-table--compact" data-testid="template-list">
@@ -50,6 +60,10 @@ const rows = ref([]);
 const loading = ref(true);
 const error = ref("");
 const traceId = ref("");
+const crumbs = [
+  { label: "配置向导", to: "/p4/product-config-wizard" },
+  { label: "表单模板" },
+];
 
 function statusLabel(status) {
   return ({ DRAFT: "草稿", VALIDATED: "已校验", PUBLISHED: "已发布", ARCHIVED: "已归档" })[status] || status || "暂无";

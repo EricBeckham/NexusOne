@@ -23,21 +23,27 @@
         <template #actions>
           <router-link to="/p4/market">查看全部</router-link>
         </template>
-        <NxSkeleton v-if="loading" variant="list-row" label="正在加载目录" />
-        <NxEmpty v-else-if="!catalog.length && !error" title="暂无已发布应用" description="应用通过审核并发布后，会出现在这里，并可在应用目录订阅开通。" compact />
-        <table v-else-if="catalog.length" class="nx-table">
-          <thead>
+        <NxDataTable
+          :loading="loading"
+          :empty="!catalog.length"
+          empty-title="暂无已发布应用"
+          empty-description="应用通过审核并发布后，会出现在这里，并可在应用目录订阅开通。"
+          empty-compact
+          :skeleton-count="1"
+          loading-label="正在加载目录"
+          aria-label="published-versions"
+          testid="market-home-versions-table"
+        >
+          <template #header>
             <tr><th>应用</th><th>编码</th><th>版本</th><th>状态</th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in catalog.slice(0, 8)" :key="item.version.id">
+          </template>
+          <tr v-for="item in catalog.slice(0, 8)" :key="item.version.id">
               <td class="app-name">{{ item.app.name || "暂无" }}</td>
               <td class="nx-code code">{{ item.app.code || "暂无" }}</td>
               <td>{{ item.version.version || "暂无" }}</td>
               <td><NxStatusTag status="PUBLISHED" label="已发布" /></td>
             </tr>
-          </tbody>
-        </table>
+        </NxDataTable>
       </NxPanelCard>
 
       <NxPanelCard title="已开通可用路径" data-testid="market-home-start">
@@ -53,7 +59,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { NxEmpty, NxErrorState, NxPageHeader, NxPanelCard, NxSkeleton, NxStatCard, NxStatusTag } from "../../components";
+import { NxDataTable, NxErrorState, NxPageHeader, NxPanelCard, NxStatCard, NxStatusTag } from "../../components";
 import { p4 } from "../../api/client";
 
 const catalog = ref([]);

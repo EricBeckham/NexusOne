@@ -80,6 +80,65 @@
           </template>
         </NxEmpty>
 
+        <template v-else-if="activeStep.id === 'bind'">
+          <p class="hint-ok" data-testid="wizard-hint-ok">{{ activeHintOk }}</p>
+          <div class="bind-shell" data-testid="wizard-bind-panel">
+            <div class="table-scroll">
+              <table class="nx-table nx-table--compact" data-testid="wizard-definition-list">
+                <thead>
+                  <tr><th>产品</th><th>状态</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in definitions" :key="row.id">
+                    <td>
+                      <strong>{{ row.name || "暂无" }}</strong>
+                      <div class="nx-muted">{{ row.code || "暂无" }}</div>
+                    </td>
+                    <td>{{ row.status || "暂无" }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        class="ghost small"
+                        :data-testid="`wizard-bind-open-${row.code || row.id}`"
+                        @click="openBind(row.id)"
+                      >
+                        绑定 SKU
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p v-if="bindNotice" class="bind-notice" role="status" data-testid="wizard-bind-notice">{{ bindNotice }}</p>
+
+            <form
+              v-if="bindingDefinition"
+              class="bind-form"
+              data-testid="wizard-bind-form"
+              @submit.prevent="submitBind"
+            >
+              <h3>为「{{ bindingDefinition.name || bindingDefinition.code }}」绑定 SKU</h3>
+              <label class="nx-field">
+                <span>SKU<em class="nx-req" aria-hidden="true">*</em></span>
+                <select v-model="bindSkuCode" data-testid="wizard-bind-sku" required>
+                  <option value="">请选择</option>
+                  <option v-for="sku in skus" :key="sku.code" :value="sku.code">
+                    {{ sku.name || sku.code }}（{{ sku.code }}）
+                  </option>
+                </select>
+                <small v-if="bindError" class="nx-field-error" role="alert" data-testid="wizard-bind-error">{{ bindError }}</small>
+              </label>
+              <div class="panel-actions">
+                <button class="primary" type="submit" data-testid="wizard-bind-submit" :disabled="binding || !bindSkuCode">
+                  {{ binding ? "绑定中…" : "确认绑定" }}
+                </button>
+                <button class="ghost" type="button" @click="closeBind">取消</button>
+              </div>
+            </form>
+          </div>
+        </template>
+
         <p v-else class="hint-ok" data-testid="wizard-hint-ok">{{ activeHintOk }}</p>
 
         <div class="panel-actions">
@@ -143,7 +202,6 @@ const KNOWN_STATUS = new Set(["DONE", "NOT_READY", "UNKNOWN"]);
 
 const route = useRoute();
 const router = useRouter();
-const definitions = ref([]);
 const selectedDefinitionId = ref("");
 const readiness = ref(null);
 const readinessError = ref(false);
@@ -164,6 +222,15 @@ const publishedProcessCount = ref(0);
 const definitionCount = ref(0);
 const skuCount = ref(0);
 const processHint = ref("");
+const definitions = ref([]);
+const skus = ref([]);
+const bindingFor = ref("");
+const bindSkuCode = ref("");
+const bindError = ref("");
+const bindNotice = ref("");
+const binding = ref(false);
+
+const bindingDefinition = computed(() => definitions.value.find((row) => row.id === bindingFor.value) || null);
 
 const activeEmpty = computed(() => {
   const id = activeStep.value.id;
@@ -239,24 +306,67 @@ function onProductChange() {
   loadReadiness();
 }
 
+function normalizeDefinition(row) {
+  return {
+    id: row?.id,
+    code: row?.code || "",
+    name: row?.name || "",
+    status: row?.status || "",
+  };
+}
+
+function openBind(id) {
+  bindingFor.value = id;
+  bindSkuCode.value = "";
+  bindError.value = "";
+  bindNotice.value = "";
+}
+
+function closeBind() {
+  bindingFor.value = "";
+  bindSkuCode.value = "";
+  bindError.value = "";
+}
+
+async function submitBind() {
+  if (!bindingDefinition.value || !bindSkuCode.value || binding.value) return;
+  binding.value = true;
+  bindError.value = "";
+  bindNotice.value = "";
+  const target = bindingDefinition.value;
+  const code = bindSkuCode.value;
+  try {
+    await p4.bindProductDefinitionSku(target.id, code);
+    closeBind();
+    bindNotice.value = `已把 SKU ${code} 绑定到「${target.name || target.code}」。可在产品定义页查看详情。`;
+    await load();
+  } catch (err) {
+    bindError.value = err?.message || "绑定失败";
+  } finally {
+    binding.value = false;
+  }
+}
+
 async function load() {
   loading.value = true;
   error.value = "";
   traceId.value = "";
   processHint.value = "";
   try {
-    const [templates, definitionList, skus] = await Promise.all([
+    const [templates, definitionRows, skuRows] = await Promise.all([
       p1.formTemplates(),
       p4.productDefinitions(),
       p4.skus(),
     ]);
     const templateRows = Array.isArray(templates) ? templates : [];
     publishedTemplateCount.value = templateRows.filter((row) => String(row?.status || "").toUpperCase() === "PUBLISHED").length;
-    definitionCount.value = Array.isArray(definitionList) ? definitionList.length : 0;
-    definitions.value = Array.isArray(definitionList) ? definitionList.filter((row) => row?.id) : [];
+    definitions.value = (Array.isArray(definitionRows) ? definitionRows : []).map(normalizeDefinition).filter((row) => row.id);
+    definitionCount.value = definitions.value.length;
     const wanted = String(route.query.definition || "");
     selectedDefinitionId.value = definitions.value.some((row) => row.id === wanted) ? wanted : definitions.value[0]?.id || "";
-    skuCount.value = Array.isArray(skus) ? skus.length : 0;
+    skus.value = (Array.isArray(skuRows) ? skuRows : []).filter((sku) => sku?.code);
+    skuCount.value = skus.value.length;
+
   } catch (err) {
     error.value = err?.message || "配置摘要暂时不可用";
     traceId.value = err?.traceId || "";
@@ -388,6 +498,11 @@ onMounted(load);
   flex-wrap: wrap;
   gap: var(--nx-space-2);
 }
+.bind-shell { display: grid; gap: var(--nx-space-3); }
+.bind-form { display: grid; gap: var(--nx-space-3); padding-top: var(--nx-space-3); border-top: 1px solid var(--nx-divider); }
+.bind-form h3 { margin: 0; font-size: var(--nx-font-size-md); }
+.bind-notice { margin: 0; padding: var(--nx-space-2); border-radius: var(--nx-radius-sm); background: var(--nx-success-light); color: var(--nx-success); font-size: var(--nx-font-size-sm); }
+.table-scroll { overflow: auto; }
 @media (max-width: 900px) {
   .wizard-steps {
     grid-template-columns: 1fr 1fr;

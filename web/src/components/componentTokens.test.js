@@ -9,6 +9,7 @@ const components = [
   "NxHealthList.vue",
   "NxActivityTimeline.vue",
   "NxTodoList.vue",
+  "NxDataTable.vue",
   "NxEmpty.vue",
   "NxErrorState.vue",
   "NxNoPermission.vue",
