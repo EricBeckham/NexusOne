@@ -76,26 +76,68 @@
     <section
       class="nx-card canvas"
       data-testid="template-fields"
-      :class="{ receiving: drag }"
-      aria-label="表单字段列表"
+      :class="{ receiving: drag, free: canvasMode === 'free' }"
+      :aria-label="canvasMode === 'free' ? '表单自由画布' : '表单字段列表'"
       @dragover.prevent="onCanvasDragOver"
       @dragleave="onCanvasDragLeave"
       @drop.prevent="onDrop"
     >
       <header class="canvas-head">
         <div>
-          <h2>字段顺序</h2>
-          <p class="hint">字段自上而下依次展示给申请人</p>
+          <h2>{{ canvasMode === "free" ? "自由画布" : "字段顺序" }}</h2>
+          <p class="hint">{{ canvasMode === "free" ? "拖到网格放置字段（薄 MVP）；可切回列表排序" : "字段自上而下依次展示给申请人" }}</p>
         </div>
-        <button class="ghost small" type="button" data-testid="add-field" @click="addBlankField">
-          <NxIcon name="plus" :size="16" />添加字段
-        </button>
+        <div class="canvas-head-actions">
+          <div class="mode-toggle" role="group" aria-label="画布模式">
+            <button type="button" class="ghost small" :class="{ active: canvasMode === 'list' }" data-testid="canvas-mode-list" @click="canvasMode = 'list'">列表</button>
+            <button type="button" class="ghost small" :class="{ active: canvasMode === 'free' }" data-testid="canvas-mode-free" @click="enterFreeMode">自由</button>
+          </div>
+          <button class="ghost small" type="button" data-testid="add-field" @click="addBlankField">
+            <NxIcon name="plus" :size="16" />添加字段
+          </button>
+        </div>
       </header>
 
       <div v-if="!fields.length" class="dropzone" :class="{ active: drag }" data-testid="template-fields-empty">
         <span class="dropzone-icon"><NxIcon name="layers" :size="24" /></span>
         <strong>暂无字段</strong>
-        <span>从左侧选择字段类型，按顺序组成表单</span>
+        <span>{{ canvasMode === "free" ? "从左侧拖入字段到画布网格" : "从左侧选择字段类型，按顺序组成表单" }}</span>
+      </div>
+
+      <div
+        v-else-if="canvasMode === 'free'"
+        class="free-board"
+        data-testid="template-free-board"
+        @dragover.prevent="onFreeDragOver"
+        @drop.prevent="onFreeDrop"
+        @click.self="selectedUid = null"
+      >
+        <article
+          v-for="field in fields"
+          :key="field.uid"
+          class="free-card"
+          :class="{ selected: field.uid === selectedUid, dragging: drag?.uid === field.uid, invalid: fieldErrors(field).length }"
+          :style="freeCardStyle(field)"
+          draggable="true"
+          tabindex="0"
+          role="button"
+          :aria-pressed="field.uid === selectedUid"
+          :aria-label="`字段 ${field.label || '未命名字段'}`"
+          data-testid="template-field"
+          @click="select(field)"
+          @keydown.enter.self.prevent="select(field)"
+          @keydown.space.self.prevent="select(field)"
+          @dragstart="onCardDragStart($event, field)"
+          @dragend="endDrag"
+        >
+          <div class="card-body">
+            <div class="card-head">
+              <span class="field-name">{{ field.label || "未命名字段" }}<em v-if="field.required" class="nx-req" aria-label="必填">*</em></span>
+              <span class="type-chip"><NxIcon :name="fieldType(field.type).icon" :size="14" />{{ fieldType(field.type).label }}</span>
+            </div>
+            <div class="control" aria-hidden="true"><FieldControl :field="field" /></div>
+          </div>
+        </article>
       </div>
 
       <ol v-else class="field-list" @click.self="selectedUid = null">
@@ -255,6 +297,7 @@ import { describeRequestError } from "../../utils/requestError";
 import { nxMessage } from "../../feedback/nxMessage";
 import NxIcon from "../../icons/NxIcon.vue";
 import FieldControl from "./form-template/FieldControl.vue";
+import { normalizeLayout, withNormalizedLayout } from "./fieldLayout";
 import {
   FIELD_GROUPS, FIELD_TYPES, blankField, fieldType, filledOptions, insertAt, moveToGap, nextUid,
   normalizeOptions, paletteField,
@@ -294,6 +337,8 @@ const device = ref("desktop");
 const drag = ref(null);
 const dropIndex = ref(null);
 const savedSnapshot = ref("");
+/** Z3: list = G3 DnD order; free = thin absolute/grid placement MVP. */
+const canvasMode = ref("list");
 
 const selected = computed(() => fields.value.find((field) => field.uid === selectedUid.value) || null);
 const dirty = computed(() => JSON.stringify(payload()) !== savedSnapshot.value);
@@ -334,8 +379,63 @@ function select(field) {
 }
 
 function addField(field, index = fields.value.length) {
-  fields.value = insertAt(fields.value, index, field);
-  select(field);
+  const next = withNormalizedLayout(field, index);
+  fields.value = insertAt(fields.value, index, next);
+  select(next);
+}
+
+function enterFreeMode() {
+  fields.value = fields.value.map((field, index) => withNormalizedLayout(field, index));
+  canvasMode.value = "free";
+}
+
+function freeCardStyle(field) {
+  const layout = normalizeLayout(field.layout);
+  return {
+    gridColumn: `${layout.x + 1} / span ${layout.w}`,
+    gridRow: `${layout.y + 1} / span ${layout.h}`,
+  };
+}
+
+function freeCellFromEvent(event) {
+  const board = event.currentTarget?.getBoundingClientRect?.();
+  if (!board || !board.width) return { x: 0, y: 0 };
+  const colW = board.width / 12;
+  const rowH = 56;
+  const x = Math.max(0, Math.min(11, Math.floor((event.clientX - board.left) / colW)));
+  const y = Math.max(0, Math.floor((event.clientY - board.top) / rowH));
+  return { x, y };
+}
+
+function onFreeDragOver(event) {
+  if (!drag.value) return;
+  if (event.dataTransfer) event.dataTransfer.dropEffect = drag.value.kind === "new" ? "copy" : "move";
+}
+
+function placeAt(field, cell) {
+  field.layout = normalizeLayout({
+    ...field.layout,
+    x: cell.x,
+    y: cell.y,
+    w: field.layout?.w || 4,
+    h: field.layout?.h || 1,
+  });
+}
+
+function onFreeDrop(event) {
+  const current = drag.value;
+  if (!current) return;
+  const cell = freeCellFromEvent(event);
+  if (current.kind === "new") {
+    const created = withNormalizedLayout(paletteField(current.type, fields.value), fields.value.length);
+    placeAt(created, cell);
+    fields.value = [...fields.value, created];
+    select(created);
+  } else {
+    const target = fields.value.find((field) => field.uid === current.uid);
+    if (target) placeAt(target, cell);
+  }
+  endDrag();
 }
 
 function appendType(type) {
@@ -395,7 +495,11 @@ function onCanvasDragLeave(event) {
   if (!event.currentTarget.contains(event.relatedTarget)) dropIndex.value = null;
 }
 
-function onDrop() {
+function onDrop(event) {
+  if (canvasMode.value === "free") {
+    onFreeDrop(event);
+    return;
+  }
   const current = drag.value;
   const at = dropIndex.value ?? fields.value.length;
   endDrag();
@@ -742,6 +846,39 @@ onMounted(load);
 .canvas { min-height: 480px; padding: 16px; background: var(--nx-bg-page); transition: box-shadow 0.15s; }
 .canvas.receiving { box-shadow: 0 0 0 2px var(--nx-primary-light), var(--nx-shadow-card); }
 .canvas-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.canvas-head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mode-toggle { display: inline-flex; gap: 4px; }
+.mode-toggle .ghost.active {
+  color: var(--nx-primary);
+  border-color: var(--nx-primary);
+  background: var(--nx-primary-light);
+}
+.free-board {
+  position: relative;
+  min-height: 360px;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: 56px;
+  gap: 8px;
+  padding: 8px;
+  border: 1px dashed var(--nx-border-strong);
+  border-radius: var(--nx-radius-sm);
+  background:
+    linear-gradient(to right, color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px) 0 0 / calc(100% / 12) 100%,
+    var(--nx-surface);
+}
+.free-card {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface);
+  box-shadow: var(--nx-shadow-card);
+  cursor: grab;
+}
+.free-card.selected { border-color: var(--nx-primary); box-shadow: 0 0 0 2px var(--nx-primary-light); }
+.free-card.dragging { opacity: 0.45; }
+.free-card.invalid { border-color: var(--nx-danger); }
 .small { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; font-size: var(--nx-font-size-sm); }
 
 .dropzone {
