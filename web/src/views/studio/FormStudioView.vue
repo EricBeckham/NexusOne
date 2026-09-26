@@ -9,7 +9,6 @@
         </div>
       </template>
     </NxPageHeader>
-    <NxSourceBanner body="Live M0-07 validate / publish。填报默认 submit-start，并带 Idempotency-Key（G3 重复提交不写第二行）。G5 回滚由服务端事务覆盖。" />
     <p v-if="error" class="nx-error">{{ error }}</p>
     <p v-if="notice" class="nx-muted">{{ notice }}</p>
     <div class="nx-tabs">
@@ -64,7 +63,7 @@
           data-testid="approval-open-record"
         >查看业务记录</router-link>
       </div>
-      <pre v-if="pathResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(pathResult, null, 2) }}</pre>
+      <pre v-if="devNotes && pathResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(pathResult, null, 2) }}</pre>
     </form>
 
     <div v-else-if="tab === 'designer'" class="nx-designer">
@@ -113,7 +112,7 @@
           </ul>
           <p v-if="validation.ok" class="nx-muted">无错误。Publish 会切换 running 指针（G5 由服务端保证失败回滚）。</p>
         </template>
-        <p v-if="publishResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(publishResult, null, 2) }}</p>
+        <p v-if="devNotes && publishResult" class="nx-code" style="margin-top:12px;">{{ JSON.stringify(publishResult, null, 2) }}</p>
       </div>
     </div>
   </main>
@@ -126,12 +125,13 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
-import NxSourceBanner from "../../components/NxSourceBanner.vue";
+import { devNotesEnabled } from "../../utils/devNotes";
 import { p3 } from "../../api/p3";
 import { p2 } from "../../api/client";
 import { session } from "../../api/session";
 
 const route = useRoute();
+const devNotes = devNotesEnabled();
 const form = ref(null);
 const tab = ref(route.query.tab === "publish" ? "publish" : "fill");
 const error = ref("");

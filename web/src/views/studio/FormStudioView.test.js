@@ -27,5 +27,7 @@ describe("form studio visual states", () => {
     expect(wrapper.get(".steps").text()).toContain("草稿");
     expect(wrapper.get(".steps").text()).toContain("运行");
     expect(wrapper.get("[data-testid='nx-empty-title']").text()).toBe("尚未校验");
+    expect(wrapper.text()).not.toContain("Live M0-07");
+    expect(wrapper.find("[data-testid='nx-source-banner']").exists()).toBe(false);
   });
 });
