@@ -80,6 +80,10 @@ export function formatCondition({ variable, operator, value, valueType = "string
   if (!IDENTIFIER.test(name) || !CONDITION_OPERATORS.some((op) => op.value === operator) || !hasValue) {
     throw new Error("条件还不完整");
   }
+  const literal = String(value).trim();
+  if ((valueType === "number" && !NUMBER.test(literal)) || (valueType === "boolean" && !["true", "false"].includes(literal))) {
+    throw new Error("条件的值和类型不匹配");
+  }
   return `\${${name} ${operator} ${literalOf(value, valueType)}}`;
 }
 
@@ -93,4 +97,45 @@ export function describeCondition(text) {
   const value = entry?.options?.find((option) => option.value === parsed.value)?.label
     ?? (parsed.valueType === "string" ? `「${parsed.value}」` : parsed.value);
   return `${entry?.label || parsed.variable} ${operator} ${value}`;
+}
+
+/**
+ * ZA8: per-field problems of a builder draft. An all-empty draft is "no condition" and has none.
+ * @returns {{variable?: string, operator?: string, value?: string}}
+ */
+export function checkConditionDraft({ variable, operator, value } = {}) {
+  const name = String(variable ?? "").trim();
+  const text = String(value ?? "").trim();
+  const problems = {};
+  if (!name && !text) return problems;
+  if (!name) problems.variable = "请选择变量";
+  else if (!IDENTIFIER.test(name)) problems.variable = "变量名只能包含字母、数字和下划线，且不能以数字开头";
+  const op = CONDITION_OPERATORS.find((item) => item.value === operator);
+  if (!op) problems.operator = "请选择运算符";
+  if (!text) problems.value = catalogVariable(name)?.options ? "请选择一个值" : "请填写要比较的值";
+  else if (op?.numeric && !NUMBER.test(text)) problems.value = `「${op.label}」需要填写数字`;
+  else {
+    const options = catalogVariable(name)?.options;
+    if (options && !options.some((option) => option.value === text)) problems.value = "请从列表中选择一个值";
+  }
+  return problems;
+}
+
+/** ZA8: a light format check for any stored condition (builder output always passes). "" when fine. */
+export function checkConditionText(text) {
+  const source = String(text ?? "").trim();
+  if (!source) return "";
+  if (parseCondition(source).kind === "simple") return "";
+  if (!/^\$\{[\s\S]*\}$/.test(source)) return "条件需要写成 ${…} 的形式";
+  if (!source.slice(2, -1).trim()) return "条件内容不能为空；无条件请直接清空";
+  const unescaped = source.replace(/\\./g, "");
+  if ((unescaped.match(/'/g) || []).length % 2 || (unescaped.match(/"/g) || []).length % 2) return "引号没有成对";
+  let depth = 0;
+  for (const char of unescaped) {
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (depth < 0) break;
+  }
+  if (depth !== 0) return "括号没有成对";
+  return "";
 }
