@@ -3,7 +3,7 @@
     <NxPageHeader
       eyebrow="P4 · 平台配置"
       title="产品配置向导"
-      description="按顺序完成：配表单 → 配流程 → 绑 SKU → 发布。步骤就绪态未接读口前一律待开始，禁止假勾选。"
+      description="按顺序完成：配表单 → 配流程 → 绑 SKU → 发布。步骤状态按当前产品的真实配置显示，未确认的不打勾。"
       :crumbs="crumbs"
     >
       <template #actions>
@@ -24,6 +24,20 @@
     />
 
     <template v-else>
+      <section v-if="definitions.length" class="wizard-product nx-card" data-testid="wizard-product">
+        <label for="wizard-product-select">当前产品</label>
+        <select id="wizard-product-select" v-model="selectedDefinitionId" data-testid="wizard-product-select" @change="onProductChange">
+          <option v-for="definition in definitions" :key="definition.id" :value="definition.id">
+            {{ definition.name }}（{{ definition.code }}）
+          </option>
+        </select>
+        <span v-if="readinessError" class="readiness-error" data-testid="wizard-readiness-error">
+          步骤状态暂时无法读取，按「待开始」显示。
+          <button class="ghost" type="button" @click="loadReadiness">重试</button>
+        </span>
+        <span v-else-if="readiness?.complete" class="nx-muted" data-testid="wizard-complete">四步都已就绪。</span>
+      </section>
+
       <ol class="wizard-steps" aria-label="产品配置步骤" data-testid="wizard-steps">
         <li
           v-for="(step, index) in steps"
@@ -50,7 +64,8 @@
         <p class="nx-muted">{{ activeStep.blurb }}</p>
         <p class="status-line" data-testid="wizard-step-status">
           当前状态：<strong>{{ stepStatusLabel(activeStep.status) }}</strong>
-          <span class="nx-muted">（就绪态读口未接时不标完成）</span>
+          <span v-if="activeStep.detail" class="nx-muted" data-testid="wizard-step-detail">{{ activeStep.detail }}</span>
+          <span v-else-if="!definitions.length" class="nx-muted">（还没有产品定义，步骤都待开始）</span>
         </p>
 
         <NxEmpty
@@ -80,11 +95,12 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import { p1, p4 } from "../../api/client";
 import { p3 } from "../../api/p3";
 
-/** PC1/PC3: fixed four steps; status stays PENDING until readiness API (PC6/PC7). */
+/** PC1/PC3: fixed four steps. PC7: status comes from the PC6 readiness read for the selected product only. */
 const STEP_DEFS = [
   {
     id: "form",
@@ -121,9 +137,24 @@ const crumbs = [
   { label: "产品配置向导" },
 ];
 
-const steps = STEP_DEFS.map((step) => ({ ...step, status: "PENDING" }));
-const activeStepId = ref(steps[0].id);
-const activeStep = computed(() => steps.find((step) => step.id === activeStepId.value) || steps[0]);
+// PC6 step keys differ from the wizard ids in one place: the backend calls the bind step "sku".
+const READINESS_KEY = { form: "form", process: "process", bind: "sku", publish: "publish" };
+const KNOWN_STATUS = new Set(["DONE", "NOT_READY", "UNKNOWN"]);
+
+const route = useRoute();
+const router = useRouter();
+const definitions = ref([]);
+const selectedDefinitionId = ref("");
+const readiness = ref(null);
+const readinessError = ref(false);
+
+const steps = computed(() => STEP_DEFS.map((step) => {
+  const remote = readiness.value?.steps?.find((item) => item?.key === READINESS_KEY[step.id]);
+  const status = KNOWN_STATUS.has(remote?.status) ? remote.status : "PENDING";
+  return { ...step, status, detail: remote && status !== "PENDING" ? remote.detail || "" : "" };
+}));
+const activeStepId = ref(STEP_DEFS[0].id);
+const activeStep = computed(() => steps.value.find((step) => step.id === activeStepId.value) || steps.value[0]);
 
 const loading = ref(true);
 const error = ref("");
@@ -185,8 +216,27 @@ const activeHintOk = computed(() => {
 
 function stepStatusLabel(status) {
   if (status === "DONE") return "已完成";
-  if (status === "ACTIVE") return "进行中";
+  if (status === "NOT_READY") return "未就绪";
+  if (status === "UNKNOWN") return "无法确认";
   return "待开始";
+}
+
+async function loadReadiness() {
+  readiness.value = null;
+  readinessError.value = false;
+  const id = selectedDefinitionId.value;
+  if (!id) return;
+  try {
+    const result = await p4.productConfigReadiness(id);
+    if (selectedDefinitionId.value === id) readiness.value = result;
+  } catch {
+    if (selectedDefinitionId.value === id) readinessError.value = true;
+  }
+}
+
+function onProductChange() {
+  router.replace({ query: { ...route.query, definition: selectedDefinitionId.value } });
+  loadReadiness();
 }
 
 async function load() {
@@ -195,14 +245,17 @@ async function load() {
   traceId.value = "";
   processHint.value = "";
   try {
-    const [templates, definitions, skus] = await Promise.all([
+    const [templates, definitionList, skus] = await Promise.all([
       p1.formTemplates(),
       p4.productDefinitions(),
       p4.skus(),
     ]);
     const templateRows = Array.isArray(templates) ? templates : [];
     publishedTemplateCount.value = templateRows.filter((row) => String(row?.status || "").toUpperCase() === "PUBLISHED").length;
-    definitionCount.value = Array.isArray(definitions) ? definitions.length : 0;
+    definitionCount.value = Array.isArray(definitionList) ? definitionList.length : 0;
+    definitions.value = Array.isArray(definitionList) ? definitionList.filter((row) => row?.id) : [];
+    const wanted = String(route.query.definition || "");
+    selectedDefinitionId.value = definitions.value.some((row) => row.id === wanted) ? wanted : definitions.value[0]?.id || "";
     skuCount.value = Array.isArray(skus) ? skus.length : 0;
   } catch (err) {
     error.value = err?.message || "配置摘要暂时不可用";
@@ -218,6 +271,7 @@ async function load() {
     publishedProcessCount.value = 0;
     processHint.value = "暂时读不到已发布流程";
   }
+  await loadReadiness();
   loading.value = false;
 }
 
@@ -254,6 +308,32 @@ onMounted(load);
 .wizard-step[data-status="DONE"] .step-index {
   background: var(--nx-success);
   color: #fff;
+}
+.wizard-step[data-status="NOT_READY"] .step-index,
+.wizard-step[data-status="UNKNOWN"] .step-index {
+  background: var(--nx-divider);
+  color: var(--nx-text-secondary);
+}
+.wizard-step[data-status="UNKNOWN"] .step-body small {
+  color: var(--nx-warning, var(--nx-text-secondary));
+}
+.wizard-product {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-2) var(--nx-space-3);
+  padding: var(--nx-space-3) var(--nx-space-4);
+  font-size: var(--nx-font-size-sm);
+}
+.wizard-product label {
+  font-weight: 600;
+}
+.wizard-product select {
+  min-width: 240px;
+  max-width: 100%;
+}
+.readiness-error {
+  color: var(--nx-text-secondary);
 }
 .step-hit {
   display: grid;
@@ -295,6 +375,9 @@ onMounted(load);
 .wizard-panel h2 {
   margin: 0;
   font-size: var(--nx-font-size-lg);
+}
+.status-line .nx-muted {
+  margin-left: var(--nx-space-2);
 }
 .status-line, .hint-ok {
   margin: 0;

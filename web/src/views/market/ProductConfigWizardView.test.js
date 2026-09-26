@@ -8,10 +8,11 @@ const mocks = vi.hoisted(() => ({
   productDefinitions: vi.fn(),
   skus: vi.fn(),
   listProcessDefinitions: vi.fn(),
+  productConfigReadiness: vi.fn(),
 }));
 vi.mock("../../api/client", () => ({
   p1: { formTemplates: mocks.formTemplates },
-  p4: { productDefinitions: mocks.productDefinitions, skus: mocks.skus },
+  p4: { productDefinitions: mocks.productDefinitions, skus: mocks.skus, productConfigReadiness: mocks.productConfigReadiness },
 }));
 vi.mock("../../api/p3", () => ({
   p3: { listProcessDefinitions: mocks.listProcessDefinitions },
@@ -19,7 +20,7 @@ vi.mock("../../api/p3", () => ({
 
 import ProductConfigWizardView from "./ProductConfigWizardView.vue";
 
-async function mountPage() {
+async function mountPage(path = "/p4/product-config-wizard") {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -32,9 +33,10 @@ async function mountPage() {
       { path: "/p3/publish-center", component: { template: "<div />" } },
     ],
   });
-  await router.push("/p4/product-config-wizard");
+  await router.push(path);
   const wrapper = mount(ProductConfigWizardView, { global: { plugins: [router] } });
   await flushPromises();
+  wrapper.router = router;
   return wrapper;
 }
 
@@ -77,5 +79,75 @@ describe("product config wizard empty/error (PC3)", () => {
     await flushPromises();
     expect(wrapper.find("[data-testid='wizard-error']").exists()).toBe(false);
     expect(wrapper.get("[data-testid='wizard-empty-form']").exists()).toBe(true);
+  });
+});
+
+describe("product config wizard real readiness (PC7)", () => {
+  const readiness = (statuses, extra = {}) => ({
+    product_definition_id: "d1",
+    definition_status: "DRAFT",
+    complete: Object.values(statuses).every((status) => status === "DONE"),
+    steps: Object.entries(statuses).map(([key, status]) => ({ key, label: key, status, detail: `${key} detail ${status}` })),
+    ...extra,
+  });
+
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    mocks.formTemplates.mockResolvedValue([{ id: "t1", status: "PUBLISHED" }]);
+    mocks.productDefinitions.mockResolvedValue([
+      { id: "d1", code: "hr", name: "HR 基础版" },
+      { id: "d2", code: "crm", name: "CRM" },
+    ]);
+    mocks.skus.mockResolvedValue([{ code: "HR_BASIC" }]);
+    mocks.listProcessDefinitions.mockResolvedValue([{ key: "leave" }]);
+  });
+
+  const statusOf = (wrapper, id) => wrapper.get(`[data-testid='wizard-step-${id}']`).attributes("data-status");
+
+  it("marks only the steps the backend proves done, mapping sku to the bind step", async () => {
+    mocks.productConfigReadiness.mockResolvedValue(readiness({ form: "DONE", process: "UNKNOWN", sku: "DONE", publish: "NOT_READY" }));
+    const wrapper = await mountPage();
+    expect(mocks.productConfigReadiness).toHaveBeenCalledWith("d1");
+    expect(statusOf(wrapper, "form")).toBe("DONE");
+    expect(statusOf(wrapper, "process")).toBe("UNKNOWN");
+    expect(statusOf(wrapper, "bind")).toBe("DONE");
+    expect(statusOf(wrapper, "publish")).toBe("NOT_READY");
+    expect(wrapper.get("[data-testid='wizard-step-process']").text()).toContain("无法确认");
+    expect(wrapper.get("[data-testid='wizard-step-publish']").text()).toContain("未就绪");
+    expect(wrapper.get("[data-testid='wizard-step-detail']").text()).toBe("form detail DONE");
+    expect(wrapper.find("[data-testid='wizard-complete']").exists()).toBe(false);
+  });
+
+  it("never invents done for unknown words or missing steps", async () => {
+    mocks.productConfigReadiness.mockResolvedValue({ complete: false, steps: [{ key: "form", status: "COMPLETED" }] });
+    const wrapper = await mountPage();
+    for (const id of ["form", "process", "bind", "publish"]) expect(statusOf(wrapper, id)).toBe("PENDING");
+    expect(wrapper.text()).not.toContain("已完成");
+  });
+
+  it("keeps steps pending with a retry when readiness cannot be read", async () => {
+    mocks.productConfigReadiness.mockRejectedValueOnce(new Error("down"));
+    mocks.productConfigReadiness.mockResolvedValueOnce(readiness({ form: "DONE", process: "DONE", sku: "DONE", publish: "DONE" }));
+    const wrapper = await mountPage();
+    expect(wrapper.get("[data-testid='wizard-readiness-error']").text()).toContain("步骤状态暂时无法读取");
+    expect(statusOf(wrapper, "form")).toBe("PENDING");
+    await wrapper.get("[data-testid='wizard-readiness-error'] button").trigger("click");
+    await flushPromises();
+    expect(statusOf(wrapper, "publish")).toBe("DONE");
+    expect(wrapper.get("[data-testid='wizard-complete']").text()).toContain("四步都已就绪");
+  });
+
+  it("follows the ?definition= product and switches readiness with the selector", async () => {
+    mocks.productConfigReadiness.mockImplementation(async (id) => readiness(id === "d2"
+      ? { form: "DONE", process: "NOT_READY", sku: "NOT_READY", publish: "NOT_READY" }
+      : { form: "NOT_READY", process: "NOT_READY", sku: "NOT_READY", publish: "NOT_READY" }));
+    const wrapper = await mountPage("/p4/product-config-wizard?definition=d2");
+    expect(mocks.productConfigReadiness).toHaveBeenLastCalledWith("d2");
+    expect(statusOf(wrapper, "form")).toBe("DONE");
+    await wrapper.get("[data-testid='wizard-product-select']").setValue("d1");
+    await flushPromises();
+    expect(mocks.productConfigReadiness).toHaveBeenLastCalledWith("d1");
+    expect(statusOf(wrapper, "form")).toBe("NOT_READY");
+    expect(wrapper.router.currentRoute.value.query.definition).toBe("d1");
   });
 });

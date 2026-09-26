@@ -204,6 +204,8 @@ export const p4 = {
   transition: (versionId, action) => api(`/api/v1/p4/versions/${versionId}/${action}`, { method: "POST", body: {}, platform: true, auth: false }),
   createSku: (body) => api("/api/v1/p4/skus", { method: "POST", body, platform: true, auth: false }),
   productDefinitions: () => api("/api/v1/p4/product-definitions", { platform: true, auth: false }),
+  // PC6: wizard readiness for one product definition (DONE / NOT_READY / UNKNOWN per step, from stored data).
+  productConfigReadiness: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/config-readiness`, { platform: true, auth: false }),
   createProductDefinition: (body) => api("/api/v1/p4/product-definitions", { method: "POST", body, platform: true, auth: false }),
   updateProductDefinition: (id, body) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   bindProductDefinitionSku: (id, skuCode) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/skus/${encodeURIComponent(skuCode)}`, { method: "PUT", platform: true, auth: false }),
