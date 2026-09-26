@@ -1039,10 +1039,10 @@ watch(() => route.params.key, reload, { immediate: true });
 .node-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }
 .node-actions h3 { width: 100%; }
 .validation-result { display: grid; gap: var(--nx-space-2); padding: var(--nx-space-2); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); }
-.validation-result[data-valid="true"] { border-color: var(--nx-success, #238636); }
+.validation-result[data-valid="true"] { border-color: var(--nx-success); }
 .validation-result ul { margin: 0; padding-left: 1.1em; display: grid; gap: var(--nx-space-1); }
 .validation-result li span, .validation-error, .publish-error { color: var(--nx-text-secondary); }
-.publication-result { display: grid; gap: var(--nx-space-1); padding: var(--nx-space-2); border: 1px solid var(--nx-success, #238636); border-radius: var(--nx-radius-sm); }
+.publication-result { display: grid; gap: var(--nx-space-1); padding: var(--nx-space-2); border: 1px solid var(--nx-success); border-radius: var(--nx-radius-sm); }
 .confirm-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: var(--nx-space-4); background: rgb(0 0 0 / 48%); }
 .confirm-dialog { width: min(100%, 440px); display: grid; gap: var(--nx-space-3); }
 .confirm-dialog h2, .confirm-dialog p { margin: 0; }
@@ -1150,7 +1150,7 @@ text { fill: var(--nx-text-primary); font-size: 13px; }
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--nx-surface);
   background: var(--nx-success);
 }
 .terminal.end .terminal-icon { background: var(--nx-text-secondary); }

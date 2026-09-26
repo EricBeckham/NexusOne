@@ -770,4 +770,15 @@ describe("process viewer", () => {
     ]);
     expect(wrapper.findAll("[data-testid='process-flow'].invalid").map((edge) => edge.attributes("data-flow-id"))).toEqual(["fa", "fb"]);
   });
+
+  it("uses design tokens instead of hard-coded success/white hex (UI3)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "ProcessViewerView.vue"), "utf8");
+    expect(source).not.toMatch(/#238636/i);
+    expect(source).not.toMatch(/color:\s*#fff\b/i);
+    expect(source).toContain("border-color: var(--nx-success)");
+    expect(source).toContain("color: var(--nx-surface)");
+  });
 });
