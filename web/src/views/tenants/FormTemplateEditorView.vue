@@ -34,9 +34,13 @@
     <span v-if="dirty" class="dirty" data-testid="template-dirty">有未保存的修改<template v-if="!creating">；校验与发布针对已保存的草稿</template></span>
     <span v-if="draftErrorCount" class="invalid-count" data-testid="template-draft-invalid">还有 {{ draftErrorCount }} 处必填项未填写，已在对应位置标出</span>
     <span v-if="validation?.valid" class="ok" data-testid="template-validate-ok">校验通过</span>
-    <span v-if="publishedVersion != null" class="ok" data-testid="template-publish-version">已发布版本 {{ publishedVersion }}</span>
-    <router-link v-if="publishedVersion != null" to="/p4/product-definitions" data-testid="template-next-bind">下一步：绑定到产品</router-link>
   </section>
+  <NxResult v-if="publishedVersion != null" compact title="模板已发布" description="可前往产品配置绑定此模板。">
+    <template #next>
+      <span class="meta-text" data-testid="template-publish-version">已发布版本 {{ publishedVersion }}</span>
+      <router-link class="primary" to="/p4/product-definitions" data-testid="template-next-bind">下一步：绑定到产品</router-link>
+    </template>
+  </NxResult>
   <ul v-if="formErrors.length" class="errors" data-testid="template-validate-errors">
     <li v-for="(message, index) in formErrors" :key="index">{{ message }}</li>
   </ul>
@@ -246,7 +250,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p1 } from "../../api/client";
-import { NxErrorState, NxPageHeader, NxRequestAlert } from "../../components";
+import { NxErrorState, NxPageHeader, NxRequestAlert, NxResult } from "../../components";
 import { describeRequestError } from "../../utils/requestError";
 import { nxMessage } from "../../feedback/nxMessage";
 import NxIcon from "../../icons/NxIcon.vue";

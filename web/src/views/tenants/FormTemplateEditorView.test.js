@@ -303,12 +303,15 @@ describe("form template designer", () => {
     expect(failure.get("[data-testid='nx-request-alert-hint']").text()).toContain("先保存并通过校验");
     expect(failure.get("[data-testid='nx-request-alert-server']").text()).toContain("publish requires VALIDATED template status");
     expect(failure.find("[data-testid='nx-request-alert-retry']").exists()).toBe(false);
+    expect(wrapper.find("[data-testid='nx-result']").exists()).toBe(false);
 
     p1.publishFormTemplate.mockResolvedValueOnce({ templateId: "tpl-1", versionId: "ver-1", version: 2 });
     await wrapper.get("[data-testid='template-publish']").trigger("click");
     await wrapper.get("[data-testid='template-publish-submit']").trigger("click");
     await flushPromises();
     expect(wrapper.get("[data-testid='template-publish-version']").text()).toBe("已发布版本 2");
+    expect(wrapper.get("[data-testid='nx-result-title']").text()).toBe("模板已发布");
+    expect(wrapper.get("[data-testid='nx-result-next']").text()).toContain("下一步：绑定到产品");
     expect(wrapper.get("[data-testid='template-next-bind']").attributes("href")).toBe("/p4/product-definitions");
     expect(wrapper.get("[data-testid='template-status']").text()).toContain("已发布");
     expect(nxMessage.success).toHaveBeenCalledWith("模板已发布");
