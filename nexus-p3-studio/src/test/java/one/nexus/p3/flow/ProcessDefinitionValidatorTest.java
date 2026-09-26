@@ -61,6 +61,25 @@ class ProcessDefinitionValidatorTest {
     }
 
     @Test
+    void acceptsParallelForkAndJoin() {
+        var result = validator.validate(xml("<startEvent id='s'/><parallelGateway id='fork'/><parallelGateway id='join'/><endEvent id='e'/>",
+                "<sequenceFlow id='in' sourceRef='s' targetRef='fork'/>"
+                + "<sequenceFlow id='a' sourceRef='fork' targetRef='join'/><sequenceFlow id='b' sourceRef='fork' targetRef='join'/>"
+                + "<sequenceFlow id='out' sourceRef='join' targetRef='e'/>"));
+        assertTrue(result.valid(), result.errors().toString());
+    }
+
+    @Test
+    void rejectsParallelConditionsDefaultAndPassThrough() {
+        var result = validator.validate(xml("<startEvent id='s'/><parallelGateway id='g' default='out'/><endEvent id='e'/>",
+                "<sequenceFlow id='in' sourceRef='s' targetRef='g'/>"
+                + "<sequenceFlow id='out' sourceRef='g' targetRef='e'><conditionExpression>${approved}</conditionExpression></sequenceFlow>"));
+        var codes = result.errors().stream().map(ProcessDefinitionValidationResult.ValidationError::code).collect(Collectors.toSet());
+        assertEquals(Set.of("PARALLEL_DEFAULT_FLOW_UNSUPPORTED", "PARALLEL_BRANCH_REQUIRED", "PARALLEL_FLOW_CONDITION_UNSUPPORTED"), codes);
+        assertTrue(result.errors().stream().anyMatch(e -> "out".equals(e.flowId()) && "g".equals(e.nodeId())));
+    }
+
+    @Test
     void acceptsExclusiveBranchesWithOpaqueConditionsAndUnconditionalDefault() {
         var result = validator.validate(xml("<startEvent id='s'/><exclusiveGateway id='g' default='fallback'/><endEvent id='e'/>",
                 "<sequenceFlow id='in' sourceRef='s' targetRef='g'/>"
