@@ -67,6 +67,7 @@ const routes = [
   { path: "/p4/installations/:id/start", name: "p4-installation-start", component: () => import("./views/market/ProductStartView.vue"), meta: { title: "发起申请", product: "p4" } },
   { path: "/p4/entitlements", name: "p4-entitlements", component: () => import("./views/market/CommercialEntitlementsView.vue"), meta: { title: "商业权益", product: "p4" } },
   { path: "/p4/entitlements/:id", name: "p4-entitlement", component: () => import("./views/market/CommercialEntitlementsView.vue"), meta: { title: "商业权益", product: "p4" } },
+  { path: "/p4/operations", name: "p4-operations", component: () => import("./views/market/OperationsAnalyticsView.vue"), meta: { title: "运营分析", product: "p4" } },
   { path: "/p5/connect", name: "connect", component: () => import("./views/connect/ConnectView.vue"), meta: { title: "星联", product: "p5" } },
   { path: "/p5/apis", name: "p5-apis", component: () => import("./views/connect/ApiCatalogView.vue"), meta: { title: "自用 API 目录", product: "p5" } },
   { path: "/p5/apis/:id", name: "p5-api", component: () => import("./views/connect/ApiCatalogView.vue"), meta: { title: "自用 API 目录", product: "p5" } },
