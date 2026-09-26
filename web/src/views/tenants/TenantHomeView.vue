@@ -27,14 +27,32 @@
         </NxPanelCard>
       </template>
       <template #lists>
-        <NxPanelCard title="待处理">
-          <NxTodoList :items="[]" />
+        <NxPanelCard title="待处理" data-testid="home-todos-panel">
+          <NxEmpty
+            title="暂无待办读模型"
+            description="星域首页还不提供待办列表。需要处理租户时，请到租户目录查看。"
+            compact
+          >
+            <template #next><router-link class="primary" to="/p1/tenants">打开租户目录</router-link></template>
+          </NxEmpty>
         </NxPanelCard>
-        <NxPanelCard title="近期活动">
-          <NxActivityTimeline :items="[]" />
+        <NxPanelCard title="近期活动" data-testid="home-activity-panel">
+          <NxEmpty
+            title="暂无活动动态"
+            description="当前没有活动时间线接口，因此不展示空列表占位。"
+            compact
+          >
+            <template #next><router-link class="ghost" to="/p1/audit">查看平台审计</router-link></template>
+          </NxEmpty>
         </NxPanelCard>
-        <NxPanelCard title="运行健康">
-          <NxHealthList :items="[]" />
+        <NxPanelCard title="运行健康" data-testid="home-health-panel">
+          <NxEmpty
+            title="暂无健康探针"
+            description="首页不拼接假健康项。平台服务态可在对应页面查看。"
+            compact
+          >
+            <template #next><router-link class="ghost" to="/p1/services">打开平台服务态</router-link></template>
+          </NxEmpty>
         </NxPanelCard>
       </template>
       <template #table>
@@ -69,15 +87,12 @@
 import { computed, onMounted, ref } from "vue";
 import { p1 } from "../../api/client";
 import {
-  NxActivityTimeline,
   NxChartPlaceholder,
   NxEmpty,
-  NxHealthList,
   NxKpiRow,
   NxPageHeader,
   NxPanelCard,
   NxStatusTag,
-  NxTodoList,
 } from "../../components";
 import { realCount, recordName } from "../homeStats";
 import DashboardLayers from "../DashboardLayers.vue";
