@@ -49,6 +49,9 @@
       retry-label="重试"
       @retry="reload"
     />
+    <div v-else-if="loading" class="process-loading" data-testid="process-loading">
+      <NxSkeleton v-for="index in 3" :key="index" variant="list-row" label="正在加载流程与步骤" compact />
+    </div>
     <NxEmpty
       v-else-if="!loading && !definition && !definitions.length"
       title="暂无流程"
@@ -61,7 +64,7 @@
     </NxEmpty>
     <div v-else class="shell">
       <aside class="nx-card list" data-testid="process-list">
-        <h2>流程与草稿</h2>
+        <h2>流程与草稿 <small>{{ definitions.length }} 个</small></h2>
         <button
           v-for="item in definitions"
           :key="item.key"
@@ -71,7 +74,7 @@
           @click="openDefinition(item.key)"
         >
           <strong>{{ showText(item.name) }}</strong>
-          <span>{{ showText(item.key) }} · {{ item.source === "draft" ? "草稿" : "已发布只读" }}</span>
+          <span class="item-meta"><span class="item-key">{{ showText(item.key) }}</span><span class="item-state" :data-source="item.source">{{ item.source === "draft" ? "草稿" : "已发布只读" }}</span></span>
         </button>
       </aside>
       <section class="nx-card canvas" data-testid="process-canvas">
@@ -99,6 +102,7 @@
           class="flow"
           :class="{ editing: isEditing }"
           data-testid="flow-steps"
+          aria-label="顺序审批步骤"
           @dragover.prevent
           @dragleave="onFlowDragLeave"
           @drop.prevent="onStepDrop"
@@ -298,7 +302,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxErrorState, NxPageHeader } from "../../components";
+import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import NxIcon from "../../icons/NxIcon.vue";
 import { p3 } from "../../api/p3";
 import { insertAt, moveToGap } from "../../utils/listMove";
@@ -604,6 +608,7 @@ watch(() => route.params.key, reload, { immediate: true });
 </script>
 
 <style scoped>
+.process-loading { display: grid; gap: var(--nx-space-2); max-width: 760px; }
 .later-note { margin-top: 0; }
 .draft-state { margin: 0 0 var(--nx-space-3); padding: var(--nx-space-2) var(--nx-space-3); border-radius: var(--nx-radius-sm); font-size: var(--nx-font-size-sm); background: var(--nx-info-light); color: var(--nx-info); }
 .draft-state[data-tone="warning"] { background: var(--nx-warning-light); color: var(--nx-warning); }
@@ -633,6 +638,7 @@ watch(() => route.params.key, reload, { immediate: true });
 .confirm-dialog h2, .confirm-dialog p { margin: 0; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: var(--nx-space-2); }
 .list h2, .canvas h2, .props h2, .props h3 { margin: 0; font-size: var(--nx-font-size-md); }
+.list h2 small { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); font-weight: 400; }
 .item {
   display: grid;
   gap: 2px;
@@ -645,6 +651,10 @@ watch(() => route.params.key, reload, { immediate: true });
 }
 .item.current { border-color: var(--nx-product); }
 .item span, .props li span, .type { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
+.item-meta { display: flex; align-items: center; justify-content: space-between; gap: var(--nx-space-2); min-width: 0; }
+.item-key { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-state { flex: none; padding: 2px 6px; border-radius: var(--nx-radius-pill); color: var(--nx-success) !important; background: var(--nx-success-light); }
+.item-state[data-source="draft"] { color: var(--nx-warning) !important; background: var(--nx-warning-light); }
 .canvas { overflow: auto; }
 svg.graph { display: block; min-width: 100%; }
 line { stroke: var(--nx-border-strong, var(--nx-border)); stroke-width: 1.5; }
