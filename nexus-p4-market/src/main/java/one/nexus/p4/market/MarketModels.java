@@ -77,6 +77,23 @@ public final class MarketModels {
                     .toList());
         }
     }
+    /**
+     * PC6: one step of the product configuration wizard. DONE only when the stored data proves it;
+     * NOT_READY when it provably is not; UNKNOWN when the check itself could not be made.
+     */
+    public enum ReadinessStatus { DONE, NOT_READY, UNKNOWN }
+    public record ConfigReadinessStep(String key, String label, ReadinessStatus status, String detail) {}
+    public record ProductConfigReadiness(UUID productDefinitionId, String definitionStatus, boolean complete,
+            java.util.List<ConfigReadinessStep> steps) {
+        public ProductConfigReadiness {
+            steps = java.util.List.copyOf(steps);
+        }
+
+        public static ProductConfigReadiness of(ProductDefinition definition, java.util.List<ConfigReadinessStep> steps) {
+            boolean complete = !steps.isEmpty() && steps.stream().allMatch(step -> step.status() == ReadinessStatus.DONE);
+            return new ProductConfigReadiness(definition.id(), definition.status(), complete, steps);
+        }
+    }
     /** Public catalog contract: subscription identity is available directly on each SKU entry. */
     public record CatalogSku(String code, String name, Map<String, EntitlementSpec> entitlements,
             ProductDefinition productDefinition) {

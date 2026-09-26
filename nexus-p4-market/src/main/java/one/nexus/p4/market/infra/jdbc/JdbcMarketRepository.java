@@ -162,6 +162,12 @@ public class JdbcMarketRepository implements MarketRepository {
                   ON b.product_definition_id=p.id WHERE b.sku_code=:sku
                 """).param("sku",skuCode).query(this::mapProductDefinition).optional();
     }
+    @Override public List<Sku> skusBoundToProductDefinition(UUID productDefinitionId) {
+        return jdbc.sql("""
+                SELECT s.* FROM market.sku s JOIN market.sku_product_binding b ON b.sku_code=s.code
+                WHERE b.product_definition_id=:definition ORDER BY s.code
+                """).param("definition",productDefinitionId).query(this::mapSku).list();
+    }
     @Override public void saveInstallationProductPin(InstallationProductPin pin) {
         assertCurrentTenantForInstallation(pin.installationId());
         jdbc.sql("""
