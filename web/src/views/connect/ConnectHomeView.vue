@@ -4,19 +4,16 @@
       eyebrow="P5 · NEXUS CONNECT"
       title="星联工作台"
       description="自用连接器、API Client、Webhook、调用日志、自用 API 目录与凭证。"
-    >
-      <template #actions>
-        <router-link class="primary" to="/p5/connect">打开接入总览</router-link>
-      </template>
-    </NxPageHeader>
+    />
 
-    <nav class="subpages" aria-label="星联子页">
-      <router-link to="/p5/apis">自用 API 目录</router-link>
-      <router-link to="/p5/clients">API Client</router-link>
-      <router-link to="/p5/webhooks">Webhook</router-link>
-      <router-link to="/p5/connectors">Connector</router-link>
-      <router-link to="/p5/credentials">Credential</router-link>
-      <router-link to="/p5/call-logs">调用日志</router-link>
+    <nav class="quick-actions" aria-label="星联快捷入口">
+      <router-link class="primary" to="/p5/connect">接入总览</router-link>
+      <router-link class="ghost" to="/p5/apis">自用 API 目录</router-link>
+      <router-link class="ghost" to="/p5/clients">API Client</router-link>
+      <router-link class="ghost" to="/p5/webhooks">Webhook</router-link>
+      <router-link class="ghost" to="/p5/connectors">Connector</router-link>
+      <router-link class="ghost" to="/p5/credentials">Credential</router-link>
+      <router-link class="ghost" to="/p5/call-logs">调用日志</router-link>
     </nav>
 
     <NxErrorState v-if="error" :description="error" retry-label="重试" @retry="load" />
@@ -72,16 +69,16 @@
             <router-link to="/p5/connectors">查看全部</router-link>
           </template>
           <NxEmpty v-if="!loading && !connectors.length && !error" title="暂无" description="当前没有可展示的连接器。" compact />
-          <table v-else-if="connectors.length" class="nx-table">
+          <table v-else-if="connectors.length" class="nx-table nx-table--compact">
             <thead>
-              <tr><th>名称</th><th>编码</th><th>类型</th><th>状态</th></tr>
+              <tr><th scope="col">名称</th><th scope="col">编码</th><th scope="col">类型</th><th scope="col">状态</th></tr>
             </thead>
             <tbody>
               <tr v-for="item in connectors.slice(0, 8)" :key="item.code">
                 <td>{{ item.name || "暂无" }}</td>
                 <td>{{ item.code || "暂无" }}</td>
                 <td>{{ item.type || "暂无" }}</td>
-                <td>{{ item.active ? "启用" : "停用" }}</td>
+                <td><NxStatusTag :status="item.active ? 'ACTIVE' : 'DISABLED'" :label="item.active ? '启用' : '停用'" /></td>
               </tr>
             </tbody>
           </table>
@@ -142,7 +139,7 @@ onMounted(load);
 </script>
 
 <style scoped>
-.subpages { display: flex; flex-wrap: wrap; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); }
+.quick-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); }
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
