@@ -6,6 +6,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 const mocks = vi.hoisted(() => ({
   apps: vi.fn(), app: vi.fn(), versions: vi.fn(), version: vi.fn(), skus: vi.fn(), sku: vi.fn(),
   subscriptions: vi.fn(), subscription: vi.fn(), installations: vi.fn(), installation: vi.fn(), upgrade: vi.fn(),
+  upgradeSteps: vi.fn(), upgradeFacts: vi.fn(),
   session: { contextId: "ctx-1", tenantId: "tenant-1" },
 }));
 vi.mock("../../api/client", () => ({ p4: mocks }));
@@ -88,8 +89,8 @@ describe("P4 management subpages", () => {
     expect(installations.get(".installation-meta").text()).toContain("crm");
     expect(installations.get('[data-testid="installations-count"]').text()).toBe("共 1 个已开通产品");
     // S8: the fixed "暂无数据" upgrade facts are a developer note, not shown in the demo.
+    // XB8: facts come from the server when the fold opens — nothing before that.
     expect(installations.find('[data-testid="upgrade-facts"]').exists()).toBe(false);
-    expect(installations.get('[data-testid="installation-upgrade"]').text()).not.toContain("Schema 变更");
     const crumb = installations.get('[data-testid="nx-page-crumb"]');
     expect(crumb.get("a").attributes("href")).toBe("/p4/market");
     expect(crumb.get('[aria-current="page"]').text()).toBe("我的已开通");
@@ -114,5 +115,80 @@ describe("P4 management subpages", () => {
     expect(empty.text()).toContain("还没有订阅");
     expect(empty.text()).toContain("在应用目录选择 SKU 订阅开通后");
     expect(empty.get("a").attributes("href")).toBe("/p4/market");
+  });
+
+  it("opens the upgrade fold with the server's step state and facts — UNKNOWN stays neutral (XB8)", async () => {
+    mocks.installations.mockResolvedValue([{ id: "install-1", tenant_id: "tenant-1", app_id: "app-1", version_id: "version-1", status: "INSTALLED", updated_at: "2026-01-02T03:04:05Z" }]);
+    // Real XB6/XB7 wire shapes (snake_case keys where multi-word).
+    mocks.upgradeSteps.mockResolvedValue({
+      installation_id: "install-1",
+      recorded: false,
+      note: "升级步骤没有被记录：当前升级只切换版本，不执行也不记录预检到验证的各个步骤。",
+      steps: ["precheck", "dependency", "schema_migration", "config", "switch", "verify"].map((key, index) => ({
+        key, label: ["预检", "依赖检查", "结构扩展与迁移", "配置", "切换", "验证"][index], status: "UNKNOWN",
+      })),
+    });
+    mocks.upgradeFacts.mockResolvedValue({
+      installation_id: "install-1",
+      current_version_id: "version-1",
+      facts: [
+        { key: "compatibility", label: "兼容范围", value: null, note: "应用版本没有声明兼容范围。" },
+        { key: "schema_change", label: "Schema 变更", value: null, note: "应用版本没有声明结构变更。" },
+        { key: "data_migration", label: "数据迁移", value: null, note: "升级只切换版本，不执行数据迁移，也没有迁移记录。" },
+        { key: "rollback", label: "回滚能力", value: "仅切换版本", note: "可以切回同一应用的已发布版本；数据不会随之回滚。" },
+      ],
+    });
+    const wrapper = await mountPage("/p4/installations");
+    const fold = wrapper.get('[data-testid="installation-upgrade"]');
+    fold.element.open = true;
+    await fold.trigger("toggle");
+    await flushPromises();
+
+    expect(mocks.upgradeSteps).toHaveBeenCalledWith("install-1");
+    const stepper = wrapper.get('[data-testid="upgrade-stepper"]');
+    expect(stepper.findAll('[data-status="UNKNOWN"]')).toHaveLength(6);
+    expect(stepper.find('[data-testid="upgrade-step-schema_migration"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="upgrade-steps-note"]').text()).toContain("升级步骤没有被记录");
+    expect(wrapper.get('[data-testid="upgrade-fact-compatibility"]').text()).toContain("暂无");
+    expect(wrapper.get('[data-testid="upgrade-fact-schema_change"]').text()).toContain("应用版本没有声明结构变更");
+    expect(wrapper.get('[data-testid="upgrade-fact-rollback"]').text()).toContain("仅切换版本");
+    expect(wrapper.text()).not.toContain("暂无数据");
+
+    // Closing and reopening does not refetch.
+    await fold.trigger("toggle");
+    expect(mocks.upgradeSteps).toHaveBeenCalledTimes(1);
+  });
+
+  it("colors only statuses the server really reports and stays UNKNOWN when the read fails (XB8)", async () => {
+    mocks.installations.mockResolvedValue([{ id: "install-1", app_id: "app-1", version_id: "version-1", status: "INSTALLED" }]);
+    mocks.upgradeSteps.mockResolvedValueOnce({
+      recorded: true,
+      steps: [
+        { key: "precheck", label: "预检", status: "DONE" },
+        { key: "dependency", label: "依赖检查", status: "ACTIVE" },
+        { key: "schema_migration", label: "结构扩展与迁移", status: "WEIRD" },
+      ],
+    });
+    mocks.upgradeFacts.mockResolvedValueOnce({ facts: [] });
+    const wrapper = await mountPage("/p4/installations");
+    const fold = wrapper.get('[data-testid="installation-upgrade"]');
+    fold.element.open = true;
+    await fold.trigger("toggle");
+    await flushPromises();
+    const statuses = wrapper.findAll('[data-testid="upgrade-stepper"] [data-status]').map((step) => step.attributes("data-status"));
+    expect(statuses).toEqual(["DONE", "ACTIVE", "UNKNOWN"]);
+    expect(wrapper.find('[data-testid="upgrade-steps-note"]').exists()).toBe(false);
+    wrapper.unmount();
+
+    mocks.upgradeSteps.mockRejectedValueOnce(new Error("offline"));
+    mocks.upgradeFacts.mockRejectedValueOnce(new Error("offline"));
+    const failed = await mountPage("/p4/installations");
+    const failedFold = failed.get('[data-testid="installation-upgrade"]');
+    failedFold.element.open = true;
+    await failedFold.trigger("toggle");
+    await flushPromises();
+    expect(failed.get('[data-testid="upgrade-info-error"]').text()).toContain("升级信息暂时无法读取");
+    expect(failed.findAll('[data-testid="upgrade-stepper"] [data-status="UNKNOWN"]')).toHaveLength(6);
+    expect(failed.findAll('[data-testid="upgrade-stepper"] [data-status="DONE"]')).toHaveLength(0);
   });
 });
