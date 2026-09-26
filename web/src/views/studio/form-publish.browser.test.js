@@ -95,7 +95,7 @@ describe("T3-F basic form publish", () => {
 
     expect(mocks.validateForm).toHaveBeenCalledWith("form-1");
     expect(mocks.publishForm).toHaveBeenCalledWith("form-1");
-    expect(wrapper.text()).toContain("RUNNING v1");
+    expect(wrapper.text()).toContain("运行 v1");
     expect(wrapper.text()).toContain("列表已刷新");
   });
 });

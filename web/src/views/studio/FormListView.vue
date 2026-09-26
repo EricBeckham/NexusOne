@@ -1,75 +1,90 @@
 <template>
-  <div>
+  <div class="form-list">
     <NxPageHeader title="表单" description="创建、校验并发布表单；运行版本可直接填报并启动审批。">
       <template #actions>
-        <button class="primary" type="button" data-testid="form-create-toggle" @click="showCreate = !showCreate">
+        <!-- One Primary per area: while the create panel is open, its own submit is the Primary. -->
+        <button :class="showCreate ? 'ghost' : 'primary'" type="button" data-testid="form-create-toggle" @click="showCreate = !showCreate">
           {{ showCreate ? "收起创建" : "创建表单" }}
         </button>
       </template>
     </NxPageHeader>
     <NxSourceBanner body="Live GET /api/v1/p3/forms。创建绑定所选台账的 field_code。G5 由模块测试覆盖。" />
-    <form v-if="showCreate" class="nx-card" style="margin-bottom:16px;" data-testid="form-create-form" @submit.prevent="onCreate">
-      <h3>创建表单</h3>
-      <p class="nx-muted">绑定所选台账的业务字段（跳过 approval_status）。Validate 要求台账字段已存在。</p>
-      <div class="nx-row">
-        <div class="nx-field">
-          <label>绑定台账</label>
+    <form v-if="showCreate" class="nx-card create-card" data-testid="form-create-form" @submit.prevent="onCreate">
+      <h2>创建表单</h2>
+      <p class="nx-muted">表单字段来自所选台账的业务字段（审批状态字段除外）。创建后为草稿，校验通过即可发布。</p>
+      <div class="create-grid">
+        <label class="nx-field">
+          <span>绑定台账<em class="nx-req" aria-hidden="true">*</em></span>
           <select v-model="draft.ledger_id" required data-testid="form-ledger-select">
             <option value="" disabled>选择台账</option>
             <option v-for="ledger in ledgers" :key="ledger.id" :value="ledger.id">
               {{ ledger.name }} ({{ ledger.code }})
             </option>
           </select>
-        </div>
-        <div class="nx-field"><label>表单编码</label><input v-model="draft.form_code" placeholder="leave_form" required data-testid="form-code" /></div>
-        <div class="nx-field"><label>表单名称</label><input v-model="draft.name" placeholder="请假单" required data-testid="form-name" /></div>
+        </label>
+        <label class="nx-field"><span>表单编码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="draft.form_code" placeholder="leave_form" required data-testid="form-code" /></label>
+        <label class="nx-field"><span>表单名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="draft.name" placeholder="请假单" required data-testid="form-name" /></label>
       </div>
-      <p v-if="!ledgers.length" class="nx-error">当前租户没有台账，请先去台账页创建。</p>
-      <button class="primary" type="submit" data-testid="form-create-submit" :disabled="!ledgers.length">创建 DRAFT</button>
+      <p v-if="!ledgers.length" class="nx-field-error">当前租户没有台账，请先去<router-link to="/p3/ledgers">台账</router-link>页创建。</p>
+      <div class="create-actions">
+        <button class="nx-btn nx-btn--default" type="button" @click="showCreate = false">取消</button>
+        <button class="nx-btn nx-btn--primary" type="submit" data-testid="form-create-submit" :disabled="!ledgers.length">创建草稿</button>
+      </div>
     </form>
-    <p v-if="!session.contextId" class="nx-error">没有 TenantContext。请先登录并完成租户切换。</p>
-    <p v-if="notice" class="nx-muted">{{ notice }}</p>
-    <p v-if="error" class="nx-error">{{ error }}</p>
-    <table class="nx-table" data-testid="form-table">
+    <p v-if="!session.contextId" class="nx-error">还没有进入租户。请先登录并切换到要管理表单的租户。</p>
+    <p v-if="notice" class="notice" role="status">{{ notice }}</p>
+    <p v-if="error" class="nx-error" role="alert">{{ error }}</p>
+    <div v-if="loading" class="list-skeleton" data-testid="form-loading">
+      <NxSkeleton v-for="n in 3" :key="n" variant="list-row" label="正在加载表单" />
+    </div>
+    <NxEmpty
+      v-else-if="!rows.length && !error"
+      class="nx-card"
+      title="还没有表单"
+      :description="ledgers.length ? '表单绑定台账字段，发布后即可填报并启动审批。' : '表单需要绑定台账，请先创建台账再创建表单。'"
+      data-testid="form-empty"
+    >
+      <template v-if="!showCreate" #action>
+        <button v-if="ledgers.length" class="primary" type="button" @click="showCreate = true">创建表单</button>
+        <router-link v-else class="primary" to="/p3/ledgers">去创建台账</router-link>
+      </template>
+    </NxEmpty>
+    <table v-else-if="rows.length" class="nx-table" data-testid="form-table">
       <thead>
         <tr>
           <th>表单</th>
-          <th>绑定台账码</th>
-          <th>Draft</th>
-          <th>Running</th>
-          <th>动作</th>
+          <th>绑定台账</th>
+          <th>草稿状态</th>
+          <th>运行版本</th>
+          <th class="actions-col">操作</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-if="!rows.length">
-          <td colspan="5" class="nx-empty">暂无表单。用上方「创建表单」写入 M0-07 DRAFT。</td>
-        </tr>
         <tr v-for="row in rows" :key="row.id">
-          <td><router-link :to="`/p3/forms/${row.id}`">{{ row.name }}</router-link></td>
-          <td class="nx-code">{{ row.ledger_name || "—" }}</td>
-          <td><NxStatus :label="row.draft_status" :tone="row.draft_status === 'VALIDATED' ? 'success' : 'warning'" /></td>
-          <td><NxStatus :label="row.running_version ? `RUNNING v${row.running_version}` : '未发布'" :tone="row.running_version ? 'success' : 'warning'" /></td>
-          <td class="nx-row">
-            <router-link class="ghost" :to="`/p3/forms/${row.id}?tab=publish`">Validate / Publish</router-link>
+          <td><router-link class="form-name" :to="`/p3/forms/${row.id}`">{{ row.name }}</router-link></td>
+          <td class="cell-secondary">{{ row.ledger_name || "暂无" }}</td>
+          <td><NxStatusTag :status="row.draft_status || ''" /></td>
+          <td><NxStatus :label="row.running_version ? `运行 v${row.running_version}` : '未发布'" :tone="row.running_version ? 'success' : 'neutral'" /></td>
+          <td class="row-actions">
             <button
               v-if="!row.running_version"
-              class="primary"
+              class="nx-btn nx-btn--text"
               type="button"
               data-testid="form-quick-publish"
               @click="validateAndPublish(row)"
             >校验并发布</button>
-            <router-link class="ghost" :to="`/p3/forms/${row.id}?tab=fill`">填报</router-link>
+            <router-link class="nx-btn nx-btn--text" :to="`/p3/forms/${row.id}?tab=publish`">发布设置</router-link>
+            <router-link class="nx-btn nx-btn--text" :to="`/p3/forms/${row.id}?tab=fill`">填报</router-link>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
 </template>
-
 <script setup>
 import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { NxPageHeader } from "../../components";
+import { NxEmpty, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import NxStatus from "../../components/NxStatus.vue";
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { p3 } from "../../api/p3";
@@ -80,6 +95,7 @@ const rows = ref([]);
 const ledgers = ref([]);
 const apps = ref([]);
 const error = ref("");
+const loading = ref(true);
 const notice = ref("");
 const showCreate = ref(false);
 const draft = reactive({
@@ -117,6 +133,8 @@ onMounted(async () => {
     await reload();
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
+  } finally {
+    loading.value = false;
   }
 });
 
@@ -164,9 +182,27 @@ async function validateAndPublish(row) {
     }
     const published = await p3.publishForm(row.id);
     await reload();
-    notice.value = `${row.name} 已发布为 Running v${published.running_version || 1}，列表已刷新。`;
+    notice.value = `${row.name} 已发布为运行版本 v${published.running_version || 1}，列表已刷新。`;
   } catch (err) {
     error.value = `${err.code || ""} ${err.message}`;
   }
 }
 </script>
+
+<style scoped>
+.create-card { display: grid; gap: var(--nx-space-3); margin-bottom: var(--nx-space-4); }
+.create-card h2 { margin: 0; font-size: var(--nx-font-size-md); }
+.create-card > p { margin: 0; }
+.create-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 var(--nx-space-4); }
+.create-grid .nx-field { margin-bottom: 0; }
+.create-grid select, .create-grid input { box-sizing: border-box; width: 100%; min-height: var(--nx-control-height, 36px); }
+.create-actions { display: flex; justify-content: flex-end; gap: var(--nx-space-2); padding-top: var(--nx-space-3); border-top: 1px solid var(--nx-divider, var(--nx-border)); }
+.notice { margin: 0 0 var(--nx-space-3); color: var(--nx-success); }
+.list-skeleton { display: grid; gap: var(--nx-space-2); }
+.form-name { color: var(--nx-text-primary); font-weight: 500; }
+.form-name:hover { color: var(--nx-primary); }
+.cell-secondary { color: var(--nx-text-secondary); }
+.actions-col { text-align: right; }
+.row-actions { display: flex; justify-content: flex-end; gap: var(--nx-space-1); }
+@media (max-width: 900px) { .create-grid { grid-template-columns: 1fr; } }
+</style>
