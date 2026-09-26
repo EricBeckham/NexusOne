@@ -31,7 +31,21 @@
     <ul v-if="unmatchedErrors.length" class="nx-field-errors" data-testid="start-field-errors">
       <li v-for="item in unmatchedErrors" :key="`${item.fieldKey}-${item.code}`">{{ item.message }}</li>
     </ul>
-    <div v-if="loading" class="nx-card start-form" data-testid="start-loading">
+    <!-- S7: after a successful submit the form gives way to the S3 result shell with the next steps. -->
+    <NxResult
+      v-if="submitted"
+      class="start-form"
+      title="申请已提交"
+      :description="submittedDescription"
+      data-testid="start-result"
+    >
+      <template #next>
+        <router-link class="nx-btn nx-btn--primary" :to="{ path: '/p3/todos', query: { box: 'requests' } }" data-testid="start-result-requests">查看我的申请</router-link>
+        <router-link class="nx-btn nx-btn--default" to="/p4/installations" data-testid="start-result-back">返回我的已开通</router-link>
+        <button class="nx-btn nx-btn--text" type="button" data-testid="start-result-again" @click="startAgain">再发起一条</button>
+      </template>
+    </NxResult>
+    <div v-else-if="loading" class="nx-card start-form" data-testid="start-loading">
       <NxSkeleton variant="form-block" label="正在加载申请表单" />
     </div>
     <NxEmpty
@@ -81,12 +95,11 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NxEmpty, NxPageHeader, NxRequestAlert, NxSkeleton } from "../../components";
+import { NxEmpty, NxPageHeader, NxRequestAlert, NxResult, NxSkeleton } from "../../components";
 import { p2, p4 } from "../../api/client";
 import { describeRequestError } from "../../utils/requestError";
 import { p3 } from "../../api/p3";
 import { files, readAsBase64 } from "../../api/files";
-import { nxMessage } from "../../feedback/nxMessage";
 
 const route = useRoute();
 const router = useRouter();
@@ -99,6 +112,20 @@ const error = ref("");
 const fieldErrors = ref([]);
 const submitFailure = ref(null);
 const product = ref(null);
+const submitted = ref(null);
+
+const submittedDescription = computed(() => {
+  const what = product.value?.name ? `「${product.value.name}」的申请` : "申请";
+  const number = submitted.value?.id ? `申请编号 ${submitted.value.id.slice(0, 8)}…。` : "";
+  return `${what}已进入审批。${number}审批人处理后，可在「我的申请」查看结果和意见。`;
+});
+
+function startAgain() {
+  for (const key of Object.keys(text)) delete text[key];
+  fieldErrors.value = [];
+  submitFailure.value = null;
+  submitted.value = null;
+}
 
 /** Q5 pilot: in-page crumb slot; shell crumb stays in GlobalHeader. No route-tree change. */
 const startCrumbs = [
@@ -212,10 +239,10 @@ async function submit() {
   submitFailure.value = null;
   fieldErrors.value = [];
   try {
-    await p3.createProductApplication(route.params.id, values());
-    // S6: short success toast; failures keep the inline alert and field-level errors (§21: toasts never replace them).
-    nxMessage.success("申请已提交，可在我的申请查看审批进度");
-    await router.push({ path: "/p3/todos", query: { box: "requests" } });
+    const created = await p3.createProductApplication(route.params.id, values());
+    // S7: the result shell is the success feedback (replaces S6's toast here); failures keep the inline alert
+    // and field-level errors. The submit call itself is unchanged.
+    submitted.value = { id: created?.id || "" };
   } catch (err) {
     submitFailure.value = describeRequestError(err, SUBMIT_HINTS);
     fieldErrors.value = normalizeFieldErrors(err.body?.errors);
