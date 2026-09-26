@@ -8,6 +8,8 @@
     >
       <template #actions>
         <button class="ghost" type="button" :disabled="loading" @click="load">刷新</button>
+        <router-link class="ghost" to="/p4/product-definitions" data-testid="template-open-definitions">产品定义</router-link>
+        <router-link class="ghost" to="/p3/workflow" data-testid="template-open-workflow">流程设计器</router-link>
         <router-link class="ghost" to="/p4/product-config-wizard" data-testid="template-open-wizard">配置向导</router-link>
         <router-link class="primary" to="/p1/form-templates/new">新建模板</router-link>
       </template>

@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexusone.local/schemas/product-config-1.0.json",
+  "title": "NexusOne product configuration package format 1.0",
+  "description": "IM1: root document for a product config export (ZIP root nexusone-product-config.json or bare JSON bundle). No runtime fill data, no tenant installations, no prices.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest", "formTemplates", "processDefinitions", "productDefinition", "skuBindings"],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "formatVersion", "exportedAt", "source"],
+      "properties": {
+        "format": { "const": "nexusone.product-config" },
+        "formatVersion": { "const": "1.0" },
+        "exportedAt": { "type": "string", "format": "date-time" },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["env", "productDefinitionId"],
+          "properties": {
+            "env": { "type": "string", "enum": ["demo", "staging", "prod-label"] },
+            "productDefinitionId": { "type": "string", "minLength": 1 }
+          }
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "Optional; when present importers may require a match."
+        }
+      }
+    },
+    "formTemplates": {
+      "type": "array",
+      "description": "Published form template version snapshots (schema only; no fill submissions).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "name", "version", "status", "fields"],
+        "properties": {
+          "id": { "type": "string" },
+          "code": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "version": { "type": ["integer", "string"] },
+          "status": { "type": "string", "enum": ["PUBLISHED", "DRAFT", "ARCHIVED"] },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["code", "type", "label"],
+              "properties": {
+                "code": { "type": "string" },
+                "type": { "type": "string" },
+                "label": { "type": "string" },
+                "required": { "type": "boolean" },
+                "options": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "processDefinitions": {
+      "type": "array",
+      "description": "Published process definition summaries (nodes/edges; no runtime instances).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "name", "version", "nodes"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "name": { "type": "string" },
+          "version": { "type": ["integer", "string"] },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "type"],
+              "properties": {
+                "id": { "type": "string" },
+                "type": { "type": "string" },
+                "name": { "type": "string" }
+              }
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["from", "to"],
+              "properties": {
+                "from": { "type": "string" },
+                "to": { "type": "string" },
+                "conditionSummary": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "productDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "name", "formTemplateCode", "formTemplateVersion", "processDefinitionKey", "processDefinitionVersion"],
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "formTemplateCode": { "type": "string" },
+        "formTemplateVersion": { "type": ["integer", "string"] },
+        "processDefinitionKey": { "type": "string" },
+        "processDefinitionVersion": { "type": ["integer", "string"] }
+      }
+    },
+    "skuBindings": {
+      "type": "array",
+      "description": "SKU codes bound to this product. No price or payment fields.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["skuCode"],
+        "properties": {
+          "skuCode": { "type": "string", "minLength": 1 },
+          "skuName": { "type": "string" },
+          "entitlementKeys": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Entitlement declaration keys only — never prices."
+          }
+        }
+      }
+    },
+    "printTemplates": {
+      "type": "array",
+      "description": "Later placeholder. Full print designer is out of IM scope.",
+      "default": [],
+      "items": { "type": "object" }
+    },
+    "printSupport": {
+      "type": "string",
+      "const": "config+preview-later",
+      "description": "Honest marker: print is config+preview later, not a designer in this package."
+    }
+  }
+}
