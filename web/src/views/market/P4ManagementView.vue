@@ -121,8 +121,8 @@
         <div class="section-heading"><div><h2>开通记录</h2><p class="nx-muted">当前租户已开通记录及其安装状态。无支付。</p></div><span class="nx-muted">{{ subscriptions.length }} 条记录</span></div>
         <NxDataTable
           :empty="!subscriptions.length"
-          empty-title="还没有订阅"
-          empty-description="在应用目录选择 SKU 订阅开通后，记录会显示在这里。"
+          empty-title="还没有开通记录"
+          empty-description="在应用目录选择 SKU 开通后，记录会显示在这里。"
           density="compact"
           aria-label="开通记录"
           testid="subscriptions-empty"

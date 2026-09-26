@@ -117,8 +117,8 @@ describe("P4 management subpages", () => {
     mocks.subscriptions.mockResolvedValue([]);
     const wrapper = await mountPage("/p4/subscriptions");
     const empty = wrapper.get('[data-testid="subscriptions-empty"]');
-    expect(empty.text()).toContain("还没有订阅");
-    expect(empty.text()).toContain("在应用目录选择 SKU 订阅开通后");
+    expect(empty.text()).toContain("还没有开通记录");
+    expect(empty.text()).toContain("在应用目录选择 SKU 开通后");
     expect(empty.get("a").attributes("href")).toBe("/p4/market");
   });
 
