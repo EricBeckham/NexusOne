@@ -2,6 +2,12 @@
   <main class="product-sample" data-testid="product-sample" :data-kind="kind">
     <NxPageHeader eyebrow="P4 · 平台配置" :title="meta.title" :description="meta.description" :crumbs="crumbs">
       <template #actions>
+        <router-link
+          v-if="kind === 'print'"
+          class="ghost"
+          :to="{ path: '/p4/product-samples/print/designer', query: selectedId ? { definition: selectedId } : {} }"
+          data-testid="sample-open-designer"
+        >打开设计器</router-link>
         <router-link class="ghost" :to="wizardLink" data-testid="sample-back-wizard">返回产品配置向导</router-link>
       </template>
     </NxPageHeader>
