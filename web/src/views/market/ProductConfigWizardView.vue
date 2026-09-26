@@ -3,57 +3,88 @@
     <NxPageHeader
       eyebrow="P4 · 平台配置"
       title="产品配置向导"
-      description="按顺序完成：配表单 → 配流程 → 绑 SKU → 发布。本页为配置完整感薄壳；步骤就绪态未接读口前一律待开始，禁止假勾选。"
+      description="按顺序完成：配表单 → 配流程 → 绑 SKU → 发布。步骤就绪态未接读口前一律待开始，禁止假勾选。"
       :crumbs="crumbs"
     >
       <template #actions>
+        <button class="ghost" type="button" :disabled="loading" data-testid="wizard-refresh" @click="load">刷新</button>
         <router-link class="ghost" to="/p4/product-definitions">产品定义</router-link>
         <router-link class="ghost" to="/p1/form-templates">表单模板</router-link>
         <router-link class="ghost" to="/p3/workflow">流程设计器</router-link>
       </template>
     </NxPageHeader>
 
-    <ol class="wizard-steps" aria-label="产品配置步骤" data-testid="wizard-steps">
-      <li
-        v-for="(step, index) in steps"
-        :key="step.id"
-        class="wizard-step"
-        :class="{ active: activeStepId === step.id }"
-        :data-status="step.status"
-        :data-testid="`wizard-step-${step.id}`"
-      >
-        <button type="button" class="step-hit" @click="activeStepId = step.id">
-          <span class="step-index">{{ index + 1 }}</span>
-          <span class="step-body">
-            <strong>{{ step.title }}</strong>
-            <small>{{ stepStatusLabel(step.status) }}</small>
-          </span>
-        </button>
-      </li>
-    </ol>
+    <NxErrorState
+      v-if="error"
+      data-testid="wizard-error"
+      :title="error"
+      :trace-id="traceId"
+      retry-label="重试"
+      @retry="load"
+    />
 
-    <section class="wizard-panel nx-card" data-testid="wizard-panel" :aria-labelledby="`step-heading-${activeStep.id}`">
-      <h2 :id="`step-heading-${activeStep.id}`">{{ activeStep.title }}</h2>
-      <p class="nx-muted">{{ activeStep.blurb }}</p>
-      <p class="status-line" data-testid="wizard-step-status">
-        当前状态：<strong>{{ stepStatusLabel(activeStep.status) }}</strong>
-        <span class="nx-muted">（就绪态读口未接时不标完成）</span>
-      </p>
-      <div class="panel-actions">
-        <router-link v-if="activeStep.to" class="primary" :to="activeStep.to" :data-testid="`wizard-cta-${activeStep.id}`">
-          {{ activeStep.cta }}
-        </router-link>
-        <router-link class="ghost" to="/p4/product-definitions" data-testid="wizard-open-definitions">打开已有产品定义</router-link>
-      </div>
-    </section>
+    <template v-else>
+      <ol class="wizard-steps" aria-label="产品配置步骤" data-testid="wizard-steps">
+        <li
+          v-for="(step, index) in steps"
+          :key="step.id"
+          class="wizard-step"
+          :class="{ active: activeStepId === step.id }"
+          :data-status="step.status"
+          :data-testid="`wizard-step-${step.id}`"
+        >
+          <button type="button" class="step-hit" @click="activeStepId = step.id">
+            <span class="step-index">{{ index + 1 }}</span>
+            <span class="step-body">
+              <strong>{{ step.title }}</strong>
+              <small>{{ stepStatusLabel(step.status) }}</small>
+            </span>
+          </button>
+        </li>
+      </ol>
+
+      <NxSkeleton v-if="loading" variant="list-row" label="正在读取配置摘要" data-testid="wizard-skeleton" />
+
+      <section v-else class="wizard-panel nx-card" data-testid="wizard-panel" :aria-labelledby="`step-heading-${activeStep.id}`">
+        <h2 :id="`step-heading-${activeStep.id}`">{{ activeStep.title }}</h2>
+        <p class="nx-muted">{{ activeStep.blurb }}</p>
+        <p class="status-line" data-testid="wizard-step-status">
+          当前状态：<strong>{{ stepStatusLabel(activeStep.status) }}</strong>
+          <span class="nx-muted">（就绪态读口未接时不标完成）</span>
+        </p>
+
+        <NxEmpty
+          v-if="activeEmpty"
+          :data-testid="`wizard-empty-${activeStep.id}`"
+          :title="activeEmpty.title"
+          :description="activeEmpty.description"
+          compact
+        >
+          <template #next>
+            <router-link class="primary" :to="activeEmpty.to">{{ activeEmpty.action }}</router-link>
+          </template>
+        </NxEmpty>
+
+        <p v-else class="hint-ok" data-testid="wizard-hint-ok">{{ activeHintOk }}</p>
+
+        <div class="panel-actions">
+          <router-link v-if="activeStep.to" class="primary" :to="activeStep.to" :data-testid="`wizard-cta-${activeStep.id}`">
+            {{ activeStep.cta }}
+          </router-link>
+          <router-link class="ghost" to="/p4/product-definitions" data-testid="wizard-open-definitions">打开已有产品定义</router-link>
+        </div>
+      </section>
+    </template>
   </main>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
-import { NxPageHeader } from "../../components";
+import { computed, onMounted, ref } from "vue";
+import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
+import { p1, p4 } from "../../api/client";
+import { p3 } from "../../api/p3";
 
-/** PC1: fixed four steps; status stays PENDING until a readiness API (PC6/PC7) exists. */
+/** PC1/PC3: fixed four steps; status stays PENDING until readiness API (PC6/PC7). */
 const STEP_DEFS = [
   {
     id: "form",
@@ -94,11 +125,103 @@ const steps = STEP_DEFS.map((step) => ({ ...step, status: "PENDING" }));
 const activeStepId = ref(steps[0].id);
 const activeStep = computed(() => steps.find((step) => step.id === activeStepId.value) || steps[0]);
 
+const loading = ref(true);
+const error = ref("");
+const traceId = ref("");
+const publishedTemplateCount = ref(0);
+const publishedProcessCount = ref(0);
+const definitionCount = ref(0);
+const skuCount = ref(0);
+const processHint = ref("");
+
+const activeEmpty = computed(() => {
+  const id = activeStep.value.id;
+  if (id === "form" && publishedTemplateCount.value === 0) {
+    return {
+      title: "还没有已发布的表单模板",
+      description: "先新建模板草稿，校验通过后再发布版本，产品定义才能选用。",
+      to: "/p1/form-templates/new",
+      action: "新建表单模板",
+    };
+  }
+  if (id === "process" && publishedProcessCount.value === 0) {
+    return {
+      title: processHint.value || "还没有已发布的流程",
+      description: processHint.value
+        ? "流程列表需要可用的租户或平台身份。登录后可在流程设计器发布。"
+        : "在流程设计器中配置审批节点并发布后，才能写入产品定义。",
+      to: "/p3/workflow",
+      action: "去流程设计器",
+    };
+  }
+  if (id === "bind" && (definitionCount.value === 0 || skuCount.value === 0)) {
+    return {
+      title: definitionCount.value === 0 ? "还没有产品定义" : "还没有可绑定的 SKU",
+      description: definitionCount.value === 0
+        ? "先保存产品定义（选用已发布模板与流程），再为它绑定 SKU。"
+        : "先在星市创建应用与 SKU，再回到产品定义页完成绑定。",
+      to: definitionCount.value === 0 ? "/p4/product-definitions" : "/p4/skus",
+      action: definitionCount.value === 0 ? "去新建产品定义" : "去商品与 SKU",
+    };
+  }
+  if (id === "publish" && definitionCount.value === 0) {
+    return {
+      title: "尚未有可发布的产品配置",
+      description: "完成表单、流程与产品定义后，再通过发布中心或应用目录确认上架效果。",
+      to: "/p4/product-definitions",
+      action: "去产品定义",
+    };
+  }
+  return null;
+});
+
+const activeHintOk = computed(() => {
+  const id = activeStep.value.id;
+  if (id === "form") return `已发现 ${publishedTemplateCount.value} 个已发布表单模板（摘要，非完成勾选）。`;
+  if (id === "process") return `已发现 ${publishedProcessCount.value} 个已发布流程（摘要，非完成勾选）。`;
+  if (id === "bind") return `已有 ${definitionCount.value} 个产品定义、${skuCount.value} 个 SKU 可供绑定（摘要）。`;
+  return `已有 ${definitionCount.value} 个产品定义；请在发布中心或应用目录确认上架效果。`;
+});
+
 function stepStatusLabel(status) {
   if (status === "DONE") return "已完成";
   if (status === "ACTIVE") return "进行中";
   return "待开始";
 }
+
+async function load() {
+  loading.value = true;
+  error.value = "";
+  traceId.value = "";
+  processHint.value = "";
+  try {
+    const [templates, definitions, skus] = await Promise.all([
+      p1.formTemplates(),
+      p4.productDefinitions(),
+      p4.skus(),
+    ]);
+    const templateRows = Array.isArray(templates) ? templates : [];
+    publishedTemplateCount.value = templateRows.filter((row) => String(row?.status || "").toUpperCase() === "PUBLISHED").length;
+    definitionCount.value = Array.isArray(definitions) ? definitions.length : 0;
+    skuCount.value = Array.isArray(skus) ? skus.length : 0;
+  } catch (err) {
+    error.value = err?.message || "配置摘要暂时不可用";
+    traceId.value = err?.traceId || "";
+    loading.value = false;
+    return;
+  }
+
+  try {
+    const defs = await p3.listProcessDefinitions();
+    publishedProcessCount.value = Array.isArray(defs) ? defs.length : 0;
+  } catch (err) {
+    publishedProcessCount.value = 0;
+    processHint.value = "暂时读不到已发布流程";
+  }
+  loading.value = false;
+}
+
+onMounted(load);
 </script>
 
 <style scoped>
@@ -173,7 +296,7 @@ function stepStatusLabel(status) {
   margin: 0;
   font-size: var(--nx-font-size-lg);
 }
-.status-line {
+.status-line, .hint-ok {
   margin: 0;
   font-size: var(--nx-font-size-sm);
 }
