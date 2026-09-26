@@ -65,6 +65,8 @@
   --nx-status-tag-font-size: var(--nx-font-size-xs);
   --nx-status-tag-font-weight: 500;
   --nx-status-tag-line-height: 18px;
+  /* §21 / S2: toast auto-dismiss band (3–5s → pin 4s). */
+  --nx-toast-duration: 4000ms;
   --nx-state-icon: 48px;
   --nx-font-size-xs: 12px;
   --nx-font-size-sm: 13px;

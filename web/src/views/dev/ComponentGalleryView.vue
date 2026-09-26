@@ -30,6 +30,16 @@
       </div>
     </section>
 
+    <section class="nx-card section" data-testid="toast-gallery">
+      <h2>Toast（S2）</h2>
+      <p class="hint">共享 nxMessage.success / error / info；短文案，错误可带可复制 Trace。不替代字段错误。</p>
+      <div class="tag-row">
+        <button type="button" class="ghost" data-testid="toast-success" @click="nxMessage.success('已保存')">成功</button>
+        <button type="button" class="ghost" data-testid="toast-info" @click="nxMessage.info('已复制追踪号')">提示</button>
+        <button type="button" class="ghost" data-testid="toast-error" @click="nxMessage.error('操作失败', { traceId: 'dev-trace-gallery' })">失败 + Trace</button>
+      </div>
+    </section>
+
     <section class="gallery-grid states" aria-label="页面状态示例">
       <div class="nx-card"><NxEmpty description="创建第一条记录后会显示在这里" compact /></div>
       <div class="nx-card"><NxErrorState trace-id="dev-trace-id" /></div>
@@ -48,6 +58,7 @@ import {
   NxPanelCard,
   NxPageHeader,
   NxStatusTag,
+  nxMessage,
 } from "../../components";
 </script>
 
@@ -56,5 +67,6 @@ import {
 .states { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .section { margin: var(--nx-space-4) var(--nx-space-0); }
 h2 { margin: var(--nx-space-0) var(--nx-space-0) var(--nx-space-3); font-size: var(--nx-font-size-md); }
+.hint { margin: 0 0 var(--nx-space-3); color: var(--nx-text-secondary); font-size: var(--nx-font-size-sm); }
 .tag-row { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); }
 </style>
