@@ -8,6 +8,6 @@ export const p3Nav = [
   { id: "publish-center", label: "发布中心", to: "/p3/publish-center", section: "流程配置" },
   { id: "reports", label: "报表", to: "/p3/reports", section: "数据与审计" },
   { id: "exports", label: "导出向导", to: "/p3/exports/wizard", section: "数据与审计" },
-  { id: "dumps", label: "物理 dump", to: "/p3/dumps", section: "数据与审计" },
+  { id: "dumps", label: "物理导出", to: "/p3/dumps", section: "数据与审计" },
   { id: "audit", label: "审计哈希链", to: "/p3/audit", section: "数据与审计" },
 ];

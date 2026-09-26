@@ -127,6 +127,8 @@ describe("G4 export wizard leftover", () => {
     expect(wrapper.get("[data-testid=export-decision-status]").text()).toBe("允许导出");
     expect(wrapper.text()).not.toContain("JSON");
     expect(wrapper.find("[data-testid=g4-export-wizard-export-cell]").exists()).toBe(false);
+    expect(wrapper.find("[data-testid=p3-source-banner]").exists()).toBe(false);
+    expect(wrapper.find("[data-testid=nx-error-state]").exists()).toBe(false);
     expect(states()).toEqual(["done", "current", "todo"]);
     expect(primaries()).toEqual(["g4-export-wizard-begin"]);
 
