@@ -62,6 +62,7 @@ const routes = [
   { path: "/p4/packages", name: "p4-packages", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "应用包", product: "p4" } },
   { path: "/p4/skus", name: "p4-skus", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "商品与 SKU", product: "p4" } },
   { path: "/p4/product-definitions", name: "p4-product-definitions", component: () => import("./views/market/ProductDefinitionBindingView.vue"), meta: { title: "产品定义", product: "p4" } },
+  { path: "/p4/product-config-wizard", name: "p4-product-config-wizard", component: () => import("./views/market/ProductConfigWizardView.vue"), meta: { title: "产品配置向导", product: "p4" } },
   { path: "/p4/subscriptions", name: "p4-subscriptions", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "开通记录", product: "p4" } },
   { path: "/p4/installations", name: "p4-installations", component: () => import("./views/market/P4ManagementView.vue"), meta: { title: "我的已开通", product: "p4" } },
   { path: "/p4/installations/:id/start", name: "p4-installation-start", component: () => import("./views/market/ProductStartView.vue"), meta: { title: "发起申请", product: "p4" } },
