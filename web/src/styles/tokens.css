@@ -109,9 +109,50 @@ a { color: var(--nx-primary); text-decoration: none; }
   border-radius: var(--nx-radius);
   box-shadow: var(--nx-shadow-dialog);
 }
-.nx-page-header { margin-bottom: var(--nx-space-4); }
-.nx-page-header h1 { margin: 0 0 var(--nx-space-1); font-size: var(--nx-font-size-page-title); font-weight: 700; }
-.nx-page-header p { margin: 0; color: var(--nx-text-secondary); }
+.nx-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+  margin-bottom: var(--nx-space-4);
+}
+.nx-page-header__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--nx-space-4);
+}
+.nx-page-header h1,
+.nx-page-header__title {
+  margin: 0;
+  font-size: var(--nx-font-size-page-title);
+  font-weight: 700;
+  color: var(--nx-text-primary);
+}
+.nx-page-header p,
+.nx-page-header__description {
+  margin: var(--nx-space-1) 0 0;
+  color: var(--nx-text-secondary);
+}
+.nx-page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  flex: none;
+}
+/* §6 / Q5: optional in-page crumb slot (shell crumb stays in GlobalHeader). */
+.nx-page-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-1);
+  color: var(--nx-text-secondary);
+  font-size: var(--nx-font-size-xs);
+  line-height: var(--nx-status-tag-line-height);
+}
+.nx-page-crumb__sep { color: var(--nx-text-disabled); }
+.nx-page-crumb__link { color: var(--nx-text-secondary); text-decoration: none; }
+.nx-page-crumb__link:hover { color: var(--nx-primary); }
+.nx-page-crumb__current { color: var(--nx-text-regular); font-weight: 500; }
 .nx-row { display: flex; gap: var(--nx-space-3); flex-wrap: wrap; align-items: center; }
 .nx-grid { display: grid; gap: var(--nx-space-4); }
 .nx-grid.kpi { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
