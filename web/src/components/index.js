@@ -8,6 +8,7 @@ export { default as NxKpiRow } from "./NxKpiRow.vue";
 export { default as NxListFooter } from "./NxListFooter.vue";
 export { default as NxNoPermission } from "./NxNoPermission.vue";
 export { default as NxPanelCard } from "./NxPanelCard.vue";
+export { default as NxPropertyPanel } from "./NxPropertyPanel.vue";
 export { default as NxActivityTimeline } from "./NxActivityTimeline.vue";
 export { default as NxTodoList } from "./NxTodoList.vue";
 export { default as NxPageHeader } from "./NxPageHeader.vue";
