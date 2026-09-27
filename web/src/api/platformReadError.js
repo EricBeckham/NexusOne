@@ -17,25 +17,37 @@ const REASONS = {
 };
 
 /**
+ * AUTH6G6: the audit center is bridged for the audit admin only (three-power split), so its duty / grant refusals
+ * need their own wording; everything else is shared with the system-admin pages.
+ */
+const AUDIT_REASONS = {
+  ...REASONS,
+  duty_set: "审计中心只对「审计管理员」开放（三权分立）；平台运营等其他平台职责无法查看。",
+  permission_denied: "当前账号没有读取审计事件的授权（audit:read）。",
+};
+
+/**
  * AUTH6G5: for pages that show the plain server message today — explain the two platform-context refusals
  * (AUTH6 bridge / missing platform context) and leave every other error exactly as the page showed it before.
+ * `options.audit` selects the audit-center wording (AUTH6G6).
  */
-export function explainPlatformRead(err, fallback) {
+export function explainPlatformRead(err, fallback, options = {}) {
   const code = err?.code || err?.body?.code || "";
   if (code === PLATFORM_READ_DENIED || code === "P1.CONTEXT.0001") {
-    return platformReadFailure(err, fallback);
+    return platformReadFailure(err, fallback, options);
   }
   return err?.message || fallback;
 }
 
 /** Returns the description line for a failed platform read list call. */
-export function platformReadFailure(err, fallback) {
+export function platformReadFailure(err, fallback, options = {}) {
   const code = err?.code || err?.body?.code || "";
   if (code === PLATFORM_READ_DENIED) {
+    const reasons = options.audit ? AUDIT_REASONS : REASONS;
     const reason = String(err?.body?.reason || "");
     // Unknown reasons are not echoed: only the fixed tokens above reach the page.
-    const known = Object.hasOwn(REASONS, reason);
-    const copy = known ? REASONS[reason] : "平台只读列表拒绝了这次请求。";
+    const known = Object.hasOwn(reasons, reason);
+    const copy = known ? reasons[reason] : "平台只读列表拒绝了这次请求。";
     return known ? `${copy}（${code} · ${reason}）` : `${copy}（${code}）`;
   }
   if (code === "P1.CONTEXT.0001") {

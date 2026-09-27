@@ -98,3 +98,29 @@ describe("P1 platform audit center", () => {
     expect(wrapper.text()).not.toContain("星构");
   });
 });
+
+describe("AUTH6G6 audit center refusals", () => {
+  beforeEach(() => {
+    audit.platformEvents.mockReset();
+    audit.verifyChain.mockReset();
+  });
+
+  it("tells a platform operator that the audit center is for the audit admin only", async () => {
+    audit.platformEvents.mockRejectedValue(Object.assign(new Error("platform read context denied"), {
+      status: 403,
+      code: "AUTH6.PLATFORM_READ_DENIED",
+      body: { code: "AUTH6.PLATFORM_READ_DENIED", reason: "duty_set" },
+    }));
+    const { wrapper } = await open();
+    expect(wrapper.text()).toContain("审计管理员");
+    expect(wrapper.text()).toContain("AUTH6.PLATFORM_READ_DENIED · duty_set");
+    expect(wrapper.text()).not.toContain("系统管理员");
+    expect(wrapper.text()).not.toContain("platform read context denied");
+  });
+
+  it("keeps any other server message as before", async () => {
+    audit.platformEvents.mockRejectedValue(Object.assign(new Error("审计库暂不可用"), { status: 503 }));
+    const { wrapper } = await open();
+    expect(wrapper.text()).toContain("审计库暂不可用");
+  });
+});
