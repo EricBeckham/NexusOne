@@ -397,6 +397,9 @@ export const p4 = {
   rejectActivation: (id, note) => api(`/api/v1/p4/activation-applications/${encodeURIComponent(id)}/reject`, { method: "POST", body: { note }, platform: true, auth: false }),
   upgrade: (installationId, versionId) => api(`/api/v1/p4/installations/${installationId}/upgrade`, { method: "POST", body: { versionId } }),
   uninstall: (installationId) => api(`/api/v1/p4/installations/${installationId}/uninstall`, { method: "POST", body: {} }),
+  processConfiguration: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}/process-configuration`),
+  configureProcess: (id, body) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}/process-configuration`, { method: 'PUT', body }),
+  resetProcess: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}/process-configuration`, { method: 'DELETE' }),
 };
 
 /** P5 thin self-use integration surface; no external developer portal or OAuth ecosystem. */

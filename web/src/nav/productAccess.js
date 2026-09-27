@@ -24,6 +24,9 @@ export async function productGuard(to, ensureProducts) {
   const productId = to.meta?.product;
   if (!productId && to.path !== "/") return true;
   const allowed = await ensureProducts();
+  if (to.meta?.platformProcess && (!Array.isArray(allowed) || !allowed.includes('p1') || !allowed.includes('p4'))) {
+    return { path: '/no-access', query: { product: 'p1' } };
+  }
   if (!Array.isArray(allowed)) return true;
   if (to.path === "/") {
     const only = allowed.length === 1 ? productById(allowed[0]) : null;

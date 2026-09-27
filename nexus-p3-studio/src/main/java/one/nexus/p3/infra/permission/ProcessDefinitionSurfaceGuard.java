@@ -24,6 +24,9 @@ import org.springframework.stereotype.Component;
 @ConditionalOnClass(PermissionModule.class)
 @ConditionalOnBean(PermissionModule.class)
 public class ProcessDefinitionSurfaceGuard {
+    private one.nexus.p1.config.P1Properties platformProperties;
+    @org.springframework.beans.factory.annotation.Autowired
+    void setPlatformProperties(one.nexus.p1.config.P1Properties properties) { platformProperties = properties; }
     public static final String RESOURCE = "process.definition";
     public static final String READ = "read";
     public static final String WRITE = "write";
@@ -48,6 +51,16 @@ public class ProcessDefinitionSurfaceGuard {
     public Decision require(String action) {
         if (IsolationOnlyDecision.isolationOnly()) {
             return IsolationOnlyDecision.allow();
+        }
+        var context = one.nexus.p2.kernel.TenantContextHolder.require();
+        if (platformProperties != null && context.tenantId().equals(platformProperties.getPlatformTenant().getId())) {
+            var service = permission.service();
+            var duties = one.nexus.permission.admin.PlatformDutyCatalog.heldDuties(
+                    one.nexus.permission.engine.PermissionEngine.expandedRoleCodes(service.currentSubject(), service.snapshot()));
+            if (!duties.equals(java.util.Set.of(one.nexus.permission.admin.PlatformDutyCatalog.SYSTEM_ADMIN))) {
+                throw one.nexus.permission.support.PermissionException.denied("duty_conflict");
+            }
+            return SurfaceGuard.require(permission, "tenant.config", WRITE.equals(action) ? "update" : "get");
         }
         TenantMemberGrantSeeder.ensureIfPresent(grantSeeder);
         return SurfaceGuard.require(permission, RESOURCE, action);
