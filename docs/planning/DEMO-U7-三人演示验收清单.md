@@ -6,10 +6,15 @@
 
 ## 0. 发布与纪律（先勾）
 
-- [ ] 记录**发布 SHA**（`main`）：`________________`。本次构建包含 DEMO-U2（#703）、DEMO-U3（#704）、DEMO-U5（#705）、DEMO-U6（#707）及 AUTH1–AUTH6。
+- [ ] 记录**发布 SHA**（`main`）：`________________`。本次构建包含 ID1 / ID3（#720）、DEMO-U2（#703）、DEMO-U3（#704）、DEMO-U5（#705）、DEMO-U6（#707）及 AUTH1–AUTH6。
 - [ ] 部署产物即该 SHA 的构建；**没有**在演示机热修 jar / SPA / class，**没有**用 env 改产品语义，**没有**手改数据库或权限表。
 - [ ] `NEXUS_DEMO_ENABLED`、`NEXUS_P1_DEMO_CONTEXT_ENABLED` 为 `false`（或未设置）。
 - [ ] 一次性窗口已按 DEMO-U2 执行过一次：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 重启一次（安装平台职责、对齐三人身份、按 DEMO-U5 安装 `demo_acme` 的 `tenant_admin` / `tenant_member`），之后已设回 `false` 并再次重启。
+- [ ] **ID1 身份插入后（发布 SHA 含 #720 `07198104`）**，按 [TC5 §0.1](TC5-三人登录TenantContext验收清单.md) 勾完：
+  - U2 窗口那次启动成功，无 `ID1 identity conflict`；
+  - person `…0222` 存在并挂在 `platform_system_admin`；
+  - 三人各恰好 1 条 ACTIVE membership；
+  - 三人登录均进首页，不再缺 TenantContext。
 - [ ] 平台只读列表开关 `NEXUS_P1_PLATFORM_READ_CONTEXT_ENABLED=true`（AUTH6）由部署配置明确设置。
 - [ ] Keycloak 三个用户已按 DEMO-U4 创建 / 核对，邮箱与 DEMO-U3 冻结表一致。
 
@@ -31,7 +36,7 @@
 | 租户管理（林晓） | `nexus-demo-tenant-admin` | 租户 = `demo_acme` 的**名称**（如「演示租户 · 星河科技」），不是 UUID（DEMO-U6）；岗位 = 租户管理 | [ ] |
 | 一般用户（周然） | `nexus-demo-member` | 租户 = `demo_acme` 名称；岗位 = 一般用户 | [ ] |
 
-- [ ] 三人都经 Keycloak 登录并回跳成功；没有出现「缺少 TenantContext」页（出现即记卡点：person / membership 未准备）。
+- [ ] 三人都经 Keycloak 登录并回跳成功；没有出现「缺少 TenantContext」页（出现即记卡点：person / membership 未准备）。含 ID1 的构建做过 U2 窗口后，这一页**不应再出现**；仍出现时先核对 §0 的 ID1 项（窗口是否真的成功执行、孤儿是否已清），不在演示机手补身份。
 - [ ] 用户菜单与切换下拉中**没有**只显示一串 UUID 的租户。
 
 ## 3. 平台运营开平台页
