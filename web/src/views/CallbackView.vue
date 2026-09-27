@@ -22,13 +22,26 @@
       </NxErrorState>
       <NxErrorState
         v-else-if="contextMissing"
-        title="缺少 TenantContext"
-        description="身份已经回来，但会话里没有租户上下文。请回到登录页重新进入租户。这不是已进入业务页。"
+        :title="contextMissing.title"
+        :description="contextMissing.description"
+        :data-kind="contextMissing.kind"
         data-testid="tenant-context-missing"
       >
         <template #action>
-          <router-link class="primary" to="/login" data-testid="callback-back-login">回登录</router-link>
-          <button type="button" data-testid="callback-retry" @click="run">重试</button>
+          <button
+            v-if="contextMissing.canRetry"
+            type="button"
+            class="primary"
+            :disabled="retrying"
+            data-testid="callback-retry-enter"
+            @click="retryEnter"
+          >{{ retrying ? "正在进入…" : "重试" }}</button>
+          <router-link
+            v-if="contextMissing.canSwitchManually"
+            to="/"
+            data-testid="callback-switch-manually"
+          >去首页手动切换</router-link>
+          <router-link :class="{ primary: !contextMissing.canRetry }" to="/login" data-testid="callback-back-login">回登录</router-link>
         </template>
       </NxErrorState>
       <template v-else>
@@ -50,7 +63,7 @@ import {
 } from "../api/pkce-desktop";
 import { PRODUCT_AUTH_AFTER, completeProductAuthCodeCallback } from "../auth/productAuthCode";
 import { keycloakPublicConfig } from "../auth/keycloakPublic";
-import { callbackFailureCopy, sessionHasTenantContext } from "../auth/callbackHonesty";
+import { callbackFailureCopy, sessionHasTenantContext, tenantContextMissingCopy } from "../auth/callbackHonesty";
 import { isMfaRequiredError } from "../auth/totpEnrollment";
 import { NxErrorState } from "../components";
 
@@ -60,12 +73,38 @@ const route = useRoute();
 const router = useRouter();
 const status = ref("");
 const failure = ref(null);
-const contextMissing = ref(false);
+const contextMissing = ref(null);
+const retrying = ref(false);
 const state = ref(String(route.query.state || ""));
+// Where to go once a tenant is entered; kept so "重试" only re-attempts the tenant entry (the code is single-use).
+const afterEnter = ref({ path: "/", query: {} });
+
+function showContextMissing(view) {
+  const memberships = Array.isArray(session.memberships) && session.memberships.length
+    ? session.memberships
+    : view?.memberships;
+  contextMissing.value = tenantContextMissingCopy(memberships);
+}
+
+async function retryEnter() {
+  if (retrying.value) return;
+  retrying.value = true;
+  try {
+    await autoSelectTenant();
+    if (session.contextId) {
+      contextMissing.value = null;
+      await router.replace(afterEnter.value);
+      return;
+    }
+    showContextMissing(null);
+  } finally {
+    retrying.value = false;
+  }
+}
 
 async function run() {
   failure.value = null;
-  contextMissing.value = false;
+  contextMissing.value = null;
   status.value = "";
   if (route.query.error) {
     failure.value = callbackFailureCopy({ queryError: String(route.query.error) });
@@ -92,19 +131,20 @@ async function run() {
           rememberTrace,
         });
     // AUTH5: several ACTIVE memberships and no context → enter demo_acme (or the first ACTIVE) automatically.
+    const after = usingDesktopPkce ? DESKTOP_PKCE_AFTER : PRODUCT_AUTH_AFTER;
+    const query = result.pending?.trace_id ? { trace: result.pending.trace_id } : {};
+    afterEnter.value = { path: after, query };
     if (!sessionHasTenantContext(result.view)) {
       await autoSelectTenant();
     }
     if (!session.contextId) {
       status.value = "";
-      contextMissing.value = true;
+      showContextMissing(result.view);
       return;
     }
     const name = result.view?.display_name || result.view?.displayName || "";
-    status.value = name ? `已建立租户上下文 · ${name}` : "已建立租户上下文";
-    const after = usingDesktopPkce ? DESKTOP_PKCE_AFTER : PRODUCT_AUTH_AFTER;
-    const query = result.pending?.trace_id ? { trace: result.pending.trace_id } : {};
-    await router.replace({ path: after, query });
+    status.value = name ? `已进入租户 · ${name}` : "已进入租户";
+    await router.replace(afterEnter.value);
   } catch (err) {
     status.value = "";
     if (isMfaRequiredError(err)) {

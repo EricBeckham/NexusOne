@@ -6,7 +6,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 const completeDesktopPkceCallback = vi.fn();
 const completeProductAuthCodeCallback = vi.fn();
 const readDesktopPkcePending = vi.fn();
-const sessionMock = vi.hoisted(() => ({ session: { contextId: "" }, autoSelectTenant: vi.fn() }));
+const sessionMock = vi.hoisted(() => ({ session: { contextId: "", memberships: [] }, autoSelectTenant: vi.fn() }));
 
 vi.mock("../api/client", () => ({ p2: { login: vi.fn() } }));
 vi.mock("../api/session", () => ({
@@ -46,6 +46,7 @@ async function mountAt(path) {
 describe("callback tenant context shell", () => {
   beforeEach(() => {
     sessionMock.session.contextId = "";
+    sessionMock.session.memberships = [];
     sessionMock.autoSelectTenant.mockReset();
     sessionMock.autoSelectTenant.mockResolvedValue(null);
     readDesktopPkcePending.mockReset();
@@ -55,13 +56,17 @@ describe("callback tenant context shell", () => {
     readDesktopPkcePending.mockReturnValue(null);
   });
 
-  it("shows a missing TenantContext shell and does not enter the app", async () => {
+  it("shows the no-tenant shell and does not enter the app", async () => {
     completeProductAuthCodeCallback.mockResolvedValue({
       view: { display_name: "Admin", context_id: "" },
       pending: { trace_id: "trace-1" },
     });
     const { wrapper, router } = await mountAt("/callback?code=auth-code&state=abc");
-    expect(wrapper.get("[data-testid=tenant-context-missing]").text()).toContain("缺少 TenantContext");
+    const shell = wrapper.get("[data-testid=tenant-context-missing]");
+    expect(shell.attributes("data-kind")).toBe("no_membership");
+    expect(shell.text()).toContain("还没有可进入的租户");
+    expect(shell.text()).toContain("联系管理员");
+    expect(wrapper.find("[data-testid=callback-retry-enter]").exists()).toBe(false);
     expect(wrapper.get("[data-testid=callback-back-login]").attributes("href")).toBe("/login");
     expect(router.currentRoute.value.path).toBe("/callback");
     expect(wrapper.text()).not.toContain("auth-code");
@@ -151,5 +156,59 @@ describe("AUTH5 automatic tenant after the Keycloak callback", () => {
     const { router } = await mountAt("/callback?code=auth-code&state=abc");
     expect(sessionMock.autoSelectTenant).not.toHaveBeenCalled();
     expect(router.currentRoute.value.path).toBe("/");
+  });
+});
+describe("TC3 memberships present but entering the tenant failed", () => {
+  const ACTIVE = [
+    { tenant_id: "01900000-0000-7000-8000-000000000101", status: "ACTIVE" },
+    { tenant_id: "01900000-0000-7000-8000-000000000001", status: "ACTIVE" },
+  ];
+
+  beforeEach(() => {
+    sessionMock.session.contextId = "";
+    sessionMock.session.memberships = ACTIVE;
+    sessionMock.autoSelectTenant.mockReset();
+    sessionMock.autoSelectTenant.mockResolvedValue(null);
+    readDesktopPkcePending.mockReset();
+    completeProductAuthCodeCallback.mockReset();
+    readDesktopPkcePending.mockReturnValue(null);
+    completeProductAuthCodeCallback.mockResolvedValue({
+      view: { display_name: "Lin", context_id: "", memberships: ACTIVE },
+      pending: { trace_id: "" },
+    });
+  });
+
+  it("says entering failed, offers retry and the manual switch, in product wording", async () => {
+    const { wrapper, router } = await mountAt("/callback?code=auth-code&state=abc");
+    const shell = wrapper.get("[data-testid=tenant-context-missing]");
+    expect(shell.attributes("data-kind")).toBe("auto_enter_failed");
+    expect(shell.text()).toContain("未能自动进入租户");
+    expect(shell.text()).toContain("右上角");
+    expect(wrapper.get("[data-testid=callback-retry-enter]").text()).toBe("重试");
+    expect(wrapper.get("[data-testid=callback-switch-manually]").attributes("href")).toBe("/");
+    expect(wrapper.text()).not.toMatch(/leftover|PKCE|code_verifier|TenantContext/);
+    expect(router.currentRoute.value.path).toBe("/callback");
+  });
+
+  it("retry only re-attempts the tenant entry and continues once it succeeds", async () => {
+    const { wrapper, router } = await mountAt("/callback?code=auth-code&state=abc");
+    expect(completeProductAuthCodeCallback).toHaveBeenCalledTimes(1);
+    sessionMock.autoSelectTenant.mockImplementationOnce(async () => {
+      sessionMock.session.contextId = "ctx-demo";
+      return "01900000-0000-7000-8000-000000000101";
+    });
+    await wrapper.get("[data-testid=callback-retry-enter]").trigger("click");
+    await flushPromises();
+    expect(completeProductAuthCodeCallback).toHaveBeenCalledTimes(1);
+    expect(sessionMock.autoSelectTenant).toHaveBeenCalledTimes(2);
+    expect(router.currentRoute.value.path).toBe("/");
+  });
+
+  it("a single membership that could not be entered offers retry but no manual switch", async () => {
+    sessionMock.session.memberships = [ACTIVE[0]];
+    const { wrapper } = await mountAt("/callback?code=auth-code&state=abc");
+    expect(wrapper.get("[data-testid=tenant-context-missing]").attributes("data-kind")).toBe("auto_enter_failed");
+    expect(wrapper.find("[data-testid=callback-retry-enter]").exists()).toBe(true);
+    expect(wrapper.find("[data-testid=callback-switch-manually]").exists()).toBe(false);
   });
 });
