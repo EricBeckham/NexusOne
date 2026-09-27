@@ -24,10 +24,10 @@ public class ApprovalProductDemoSeedConfiguration {
     static final UUID TEMPLATE_VERSION_ID = UUID.fromString("01900000-0000-7000-8000-000000000502");
     static final UUID APP_ID = UUID.fromString("01900000-0000-7000-8000-000000000503");
     static final UUID APP_VERSION_ID = UUID.fromString("01900000-0000-7000-8000-000000000504");
-    static final UUID DEFINITION_ID = UUID.fromString("01900000-0000-7000-8000-000000000505");
+    public static final UUID DEFINITION_ID = UUID.fromString("01900000-0000-7000-8000-000000000505");
     static final UUID DRAFT_ID = UUID.fromString("01900000-0000-7000-8000-000000000506");
-    static final String SKU_CODE = "demo.simple-approval";
-    static final String PROCESS_KEY = "demoSimpleApproval";
+    public static final String SKU_CODE = "demo.simple-approval";
+    public static final String PROCESS_KEY = "demoSimpleApproval";
     static final String SNAPSHOT = """
             [{"key":"title","label":"事由","type":"TEXT","required":true},\
             {"key":"days","label":"天数","type":"NUMBER","required":false},\
@@ -70,7 +70,8 @@ public class ApprovalProductDemoSeedConfiguration {
         };
     }
 
-    private static void seedCatalog(JdbcClient jdbc) {
+    /** Idempotent. Also used by the prod-safe content bootstrap (DL-L1), which does not depend on the demo switch. */
+    public static void seedCatalog(JdbcClient jdbc) {
         jdbc.sql("""
                 INSERT INTO platform.form_template
                   (id, code, name, description, status, running_version_id, created_at, updated_at, version)
@@ -207,7 +208,7 @@ public class ApprovalProductDemoSeedConfiguration {
     }
 
     /** Deploys the one-level BPMN the same way M10 does: tenant-scoped Flowable deployment. */
-    static void publishProcess(RepositoryService repository) {
+    public static void publishProcess(RepositoryService repository) {
         if (repository == null) {
             return;
         }

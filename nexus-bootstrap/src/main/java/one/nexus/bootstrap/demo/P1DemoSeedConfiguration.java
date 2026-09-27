@@ -11,7 +11,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Minimal P1 visual-demo tenant. It is inert unless the explicitly guarded demo switch is on. */
 @Configuration
 public class P1DemoSeedConfiguration {
-    static final UUID TENANT_ID = UUID.fromString("01900000-0000-7000-8000-000000000101");
+    public static final UUID TENANT_ID = UUID.fromString("01900000-0000-7000-8000-000000000101");
     static final UUID PLATFORM_ID = UUID.fromString("01900000-0000-7000-8000-000000000001");
 
     @Bean
@@ -28,7 +28,12 @@ public class P1DemoSeedConfiguration {
                 throw new IllegalStateException("禁止连生产：演示数据需要明确配置本机数据库地址");
             }
 
-            transaction.executeWithoutResult(status -> {
+            transaction.executeWithoutResult(status -> seedTenant(jdbc));
+        };
+    }
+
+    /** Idempotent demo tenant rows. Also used by the prod-safe content bootstrap (DL-L1). */
+    public static void seedTenant(JdbcClient jdbc) {
                 jdbc.sql("""
                         INSERT INTO platform.tenant (
                           id, code, name, kind, status, legal_name, created_at, created_by,
@@ -63,7 +68,5 @@ public class P1DemoSeedConfiguration {
                                (:id, 'CUSTOM_LEDGER', 10, 0, 80, 'REJECT', timestamptz '2026-01-01 00:00:00+00', 1)
                         ON CONFLICT (tenant_id, metric) DO NOTHING
                         """).param("id", TENANT_ID).update();
-            });
-        };
     }
 }

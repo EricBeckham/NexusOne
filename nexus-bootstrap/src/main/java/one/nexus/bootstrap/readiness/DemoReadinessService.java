@@ -38,7 +38,8 @@ public class DemoReadinessService {
     public record DemoReadiness(boolean prodProfileActive, boolean demoProfileActive, String idpMode,
             boolean keycloakIssuerConfigured, boolean keycloakIssuerHttps, boolean keycloakClientConfigured,
             List<String> missingKeycloakVariables, boolean demoFlagsOff, boolean cryptoKeyFromEnv,
-            boolean durablePersistence, int prodGuardViolationCount, String health, String note) {
+            boolean durablePersistence, int prodGuardViolationCount, String health, boolean contentBootstrapOpen,
+            String note) {
         public DemoReadiness {
             missingKeycloakVariables = List.copyOf(missingKeycloakVariables);
         }
@@ -69,6 +70,7 @@ public class DemoReadinessService {
                 ProductionProfileGuard.durablePersistence(env),
                 ProductionProfileGuard.violations(env).size(),
                 healthWord(),
+                "true".equalsIgnoreCase(env.getProperty("nexus.content-bootstrap.enabled", "false").trim()),
                 NOTE);
     }
 
