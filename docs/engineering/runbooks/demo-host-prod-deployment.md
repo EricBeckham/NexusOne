@@ -31,6 +31,7 @@ mvn -q -DskipTests package
 sha256sum nexus-bootstrap/target/nexus-bootstrap-0.1.0-SNAPSHOT.jar
 ```
 
+- [ ] SPA（`web/dist`）从同一 SHA 构建，并按 [PKG1](pkg1-spa-keycloak-public-env.md) 在构建期注入 `VITE_NEXUS_KEYCLOAK_ISSUER` / `VITE_NEXUS_KEYCLOAK_CLIENT_ID`；上传前检查 `dist/assets/keycloakPublic-*.js` 含真实 issuer 与 client id，没有就不上传、不标 release。
 - [ ] 把 JAR 与 SHA-256 一起传入演示机，传输后重新计算并比对。
 - [ ] 不把 `.env`、密钥文件、数据库 dump 或证书私钥打进 JAR / 镜像层 / 发布压缩包。
 
