@@ -6,6 +6,8 @@
 
 ## 1. 必做项（环境所有者 / 运维）
 
+DL 真机分册：[真机演示 runbook](../engineering/runbooks/demo-host-realhost-launch.md)；本地 stub 单独看 [本地 runbook](../engineering/runbooks/demo-simple-approval.md)。预备 ≠ 验收，真机不复用 demo seed/reset。
+
 ### DPO 预备索引（不勾真机验收）
 
 - 本地 [Keycloak compose / realm stub](../../deploy/keycloak/README.md)（DPO-X1）：client 默认禁用、REPLACE_* 占位；不是演示机部署。
