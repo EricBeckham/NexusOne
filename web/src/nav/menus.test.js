@@ -23,7 +23,7 @@ describe("product shell menus", () => {
 
   it("keeps P1 and P2 on their own menus", () => {
     const p1 = navFor("p1").map((item) => item.label);
-    expect(p1).toEqual(["首页", "租户列表", "新建租户", "注册审订", "租户详情", "租户关系", "权益与配额", "平台服务态", "平台审计", "表单模板"]);
+    expect(p1).toEqual(["首页", "租户列表", "新建租户", "注册审订", "租户详情", "租户关系", "权益与配额", "平台服务态", "演示部署状态", "平台审计", "表单模板"]);
     expect(navFor("p1").find((item) => item.id === "quotas").to).toBe("/p1/quotas");
     expect(navFor("p1").find((item) => item.id === "service").to).toBe("/p1/services");
     expect(navFor("p1").find((item) => item.id === "audit").to).toBe("/p1/audit");
