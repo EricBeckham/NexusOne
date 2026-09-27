@@ -1,5 +1,7 @@
 # DPO-X1 · Keycloak 开发预备（非演示机验收）
 
+登录视觉主题见 [KC1–KC3：NexusOne theme](../../docs/engineering/runbooks/keycloak-login-theme.md)。仓内提供 `themes/nexusone`，本地 compose 只读挂载它；挂载不等于选用，不自动改 realm/client/用户。演示机须合入后正规部署 theme 并按 runbook 复验，不能用 SPA 发布替代。
+
 此 compose 仅本地 `start-dev`，端口 `127.0.0.1:18080`，不是 prod 配置。没有演示账号、真实 secret 或已验收结论。
 
 在本 worktree 根运行：

@@ -1,0 +1,90 @@
+/* Keycloak 26.7.4 parent=keycloak. Keep all authentication templates and scripts inherited. */
+.login-pf body {
+  margin: var(--nx-space-0);
+  min-height: 100dvh;
+  background: var(--nx-bg-page);
+  color: var(--nx-text-primary);
+  font-family: var(--nx-font);
+  font-size: var(--nx-font-size-md);
+  line-height: 1.5;
+}
+.login-pf .login-pf-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--nx-space-6);
+}
+.login-pf #kc-header {
+  width: 100%;
+  max-width: var(--nx-auth-panel-width);
+  padding: var(--nx-space-0);
+  margin: var(--nx-space-0) var(--nx-space-0) var(--nx-space-6);
+  color: var(--nx-text-primary);
+  text-align: center;
+}
+.login-pf #kc-header-wrapper {
+  padding: var(--nx-space-0);
+  font-size: var(--nx-font-size-page-title);
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+}
+.login-pf .card-pf {
+  width: 100%;
+  max-width: var(--nx-auth-panel-width);
+  margin: var(--nx-space-0);
+  padding: var(--nx-space-8);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface);
+  box-shadow: var(--nx-shadow-card);
+}
+.login-pf .login-pf-header { margin: var(--nx-space-0) var(--nx-space-0) var(--nx-space-6); }
+.login-pf #kc-page-title { margin: var(--nx-space-0); font-size: var(--nx-font-size-lg); font-weight: 600; color: var(--nx-text-primary); }
+.login-pf .form-group { margin-bottom: var(--nx-form-field-gap); }
+.login-pf label { font-size: var(--nx-font-size-md); font-weight: 500; color: var(--nx-text-regular); }
+.login-pf .pf-c-form-control {
+  min-height: var(--nx-control-height-lg);
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: var(--nx-control-radius);
+  background: var(--nx-surface);
+  color: var(--nx-text-primary);
+  font-size: var(--nx-font-size-md);
+}
+.login-pf .pf-c-form-control:focus { border-color: var(--nx-primary); outline: 2px solid var(--nx-primary-light); outline-offset: 0; }
+.login-pf .pf-c-form-control[aria-invalid="true"] { border-color: var(--nx-danger); }
+.login-pf .pf-c-input-group { gap: var(--nx-space-1); }
+.login-pf .pf-c-input-group .pf-c-button { border-radius: var(--nx-control-radius); color: var(--nx-text-secondary); background: var(--nx-surface); }
+.login-pf .pf-c-button.pf-m-primary {
+  min-height: var(--nx-control-height-lg);
+  padding: var(--nx-space-2) var(--nx-space-4);
+  border: 0;
+  border-radius: var(--nx-control-radius);
+  background: var(--nx-product);
+  color: var(--nx-surface);
+  font-size: var(--nx-font-size-md);
+  font-weight: 600;
+  box-shadow: none;
+}
+.login-pf .pf-c-button.pf-m-primary::after { border: 0; }
+.login-pf .pf-c-button.pf-m-primary:hover { background: var(--nx-primary-hover); }
+.login-pf .pf-c-button.pf-m-primary:disabled { opacity: 0.6; cursor: wait; }
+.login-pf :is(a, button, input):focus-visible { outline: 2px solid var(--nx-primary); outline-offset: 2px; }
+.login-pf a { color: var(--nx-primary); font-size: var(--nx-font-size-md); }
+.login-pf a:hover { color: var(--nx-primary-hover); }
+.login-pf .login-pf-settings { gap: var(--nx-space-2); flex-wrap: wrap; }
+.login-pf #kc-form-buttons { margin-top: var(--nx-space-6); margin-bottom: var(--nx-space-0); }
+.login-pf #input-error, .login-pf .pf-c-form__helper-text.pf-m-error { color: var(--nx-danger); font-size: var(--nx-font-size-sm); }
+.login-pf .pf-c-alert { margin-bottom: var(--nx-space-4); border: 0; border-radius: var(--nx-radius-sm); padding: var(--nx-space-3); }
+.login-pf .alert-error { background: var(--nx-danger-light); color: var(--nx-danger); }
+.login-pf .alert-warning { background: var(--nx-warning-light); color: var(--nx-text-regular); }
+.login-pf .alert-success { background: var(--nx-success-light); color: var(--nx-text-regular); }
+.login-pf .alert-info { background: var(--nx-info-light); color: var(--nx-text-regular); }
+.login-pf .kc-feedback-text { font-size: var(--nx-font-size-sm); color: inherit; }
+.login-pf #kc-info-wrapper { background: var(--nx-bg-page); margin: var(--nx-space-4) var(--nx-space-0) var(--nx-space-0); padding: var(--nx-space-3); border-radius: var(--nx-radius-sm); }
+.login-pf #kc-locale { position: static; text-align: right; margin-bottom: var(--nx-space-3); }
+.login-pf #kc-current-locale-link { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }

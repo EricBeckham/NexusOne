@@ -1,0 +1,85 @@
+/* Generated from web/src/styles/tokens.css; run deploy/keycloak/scripts/sync-theme-tokens.mjs. */
+:root {
+  --nx-bg-page: #f5f8fc;
+  --nx-bg-sidebar: #f8fafd;
+  --nx-surface: #ffffff;
+  --nx-surface-hover: #f8faff;
+  --nx-text-primary: #102a56;
+  --nx-text-regular: #40536d;
+  --nx-text-secondary: #74839a;
+  --nx-text-disabled: #aab5c4;
+  --nx-border: #e5ebf3;
+  --nx-border-strong: #d5deea;
+  --nx-divider: #edf1f6;
+  --nx-primary: #246bfd;
+  --nx-primary-hover: #1d5de0;
+  --nx-primary-light: #eef5ff;
+  --nx-success: #12b76a;
+  --nx-success-light: #eafbf3;
+  --nx-warning: #f79009;
+  --nx-warning-light: #fff6e8;
+  --nx-danger: #f04438;
+  --nx-danger-light: #fff0ef;
+  --nx-info: #2e90fa;
+  --nx-info-light: #eef6ff;
+  --nx-chart-blue: #2e78ff;
+  --nx-chart-green: #20b26b;
+  --nx-chart-purple: #7a5af8;
+  --nx-chart-orange: #ff8a34;
+  --nx-chart-red: #f04438;
+  --nx-chart-cyan: #16bfd6;
+  --nx-product: #246bfd;
+  --nx-product-light: #eef5ff;
+  --nx-shadow-card: 0 4px 16px rgba(31, 56, 88, 0.06);
+  --nx-shadow-popover: 0 10px 32px rgba(31, 56, 88, 0.14);
+  --nx-shadow-dialog: 0 20px 60px rgba(15, 38, 72, 0.22);
+  --nx-radius: 12px;
+  --nx-radius-sm: 8px;
+  --nx-radius-pill: 999px;
+  --nx-space-0: 0;
+  --nx-space-1: 4px;
+  --nx-space-2: 8px;
+  --nx-space-3: 12px;
+  --nx-space-4: 16px;
+  --nx-space-5: 20px;
+  --nx-space-6: 24px;
+  --nx-space-8: 32px;
+  --nx-space-10: 40px;
+  /* §2.4 / O2: vertical rhythm between form fields (label+control blocks). */
+  --nx-form-field-gap: var(--nx-space-5);
+  --nx-form-label-gap: var(--nx-space-2);
+  /* §9 / O3: control heights (Default 34/36 → pin 36). */
+  --nx-control-height: 36px;
+  --nx-control-height-sm: 28px;
+  --nx-control-height-lg: 40px;
+  --nx-control-radius: 6px;
+  /* §12.1 / Q1: table row density (platform default 48). */
+  --nx-table-row-height: 48px;
+  --nx-table-row-height-compact: 40px;
+  --nx-table-row-height-large: 56px;
+  --nx-table-cell-padding-y: 12px;
+  --nx-table-cell-padding-x: var(--nx-space-3);
+  --nx-table-header-font-size: var(--nx-font-size-xs);
+  /* §2.3 Badge/Tag + §12.4 / Q4: shared status tag density (NxStatus / NxStatusTag). */
+  --nx-status-tag-height: 24px;
+  --nx-status-tag-padding-x: var(--nx-space-2);
+  --nx-status-tag-font-size: var(--nx-font-size-xs);
+  --nx-status-tag-font-weight: 500;
+  --nx-status-tag-line-height: 18px;
+  /* §21 / S2: toast auto-dismiss band (3–5s → pin 4s). */
+  --nx-toast-duration: 4000ms;
+  --nx-state-icon: 48px;
+  --nx-font-size-xs: 12px;
+  --nx-font-size-sm: 13px;
+  --nx-font-size-md: 14px;
+  --nx-font-size-lg: 20px;
+  --nx-font-size-page-title: 28px;
+  --nx-font-size-stat: 28px;
+  --nx-sidebar: 200px;
+  --nx-sidebar-collapsed: 64px;
+  --nx-header: 56px;
+  /* LOGIN: responsive auth card, independent of the signed-in application shell. */
+  --nx-auth-panel-width: 440px;
+  --nx-font: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+:root { --nx-product: #6d5cf6; --nx-product-light: #f3f0ff; }

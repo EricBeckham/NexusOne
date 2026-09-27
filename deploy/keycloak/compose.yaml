@@ -11,3 +11,4 @@ services:
     volumes:
       - ../../.local/dpo-keycloak/data:/opt/keycloak/data
       - ./import:/opt/keycloak/data/import:ro
+      - ./themes/nexusone:/opt/keycloak/themes/nexusone:ro
