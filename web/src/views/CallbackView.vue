@@ -51,6 +51,7 @@ import { applySessionView, autoSelectTenant, rememberTrace, session } from "../a
 import { DESKTOP_PKCE_AFTER, completeDesktopPkceCallback } from "../api/pkce-desktop";
 import { keycloakPublicConfig } from "../auth/keycloakPublic";
 import { callbackFailureCopy, sessionHasTenantContext } from "../auth/callbackHonesty";
+import { isMfaRequiredError } from "../auth/totpEnrollment";
 import { NxErrorState } from "../components";
 
 const idp = keycloakPublicConfig(import.meta.env);
@@ -96,6 +97,10 @@ async function run() {
     });
   } catch (err) {
     status.value = "";
+    if (isMfaRequiredError(err)) {
+      await router.replace({ path: "/login", query: { reason: "mfa_required" } });
+      return;
+    }
     failure.value = callbackFailureCopy({ message: err?.message });
   }
 }

@@ -47,6 +47,8 @@ async function mountLogin() {
     history: createMemoryHistory(),
     routes: [
       { path: "/login/dev", component: LoginView },
+      { path: "/login", component: { template: "<div>product login</div>" } },
+      { path: "/register", component: { template: "<div>register</div>" } },
       { path: "/p2/mfa/enroll", component: { template: "<div>enroll</div>" } },
       { path: "/p2/mfa/recovery", component: { template: "<div>recovery</div>" } },
       { path: "/p2/mfa/email", component: { template: "<div>email</div>" } },
