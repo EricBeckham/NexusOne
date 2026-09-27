@@ -7,6 +7,7 @@
       :crumbs="[{ label: '星域' }, { label: '演示部署状态' }]"
     >
       <template #actions>
+        <router-link class="ghost" to="/p1/demo-clickpath" data-testid="demo-deploy-clickpath">演示点击路径</router-link>
         <button class="ghost" type="button" :disabled="loading" data-testid="demo-deploy-refresh" @click="load">
           {{ loading ? "探测中…" : "重新探测" }}
         </button>

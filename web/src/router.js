@@ -26,6 +26,7 @@ const routes = [
   { path: "/p1/quotas", name: "p1-quotas", component: () => import("./views/tenants/TenantEntitlementView.vue"), meta: { title: "权益与配额", product: "p1" } },
   { path: "/p1/services", name: "p1-services", component: () => import("./views/tenants/PlatformServicesView.vue"), meta: { title: "平台服务态", product: "p1" } },
   { path: "/p1/demo-deploy", name: "p1-demo-deploy", component: () => import("./views/tenants/DemoDeployStatusView.vue"), meta: { title: "演示部署状态", product: "p1" } },
+  { path: "/p1/demo-clickpath", name: "p1-demo-clickpath", component: () => import("./views/tenants/ClickPathGuideView.vue"), meta: { title: "演示点击路径", product: "p1" } },
   { path: "/p1/audit", name: "p1-audit", component: () => import("./views/tenants/PlatformAuditView.vue"), meta: { title: "平台审计", product: "p1" } },
   { path: "/p1/form-templates", name: "form-templates", component: () => import("./views/tenants/FormTemplateListView.vue"), meta: { title: "表单模板", product: "p1" } },
   { path: "/p1/form-templates/new", name: "form-template-new", component: () => import("./views/tenants/FormTemplateEditorView.vue"), meta: { title: "表单模板", product: "p1" } },
