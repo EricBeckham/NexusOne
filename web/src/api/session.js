@@ -9,6 +9,7 @@ export const session = reactive({
   personId: "",
   email: "",
   displayName: "",
+  positionName: "",
   memberships: [],
   platformMode: true,
   demoActorId: "01900000-0000-7000-8000-0000000000ac",
@@ -29,6 +30,7 @@ function hydrate() {
     personId: stored.personId || "",
     email: stored.email || "",
     displayName: stored.displayName || "",
+    positionName: stored.positionName || "",
     memberships: stored.memberships || [],
     platformMode: stored.platformMode !== false,
     demoActorId: stored.demoActorId || session.demoActorId,
@@ -51,6 +53,7 @@ export function persist() {
     personId: session.personId,
     email: session.email,
     displayName: session.displayName,
+    positionName: session.positionName,
     memberships: session.memberships,
     platformMode: session.platformMode,
     demoActorId: session.demoActorId,
@@ -62,6 +65,7 @@ export function persist() {
 }
 
 function applyView(view) {
+  const previousContext = session.contextId;
   session.accountId = view?.account_id || view?.accountId || "";
   session.email = view?.email || "";
   session.displayName = view?.display_name || view?.displayName || "";
@@ -69,7 +73,42 @@ function applyView(view) {
   session.tenantId = view?.tenant_id || view?.tenantId || "";
   session.personId = view?.person_id || view?.personId || "";
   session.memberships = view?.memberships || [];
+  // AUTH4: a position belongs to one tenant context; a new context must not show the previous one.
+  if (session.contextId !== previousContext) session.positionName = "";
   persist();
+}
+
+/**
+ * AUTH4: the header shows the name of the PRIMARY, ACTIVE employment in the current tenant. No context, no primary
+ * post, or no permission to read it → empty (shown as 暂无). Never guesses from other posts.
+ */
+export async function loadPrimaryPosition() {
+  const personId = session.personId;
+  const tenantId = session.tenantId;
+  if (!session.accessToken || !session.contextId || !personId) {
+    session.positionName = "";
+    persist();
+    return "";
+  }
+  let name = "";
+  try {
+    const [employments, positions] = await Promise.all([p2.employments(personId), p2.positions()]);
+    const primary = (Array.isArray(employments) ? employments : []).find((row) =>
+      String(row?.kind || "").toUpperCase() === "PRIMARY"
+      && String(row?.status || "ACTIVE").toUpperCase() === "ACTIVE"
+      && !row?.deleted_at && !row?.deletedAt
+      && (!tenantId || !(row?.tenant_id || row?.tenantId) || (row?.tenant_id || row?.tenantId) === tenantId));
+    const positionId = primary?.position_id || primary?.positionId;
+    const position = positionId ? (Array.isArray(positions) ? positions : []).find((row) => row?.id === positionId) : null;
+    name = position?.name || "";
+  } catch {
+    name = "";
+  }
+  if (session.personId === personId && session.tenantId === tenantId) {
+    session.positionName = name;
+    persist();
+  }
+  return name;
 }
 
 export function applySessionView(view) {
@@ -86,12 +125,14 @@ export async function loginWithAccessToken(accessToken) {
   persist();
   const view = await p2.login({ access_token: accessToken });
   applyView(view);
+  await loadPrimaryPosition();
   return view;
 }
 
 export async function switchTenant(tenantId) {
   const view = await p2.switchTenant(tenantId);
   applyView(view);
+  await loadPrimaryPosition();
   return view;
 }
 
@@ -101,6 +142,7 @@ export async function refreshSession() {
   }
   const view = await p2.session();
   applyView(view);
+  await loadPrimaryPosition();
   return view;
 }
 
@@ -127,6 +169,7 @@ export function clearIdentity() {
   session.personId = "";
   session.email = "";
   session.displayName = "";
+  session.positionName = "";
   session.memberships = [];
   session.lastTraceId = "";
   session.loginMethod = "";
