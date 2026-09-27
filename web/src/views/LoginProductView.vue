@@ -6,13 +6,40 @@
         <p>登录进入工作台</p>
       </header>
       <div class="login-actions">
-        <button class="nx-btn nx-btn--primary" type="button" disabled>登录</button>
+        <button v-if="idp.configured" class="nx-btn nx-btn--primary" type="button" data-testid="keycloak-login" @click="onKeycloakLogin">
+          使用 Keycloak 登录
+        </button>
+        <p v-else class="login-unconfigured" role="status" data-testid="idp-unconfigured">登录服务暂未配置，请联系管理员。</p>
       </div>
-      <div class="login-feedback" aria-live="polite" data-testid="login-feedback" />
+      <div class="login-feedback" aria-live="polite" data-testid="login-feedback">
+        <p v-if="error" class="nx-error" role="alert" data-testid="login-error">{{ error }}</p>
+      </div>
       <footer class="login-secondary" data-testid="login-secondary" />
     </section>
   </main>
 </template>
+
+<script setup>
+import { computed, ref } from "vue";
+import { keycloakAuthorizeHref, keycloakPublicConfig } from "../auth/keycloakPublic";
+
+const idp = computed(() => keycloakPublicConfig(import.meta.env));
+const error = ref("");
+function onKeycloakLogin() {
+  error.value = "";
+  if (!idp.value.configured) return;
+  try {
+    window.location.assign(keycloakAuthorizeHref({
+      issuer: idp.value.issuer,
+      clientId: idp.value.clientId,
+      redirectUri: `${window.location.origin}/callback`,
+      state: "dpo-c1",
+    }));
+  } catch {
+    error.value = "暂时无法打开登录服务，请稍后重试或联系管理员。";
+  }
+}
+</script>
 
 <style scoped>
 .login-page {
@@ -41,6 +68,7 @@
   color: var(--nx-text-secondary);
 }
 .login-actions { display: grid; gap: var(--nx-space-3); }
+.login-unconfigured { margin: var(--nx-space-0); color: var(--nx-text-secondary); text-align: center; }
 .login-secondary { text-align: center; font-size: var(--nx-font-size-md); }
 .login-feedback:empty, .login-secondary:empty { display: none; }
 </style>
