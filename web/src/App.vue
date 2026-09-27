@@ -1,5 +1,5 @@
 <template>
-  <router-view v-if="route.path === '/login' || route.path === '/callback' || route.meta.harness" />
+  <router-view v-if="route.meta.authLayout || route.path === '/callback' || route.meta.harness" />
   <NxMobileShell v-else-if="route.meta.mobile" />
   <AppShell v-else />
   <NxToastHost />

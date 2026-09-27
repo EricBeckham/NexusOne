@@ -46,13 +46,13 @@ async function mountLogin() {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: "/login", component: LoginView },
+      { path: "/login/dev", component: LoginView },
       { path: "/p2/mfa/enroll", component: { template: "<div>enroll</div>" } },
       { path: "/p2/mfa/recovery", component: { template: "<div>recovery</div>" } },
       { path: "/p2/mfa/email", component: { template: "<div>email</div>" } },
     ],
   });
-  await router.push("/login");
+  await router.push("/login/dev");
   await router.isReady();
   return { wrapper: mount(LoginView, { global: { plugins: [router] } }), router };
 }
