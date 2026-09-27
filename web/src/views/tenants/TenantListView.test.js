@@ -92,4 +92,19 @@ describe("P1 tenant directory V4", () => {
     const wrapper = await mountList();
     expect(wrapper.get("[data-testid='nx-data-table-error']").text()).toContain("平台服务暂不可用");
   });
+
+  it("explains an AUTH6 refusal in product wording instead of a bare code", async () => {
+    const denied = Object.assign(new Error("platform read context denied"), {
+      status: 401,
+      code: "AUTH6.PLATFORM_READ_DENIED",
+      body: { code: "AUTH6.PLATFORM_READ_DENIED", reason: "missing_credentials" },
+    });
+    mocks.listTenants.mockRejectedValueOnce(denied);
+    const wrapper = await mountList();
+    const text = wrapper.get("[data-testid='nx-data-table-error']").text();
+    expect(text).toContain("租户目录暂时无法加载");
+    expect(text).toContain("重新登录");
+    expect(text).toContain("AUTH6.PLATFORM_READ_DENIED · missing_credentials");
+    expect(text).not.toContain("platform read context denied");
+  });
 });
