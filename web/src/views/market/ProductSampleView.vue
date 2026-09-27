@@ -124,6 +124,19 @@
             @retry="loadPrintMapping"
           />
           <template v-else>
+            <NxResult
+              v-if="mappingConflict"
+              compact
+              tone="warning"
+              data-testid="sample-print-mapping-conflict"
+              title="服务器上的映射已经变了，本次没有保存"
+              :description="mappingConflictText"
+            >
+              <template #next>
+                <button class="primary" type="button" data-testid="sample-print-conflict-reload" :disabled="mappingSaving" @click="reloadMappingFromServer">载入服务器版本</button>
+                <button class="ghost" type="button" data-testid="sample-print-conflict-overwrite" :disabled="mappingSaving" @click="overwriteMapping">用我的修改覆盖</button>
+              </template>
+            </NxResult>
             <div class="print-paper-row">
               <label class="nx-field">
                 <span>纸张</span>
@@ -141,8 +154,8 @@
                 class="ghost"
                 type="button"
                 data-testid="sample-print-mapping-save"
-                :disabled="mappingSaving || !selectedId"
-                @click="savePrintMapping"
+                :disabled="mappingSaving || !selectedId || Boolean(mappingConflict)"
+                @click="savePrintMapping()"
               >{{ mappingSaving ? "保存中…" : "保存映射" }}</button>
             </div>
             <p v-if="mappingSaveMessage" class="nx-muted" data-testid="sample-print-mapping-saved">{{ mappingSaveMessage }}</p>
@@ -308,6 +321,13 @@ const mappingError = ref("");
 const mappingTraceId = ref("");
 const mappingSaving = ref(false);
 const mappingSaveMessage = ref("");
+const mappingConflict = ref(null);
+const mappingConflictText = computed(() => {
+  if (!mappingConflict.value) return "";
+  const theirs = typeof mappingConflict.value.server?.revision === "number" ? mappingConflict.value.server.revision : null;
+  const mine = mappingConflict.value.basedOn;
+  return `你基于 ${mine == null ? "未知修订" : `r${mine}`} 修改，服务器现在是 ${theirs == null ? "未知修订" : `r${theirs}`}。为避免静默覆盖，本次没有保存；可以载入服务器版本，或明确用你的修改覆盖。`;
+});
 // CF-RD4: the designer opens this preview with ?from=designer; say which saved mapping the paper shows.
 const mappingSource = ref("");
 const mappingRevision = ref(null);
@@ -476,6 +496,7 @@ async function loadPrintMapping() {
   mappingError.value = "";
   mappingTraceId.value = "";
   mappingSaveMessage.value = "";
+  mappingConflict.value = null;
   const id = selectedId.value;
   if (!id || kind.value !== "print") return;
   try {
@@ -494,27 +515,54 @@ async function loadPrintMapping() {
   }
 }
 
-async function savePrintMapping() {
-  if (!selectedId.value) return;
+async function savePrintMapping(basedOn = mappingRevision.value) {
+  const id = selectedId.value;
+  if (!id || mappingSaving.value) return;
   mappingSaving.value = true;
   mappingSaveMessage.value = "";
   mappingError.value = "";
+  const body = {
+    paper: printPaper.value,
+    orientation: printOrientation.value,
+    mappings: mappingRows.value
+      .filter((row) => row.slotId)
+      .map((row) => ({ field_key: row.fieldKey, slot_id: row.slotId })),
+  };
+  if (basedOn != null) body.expected_revision = basedOn;
   try {
-    const saved = await p4.putProductPrintMapping(selectedId.value, {
-      paper: printPaper.value,
-      orientation: printOrientation.value,
-      mappings: mappingRows.value
-        .filter((row) => row.slotId)
-        .map((row) => ({ field_key: row.fieldKey, slot_id: row.slotId })),
-    });
+    const saved = await p4.putProductPrintMapping(id, body);
+    if (selectedId.value !== id) return;
+    mappingConflict.value = null;
     applyMappingPayload(saved);
     mappingSaveMessage.value = "映射已保存（进程内覆盖，重启后恢复默认）。";
   } catch (err) {
-    mappingError.value = err?.message || "保存映射失败";
-    mappingTraceId.value = err?.traceId || "";
+    if (selectedId.value !== id) return;
+    if (err?.status === 409) {
+      let server = null;
+      try {
+        server = await p4.productPrintMapping(id);
+      } catch {
+        server = null;
+      }
+      mappingConflict.value = { basedOn, server };
+    } else {
+      mappingError.value = err?.message || "保存映射失败";
+      mappingTraceId.value = err?.traceId || "";
+    }
   } finally {
     mappingSaving.value = false;
   }
+}
+
+function reloadMappingFromServer() {
+  if (mappingConflict.value?.server) applyMappingPayload(mappingConflict.value.server);
+  mappingConflict.value = null;
+}
+
+function overwriteMapping() {
+  const theirs = typeof mappingConflict.value?.server?.revision === "number" ? mappingConflict.value.server.revision : null;
+  mappingConflict.value = null;
+  savePrintMapping(theirs);
 }
 
 async function loadSample() {

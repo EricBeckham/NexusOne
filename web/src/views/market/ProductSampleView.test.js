@@ -192,6 +192,50 @@ describe("product sample print (PC10 / CF-R1)", () => {
     expect(wrapper.get("[data-testid='sample-print-paper']").classes()).toContain("landscape");
   });
 
+  it("sends the current expected_revision when saving a print mapping (DPO-C3)", async () => {
+    mocks.productPrintMapping.mockResolvedValue({ ...MAPPING, source: "IN_MEMORY", revision: 2 });
+    mocks.putProductPrintMapping.mockResolvedValue({ ...MAPPING, source: "IN_MEMORY", revision: 3 });
+    const wrapper = await mountAt("/p4/product-samples/print?definition=d1");
+    await wrapper.get("[data-testid='sample-print-slot-reason']").setValue("form.fields");
+    await wrapper.get("[data-testid='sample-print-mapping-save']").trigger("click");
+    await flushPromises();
+    expect(mocks.putProductPrintMapping).toHaveBeenCalledWith("d1", expect.objectContaining({
+      expected_revision: 2,
+      paper: "A4",
+      orientation: "PORTRAIT",
+    }));
+    expect(mocks.putProductPrintMapping.mock.calls[0][1].mappings).toEqual(
+      expect.arrayContaining([{ field_key: "reason", slot_id: "form.fields" }]),
+    );
+    expect(wrapper.get("[data-testid='sample-print-mapping-saved']").text()).toContain("映射已保存");
+  });
+
+  it("keeps the local draft and shows a conflict shell on 409 (DPO-C3)", async () => {
+    mocks.productPrintMapping.mockResolvedValue({ ...MAPPING, source: "IN_MEMORY", revision: 2 });
+    const wrapper = await mountAt("/p4/product-samples/print?definition=d1");
+    await wrapper.get("[data-testid='sample-print-slot-reason']").setValue("approval.opinion");
+    const conflict = Object.assign(new Error("conflict"), { status: 409 });
+    mocks.putProductPrintMapping.mockRejectedValue(conflict);
+    mocks.productPrintMapping.mockResolvedValue({
+      ...MAPPING,
+      source: "IN_MEMORY",
+      revision: 5,
+      mappings: [{ field_key: "application_no", slot_id: "header.application_no" }],
+    });
+    await wrapper.get("[data-testid='sample-print-mapping-save']").trigger("click");
+    await flushPromises();
+    expect(mocks.putProductPrintMapping).toHaveBeenCalledWith("d1", expect.objectContaining({ expected_revision: 2 }));
+    expect(wrapper.get("[data-testid='sample-print-mapping-conflict']").text()).toContain("服务器上的映射已经变了");
+    expect(wrapper.get("[data-testid='sample-print-mapping-conflict']").text()).toContain("r2");
+    expect(wrapper.get("[data-testid='sample-print-mapping-conflict']").text()).toContain("r5");
+    expect(wrapper.get("[data-testid='sample-print-slot-reason']").element.value).toBe("approval.opinion");
+    expect(wrapper.find("[data-testid='sample-print-mapping-table']").exists()).toBe(true);
+
+    await wrapper.get("[data-testid='sample-print-conflict-reload']").trigger("click");
+    expect(wrapper.get("[data-testid='sample-print-slot-reason']").element.value).toBe("");
+    expect(wrapper.find("[data-testid='sample-print-mapping-conflict']").exists()).toBe(false);
+  });
+
   it("shows a mapping-driven readonly HTML preview shell (CF-R2)", async () => {
     const wrapper = await mountAt("/p4/product-samples/print?definition=d1");
     expect(wrapper.get("[data-testid='sample-print-readonly-preview']").exists()).toBe(true);
