@@ -30,6 +30,13 @@ describe("PV3 product filtering", () => {
 });
 
 describe("PV3 product guard", () => {
+  it('keeps platform-default design out of tenant-admin and member routes', async () => {
+    const page = {path:'/p4/default-workflow',meta:{product:'p4',platformProcess:true}};
+    for (const products of [['p3'],['p2','p3','p4'],null]) {
+      await expect(productGuard(page,async()=>products)).resolves.toEqual({path:'/no-access',query:{product:'p1'}});
+    }
+    await expect(productGuard(page,async()=>['p1','p2','p4'])).resolves.toBe(true);
+  });
   it("sends a member with only P3 from / straight to the workbench", async () => {
     await expect(productGuard(route("/"), async () => ["p3"])).resolves.toEqual({ path: "/p3", replace: true });
   });

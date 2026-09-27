@@ -21,6 +21,29 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 class ProcessDefinitionSurfaceGuardTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void platformSystemAdminUsesExistingConfigPermissionAndDeniesStillWin(boolean denied) {
+        bindIssued(); var context=TenantContextHolder.require();
+        PermissionService service=mock(PermissionService.class);
+        when(service.currentSubject()).thenReturn(new one.nexus.permission.engine.Subject(context.tenantId().toString(),context.personId().toString(),
+                java.util.Set.of(one.nexus.permission.admin.PlatformDutyCatalog.SYSTEM_ADMIN),java.util.Set.of(),java.util.Set.of()));
+        when(service.snapshot()).thenReturn(new one.nexus.permission.engine.PolicySnapshot(context.tenantId().toString(),1));
+        when(service.decide("tenant.config","update")).thenReturn(new Decision(!denied,denied?"explicit_deny":"granted"));
+        var properties=new one.nexus.p1.config.P1Properties(); properties.getPlatformTenant().setId(context.tenantId());
+        var guard=guard(service,null); guard.setPlatformProperties(properties);
+        if(denied) assertThrows(PermissionException.class,guard::requireWrite); else assertTrue(guard.requireWrite().allowed());
+        org.mockito.Mockito.verify(service).decide("tenant.config","update");
+    }
+    @Test void platformAuditDutyCannotWriteDefaultsEvenWithConfigGrant() {
+        bindIssued(); var context=TenantContextHolder.require(); var service=mock(PermissionService.class);
+        when(service.currentSubject()).thenReturn(new one.nexus.permission.engine.Subject(context.tenantId().toString(),context.personId().toString(),
+                java.util.Set.of(one.nexus.permission.admin.PlatformDutyCatalog.AUDIT_ADMIN),java.util.Set.of(),java.util.Set.of()));
+        when(service.snapshot()).thenReturn(new one.nexus.permission.engine.PolicySnapshot(context.tenantId().toString(),1));
+        var properties=new one.nexus.p1.config.P1Properties(); properties.getPlatformTenant().setId(context.tenantId());
+        var guard=guard(service,null); guard.setPlatformProperties(properties);
+        assertThrows(PermissionException.class,guard::requireWrite);
+    }
     @AfterEach
     void clear() {
         TenantContextHolder.clear();

@@ -1,9 +1,9 @@
 <template>
   <div>
     <NxPageHeader
-      eyebrow="星构"
-      title="流程设计器"
-      description="编辑租户内流程草稿；已发布目录仅供查看，改动不会部署或发布。"
+      :eyebrow="route.meta.platformProcess ? 'P4 · 平台' : '星构'"
+      :title="route.meta.platformProcess ? '平台默认流程' : '流程设计器'"
+      :description="route.meta.platformProcess ? '编辑平台租户的默认流程；发布后可绑定产品。租户个性化配置不会修改这里的默认版本。' : '编辑租户内流程草稿；已发布目录仅供查看，改动不会部署或发布。'"
     >
       <template #actions>
         <button type="button" class="ghost" data-testid="process-new" @click="newDraft">新建草稿</button>
@@ -493,6 +493,7 @@ const ASSIGNEE_PRESETS = [
 const devNotes = devNotesEnabled();
 const route = useRoute();
 const router = useRouter();
+const workflowBase = computed(() => route.meta.platformProcess ? '/p4/default-workflow' : '/p3/workflow');
 const definitions = ref([]);
 const definition = ref(null);
 const isDraft = ref(false);
@@ -697,7 +698,7 @@ async function reload() {
       publishConfirm.value = false;
       selectedId.value = "";
       if (definitions.value[0]?.key) {
-        await router.replace(`/p3/workflow/${encodeURIComponent(definitions.value[0].key)}`);
+        await router.replace(`${workflowBase.value}/${encodeURIComponent(definitions.value[0].key)}`);
       }
       return;
     }
@@ -744,7 +745,7 @@ function openDefinition(key) {
   if (!key || key === route.params.key) {
     return;
   }
-  router.push(`/p3/workflow/${encodeURIComponent(key)}`);
+  router.push(`${workflowBase.value}/${encodeURIComponent(key)}`);
 }
 
 function newDraft() {

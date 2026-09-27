@@ -208,6 +208,7 @@
               </p>
             </div>
             <router-link v-if="installation.status === 'INSTALLED'" class="nx-btn nx-btn--primary" :to="`/p4/installations/${installation.id}/start`" data-testid="start-application">发起申请</router-link>
+            <router-link v-if="installation.status === 'INSTALLED'" class="ghost" :to="`/p4/installations/${installation.id}/process-configuration`">个性化流程</router-link>
           </div>
           <details class="upgrade" data-testid="installation-upgrade" @toggle="onUpgradeToggle($event, installation)">
             <summary>版本升级</summary>
