@@ -6,7 +6,11 @@
         <p>登录进入工作台</p>
       </header>
       <div class="login-actions">
-        <button v-if="idp.configured" class="nx-btn nx-btn--primary" type="button" data-testid="keycloak-login" @click="onKeycloakLogin">
+        <template v-if="session.accountId">
+          <p class="login-session" data-testid="signed-in">你已登录，可以继续进入工作台。</p>
+          <router-link class="nx-btn nx-btn--primary" to="/" data-testid="goto-workspace">进入工作台</router-link>
+        </template>
+        <button v-else-if="idp.configured" class="nx-btn nx-btn--primary" type="button" data-testid="keycloak-login" @click="onKeycloakLogin">
           使用 Keycloak 登录
         </button>
         <p v-else class="login-unconfigured" role="status" data-testid="idp-unconfigured">登录服务暂未配置，请联系管理员。</p>
@@ -15,6 +19,7 @@
         <p v-if="error" class="nx-error" role="alert" data-testid="login-error">{{ error }}</p>
       </div>
       <footer class="login-secondary" data-testid="login-secondary">
+        <p class="login-register" data-testid="goto-register">还没有租户？<router-link to="/register">提交自助注册申请</router-link></p>
         <router-link v-if="development" class="login-dev-link" to="/login/dev" data-testid="developer-login">开发者登录入口</router-link>
       </footer>
     </section>
@@ -24,6 +29,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { keycloakAuthorizeHref, keycloakPublicConfig } from "../auth/keycloakPublic";
+import { session } from "../api/session";
 
 const idp = computed(() => keycloakPublicConfig(import.meta.env));
 const error = ref("");
@@ -72,6 +78,10 @@ function onKeycloakLogin() {
 }
 .login-actions { display: grid; gap: var(--nx-space-3); }
 .login-unconfigured { margin: var(--nx-space-0); color: var(--nx-text-secondary); text-align: center; }
+.login-session { margin: var(--nx-space-0); color: var(--nx-text-regular); text-align: center; }
+.login-register { margin: var(--nx-space-0); }
+.login-secondary { display: grid; gap: var(--nx-space-3); }
+.nx-error { margin: var(--nx-space-0); }
 .login-secondary { text-align: center; font-size: var(--nx-font-size-md); }
 .login-dev-link { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .login-feedback:empty, .login-secondary:empty { display: none; }

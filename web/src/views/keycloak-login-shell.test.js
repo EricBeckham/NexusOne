@@ -33,6 +33,7 @@ async function mountLogin() {
     history: createMemoryHistory(),
     routes: [
       { path: "/login", component: LoginView },
+      { path: "/login/dev", component: { template: "<div />" } },
       { path: "/register", component: { template: "<div />" } },
     ],
   });
