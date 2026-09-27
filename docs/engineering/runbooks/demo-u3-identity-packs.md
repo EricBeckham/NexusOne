@@ -12,4 +12,4 @@
 
 同一账号不得同时在平台租户和 `demo_acme` 上保持 ACTIVE。平台侧已有 person 的账号，其 `demo_acme` 成员资格改为 `SUSPENDED`；只有 `demo_acme` person 的账号，其平台成员资格改为 `SUSPENDED`。
 
-本地演示开关打开时，P2 种子会做上述对齐。包含 ID1 的构建在演示机上保持 `NEXUS_DEMO_ENABLED=false` / `NEXUS_P1_DEMO_CONTEXT_ENABLED=false`，沿用 DEMO-U2 的一次性启动任务：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 会先补齐缺失固定身份、对齐已有行，再安装平台职责。无需回环数据库，没有 Flyway。演示机仍禁止打开 `NEXUS_DEMO_ENABLED`。职责安装与 `…0222` 授权在身份提交之后，顺序以 ID1 为准。冲突策略及关闭窗口见 [ID1 / ID3](id1-u2-identity-bootstrap.md)；文档不代表已部署或真实 Keycloak 验收。
+本地演示开关打开时，P2 种子会做上述对齐。包含 ID1 的构建在演示机上保持 `NEXUS_DEMO_ENABLED=false` / `NEXUS_P1_DEMO_CONTEXT_ENABLED=false`，沿用 DEMO-U2 的一次性启动任务：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 会先补齐缺失固定身份、对齐已有行，再安装平台职责。无需回环数据库，没有 Flyway。演示机仍禁止打开 `NEXUS_DEMO_ENABLED`。职责安装与 `…0222` 授权在身份提交之后，顺序以 ID1 为准。注意：库里已有同 code、不同 id 的部门（如平台租户 `platform_ops`）时，只有含 ID7（#723）的构建才能插入成功；纯 #720 包会撞 `uk_iam_department_code` 回滚退出，见 [TC4 · 部门 code 冲突](tc4-demo-u2-after-keycloak-checklist.md#部门-code-冲突id7)。冲突策略及关闭窗口见 [ID1 / ID3](id1-u2-identity-bootstrap.md)；文档不代表已部署或真实 Keycloak 验收。

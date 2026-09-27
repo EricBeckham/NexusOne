@@ -10,11 +10,14 @@
 - [ ] 部署产物即该 SHA 的构建；**没有**在演示机热修 jar / SPA / class，**没有**用 env 改产品语义，**没有**手改数据库或权限表。
 - [ ] `NEXUS_DEMO_ENABLED`、`NEXUS_P1_DEMO_CONTEXT_ENABLED` 为 `false`（或未设置）。
 - [ ] 一次性窗口已按 DEMO-U2 执行过一次：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 重启一次（安装平台职责、对齐三人身份、按 DEMO-U5 安装 `demo_acme` 的 `tenant_admin` / `tenant_member`），之后已设回 `false` 并再次重启。
-- [ ] **ID1 身份插入后（发布 SHA 含 #720 `07198104`）**，按 [TC5 §0.1](TC5-三人登录TenantContext验收清单.md) 勾完：
-  - U2 窗口那次启动成功，无 `ID1 identity conflict`；
+- [ ] **ID1 身份插入后（发布 SHA 含 #720 `07198104` 和 ID7 #723）**，按 [TC5 §0.1](TC5-三人登录TenantContext验收清单.md) 勾完：
+  - 开窗前三人邮箱孤儿已清；
+  - U2 窗口那次启动成功，无 `ID1 identity conflict`、无 `DuplicateKey` / `uk_iam_department_code`、无 `ID7 department code is unavailable`；
   - person `…0222` 存在并挂在 `platform_system_admin`；
   - 三人各恰好 1 条 ACTIVE membership；
   - 三人登录均进首页，不再缺 TenantContext。
+
+  纯 #720 包在已有 `platform_ops` 部门的演示库上会在部门插入处失败，见 [TC4](../engineering/runbooks/tc4-demo-u2-after-keycloak-checklist.md#部门-code-冲突id7)。重新部署含 ID7 的包、再跑 U2 与登录验收之前，不宣称演示机已修好。
 - [ ] 平台只读列表开关 `NEXUS_P1_PLATFORM_READ_CONTEXT_ENABLED=true`（AUTH6）由部署配置明确设置。
 - [ ] Keycloak 三个用户已按 DEMO-U4 创建 / 核对，邮箱与 DEMO-U3 冻结表一致。
 
