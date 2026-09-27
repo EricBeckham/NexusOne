@@ -58,6 +58,7 @@ public final class SessionService {
     private final AuditPort audits;
     private final AdminMfaPolicy mfaPolicy;
     private volatile TenantLabelPort tenantLabels = TenantLabelPort.NONE;
+    private final LogoutHintStore logoutHints;
 
     /** DEMO-U6: wire tenant labels (code / name) into membership views; null resets to none. */
     public void useTenantLabels(TenantLabelPort labels) {
@@ -100,6 +101,12 @@ public final class SessionService {
         this.contextTtl = contextTtl;
         this.audits = audits;
         this.mfaPolicy = mfaPolicy == null ? AdminMfaPolicy.forced() : mfaPolicy;
+        this.logoutHints = new LogoutHintStore(clock);
+    }
+
+    /** LO2: server-held IdP logout hints (id_token / refresh_token); never part of a {@link SessionView}. */
+    public LogoutHintStore logoutHints() {
+        return logoutHints;
     }
 
     public IdentityProviderPort.AuthorizeUrl authorizationUrl(String state, String redirectUri) {
@@ -121,16 +128,17 @@ public final class SessionService {
 
     public SessionView loginWithCode(String code, String redirectUri, String codeVerifier) {
         IdentityProviderPort.TokenSet tokens = idp.exchangeAuthorizationCode(code, redirectUri, codeVerifier);
-        return loginWithAccessToken(tokens.accessToken(), true);
+        return loginWithAccessToken(tokens.accessToken(), true, tokens);
     }
 
     public SessionView loginWithAccessToken(String accessToken) {
         // Token-based provisioning can precede membership assignment. Auth-code
         // login, however, must not silently return an unusable tenant session.
-        return loginWithAccessToken(accessToken, false);
+        return loginWithAccessToken(accessToken, false, null);
     }
 
-    private SessionView loginWithAccessToken(String accessToken, boolean requireActiveMembership) {
+    private SessionView loginWithAccessToken(
+            String accessToken, boolean requireActiveMembership, IdentityProviderPort.TokenSet exchanged) {
         boolean accepted = false;
         try {
             IdentityProviderPort.IdentityClaims claims;
@@ -155,6 +163,11 @@ public final class SessionService {
                     : new SessionView(
                             account.id(), account.email(), account.displayName(), null, null, null, memberships, accessToken);
             accepted = true;
+            if (exchanged != null) {
+                // LO2: keep the IdP tokens server-side for RP logout; the SPA only ever gets the access token.
+                logoutHints.remember(claims.subject(), exchanged.idToken(), exchanged.refreshToken(),
+                        clock.instant().plus(contextTtl));
+            }
             appendLogin(true, view.tenantId(), view.accountId(), view.contextId(), "accepted", Map.of(
                     "email", account.email(),
                     "account_id", account.id().toString(),
@@ -228,6 +241,8 @@ public final class SessionService {
         TenantContext current = TenantContextHolder.get();
         repository.revokeContextsForAccount(identity.account().id());
         TenantContextHolder.clear();
+        // LO2: the session is over, so its IdP hint is spent too.
+        logoutHints.forget(identity.claims().subject());
         idp.logout(refreshToken, idTokenHint);
         if (audits != null) {
             audits.append(AuditCaptures.logout(
