@@ -3,10 +3,13 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ logout: vi.fn() }));
+const mocks = vi.hoisted(() => ({ logout: vi.fn(), employments: vi.fn(), positions: vi.fn() }));
 vi.mock("../api/client", async (importOriginal) => {
   const original = await importOriginal();
-  return { ...original, p2: { ...original.p2, logout: mocks.logout } };
+  return {
+    ...original,
+    p2: { ...original.p2, logout: mocks.logout, employments: mocks.employments, positions: mocks.positions },
+  };
 });
 
 import GlobalHeader from "./GlobalHeader.vue";
@@ -45,6 +48,8 @@ function signIn() {
 describe("AUTH3 logout", () => {
   beforeEach(() => {
     mocks.logout.mockReset();
+    mocks.employments.mockResolvedValue([]);
+    mocks.positions.mockResolvedValue([]);
     localStorage.clear();
     signIn();
   });
@@ -87,5 +92,31 @@ describe("AUTH3 logout", () => {
     await clickLogout(wrapper);
     expect(mocks.logout).not.toHaveBeenCalled();
     expect(router.currentRoute.value.path).toBe("/login");
+  });
+});
+
+describe("AUTH4 header position", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    signIn();
+    mocks.positions.mockResolvedValue([{ id: "pos-manager", code: "engineering_manager", name: "研发经理" }]);
+  });
+
+  it("shows the primary position name loaded for the tenant context", async () => {
+    mocks.employments.mockResolvedValue([{ tenant_id: session.tenantId, position_id: "pos-manager", kind: "PRIMARY", status: "ACTIVE" }]);
+    session.positionName = "";
+    const { wrapper } = await mountAt();
+    await flushPromises();
+    await wrapper.get("[data-testid='shell-user']").trigger("click");
+    expect(wrapper.get("[data-testid='shell-position']").text()).toBe("研发经理");
+  });
+
+  it("shows 暂无 only when there is no primary position", async () => {
+    mocks.employments.mockResolvedValue([]);
+    session.positionName = "";
+    const { wrapper } = await mountAt();
+    await flushPromises();
+    await wrapper.get("[data-testid='shell-user']").trigger("click");
+    expect(wrapper.get("[data-testid='shell-position']").text()).toBe("暂无");
   });
 });

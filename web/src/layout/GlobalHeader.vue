@@ -38,7 +38,7 @@
         <div v-if="open" class="menu">
           <p><span>用户名</span><strong>{{ session.displayName || "未登录" }}</strong></p>
           <p><span>租户</span><strong>{{ session.tenantId || "暂无" }}</strong></p>
-          <p><span>岗位</span><strong>暂无</strong></p>
+          <p><span>岗位</span><strong data-testid="shell-position">{{ session.positionName || "暂无" }}</strong></p>
           <label class="switch">
             <input v-model="session.platformMode" type="checkbox" @change="persist" />
             平台操作
@@ -63,7 +63,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { clearIdentity, ensureContext, persist, session, switchTenant } from "../api/session";
+import { clearIdentity, ensureContext, loadPrimaryPosition, persist, session, switchTenant } from "../api/session";
 import { p2 } from "../api/client";
 import { productById } from "../nav/products";
 import NxIcon from "../icons/NxIcon.vue";
@@ -136,7 +136,11 @@ function onKey(event) {
   }
 }
 
-onMounted(() => window.addEventListener("keydown", onKey));
+onMounted(() => {
+  window.addEventListener("keydown", onKey);
+  // AUTH4: a session restored from storage may predate the position lookup.
+  if (session.contextId && !session.positionName) loadPrimaryPosition();
+});
 onUnmounted(() => window.removeEventListener("keydown", onKey));
 </script>
 
