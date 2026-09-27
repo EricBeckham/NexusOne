@@ -54,7 +54,7 @@ async function save(operation, message) {
 function createApp() { return save(() => p4.createApp({ ...app }), '应用包已创建，请在列表选择它并创建版本。'); }
 function createVersion() { return save(() => p4.createVersion(props.selectedApp.id, { ...version }), '版本已创建，请按状态依次送审、批准、发布。'); }
 function transition(row) { return save(() => p4.transition(row.id, actions[row.status].action), '状态操作已保存；请以重新读取的版本状态为准。'); }
-function createSku() { return save(() => p4.createSku({ appId: sku.appId, code: sku.code, name: sku.name, entitlements: { [sku.entitlement]: { enabled: true, quota: sku.quota, attributes: {} } } }), 'SKU 已创建，下一步绑定产品定义。'); }
+function createSku() { return save(() => p4.createSku({ app_id: sku.appId, code: sku.code, name: sku.name, entitlements: { [sku.entitlement]: { enabled: true, quota: sku.quota, attributes: {} } } }), 'SKU 已创建，下一步绑定产品定义。'); }
 </script>
 
 <style scoped>

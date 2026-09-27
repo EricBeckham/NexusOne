@@ -30,7 +30,7 @@ describe('platform authoring', () => {
     await w.get('select').setValue('app'); const inputs = w.findAll('input');
     await inputs[0].setValue('expense-basic'); await inputs[1].setValue('基础版');
     await w.get('form').trigger('submit'); await flushPromises();
-    expect(api.createSku).toHaveBeenCalledWith({ appId: 'app', code: 'expense-basic', name: '基础版', entitlements: { apps: { enabled: true, quota: 1, attributes: {} } } });
+    expect(api.createSku).toHaveBeenCalledWith({ app_id: 'app', code: 'expense-basic', name: '基础版', entitlements: { apps: { enabled: true, quota: 1, attributes: {} } } });
     expect(w.text()).toContain('还需绑定');
   });
 });
