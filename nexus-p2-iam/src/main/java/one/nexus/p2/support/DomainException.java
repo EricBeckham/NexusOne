@@ -38,6 +38,11 @@ public final class DomainException extends RuntimeException {
         return new DomainException("P2.IAM.MFA_REQUIRED", 403, message);
     }
 
+    public static DomainException noActiveMembership() {
+        return new DomainException("P2.IAM.NO_ACTIVE_MEMBERSHIP", 403,
+                "account has no active tenant membership");
+    }
+
     public static DomainException badRequest(String code, String message) {
         return new DomainException(code, 400, message);
     }
