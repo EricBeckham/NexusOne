@@ -1,7 +1,10 @@
 package one.nexus.bootstrap.web;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.UUID;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,10 +27,48 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** AUTH6: authenticated, permission-checked bridge for two read-only P1 lists. */
+/**
+ * AUTH6: authenticated, permission-checked bridge for an exact allowlist of read-only platform GETs.
+ * Each route names the platform duty it binds and the permission it checks; nothing outside {@link #ROUTES} and no
+ * non-GET method is ever bridged.
+ */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 21)
 public class P1PlatformReadContextFilter extends OncePerRequestFilter {
+    private static final String UUID_SEGMENT = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+
+    /**
+     * One bridged read. {@code dutyRole} is the only platform duty the caller may hold; {@code duty} is what the
+     * isolation actor is bound to, so the controller's own {@code requirePlatformContext} sees the same duty.
+     */
+    record Route(Pattern path, PlatformDuty duty, String dutyRole, String resource, String action) {
+        static Route systemAdmin(String regex, String resource, String action) {
+            return new Route(Pattern.compile(regex), PlatformDuty.SYSTEM_ADMIN, PlatformDutyCatalog.SYSTEM_ADMIN,
+                    resource, action);
+        }
+    }
+
+    static final List<Route> ROUTES = List.of(
+            // AUTH6F: tenant directory and registration review.
+            Route.systemAdmin("/api/v1/p1/tenants", "tenant", "list"),
+            Route.systemAdmin("/api/v1/p1/tenant-registrations", "tenant", "list"),
+            // AUTH6G2: tenant relations, platform service status, form template list / detail.
+            Route.systemAdmin("/api/v1/p1/tenants/tree", "tenant", "list"),
+            Route.systemAdmin("/api/v1/p1/tenants/" + UUID_SEGMENT + "/children", "tenant", "get"),
+            Route.systemAdmin("/api/v1/p1/tenants/" + UUID_SEGMENT + "/ancestors", "tenant", "get"),
+            Route.systemAdmin("/api/v1/p1/platform/services", "tenant", "list"),
+            Route.systemAdmin("/api/v1/p1/platform/form-templates", "tenant", "list"),
+            Route.systemAdmin("/api/v1/p1/platform/form-templates/" + UUID_SEGMENT, "tenant", "list"));
+
+    /** The bridged route for this request, if it is a GET on an allowlisted path. */
+    static Optional<Route> route(HttpServletRequest request) {
+        if (!"GET".equals(request.getMethod())) {
+            return Optional.empty();
+        }
+        String uri = request.getRequestURI();
+        return ROUTES.stream().filter(route -> route.path().matcher(uri).matches()).findFirst();
+    }
+
     private final IdentityModule identity;
     private final PermissionModule permissions;
     private final P1Properties properties;
@@ -44,9 +85,7 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !enabled || !"GET".equals(request.getMethod())
-                || !("/api/v1/p1/tenants".equals(request.getRequestURI())
-                || "/api/v1/p1/tenant-registrations".equals(request.getRequestURI()));
+        return !enabled || route(request).isEmpty();
     }
 
     @Override
@@ -54,6 +93,7 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         var previousTenant = TenantContextHolder.get();
         var previousIsolation = IsolationContextHolder.get();
+        Route route = route(request).orElseThrow(); // shouldNotFilter already kept everything else out
         try {
             // Never let an existing/demo snapshot substitute for authentication.
             String authorization = request.getHeader("Authorization");
@@ -78,14 +118,14 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
                 var service = permissions.service();
                 var duties = PlatformDutyCatalog.heldDuties(PermissionEngine.expandedRoleCodes(
                         service.currentSubject(), service.snapshot()));
-                if (!duties.equals(Set.of(PlatformDutyCatalog.SYSTEM_ADMIN))) {
+                if (!duties.equals(Set.of(route.dutyRole()))) {
                     deny(response, 403, Reason.DUTY_SET);
                     return;
                 }
-                service.check("tenant", "list");
+                service.check(route.resource(), route.action());
                 String trace = String.valueOf(request.getAttribute("trace_id"));
                 var actor = new Actor(context.personId(), context.tenantId(), "authenticated-platform-reader",
-                        Set.of(PlatformDuty.SYSTEM_ADMIN));
+                        Set.of(route.duty()));
                 var platform = new PlatformContext(true, "authenticated platform read-only list",
                         actor, trace, context.tenantId());
                 IsolationContextHolder.set(new IsolationSnapshot(actor, platform, null, trace));
