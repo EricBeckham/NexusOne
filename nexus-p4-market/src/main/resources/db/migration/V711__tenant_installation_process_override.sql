@@ -1,3 +1,4 @@
+-- V711: V710 was allocated to completion actions on main before this PR merged.
 -- The immutable install-time product pin is the platform default.
 -- A tenant override is separate: it never rewrites a global definition or another tenant's pin.
 ALTER TABLE market.installation

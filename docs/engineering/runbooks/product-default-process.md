@@ -6,7 +6,7 @@
 
 ## Schema 专卡
 
-V710 是当前全局最高 V709 后的下一版本。新增 `market.installation_process_override`，以安装 id 为唯一键；复合外键保证覆盖 tenant_id 必须等于安装所属租户。安装时原有 product pin 不被更新。没有数据回填、身份写入、默认权限扩张或 secret。Flyway outOfOrder 保持关闭。部署前重新核对全局版本号，发生并行版本冲突则重编号后验证，不能打开 outOfOrder。
+V711 是重新 fetch main 后全局最高 V710（completion actions，#759）之后的下一版本；本 PR 未部署的 V710 已重编号。新增 `market.installation_process_override`，以安装 id 为唯一键；复合外键保证覆盖 tenant_id 必须等于安装所属租户。安装时原有 product pin 不被更新。没有数据回填、身份写入、默认权限扩张或 secret。Flyway outOfOrder 保持关闭。部署前重新核对全局版本号，发生并行版本冲突则重编号后验证，不能打开 outOfOrder。
 
 该迁移只提供存储，不等于业务路径完成。后续独立 PR 接配置权限、发布版本校验、运行时选择、前端入口和回归；平台代租户审订安装也需要受控服务路径，不能伪造目标租户 membership。既有绑定到租户流程的历史 pin 不自动转换为平台默认；若平台没有对应发布版本，应诚实报错并经管理员正规配置。
 

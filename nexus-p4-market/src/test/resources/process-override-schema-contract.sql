@@ -2,7 +2,7 @@
 CREATE SCHEMA market;
 CREATE TABLE market.installation (id uuid PRIMARY KEY, tenant_id uuid NOT NULL);
 INSERT INTO market.installation VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000011');
-\ir ../../main/resources/db/migration/V710__tenant_installation_process_override.sql
+\ir ../../main/resources/db/migration/V711__tenant_installation_process_override.sql
 INSERT INTO market.installation_process_override VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000011','tenant-custom',1,'00000000-0000-0000-0000-000000000021',CURRENT_TIMESTAMP);
 DO $$ BEGIN
   BEGIN
