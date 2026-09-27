@@ -431,3 +431,53 @@ describe("durable mapping wording (DPO-L3)", () => {
     expect(useNxToastState().items.map((t) => t.message)).toContain("打印绑定已保存（修订 r5）");
   });
 });
+
+describe("paper and orientation share the revision guard (DPO-C5)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    clearToasts();
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }, { id: "d2", code: "crm", name: "CRM" }]);
+    mocks.productPrintSample.mockResolvedValue(PRINT);
+    mocks.printMappingContract.mockResolvedValue(CONTRACT);
+    mocks.productPrintMapping.mockResolvedValue({ ...DEFAULT_MAPPING, source: "DEFAULT", revision: 0 });
+  });
+
+  it("treats a paper change as dirty and sends it with expected_revision", async () => {
+    const wrapper = await mountAt();
+    expect(wrapper.get("[data-testid='designer-paper-size']").element.value).toBe("A4");
+    await wrapper.get("[data-testid='designer-paper-size']").setValue("A5");
+    await wrapper.get("[data-testid='designer-orientation']").setValue("LANDSCAPE");
+    expect(wrapper.get("[data-testid='designer-binding-dirty']").text()).toContain("未保存");
+    expect(wrapper.get("[data-testid='designer-product-select']").attributes("disabled")).toBeDefined();
+    await wrapper.get("[data-testid='designer-open-preview']").trigger("click");
+    expect(wrapper.get("[data-testid='designer-preview-prompt']").exists()).toBe(true);
+
+    mocks.saveProductPrintMapping.mockResolvedValue({});
+    mocks.productPrintMapping.mockImplementationOnce(async () => ({
+      ...DEFAULT_MAPPING,
+      source: "IN_MEMORY",
+      revision: 1,
+      paper: "A5",
+      orientation: "LANDSCAPE",
+    }));
+    await wrapper.get("[data-testid='designer-preview-cancel']").trigger("click");
+    await wrapper.get("[data-testid='designer-binding-save']").trigger("click");
+    await flushPromises();
+    const body = mocks.saveProductPrintMapping.mock.calls[0][1];
+    expect(body.paper).toBe("A5");
+    expect(body.orientation).toBe("LANDSCAPE");
+    expect(body.expected_revision).toBe(0);
+    expect(wrapper.get("[data-testid='designer-product-select']").attributes("disabled")).toBeUndefined();
+  });
+
+  it("keeps the paper draft and reuses the conflict shell on 409", async () => {
+    const wrapper = await mountAt();
+    await wrapper.get("[data-testid='designer-paper-size']").setValue("LETTER");
+    mocks.saveProductPrintMapping.mockRejectedValueOnce(Object.assign(new Error("changed"), { status: 409 }));
+    mocks.productPrintMapping.mockResolvedValueOnce({ ...DEFAULT_MAPPING, source: "IN_MEMORY", revision: 4, paper: "A4" });
+    await wrapper.get("[data-testid='designer-binding-save']").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("[data-testid='designer-binding-conflict']").text()).toContain("本次没有保存");
+    expect(wrapper.get("[data-testid='designer-paper-size']").element.value).toBe("LETTER");
+  });
+});
