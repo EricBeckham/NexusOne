@@ -1,6 +1,7 @@
 <template>
   <div class="shell" :class="{ collapsed, platform: session.platformMode }" :data-product="productId || undefined">
     <aside class="side">
+      <div class="side-scroll" data-testid="shell-sidebar-scroll">
       <ProductSidebar
         v-if="product"
         :product="product"
@@ -15,7 +16,8 @@
           <div class="brand-en">NexusOne · 选择产品</div>
         </div>
       </div>
-      <ProductSwitcher :current-id="productId" :collapsed="collapsed" />
+      </div>
+      <ProductSwitcher class="side-footer" :current-id="productId" :collapsed="collapsed" />
     </aside>
     <div class="main">
       <GlobalHeader />
@@ -66,17 +68,21 @@ for (const path of REQUIRED_SHELL_LINKS) {
   min-height: 100%;
 }
 .shell.collapsed { --nx-sidebar: var(--nx-sidebar-collapsed); }
-.shell.collapsed .side { padding-left: 8px; padding-right: 8px; }
+.shell.collapsed .side { padding-left: var(--nx-space-2); padding-right: var(--nx-space-2); }
 .shell.platform { background: var(--nx-bg-page); }
 .side {
   background: var(--nx-bg-sidebar);
   border-right: 1px solid var(--nx-border);
-  padding: 8px 12px 16px;
+  padding: var(--nx-space-2) var(--nx-space-3) var(--nx-space-4);
   position: sticky;
   top: 0;
-  height: 100vh;
-  overflow: auto;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
+.side-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.side-footer { flex: none; }
 .picker-brand { min-height: 72px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
 .picker-brand strong { display: block; font-size: 16px; }
 .brand-en { color: var(--nx-text-secondary); font-size: 12px; }

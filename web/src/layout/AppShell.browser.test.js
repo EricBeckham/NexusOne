@@ -8,6 +8,7 @@ import App from "../App.vue";
 import { NAV_BY_PRODUCT, collectLinks } from "../nav";
 import { PRODUCTS } from "../nav/products";
 import AppShell from "./AppShell.vue";
+import shellSource from "./AppShell.vue?raw";
 import ProductPickerView from "../views/ProductPickerView.vue";
 
 const baseRoutes = [
@@ -38,6 +39,27 @@ async function boot(path) {
 }
 
 describe("W0 product shell", () => {
+  it("keeps the product switcher outside the growing sidebar scroll region", async () => {
+    const router = await boot("/p3");
+    const wrapper = mount(AppShell, { global: { plugins: [router] } });
+    const scroll = wrapper.get("[data-testid='shell-sidebar-scroll']");
+    expect(scroll.find(".menu").exists()).toBe(true);
+    expect(scroll.find(".switcher").exists()).toBe(false);
+    expect(wrapper.get(".side > .side-footer").exists()).toBe(true);
+    // happy-dom has no layout engine; pin the CSS contract and verify geometry in a real browser.
+    expect(shellSource).toMatch(/\.side\s*\{[^}]*height: 100dvh;[^}]*display: flex;[^}]*flex-direction: column;[^}]*overflow: hidden;/s);
+    expect(shellSource).toMatch(/\.side-scroll\s*\{\s*flex: 1;\s*min-height: 0;\s*overflow-y: auto;/);
+    expect(shellSource).toMatch(/\.side-footer\s*\{\s*flex: none;/);
+    for (const product of PRODUCTS) {
+      await wrapper.get(`.switcher a[data-product='${product.id}']`).trigger("click");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(router.currentRoute.value.path).toBe(product.home);
+    }
+    await wrapper.get(".fold").trigger("click");
+    expect(wrapper.get(".side > .side-footer").classes()).toContain("collapsed");
+    expect(wrapper.findAll(".side-footer a")).toHaveLength(5);
+    wrapper.unmount();
+  });
   it("registers a route for every sidebar link", async () => {
     const router = await boot("/");
     for (const path of menuPaths) {
