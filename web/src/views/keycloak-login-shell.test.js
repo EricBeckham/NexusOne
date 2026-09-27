@@ -49,8 +49,9 @@ describe("login shell issuer branches (DPO-C1)", () => {
     vi.stubEnv("VITE_NEXUS_KEYCLOAK_ISSUER", "");
     const wrapper = await mountLogin();
     expect(wrapper.get("[data-testid='idp-unconfigured']").text()).toContain("演示 IdP 未配置");
-    expect(wrapper.get("[data-testid='stub-login']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='stub-login']").classes()).toContain("primary");
     expect(wrapper.find("[data-testid='keycloak-login']").exists()).toBe(false);
+    expect(wrapper.find("[data-testid='stub-login-demoted']").exists()).toBe(false);
     expect(wrapper.text()).not.toMatch(/CLIENT_SECRET|REPLACE_FROM_SECRET/);
   });
 
@@ -60,8 +61,10 @@ describe("login shell issuer branches (DPO-C1)", () => {
     const assign = vi.fn();
     vi.stubGlobal("location", { ...window.location, origin: "http://127.0.0.1:4173", assign });
     const wrapper = await mountLogin();
-    expect(wrapper.get("[data-testid='keycloak-login-shell']").exists()).toBe(true);
-    expect(wrapper.get("[data-testid='stub-login']").exists()).toBe(true);
+    expect(wrapper.get("[data-testid='keycloak-login']").classes()).toContain("primary");
+    expect(wrapper.get("[data-testid='stub-login-demoted']").text()).toContain("仅本地 stub");
+    expect(wrapper.get("[data-testid='stub-login']").classes()).not.toContain("primary");
+    expect(wrapper.findAll("button.primary").map((button) => button.attributes("data-testid"))).toEqual(["keycloak-login"]);
     expect(wrapper.text()).not.toMatch(/CLIENT_SECRET|must-not-leak|REPLACE_FROM_SECRET/);
     await wrapper.get("[data-testid='keycloak-login']").trigger("click");
     expect(assign).toHaveBeenCalled();
