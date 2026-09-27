@@ -35,7 +35,8 @@ public final class SessionService {
             UUID contextId,
             UUID tenantId,
             UUID personId,
-            List<MembershipView> memberships
+            List<MembershipView> memberships,
+            String accessToken
     ) {}
 
     public record AuthenticatedIdentity(Model.GlobalAccount account, IdentityProviderPort.IdentityClaims claims) {}
@@ -127,9 +128,9 @@ public final class SessionService {
                     .filter(item -> item.status() == Model.MembershipStatus.ACTIVE)
                     .toList();
             SessionView view = active.size() == 1
-                    ? issue(account, claims, active.getFirst().tenantId(), memberships)
+                    ? issue(account, claims, active.getFirst().tenantId(), memberships, accessToken)
                     : new SessionView(
-                            account.id(), account.email(), account.displayName(), null, null, null, memberships);
+                            account.id(), account.email(), account.displayName(), null, null, null, memberships, accessToken);
             accepted = true;
             appendLogin(true, view.tenantId(), view.accountId(), view.contextId(), "accepted", Map.of(
                     "email", account.email(),
@@ -153,7 +154,7 @@ public final class SessionService {
         if (membership.status() != Model.MembershipStatus.ACTIVE) {
             throw DomainException.forbidden("tenant membership is not active");
         }
-        return issue(identity.account(), identity.claims(), requestedTenantId, membershipsOf(identity.account().id()));
+        return issue(identity.account(), identity.claims(), requestedTenantId, membershipsOf(identity.account().id()), null);
     }
 
     public TenantContext loadContext(UUID contextId, AuthenticatedIdentity identity) {
@@ -196,7 +197,8 @@ public final class SessionService {
                 context == null ? null : context.contextId(),
                 context == null ? null : context.tenantId(),
                 context == null ? null : context.personId(),
-                membershipsOf(identity.account().id()));
+                membershipsOf(identity.account().id()),
+                null);
     }
 
     public void logout(AuthenticatedIdentity identity, String refreshToken, String idTokenHint) {
@@ -228,7 +230,8 @@ public final class SessionService {
             Model.GlobalAccount account,
             IdentityProviderPort.IdentityClaims claims,
             UUID tenantId,
-            List<MembershipView> memberships
+            List<MembershipView> memberships,
+            String accessToken
     ) {
         requireAdminMfa(account.id(), tenantId, claims);
         Model.Person person = repository.findPersonByAccount(tenantId, account.id())
@@ -244,7 +247,7 @@ public final class SessionService {
         TenantContextHolder.set(context);
         return new SessionView(
                 account.id(), account.email(), account.displayName(),
-                stored.id(), tenantId, person.id(), memberships);
+                stored.id(), tenantId, person.id(), memberships, accessToken);
     }
 
     private void appendLogin(
