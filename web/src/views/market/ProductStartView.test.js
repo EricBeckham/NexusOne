@@ -38,16 +38,18 @@ const fields = [
   { key: "evidence", label: "附件", type: "ATTACHMENT", required: false, options: [] },
 ];
 
-async function mountStart() {
+async function mountStart(runtime = false) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
       { path: "/p4/installations/:id/start", component: ProductStartView },
+      { path: "/p3/applications/:id/start", component: ProductStartView, meta: { product: 'p3' } },
+      { path: "/p3/applications", component: { template: '<div>applications</div>' } },
       { path: "/p4/installations", component: { template: "<div>installations</div>" } },
       { path: "/p3/todos", component: { template: "<div>requests</div>" } },
     ],
   });
-  await router.push("/p4/installations/install-1/start");
+  await router.push(runtime ? '/p3/applications/install-1/start' : "/p4/installations/install-1/start");
   const wrapper = mount(ProductStartView, { global: { plugins: [router] } });
   await flushPromises();
   wrapper.router = router;
@@ -55,6 +57,13 @@ async function mountStart() {
 }
 
 describe("provisioned product start form", () => {
+  it('keeps the member runtime cancel and breadcrumbs within P3', async () => {
+    mocks.productApplicationForm.mockResolvedValue({ fields });
+    const wrapper = await mountStart(true);
+    expect(wrapper.html()).not.toContain('/p4/');
+    await wrapper.get('[data-testid="start-cancel"]').trigger('click'); await flushPromises();
+    expect(wrapper.router.currentRoute.value.path).toBe('/p3/applications');
+  });
   beforeEach(() => {
     mocks.productApplicationForm.mockReset();
     mocks.createProductApplication.mockReset();

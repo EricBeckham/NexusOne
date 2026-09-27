@@ -24,7 +24,7 @@ const ROWS = [
 async function mountAt(path) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: "/p3/todos", component: TodoInboxView }, { path: "/p4/installations", component: { template: "<div />" } }],
+    routes: [{ path: "/p3/todos", component: TodoInboxView }, { path: "/p3/applications", component: { template: "<div />" } }],
   });
   await router.push(path);
   const wrapper = mount(TodoInboxView, { global: { plugins: [router] } });

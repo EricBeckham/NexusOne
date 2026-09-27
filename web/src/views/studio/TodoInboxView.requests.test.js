@@ -23,7 +23,7 @@ async function mountInbox(query = "") {
     routes: [
       { path: "/p3/todos", component: TodoInboxView },
       { path: "/p3/audit", component: { template: "<div />" } },
-      { path: "/p4/installations", component: { template: "<div />" } },
+      { path: "/p3/applications", component: { template: "<div />" } },
     ],
   });
   await router.push(`/p3/todos${query}`);
@@ -72,12 +72,12 @@ describe("todo comment and my requests", () => {
     const wrapper = await mountInbox();
     const empty = () => wrapper.get("[data-testid='todo-empty']");
     expect(empty().text()).toContain("选你为审批人后");
-    expect(empty().get("[data-testid='todo-empty-action']").attributes("href")).toBe("/p4/installations");
+    expect(empty().get("[data-testid='todo-empty-action']").attributes("href")).toBe("/p3/applications");
     const tab = (label) => wrapper.findAll("button").find((button) => button.text() === label);
 
     await tab("我发起").trigger("click");
     await flushPromises();
-    expect(empty().text()).toContain("从「我的已开通」发起申请后");
+    expect(empty().text()).toContain("从「可用应用」发起申请后");
     expect(empty().get("[data-testid='todo-empty-action']").text()).toBe("去发起申请");
 
     await tab("已办").trigger("click");
@@ -109,7 +109,7 @@ describe("todo comment and my requests", () => {
     await flushPromises();
     expect(wrapper.get("[data-testid='todo-empty']").text()).toContain("暂无申请");
     expect(wrapper.text()).toContain("从已开通产品发起后");
-    expect(wrapper.get("[data-testid='todo-empty'] a").attributes("href")).toBe("/p4/installations");
+    expect(wrapper.get("[data-testid='todo-empty'] a").attributes("href")).toBe("/p3/applications");
 
     mocks.listProductApplications.mockResolvedValue({
       items: [{ id: "app-1", title: "产品申请", biz_no: "app-1", status: "APPROVED", comment: "可以", arrived_at: "2026-01-02" }],

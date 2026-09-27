@@ -45,6 +45,7 @@ describe("W3 Studio home", () => {
     expect(wrapper.get("h1").text()).toBe("星构工作台");
     expect(wrapper.findAll("[data-testid='studio-entry-group'] h2").map((node) => node.text())).toEqual(["工作台", "流程配置", "数据与审计"]);
     expect(wrapper.findAll(".quick-actions a").map((link) => link.attributes("href"))).toEqual([
+      "/p3/applications",
       "/p3/todos",
       "/p3/forms",
       "/p3/ledgers",

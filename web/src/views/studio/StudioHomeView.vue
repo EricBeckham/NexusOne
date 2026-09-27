@@ -76,6 +76,7 @@ const ENTRY_GROUPS = [
   {
     title: "工作台",
     entries: [
+      { label: "可用应用", hint: "从已开通应用发起申请", to: "/p3/applications", icon: "file" },
       { label: "待办", hint: "审批我的待办与我的申请", to: "/p3/todos", icon: "check" },
       { label: "表单", hint: "填报与管理表单", to: "/p3/forms", icon: "file" },
       { label: "台账", hint: "业务记录与字段", to: "/p3/ledgers", icon: "table" },

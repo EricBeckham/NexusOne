@@ -146,20 +146,20 @@ const emptyCopy = computed(() => {
     return {
       title: "暂无申请",
       description: "从已开通产品发起后，进行中、通过和驳回会显示在这里。",
-      to: "/p4/installations",
-      action: "前往我的已开通",
+      to: "/p3/applications",
+      action: "前往可用应用",
     };
   }
   if (box.value === "done") {
     return { title: "暂无已办", description: "在「我的待办」同意或驳回后，办结项会出现在这里。", box: "inbox", action: "查看我的待办" };
   }
   if (box.value === "initiated") {
-    return { title: "暂无我发起", description: "从「我的已开通」发起申请后，进行中的流程会出现在这里。", to: "/p4/installations", action: "去发起申请" };
+    return { title: "暂无我发起", description: "从「可用应用」发起申请后，进行中的流程会出现在这里。", to: "/p3/applications", action: "去发起申请" };
   }
   return {
     title: "暂无待办",
-    description: "有人发起申请并选你为审批人后，待办会出现在这里；你也可以从「我的已开通」发起申请。",
-    to: "/p4/installations",
+    description: "有人发起申请并选你为审批人后，待办会出现在这里；你也可以从「可用应用」发起申请。",
+    to: "/p3/applications",
     action: "去发起申请",
   };
 });

@@ -11,7 +11,9 @@ describe("星市 branding", () => {
   it("uses the P4 · 星市 eyebrow on every tenant-facing market page", () => {
     for (const view of ["MarketHomeView.vue", "MarketView.vue", "P4ManagementView.vue", "ProductStartView.vue", "CommercialEntitlementsView.vue"]) {
       const source = read(view);
-      expect(source, view).toContain('eyebrow="P4 · 星市"');
+      if (view === 'ProductStartView.vue') {
+        expect(source).toContain("isRuntime ? 'P3 · 星构' : 'P4 · 星市'");
+      } else expect(source, view).toContain('eyebrow="P4 · 星市"');
       expect(source, view).not.toContain("NEXUS MARKET");
     }
     expect(read("ProductDefinitionBindingView.vue")).toContain('eyebrow="P4 · 平台"');

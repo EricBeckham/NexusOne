@@ -1,7 +1,7 @@
 <template>
   <main class="start-page">
     <NxPageHeader
-      eyebrow="P4 · 星市"
+      :eyebrow="isRuntime ? 'P3 · 星构' : 'P4 · 星市'"
       title="发起申请"
       description="按已开通可用时钉住的模板填写。无支付、无下单。提交后进入我的申请。"
       :crumbs="startCrumbs"
@@ -41,7 +41,7 @@
     >
       <template #next>
         <router-link class="nx-btn nx-btn--primary" :to="{ path: '/p3/todos', query: { box: 'requests' } }" data-testid="start-result-requests">查看我的申请</router-link>
-        <router-link class="nx-btn nx-btn--default" to="/p4/installations" data-testid="start-result-back">返回我的已开通</router-link>
+        <router-link class="nx-btn nx-btn--default" :to="applicationsPath" data-testid="start-result-back">{{ isRuntime ? '返回可用应用' : '返回我的已开通' }}</router-link>
         <button class="nx-btn nx-btn--text" type="button" data-testid="start-result-again" @click="startAgain">再发起一条</button>
       </template>
     </NxResult>
@@ -128,11 +128,15 @@ function startAgain() {
 }
 
 /** Q5 pilot: in-page crumb slot; shell crumb stays in GlobalHeader. No route-tree change. */
-const startCrumbs = [
+const isRuntime = computed(() => route.meta.product === 'p3');
+const applicationsPath = computed(() => isRuntime.value ? '/p3/applications' : '/p4/installations');
+const startCrumbs = computed(() => isRuntime.value ? [
+  { label: '可用应用', to: applicationsPath.value }, { label: '发起申请' },
+] : [
   { label: "应用目录", to: "/p4/market" },
   { label: "我的已开通", to: "/p4/installations" },
   { label: "发起申请" },
-];
+]);
 
 const unmatchedErrors = computed(() => {
   const keys = new Set(fields.value.map((field) => field.key));
@@ -208,7 +212,7 @@ function values() {
 }
 
 function cancel() {
-  router.push("/p4/installations");
+  router.push(applicationsPath.value);
 }
 
 const SUBMIT_HINTS = {
