@@ -29,6 +29,9 @@ public interface PolicyRepository {
 
     List<GrantRecord> listGrants(UUID tenantId);
 
+    /** PV4: soft-removes one grant of this tenant; returns false when it was not there. */
+    boolean deleteGrant(UUID tenantId, UUID grantId);
+
     ShareRecord saveShare(ShareRecord share);
 
     List<Predicate> recordShares(UUID tenantId, String resource, Set<String> principalKeys);

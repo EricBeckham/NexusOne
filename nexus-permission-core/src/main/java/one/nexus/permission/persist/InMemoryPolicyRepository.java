@@ -100,6 +100,15 @@ public final class InMemoryPolicyRepository implements PolicyRepository {
     }
 
     @Override
+    public boolean deleteGrant(UUID tenantId, UUID grantId) {
+        GrantRecord existing = grants.get(grantId);
+        if (existing == null || !existing.tenantId().equals(tenantId)) {
+            return false;
+        }
+        return grants.remove(grantId, existing);
+    }
+
+    @Override
     public ShareRecord saveShare(ShareRecord share) {
         shares.put(share.id(), share);
         return share;

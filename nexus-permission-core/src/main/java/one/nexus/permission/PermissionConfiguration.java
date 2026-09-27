@@ -87,8 +87,8 @@ public class PermissionConfiguration {
 
     @Bean
     @ConditionalOnProperty(name = "nexus.permission.seed-tenant-member-grants", havingValue = "true")
-    TenantMemberGrantSeeder tenantMemberGrantSeeder(PermissionModule module) {
-        return new TenantMemberGrantSeeder(module);
+    TenantMemberGrantSeeder tenantMemberGrantSeeder(PermissionModule module, IdentityModule identity) {
+        return new TenantMemberGrantSeeder(module, identity.repository());
     }
 
     @Bean(destroyMethod = "close")

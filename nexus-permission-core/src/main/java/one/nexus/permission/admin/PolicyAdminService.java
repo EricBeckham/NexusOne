@@ -135,6 +135,32 @@ public final class PolicyAdminService {
         return saved;
     }
 
+    /** PV4: removes one grant of the current tenant and republishes the policy version. False when absent. */
+    public boolean revokeGrant(UUID grantId) {
+        TenantContext context = TenantContextHolder.require();
+        PolicyRepository.GrantRecord existing = repository.listGrants(context.tenantId()).stream()
+                .filter(item -> item.id().equals(grantId))
+                .findFirst()
+                .orElse(null);
+        if (existing == null || !repository.deleteGrant(context.tenantId(), grantId)) {
+            return false;
+        }
+        bump(context.tenantId());
+        Rule rule = existing.rule();
+        appendPermission(
+                false,
+                context,
+                rule == null ? "grant" : rule.resource(),
+                rule == null ? "revoke" : rule.action(),
+                "REVOKED",
+                Map.of(
+                        "principal_type", rule == null ? "" : rule.principalType(),
+                        "principal_id", rule == null ? "" : rule.principalId(),
+                        "effect", String.valueOf(existing.effect()),
+                        "grant_id", grantId.toString()));
+        return true;
+    }
+
     public PolicyRepository.ShareRecord share(String resource, String recordId, String principalType, String principalId) {
         TenantContext context = TenantContextHolder.require();
         PolicyRepository.ShareRecord saved = repository.saveShare(new PolicyRepository.ShareRecord(
