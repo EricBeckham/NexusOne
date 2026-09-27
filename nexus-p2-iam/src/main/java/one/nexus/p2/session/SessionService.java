@@ -121,10 +121,16 @@ public final class SessionService {
 
     public SessionView loginWithCode(String code, String redirectUri, String codeVerifier) {
         IdentityProviderPort.TokenSet tokens = idp.exchangeAuthorizationCode(code, redirectUri, codeVerifier);
-        return loginWithAccessToken(tokens.accessToken());
+        return loginWithAccessToken(tokens.accessToken(), true);
     }
 
     public SessionView loginWithAccessToken(String accessToken) {
+        // Token-based provisioning can precede membership assignment. Auth-code
+        // login, however, must not silently return an unusable tenant session.
+        return loginWithAccessToken(accessToken, false);
+    }
+
+    private SessionView loginWithAccessToken(String accessToken, boolean requireActiveMembership) {
         boolean accepted = false;
         try {
             IdentityProviderPort.IdentityClaims claims;
@@ -141,6 +147,9 @@ public final class SessionService {
             List<MembershipView> active = memberships.stream()
                     .filter(item -> item.status() == Model.MembershipStatus.ACTIVE)
                     .toList();
+            if (requireActiveMembership && active.isEmpty()) {
+                throw DomainException.noActiveMembership();
+            }
             SessionView view = active.size() == 1
                     ? issue(account, claims, active.getFirst().tenantId(), memberships, accessToken)
                     : new SessionView(
