@@ -40,11 +40,11 @@ class U2IdentityBootstrapPostgresTest {
         jdbc = new JdbcTemplate(datasource);
         permissions = PermissionModule.create(new InMemoryPolicyRepository(), new JdbcIdentityRepository(jdbc),
                 new InMemoryPolicyInvalidation());
-        // Production-shaped URL proves U2 does not depend on the local demo gate.
+        // Every JDBC path is pinned to this disposable cluster, never the default nexusone database.
         var env = new MockEnvironment().withProperty(PlatformDutyBootstrap.ENABLED, "true")
                 .withProperty(PlatformDutyBootstrap.DEMO_CONTEXT, "false")
                 .withProperty(DemoProfileGate.ENABLED, "false")
-                .withProperty("spring.datasource.url", "jdbc:postgresql://demo-host.invalid/nexusone");
+                .withProperty("spring.datasource.url", "jdbc:postgresql://127.0.0.1:" + postgres.getPort() + "/postgres");
         runner = new PlatformDutyBootstrapRunner(env, permissions, new P1Properties(), JdbcClient.create(datasource),
                 new TransactionTemplate(new DataSourceTransactionManager(datasource)));
     }
@@ -68,6 +68,9 @@ class U2IdentityBootstrapPostgresTest {
         assertEquals(versions, jdbc.queryForList("SELECT id, version FROM iam.iam_global_account ORDER BY id"));
         assertEquals(1, permissions.repository().listAssignments(P2DemoSeedConfiguration.PLATFORM_TENANT_ID).size());
         assertEquals(0, count("SELECT count(*) FROM iam.iam_tenant_membership WHERE status = 'SUSPENDED'"));
+        assertEquals(java.util.Set.of(P2DemoSeedConfiguration.DEPARTMENT_ENGINEERING,
+                        P2DemoSeedConfiguration.DEPARTMENT_PLATFORM, P2DemoSeedConfiguration.DEPARTMENT_PLATFORM_OPS),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT id FROM iam.iam_department", UUID.class)));
     }
 
     @Test
@@ -91,6 +94,54 @@ class U2IdentityBootstrapPostgresTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"platform_ops", "engineering", "platform_team"})
+    void existingDepartmentCodeWithDifferentIdIsPreservedAndReusedIdempotently(String code) {
+        UUID tenant = code.equals("platform_ops") ? P2DemoSeedConfiguration.PLATFORM_TENANT_ID
+                : P2DemoSeedConfiguration.TENANT_ID;
+        UUID existing = UUID.randomUUID();
+        UUID foreign = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO iam.iam_department
+                (id, tenant_id, code, name, path, sort_order, status, created_at, updated_at, version)
+                VALUES (?, ?, ?, '另一租户同 code', '/foreign/', 99, 'ACTIVE', now(), now(), 4)
+                """, foreign, UUID.randomUUID(), code);
+        jdbc.update("""
+                INSERT INTO iam.iam_department
+                (id, tenant_id, code, name, path, sort_order, status, created_at, updated_at, version)
+                VALUES (?, ?, ?, '已有真实部门', '/preserved/', 77, 'ACTIVE', now(), now(), 9)
+                """, existing, tenant, code);
+        var before = jdbc.queryForMap("SELECT * FROM iam.iam_department WHERE id = ?", existing);
+        run();
+        assertPacks();
+        UUID employment = code.equals("platform_ops") ? P2DemoSeedConfiguration.EMPLOYMENT_PLATFORM_ADMIN
+                : code.equals("engineering") ? P2DemoSeedConfiguration.EMPLOYMENT_LIN_ADMIN
+                : P2DemoSeedConfiguration.EMPLOYMENT_ZHOU;
+        assertEquals(existing, jdbc.queryForObject("SELECT department_id FROM iam.iam_employment WHERE id = ?",
+                UUID.class, employment));
+        run();
+        assertPacks();
+        assertEquals(before, jdbc.queryForMap("SELECT * FROM iam.iam_department WHERE id = ?", existing));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM iam.iam_department WHERE tenant_id = ? AND code = ?",
+                Integer.class, tenant, code));
+        assertEquals(1, permissions.repository().listAssignments(P2DemoSeedConfiguration.PLATFORM_TENANT_ID).size());
+        assertEquals(4, jdbc.queryForObject("SELECT version FROM iam.iam_department WHERE id = ?", Integer.class, foreign));
+        assertEquals(java.util.Set.of(P2DemoSeedConfiguration.PERSON_PLATFORM_ADMIN, P2DemoSeedConfiguration.PERSON_LIN,
+                        P2DemoSeedConfiguration.PERSON_ZHOU),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT id FROM iam.iam_person", UUID.class)));
+        assertEquals(java.util.Set.of(P2DemoSeedConfiguration.MEMBERSHIP_PLATFORM_ADMIN,
+                        UUID.fromString("01900000-0000-7000-8000-000000000213"),
+                        UUID.fromString("01900000-0000-7000-8000-000000000214")),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT id FROM iam.iam_tenant_membership", UUID.class)));
+        if (code.equals("engineering")) {
+            assertEquals(existing, jdbc.queryForObject("SELECT parent_id FROM iam.iam_department WHERE id = ?",
+                    UUID.class, P2DemoSeedConfiguration.DEPARTMENT_PLATFORM));
+            assertEquals("/preserved/" + P2DemoSeedConfiguration.DEPARTMENT_PLATFORM + "/",
+                    jdbc.queryForObject("SELECT path FROM iam.iam_department WHERE id = ?",
+                            String.class, P2DemoSeedConfiguration.DEPARTMENT_PLATFORM));
+        }
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"platform.admin@demo.invalid", "lin.xiao@demo.invalid", "zhou.ran@demo.invalid"})
     void orphanEmailFailsHonestlyAndDoesNotInsertOrGrantAnything(String email) {
         UUID orphan = UUID.randomUUID();
@@ -101,6 +152,23 @@ class U2IdentityBootstrapPostgresTest {
         assertEquals(1, count("SELECT count(*) FROM iam.iam_global_account"));
         assertEquals(0, count("SELECT count(*) FROM iam.iam_person"));
         assertTrue(permissions.repository().listAssignments(P2DemoSeedConfiguration.PLATFORM_TENANT_ID).isEmpty());
+        assertTrue(permissions.repository().listRoles(P2DemoSeedConfiguration.PLATFORM_TENANT_ID).isEmpty());
+    }
+
+    @Test
+    void softDeletedDepartmentCodeIsNotRevivedAndIdentityTransactionRollsBack() {
+        UUID existing = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO iam.iam_department
+                (id, tenant_id, code, name, path, sort_order, status, created_at, updated_at, deleted_at, version)
+                VALUES (?, ?, 'platform_ops', '已删除部门', '/deleted/', 10, 'ACTIVE', now(), now(), now(), 2)
+                """, existing, P2DemoSeedConfiguration.PLATFORM_TENANT_ID);
+        var before = jdbc.queryForMap("SELECT * FROM iam.iam_department WHERE id = ?", existing);
+        var error = assertThrows(IllegalStateException.class, this::run);
+        assertTrue(error.getMessage().startsWith("ID7 department code is unavailable"));
+        assertEquals(before, jdbc.queryForMap("SELECT * FROM iam.iam_department WHERE id = ?", existing));
+        assertEquals(0, count("SELECT count(*) FROM iam.iam_global_account"));
+        assertEquals(0, count("SELECT count(*) FROM iam.iam_person"));
         assertTrue(permissions.repository().listRoles(P2DemoSeedConfiguration.PLATFORM_TENANT_ID).isEmpty());
     }
 
