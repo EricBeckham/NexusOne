@@ -171,12 +171,13 @@ export const p1 = {
     api(`/api/v1/p1/tenants/${id}/config`, { method: "PUT", body, platform: true, auth: false }),
   entitlement: (id) => api(`/api/v1/p1/tenants/${id}/entitlement`, { platform: true, auth: false }),
   quotas: (id) => api(`/api/v1/p1/tenants/${id}/quotas`, { platform: true, auth: false }),
-  serviceStatus: () => api("/api/v1/p1/platform/services", { platform: true, auth: false }),
+  // AUTH6G5: read-only platform GETs bridged by AUTH6G2 need the Bearer token and the issued context.
+  serviceStatus: () => api("/api/v1/p1/platform/services", { platform: true }),
   actuatorHealth: () => api("/actuator/health", { auth: false }),
   demoReadiness: () => api("/api/v1/platform/demo-readiness", { platform: true, auth: false }),
-  tenantTree: () => api("/api/v1/p1/tenants/tree", { platform: true, auth: false }),
-  tenantChildren: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/children`, { platform: true, auth: false }),
-  tenantAncestors: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/ancestors`, { platform: true, auth: false }),
+  tenantTree: () => api("/api/v1/p1/tenants/tree", { platform: true }),
+  tenantChildren: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/children`, { platform: true }),
+  tenantAncestors: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/ancestors`, { platform: true }),
   reparentTenant: (id, parentTenantId) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/parent`, {
     method: "PATCH",
     body: { parent_tenant_id: parentTenantId },
@@ -186,8 +187,8 @@ export const p1 = {
   consume: (id, body) =>
     api(`/api/v1/p1/tenants/${id}/quotas/consume`, { method: "POST", body, platform: true, auth: false }),
   audit: (id) => api(`/api/v1/p1/tenants/${id}/audit-events?limit=50`, { platform: true, auth: false }),
-  formTemplates: () => api("/api/v1/p1/platform/form-templates", { platform: true, auth: false }),
-  formTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { platform: true, auth: false }),
+  formTemplates: () => api("/api/v1/p1/platform/form-templates", { platform: true }),
+  formTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { platform: true }),
   createFormTemplate: (body) => api("/api/v1/p1/platform/form-templates", { method: "POST", body, platform: true, auth: false }),
   updateFormTemplate: (id, body) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   validateFormTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}/validate`, { method: "POST", body: {}, platform: true, auth: false }),

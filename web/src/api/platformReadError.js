@@ -16,6 +16,18 @@ const REASONS = {
   client_tenant_header: "请求带了不允许的租户头，已被拒绝。",
 };
 
+/**
+ * AUTH6G5: for pages that show the plain server message today — explain the two platform-context refusals
+ * (AUTH6 bridge / missing platform context) and leave every other error exactly as the page showed it before.
+ */
+export function explainPlatformRead(err, fallback) {
+  const code = err?.code || err?.body?.code || "";
+  if (code === PLATFORM_READ_DENIED || code === "P1.CONTEXT.0001") {
+    return platformReadFailure(err, fallback);
+  }
+  return err?.message || fallback;
+}
+
 /** Returns the description line for a failed platform read list call. */
 export function platformReadFailure(err, fallback) {
   const code = err?.code || err?.body?.code || "";

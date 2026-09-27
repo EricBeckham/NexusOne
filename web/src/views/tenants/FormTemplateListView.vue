@@ -96,6 +96,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { p1 } from "../../api/client";
+import { explainPlatformRead } from "../../api/platformReadError";
 import { NxDataTable, NxPageHeader, NxStatusTag } from "../../components";
 import { PLATFORM_CONFIG_LINKS } from "../../config/platformConfigLinks";
 
@@ -181,7 +182,7 @@ async function load() {
     rows.value = Array.isArray(body) ? body : [];
   } catch (err) {
     rows.value = [];
-    error.value = err?.message || "表单模板加载失败";
+    error.value = explainPlatformRead(err, "表单模板加载失败");
     traceId.value = err?.traceId || "";
   } finally {
     loading.value = false;

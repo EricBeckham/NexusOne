@@ -52,6 +52,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { p1 } from "../../api/client";
+import { explainPlatformRead } from "../../api/platformReadError";
 import { NxEmpty, NxErrorState, NxPageHeader, NxPanelCard, NxSkeleton, NxStatusTag } from "../../components";
 
 const snapshot = ref(null);
@@ -83,7 +84,7 @@ async function load() {
     const result = await p1.serviceStatus();
     snapshot.value = result && typeof result === "object" ? result : { services: [] };
   } catch (err) {
-    error.value = err?.message || "平台服务状态加载失败";
+    error.value = explainPlatformRead(err, "平台服务状态加载失败");
     traceId.value = err?.traceId || "";
   } finally {
     loading.value = false;

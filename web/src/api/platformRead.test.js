@@ -1,7 +1,44 @@
 /** @vitest-environment happy-dom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { STORAGE_KEY, p1 } from "./client";
-import { platformReadFailure } from "./platformReadError";
+import { explainPlatformRead, platformReadFailure } from "./platformReadError";
+
+describe("AUTH6G5 platform writes are left alone", () => {
+  let fetchMock;
+
+  beforeEach(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: "access-token-value", contextId: "ctx-platform" }));
+    fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    sessionStorage.clear();
+  });
+
+  it.each([
+    ["reparent", () => p1.reparentTenant("t-1", null)],
+    ["create form template", () => p1.createFormTemplate({ name: "x" })],
+    ["publish form template", () => p1.publishFormTemplate("f-1")],
+  ])("%s keeps its existing unauthenticated options", async (_, call) => {
+    await call();
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers.Authorization).toBeUndefined();
+    expect(init.headers["X-Nexus-Context-Id"]).toBeUndefined();
+  });
+});
+
+describe("AUTH6G5 explainPlatformRead", () => {
+  it("explains the two platform-context refusals and keeps other messages untouched", () => {
+    const denied = { code: "AUTH6.PLATFORM_READ_DENIED", body: { reason: "missing_credentials" } };
+    expect(explainPlatformRead(denied, "租户关系加载失败")).toContain("重新登录");
+    expect(explainPlatformRead({ code: "P1.CONTEXT.0001", message: "platform context required for tenant.relation.tree" }, "x"))
+      .toContain("没有平台上下文");
+    expect(explainPlatformRead({ code: "P1.M02.001", message: "服务端原文" }, "租户关系加载失败")).toBe("服务端原文");
+    expect(explainPlatformRead({}, "租户关系加载失败")).toBe("租户关系加载失败");
+  });
+});
 
 describe("AUTH6F4 platform read lists are authenticated", () => {
   let fetchMock;
@@ -20,6 +57,13 @@ describe("AUTH6F4 platform read lists are authenticated", () => {
   it.each([
     ["tenant directory", () => p1.listTenants(), "/api/v1/p1/tenants"],
     ["registration review", () => p1.listTenantRegistrations("PENDING"), "/api/v1/p1/tenant-registrations?status=PENDING"],
+    // AUTH6G5
+    ["tenant relation tree", () => p1.tenantTree(), "/api/v1/p1/tenants/tree"],
+    ["tenant relation children", () => p1.tenantChildren("t-1"), "/api/v1/p1/tenants/t-1/children"],
+    ["tenant relation ancestors", () => p1.tenantAncestors("t-1"), "/api/v1/p1/tenants/t-1/ancestors"],
+    ["platform service status", () => p1.serviceStatus(), "/api/v1/p1/platform/services"],
+    ["form template list", () => p1.formTemplates(), "/api/v1/p1/platform/form-templates"],
+    ["form template detail", () => p1.formTemplate("f-1"), "/api/v1/p1/platform/form-templates/f-1"],
   ])("%s sends the Bearer token and the issued context", async (_, call, path) => {
     await call();
     const [url, init] = fetchMock.mock.calls[0];

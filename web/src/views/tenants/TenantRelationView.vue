@@ -91,6 +91,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p1 } from "../../api/client";
+import { explainPlatformRead } from "../../api/platformReadError";
 import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader, NxStatusTag } from "../../components";
 import {
   LAZY_TREE_LIMIT,
@@ -210,7 +211,7 @@ async function loadTree() {
     if (err?.status === 403) {
       denied.value = true;
     }
-    error.value = err?.message || "租户关系加载失败";
+    error.value = explainPlatformRead(err, "租户关系加载失败");
     traceId.value = err?.traceId || "";
   } finally {
     loading.value = false;
@@ -252,7 +253,7 @@ async function loadDetail(id) {
     if (err?.status === 403) {
       detailDenied.value = true;
     }
-    detailError.value = err?.message || "关系详情加载失败";
+    detailError.value = explainPlatformRead(err, "关系详情加载失败");
     detailTrace.value = err?.traceId || "";
   } finally {
     detailLoading.value = false;
