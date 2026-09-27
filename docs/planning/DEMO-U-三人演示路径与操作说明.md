@@ -45,7 +45,7 @@ Keycloak 若配置「邮箱作为用户名」，登录框填邮箱；上表 User
 ## 4. Keycloak 登录（三人相同的步骤）
 
 1. `/login` 页点 Keycloak 登录入口（issuer 已配置时是主按钮；不要用本地 stub 入口）。
-2. 在 Keycloak 登录页输入该角色的登录名与口令（口令只经 IdP / 密钥交付渠道取得，不写在任何地方）；完成 IdP 要求的 required actions / MFA。
+2. 在 Keycloak 登录页输入该角色的登录名与口令（口令只经 IdP / 密钥交付渠道取得，不写在任何地方）；完成 IdP 要求的 required actions / MFA。演示机当前 `NEXUS_IAM_MFA_ADMIN_REQUIRED=false`（仅演示放行管理员口令登录；生产勿照搬）。
 3. 回跳 `/callback` 后应进入应用首页（产品选择 `/`）。
    - 一个 ACTIVE 成员资格时，服务端直接签发租户上下文；
    - 多个 ACTIVE 时前端自动进入 `demo_acme`（AUTH5），右上角仍可手动切换；
