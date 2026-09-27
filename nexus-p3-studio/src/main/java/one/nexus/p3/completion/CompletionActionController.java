@@ -19,11 +19,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class CompletionActionController {
     private final CompletionActionService actions;
     private final ObjectProvider<CompletionActionSurfaceGuard> surfaces;
+    private final ObjectProvider<CompletionRunService> runs;
 
     public CompletionActionController(CompletionActionService actions,
-            ObjectProvider<CompletionActionSurfaceGuard> surfaces) {
+            ObjectProvider<CompletionActionSurfaceGuard> surfaces, ObjectProvider<CompletionRunService> runs) {
         this.actions = actions;
         this.surfaces = surfaces;
+        this.runs = runs;
     }
 
     @GetMapping
@@ -54,6 +56,30 @@ public class CompletionActionController {
     public Map<String, Object> preview(@PathVariable UUID id, @RequestBody PreviewBody body) {
         requireRead();
         return Map.of("row", actions.preview(id, body.sourceRecordId(), body.outcome()));
+    }
+
+    /** FA4: execution records, newest first ({@code action_id} optional). */
+    @GetMapping("/runs")
+    public List<CompletionActionRun> runs(
+            @org.springframework.web.bind.annotation.RequestParam(name = "action_id", required = false) UUID actionId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Integer limit) {
+        requireRead();
+        return runService().list(actionId, limit);
+    }
+
+    /** FA4: re-run one failed execution through the outbox (the run's unique key still prevents a second row). */
+    @PostMapping("/runs/{runId}/retry")
+    public CompletionActionRun retry(@PathVariable UUID runId) {
+        requireWrite();
+        return runService().retry(runId);
+    }
+
+    private CompletionRunService runService() {
+        CompletionRunService service = runs.getIfAvailable();
+        if (service == null) {
+            throw CompletionActionService.invalid("post-completion runs are not available on this host", Map.of());
+        }
+        return service;
     }
 
     private void requireRead() {
