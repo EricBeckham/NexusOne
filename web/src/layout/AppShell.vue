@@ -31,9 +31,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { session } from "../api/session";
+import { ensureProducts, session } from "../api/session";
 import { collectLinks, navFor } from "../nav";
 import { productById } from "../nav/products";
 import GlobalHeader from "./GlobalHeader.vue";
@@ -59,6 +59,8 @@ for (const path of REQUIRED_SHELL_LINKS) {
     console.error(`AppShell menu missing ${path}`);
   }
 }
+// PV3: a new login or tenant switch reloads which products the switcher may show.
+watch(() => [session.accountId, session.contextId], () => { ensureProducts(); }, { immediate: true });
 </script>
 
 <style scoped>

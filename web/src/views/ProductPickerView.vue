@@ -2,10 +2,11 @@
   <div>
     <div class="nx-page-header">
       <h1>选择产品</h1>
-      <p>进入星域、星权、星构、星市或星联。</p>
+      <p v-if="items.length">进入{{ items.map((item) => item.name).join("、") }}。</p>
+      <p v-else data-testid="product-picker-empty">当前账号在所在租户中还没有可进入的产品，请联系管理员。</p>
     </div>
     <div class="picker">
-      <router-link v-for="item in PRODUCTS" :key="item.id" :to="item.home" class="nx-card card" :data-product="item.id">
+      <router-link v-for="item in items" :key="item.id" :to="item.home" class="nx-card card" :data-product="item.id">
         <span class="mark"><NxIcon :name="item.icon" :size="22" /></span>
         <strong>{{ item.name }}</strong>
         <span class="nx-muted">{{ item.en }}</span>
@@ -15,8 +16,13 @@
 </template>
 
 <script setup>
-import { PRODUCTS } from "../nav/products";
+import { computed } from "vue";
+import { session } from "../api/session";
+import { visibleProducts } from "../nav/productAccess";
 import NxIcon from "../icons/NxIcon.vue";
+
+// PV3: the server decides which products this person may enter (GET /api/v1/auth/products).
+const items = computed(() => visibleProducts(session.products));
 </script>
 
 <style scoped>
