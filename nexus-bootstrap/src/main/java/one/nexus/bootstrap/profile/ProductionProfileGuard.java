@@ -85,6 +85,9 @@ public final class ProductionProfileGuard {
                 warnings.add(name + " is set; clear it once platform bootstrap is done");
             }
         }
+        if (flag(env, "nexus.content-bootstrap.enabled")) {
+            warnings.add("nexus.content-bootstrap.enabled is on; set NEXUS_CONTENT_BOOTSTRAP_ENABLED=false once demo content is created");
+        }
         String issuer = value(env, "nexus.iam.keycloak.issuer", "");
         if (!issuer.isEmpty() && !issuer.startsWith("https://")) {
             warnings.add("nexus.iam.keycloak.issuer is not https");
