@@ -53,10 +53,31 @@ public final class MarketModels {
 
     /** XB6: status words shared with the web stepper (XB4). DONE/ACTIVE/FAILED only ever come from a record. */
     public enum UpgradeStepStatus { DONE, ACTIVE, FAILED, UNKNOWN }
-    public record UpgradeStep(String key, String label, UpgradeStepStatus status) {}
+    /**
+     * DPO-L6: {@code recordedAt} / {@code reason} are the operator record behind a non-UNKNOWN status; both are
+     * null (omitted on the wire) for UNKNOWN, which is simply the absence of a record.
+     */
+    public record UpgradeStep(String key, String label, UpgradeStepStatus status, Instant recordedAt, String reason) {
+        public UpgradeStep(String key, String label, UpgradeStepStatus status) {
+            this(key, label, status, null, null);
+        }
+    }
+
+    /** DPO-L6: one operator record in {@code market.upgrade_step_record} (V709). Never UNKNOWN. */
+    public record UpgradeStepRecord(UUID id, UUID tenantId, UUID installationId, UUID versionId, String stepKey,
+            UpgradeStepStatus status, Instant recordedAt, UUID recordedBy, String reason, String note) {
+        public UpgradeStepRecord {
+            if (status == UpgradeStepStatus.UNKNOWN) {
+                throw new IllegalArgumentException("UNKNOWN is the absence of a record and is never stored");
+            }
+        }
+    }
+
     /**
      * XB6: the §28.6 upgrade steps for one installation. {@code recorded=false} means no step was ever
      * persisted — upgrade today only switches the version — so every step is UNKNOWN, never COMPLETED/DONE.
+     * DPO-L6: {@code recorded=true} only when an operator recorded at least one step for the installation's current
+     * version; each recorded step shows the latest record, every other step stays UNKNOWN.
      */
     public record UpgradeSteps(UUID installationId, boolean recorded, String note, java.util.List<UpgradeStep> steps) {
         public static final java.util.List<String[]> CATALOG = java.util.List.of(
@@ -72,10 +93,32 @@ public final class MarketModels {
             steps = java.util.List.copyOf(steps);
         }
 
+        public static final String RECORDED_NOTE = "状态来自运维人员对这次升级逐步记录的结果；没有记录的步骤仍为「暂无」。";
+
         public static UpgradeSteps unrecorded(UUID installationId) {
             return new UpgradeSteps(installationId, false, UNRECORDED_NOTE, CATALOG.stream()
                     .map(step -> new UpgradeStep(step[0], step[1], UpgradeStepStatus.UNKNOWN))
                     .toList());
+        }
+
+        /**
+         * DPO-L6: the only way to a non-UNKNOWN step. Uses the latest record per step for {@code versionId};
+         * records for another version (an earlier upgrade) are ignored. No records → {@link #unrecorded}.
+         */
+        public static UpgradeSteps fromRecords(UUID installationId, UUID versionId, java.util.List<UpgradeStepRecord> records) {
+            java.util.Map<String, UpgradeStepRecord> latest = new java.util.HashMap<>();
+            for (UpgradeStepRecord record : records) {
+                if (!installationId.equals(record.installationId()) || !versionId.equals(record.versionId())) continue;
+                latest.merge(record.stepKey(), record,
+                        (a, b) -> b.recordedAt().isAfter(a.recordedAt()) ? b : a);
+            }
+            if (latest.isEmpty()) return unrecorded(installationId);
+            return new UpgradeSteps(installationId, true, RECORDED_NOTE, CATALOG.stream().map(step -> {
+                UpgradeStepRecord record = latest.get(step[0]);
+                return record == null
+                        ? new UpgradeStep(step[0], step[1], UpgradeStepStatus.UNKNOWN)
+                        : new UpgradeStep(step[0], step[1], record.status(), record.recordedAt(), record.reason());
+            }).toList());
         }
     }
     /**

@@ -2,6 +2,7 @@ package one.nexus.p4.market;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -74,6 +75,61 @@ class MarketUpgradeHonestyContractTest {
             assertFalse(steps.recorded(), status.name());
             assertTrue(steps.steps().stream().noneMatch(step -> step.status() != UpgradeStepStatus.UNKNOWN), status.name());
         }
+    }
+
+    @Test
+    void recordsAreTheOnlyWayOutOfUnknownAndOnlyForTheCurrentVersion() {
+        UUID installation = UUID.randomUUID();
+        UUID current = UUID.randomUUID();
+        UUID earlier = UUID.randomUUID();
+        MarketModels.UpgradeStepRecord oldDone = new MarketModels.UpgradeStepRecord(UUID.randomUUID(), TENANT, installation,
+                earlier, "verify", UpgradeStepStatus.DONE, NOW, UUID.randomUUID(), "earlier upgrade", null);
+        assertFalse(UpgradeSteps.fromRecords(installation, current, List.of()).recorded());
+        UpgradeSteps ignored = UpgradeSteps.fromRecords(installation, current, List.of(oldDone));
+        assertFalse(ignored.recorded(), "a record for an earlier version says nothing about this upgrade");
+        assertTrue(ignored.steps().stream().allMatch(step -> step.status() == UpgradeStepStatus.UNKNOWN));
+
+        MarketModels.UpgradeStepRecord active = new MarketModels.UpgradeStepRecord(UUID.randomUUID(), TENANT, installation,
+                current, "precheck", UpgradeStepStatus.ACTIVE, NOW, UUID.randomUUID(), "started", null);
+        MarketModels.UpgradeStepRecord done = new MarketModels.UpgradeStepRecord(UUID.randomUUID(), TENANT, installation,
+                current, "precheck", UpgradeStepStatus.DONE, NOW.plusSeconds(60), UUID.randomUUID(), "prechecked by ops", null);
+        UpgradeSteps steps = UpgradeSteps.fromRecords(installation, current, List.of(done, active, oldDone));
+        assertTrue(steps.recorded());
+        assertEquals(UpgradeStepStatus.DONE, steps.steps().get(0).status(), "latest record wins");
+        assertEquals("prechecked by ops", steps.steps().get(0).reason());
+        assertEquals(NOW.plusSeconds(60), steps.steps().get(0).recordedAt());
+        assertTrue(steps.steps().subList(1, 6).stream().allMatch(step -> step.status() == UpgradeStepStatus.UNKNOWN
+                && step.recordedAt() == null && step.reason() == null), "unrecorded steps stay UNKNOWN");
+    }
+
+    @Test
+    void unknownCanNeverBeStoredAndNoOtherFactoryBuildsSteps() {
+        assertThrows(IllegalArgumentException.class, () -> new MarketModels.UpgradeStepRecord(UUID.randomUUID(), TENANT,
+                UUID.randomUUID(), UUID.randomUUID(), "verify", UpgradeStepStatus.UNKNOWN, NOW, UUID.randomUUID(), "x", null));
+        List<String> factories = Arrays.stream(UpgradeSteps.class.getDeclaredMethods())
+                .filter(m -> java.lang.reflect.Modifier.isStatic(m.getModifiers()) && m.getReturnType() == UpgradeSteps.class)
+                .map(Method::getName).sorted().toList();
+        assertEquals(List.of("fromRecords", "unrecorded"), factories);
+    }
+
+    @Test
+    void theReadUsesOnlyRecordsOfTheInstallationsCurrentVersion() {
+        MarketRepository market = mock(MarketRepository.class);
+        MarketService service = new MarketService(market, mock(TenantRepository.class), Clock.fixed(NOW, ZoneOffset.UTC));
+        IsolationKernel kernel = IsolationKernel.create(new TableRegistry().freeze(), Set.of(), new CollectingAuditSink());
+        AccessContextHolder.set(kernel.tenants().issue(new AuthenticatedMembership(
+                Actor.person("dpo-l6"), TENANT.toString(), TENANT.toString(), Set.of(TENANT.toString())), "dpo-l6-trace"));
+        UUID id = UUID.randomUUID();
+        UUID version = UUID.randomUUID();
+        when(market.installationForCurrentTenant(id)).thenReturn(Optional.of(
+                new Installation(id, TENANT, UUID.randomUUID(), version, InstallationStatus.INSTALLED, NOW, NOW)));
+        when(market.upgradeStepRecords(id, version)).thenReturn(List.of(new MarketModels.UpgradeStepRecord(UUID.randomUUID(),
+                TENANT, id, version, "switch", UpgradeStepStatus.FAILED, NOW, UUID.randomUUID(), "switch failed", null)));
+        UpgradeSteps steps = service.upgradeSteps(id);
+        assertTrue(steps.recorded());
+        assertEquals(UpgradeSteps.RECORDED_NOTE, steps.note());
+        assertEquals(List.of("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "FAILED", "UNKNOWN"),
+                steps.steps().stream().map(step -> step.status().name()).toList());
     }
 
     @Test

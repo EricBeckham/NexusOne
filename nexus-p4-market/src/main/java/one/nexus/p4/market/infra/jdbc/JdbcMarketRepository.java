@@ -290,6 +290,31 @@ public class JdbcMarketRepository implements MarketRepository {
     private Sku mapSku(ResultSet r,int n)throws SQLException{try{return new Sku(r.getString("code"),uuid(r,"app_id"),r.getString("name"),json.readValue(r.getString("entitlements"),new TypeReference<Map<String,EntitlementSpec>>(){}));}catch(Exception e){throw new SQLException("invalid SKU entitlements",e);}}
     private Installation mapInstallation(ResultSet r,int n)throws SQLException{return new Installation(uuid(r,"id"),uuid(r,"tenant_id"),uuid(r,"app_id"),uuid(r,"version_id"),InstallationStatus.valueOf(r.getString("status")),instant(r,"installed_at"),instant(r,"updated_at"));}
     private Subscription mapSubscription(ResultSet r,int n)throws SQLException{return new Subscription(uuid(r,"id"),uuid(r,"tenant_id"),r.getString("sku_code"),SubscriptionStatus.valueOf(r.getString("status")),instant(r,"started_at"),instant(r,"ended_at"));}
+    @Override public List<UpgradeStepRecord> upgradeStepRecords(UUID installationId, UUID versionId) {
+        return jdbc.sql("""
+                SELECT * FROM market.upgrade_step_record
+                WHERE installation_id=:installation AND version_id=:version AND tenant_id=:tenant
+                ORDER BY recorded_at DESC
+                """).param("installation",installationId).param("version",versionId)
+                .param("tenant",UUID.fromString(currentTenantId()))
+                .query((r,n) -> new UpgradeStepRecord(uuid(r,"id"),uuid(r,"tenant_id"),uuid(r,"installation_id"),
+                        uuid(r,"version_id"),r.getString("step_key"),UpgradeStepStatus.valueOf(r.getString("status")),
+                        instant(r,"recorded_at"),uuid(r,"recorded_by"),r.getString("reason"),r.getString("note"))).list();
+    }
+    @Override public Optional<Installation> installationForPlatform(UUID installationId) {
+        return jdbc.sql("SELECT * FROM market.installation WHERE id=:id").param("id",installationId)
+                .query(this::mapInstallation).optional();
+    }
+    @Override public void saveUpgradeStepRecord(UpgradeStepRecord record) {
+        jdbc.sql("""
+                INSERT INTO market.upgrade_step_record(id,tenant_id,installation_id,version_id,step_key,status,
+                    recorded_at,recorded_by,reason,note)
+                VALUES(:id,:tenant,:installation,:version,:step,:status,:at,:by,:reason,:note)
+                """).param("id",record.id()).param("tenant",record.tenantId()).param("installation",record.installationId())
+                .param("version",record.versionId()).param("step",record.stepKey()).param("status",record.status().name())
+                .param("at",sqlTimestamp(record.recordedAt())).param("by",record.recordedBy())
+                .param("reason",record.reason()).param("note",record.note()).update();
+    }
     private <T> List<T> tenantRows(String table, List<String> projection, Map<String,Object> filters, RowMapper<T> mapper) {
         RenderedSql query = isolation.kernel().compiler()
                 .compile(QueryAst.select(table, projection, filters), AccessContextHolder.current());
