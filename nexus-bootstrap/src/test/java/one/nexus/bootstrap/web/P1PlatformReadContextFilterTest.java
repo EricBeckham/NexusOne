@@ -96,7 +96,8 @@ class P1PlatformReadContextFilterTest {
 
     @Test void demoHeadersCannotAuthorize() throws Exception {
         mvc.perform(get("/api/v1/p1/tenants").header("X-Nexus-Demo-Actor-Id", person)
-                .header("X-Nexus-Demo-Reason", "spoof")).andExpect(status().isUnauthorized());
+                .header("X-Nexus-Demo-Reason", "spoof")).andExpect(status().isUnauthorized())
+                .andExpect(reason("missing_credentials"));
         verifyNoInteractions(sessions, service);
     }
 
@@ -104,7 +105,8 @@ class P1PlatformReadContextFilterTest {
         context = new TenantContext(contextId, UUID.randomUUID(), context.accountId(), person,
                 "subject", context.issuedAt(), context.expiresAt());
         mvc.perform(get("/api/v1/p1/tenants").header("Authorization", "Bearer test-token")
-                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden());
+                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden())
+                .andExpect(reason("not_platform_context"));
         verifyNoInteractions(service);
     }
 
@@ -118,7 +120,8 @@ class P1PlatformReadContextFilterTest {
     @Test void deniedPermissionFailsClosed() throws Exception {
         when(service.check("tenant", "list")).thenThrow(one.nexus.permission.support.PermissionException.denied("denied"));
         mvc.perform(get("/api/v1/p1/tenants").header("Authorization", "Bearer test-token")
-                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden());
+                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden())
+                .andExpect(reason("permission_denied"));
     }
 
     @ParameterizedTest @ValueSource(strings = {"revoked", "expired", "not issued"})
@@ -126,12 +129,13 @@ class P1PlatformReadContextFilterTest {
         when(sessions.loadContext(eq(contextId), any(SessionService.AuthenticatedIdentity.class)))
                 .thenThrow(one.nexus.p2.support.DomainException.unauthorized(reason));
         mvc.perform(get("/api/v1/p1/tenants").header("Authorization", "Bearer test-token")
-                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isUnauthorized());
+                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isUnauthorized())
+                .andExpect(reason("session_invalid"));
     }
 
     @Test void clientTenantHeaderDenied() throws Exception {
         mvc.perform(get("/api/v1/p1/tenants").header("X-Tenant-Id", context.tenantId()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest()).andExpect(reason("client_tenant_header"));
     }
 
     @Test void invalidTokenDenied() throws Exception {
@@ -144,7 +148,8 @@ class P1PlatformReadContextFilterTest {
     @Test void conflictingDutiesDenied() throws Exception {
         roles(Set.of(PlatformDutyCatalog.SYSTEM_ADMIN, PlatformDutyCatalog.AUDIT_ADMIN));
         mvc.perform(get("/api/v1/p1/tenants").header("Authorization", "Bearer test-token")
-                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden());
+                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden())
+                .andExpect(reason("duty_set"));
     }
 
     @Test void scopeAndOffSwitchNeverBind() throws Exception {
@@ -174,7 +179,24 @@ class P1PlatformReadContextFilterTest {
     @Test void unavailablePermissionSnapshotDenied() throws Exception {
         when(service.snapshot()).thenThrow(new one.nexus.permission.engine.SnapshotUnavailableException("offline"));
         mvc.perform(get("/api/v1/p1/tenants").header("Authorization", "Bearer test-token")
-                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden());
+                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden())
+                .andExpect(reason("snapshot_unavailable"));
+    }
+
+    @Test void mfaRefusalIsNamedAndTheBodyCarriesNoIdentifiers() throws Exception {
+        when(sessions.loadContext(eq(contextId), any(SessionService.AuthenticatedIdentity.class)))
+                .thenThrow(one.nexus.p2.support.DomainException.mfaRequired("admin needs mfa for " + person));
+        var result = mvc.perform(get("/api/v1/p1/tenants").header("Authorization", "Bearer test-token")
+                .header("X-Nexus-Context-Id", contextId)).andExpect(status().isForbidden())
+                .andExpect(reason("mfa_required")).andReturn();
+        String body = result.getResponse().getContentAsString();
+        assertFalse(body.contains(person.toString()));
+        assertFalse(body.contains(contextId.toString()));
+        assertFalse(body.contains("test-token"));
+    }
+
+    static org.springframework.test.web.servlet.ResultMatcher reason(String reason) {
+        return org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.reason").value(reason);
     }
 
     @Test void exceptionInDownstreamStillCleans() {
