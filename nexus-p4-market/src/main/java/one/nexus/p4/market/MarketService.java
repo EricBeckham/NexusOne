@@ -339,6 +339,10 @@ public class MarketService {
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
+    static boolean isTenantAdminPosition(String code) {
+        return "TENANT_ADMIN".equalsIgnoreCase(code) || "demo_tenant_admin".equalsIgnoreCase(code);
+    }
+
     private void requireTenantAdmin(UUID tenantId) {
         AccessContext context = AccessContextHolder.currentOrNull();
         if (!(context instanceof TenantContext tenant) || !tenant.tenantId().equals(tenantId.toString())
@@ -358,7 +362,7 @@ public class MarketService {
         boolean tenantAdmin = identities.listEmploymentsByPerson(tenantId, person.id()).stream()
                 .filter(e -> e.status() == Model.EmploymentStatus.ACTIVE)
                 .map(e -> identities.findPosition(tenantId, e.positionId()).orElse(null))
-                .anyMatch(position -> position != null && "TENANT_ADMIN".equalsIgnoreCase(position.code()));
+                .anyMatch(position -> position != null && isTenantAdminPosition(position.code()));
         if (!tenantAdmin || person.status() != Model.PersonStatus.ACTIVE) {
             throw new NexusException(SUBSCRIBE_ADMIN_REQUIRED, 403,
                     "tenant administrator role is required");

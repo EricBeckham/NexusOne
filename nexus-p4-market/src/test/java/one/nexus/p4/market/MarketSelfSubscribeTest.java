@@ -44,6 +44,8 @@ class MarketSelfSubscribeTest {
                 Model.PersonStatus.ACTIVE,NOW,NOW,null,1);
         var employment=new Model.Employment(UUID.randomUUID(),tenantId,personId,UUID.randomUUID(),positionId,
                 Model.EmploymentKind.PRIMARY,Model.EmploymentStatus.ACTIVE,null,null,NOW,NOW,null,1);
+        assertThat(MarketService.isTenantAdminPosition("demo_tenant_admin")).isTrue();
+        assertThat(MarketService.isTenantAdminPosition("TENANT_ADMIN")).isTrue();
         var position=new Model.Position(positionId,tenantId,"TENANT_ADMIN","Tenant admin","admin",null,
                 Model.OrgStatus.ACTIVE,NOW,NOW,null,1);
         when(iam.findPerson(tenantId,personId)).thenReturn(Optional.of(person));

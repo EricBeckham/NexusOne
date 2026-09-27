@@ -181,7 +181,7 @@ class DemoSeedPostgresBootTest {
         assertEquals(1, count("""
                 SELECT count(*) FROM iam.iam_employment e
                 JOIN iam.iam_position p ON p.id = e.position_id
-                WHERE e.person_id = ? AND p.code = 'TENANT_ADMIN' AND e.status = 'ACTIVE' AND e.deleted_at IS NULL
+                WHERE e.person_id = ? AND p.code = 'demo_tenant_admin' AND e.kind = 'PRIMARY' AND e.status = 'ACTIVE' AND e.deleted_at IS NULL
                 """, P2DemoSeedConfiguration.PERSON_LIN));
         String token = StubIdentityProvider.token(
                 "demo-seed:p2:lin", "lin.xiao@demo.invalid", "demo-lin", "林晓");

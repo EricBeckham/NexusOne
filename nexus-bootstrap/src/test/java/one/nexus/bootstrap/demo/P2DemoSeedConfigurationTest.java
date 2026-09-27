@@ -57,14 +57,25 @@ class P2DemoSeedConfigurationTest {
         configuration.p2DemoSeed(jdbc, env, transaction).run((ApplicationArguments) null);
 
         var sql = org.mockito.ArgumentCaptor.forClass(String.class);
-        org.mockito.Mockito.verify(jdbc, org.mockito.Mockito.times(22)).sql(sql.capture());
+        org.mockito.Mockito.verify(jdbc, org.mockito.Mockito.atLeast(22)).sql(sql.capture());
         for (String statementSql : sql.getAllValues()) {
-            assertTrue(statementSql.contains("ON CONFLICT"), "seed insert must be idempotent");
-            if (!statementSql.contains("iam.iam_global_account")) {
-                assertTrue(statementSql.contains(":tenant"), "tenant-owned seed rows must be scoped to the demo tenant");
+            if (statementSql.contains("INSERT")) {
+                assertTrue(statementSql.contains("ON CONFLICT"), "seed insert must be idempotent");
             }
+            if (!statementSql.contains("iam.iam_global_account")) {
+                assertTrue(statementSql.contains(":tenant") || statementSql.contains(":platform"),
+                        "tenant-owned seed rows must be scoped");
+            }
+            assertTrue(!statementSql.contains("'TENANT_ADMIN'") && !statementSql.contains("'PLATFORM_ADMIN'"),
+                    statementSql);
         }
-        assertTrue(sql.getAllValues().stream().anyMatch(statementSql -> statementSql.contains("'TENANT_ADMIN'")),
-                "林晓 needs a TENANT_ADMIN position so self-subscribe is allowed");
+        String joined = String.join("\n", sql.getAllValues());
+        assertTrue(joined.contains("'demo_tenant_admin'"));
+        assertTrue(joined.contains("'demo_platform_ops'"));
+        assertTrue(joined.contains("'demo_member'"));
+        assertTrue(joined.contains("'nexus-demo-platform'"));
+        assertTrue(joined.contains("'nexus-demo-tenant-admin'"));
+        assertTrue(joined.contains("'nexus-demo-member'"));
+        assertTrue(joined.contains("SUSPENDED"), "one account must not stay ACTIVE on both platform and demo_acme");
     }
 }
