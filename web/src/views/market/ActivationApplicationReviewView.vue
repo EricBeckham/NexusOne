@@ -17,7 +17,7 @@
       :error="error"
       :empty="!rows.length"
       empty-title="暂无开通申请"
-      empty-description="租户在应用目录点击「申请开通」后，待审订记录会出现在这里。"
+      empty-description="列表是空的，不是已经自动准备好的演示数据。需要内容时见 prod-safe 内容手册，再手工申请开通。"
       density="compact"
       testid="activation-table"
       @retry="load"
@@ -106,13 +106,25 @@ function formatDate(value) {
   catch { return String(value); }
 }
 
+function publicFailure(err, fallbackTitle) {
+  const status = Number(err?.status) || 0;
+  if (status === 403) {
+    return { title: "没有权限处理开通申请", description: "HTTP 403。请检查职责与租户上下文。没有自动准备演示内容。见 prod-safe 内容手册。" };
+  }
+  if (!status) {
+    return { title: fallbackTitle, description: "网络不可达。列表不会被自动填上。见 prod-safe 内容手册。" };
+  }
+  return { title: fallbackTitle, description: `HTTP ${status}。没有自动准备演示内容。见 prod-safe 内容手册。` };
+}
+
 async function load() {
   loading.value = true;
   error.value = "";
   try {
-    rows.value = await p4.activationApplications(false);
+    const result = await p4.activationApplications(false);
+    rows.value = Array.isArray(result) ? result : [];
   } catch (err) {
-    error.value = err.message || "无法加载开通申请";
+    error.value = publicFailure(err, "开通申请暂时无法加载");
     rows.value = [];
   } finally {
     loading.value = false;
@@ -134,7 +146,7 @@ async function approve() {
     selected.value = updated;
     await load();
   } catch (err) {
-    actionError.value = err.message || "通过失败";
+    actionError.value = publicFailure(err, "这次没有通过").description;
   } finally {
     busy.value = false;
   }
@@ -153,7 +165,7 @@ async function reject() {
     selected.value = updated;
     await load();
   } catch (err) {
-    actionError.value = err.message || "驳回失败";
+    actionError.value = publicFailure(err, "这次没有驳回").description;
   } finally {
     busy.value = false;
   }
