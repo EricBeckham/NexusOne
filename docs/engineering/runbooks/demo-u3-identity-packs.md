@@ -8,8 +8,8 @@
 | 租户管理（林晓） | `lin.xiao@demo.invalid` | `nexus-demo-tenant-admin` | `demo_tenant_admin` | 租户管理 | `demo_acme` `…0101` |
 | 一般用户（周然） | `zhou.ran@demo.invalid` | `nexus-demo-member` | `demo_member` | 一般用户 | `demo_acme` `…0101` |
 
-固定 UUID 与既有演示种子相同（账号 `…0221` / `…0201` / `…0202`，人员 `…0222` / `…0203` / `…0204`）。插入使用 `ON CONFLICT DO NOTHING`，已有行用按这些 id 的 UPDATE 改岗位 code、username 和主职。演示主职不再使用 `TENANT_ADMIN` / `PLATFORM_ADMIN`。产品初始化器仍可创建真实租户的 `TENANT_ADMIN`；订阅门禁同时接受 `demo_tenant_admin`。
+固定 UUID 与既有演示种子相同（账号 `…0221` / `…0201` / `…0202`，人员 `…0222` / `…0203` / `…0204`）。插入使用按 id / 租户账号唯一键的 `ON CONFLICT DO NOTHING`，已有行用按这些 id 的 UPDATE 改岗位 code、username 和主职。邮箱冲突不在 `ON CONFLICT` 之内：含 ID1 的 U2 窗口插入前会核对邮箱，被固定 id 之外的账号占用（孤儿）时抛 `ID1 identity conflict` 拒启，所以**仍须先清孤儿**再开窗口（见 [TC4](tc4-demo-u2-after-keycloak-checklist.md)）。演示主职不再使用 `TENANT_ADMIN` / `PLATFORM_ADMIN`。产品初始化器仍可创建真实租户的 `TENANT_ADMIN`；订阅门禁同时接受 `demo_tenant_admin`。
 
 同一账号不得同时在平台租户和 `demo_acme` 上保持 ACTIVE。平台侧已有 person 的账号，其 `demo_acme` 成员资格改为 `SUSPENDED`；只有 `demo_acme` person 的账号，其平台成员资格改为 `SUSPENDED`。
 
-本地演示开关打开时，P2 种子会做上述对齐。包含 ID1 的构建在演示机上保持 `NEXUS_DEMO_ENABLED=false` / `NEXUS_P1_DEMO_CONTEXT_ENABLED=false`，沿用 DEMO-U2 的一次性启动任务：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 会先补齐缺失固定身份、对齐已有行，再安装平台职责。无需回环数据库，没有 Flyway。冲突策略及关闭窗口见 [ID1 / ID3](id1-u2-identity-bootstrap.md)；文档不代表已部署或真实 Keycloak 验收。
+本地演示开关打开时，P2 种子会做上述对齐。包含 ID1 的构建在演示机上保持 `NEXUS_DEMO_ENABLED=false` / `NEXUS_P1_DEMO_CONTEXT_ENABLED=false`，沿用 DEMO-U2 的一次性启动任务：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 会先补齐缺失固定身份、对齐已有行，再安装平台职责。无需回环数据库，没有 Flyway。演示机仍禁止打开 `NEXUS_DEMO_ENABLED`。职责安装与 `…0222` 授权在身份提交之后，顺序以 ID1 为准。冲突策略及关闭窗口见 [ID1 / ID3](id1-u2-identity-bootstrap.md)；文档不代表已部署或真实 Keycloak 验收。
