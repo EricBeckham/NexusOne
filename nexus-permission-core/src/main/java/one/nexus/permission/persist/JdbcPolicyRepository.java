@@ -161,6 +161,13 @@ public final class JdbcPolicyRepository implements PolicyRepository {
     }
 
     @Override
+    public boolean deleteGrant(UUID tenantId, UUID grantId) {
+        return jdbc.update(
+                "UPDATE iam.perm_grant SET deleted_at = now() WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL",
+                tenantId, grantId) > 0;
+    }
+
+    @Override
     public List<GrantRecord> listGrants(UUID tenantId) {
         List<GrantRecord> out = new ArrayList<>();
         jdbc.query(

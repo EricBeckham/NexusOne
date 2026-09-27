@@ -1,6 +1,7 @@
 package one.nexus.permission.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -67,8 +68,66 @@ class TenantMemberGrantSeederTest {
         assertTrue(module.service().decide("process.instance", "start").allowed());
         assertTrue(module.service().decide("process.instance", "withdraw").allowed());
         assertTrue(module.service().decide("process.definition", "read").allowed());
-        assertTrue(module.service().decide("process.definition", "write").allowed());
+        // PV4: tenant_member alone no longer designs processes.
+        assertFalse(module.service().decide("process.definition", "write").allowed());
         assertTrue(policies.listAssignments(tenant).stream()
                 .noneMatch(item -> "TENANT_ADMIN".equals(item.principalId())));
+    }
+
+    record Fixture(InMemoryPolicyRepository policies, PermissionModule module, InMemoryIdentityRepository identity,
+            UUID tenant, UUID personId) {}
+
+    static Fixture signedInAdmin() {
+        InMemoryIdentityRepository identity = new InMemoryIdentityRepository();
+        InMemoryPolicyRepository policies = new InMemoryPolicyRepository();
+        PermissionModule module = PermissionModule.create(policies, identity, new InMemoryPolicyInvalidation());
+        StubIdentityProvider idp = new StubIdentityProvider();
+        one.nexus.p2.IdentityModule iam = new one.nexus.p2.IdentityModule(
+                identity, idp, new one.nexus.p2.smtp.KeycloakSmtpHook(idp, false),
+                java.time.Clock.systemUTC(), Duration.ofHours(1));
+        UUID tenant = UUID.fromString("cccccccc-cccc-4ccc-8ccc-ccccccccc004");
+        iam.adminInitializer().initialize(new TenantAdminInitializer.Command(
+                tenant, "PV4 Admin", "pv4-admin@example.com", "pv4-admin"));
+        var person = identity.findPersonByAccount(tenant,
+                identity.findAccountByEmail("pv4-admin@example.com").orElseThrow().id()).orElseThrow();
+        TenantContextHolder.set(new TenantContext(UUID.randomUUID(), tenant, person.accountId(), person.id(),
+                "pv4-admin", Instant.now(), Instant.now().plusSeconds(3600)));
+        return new Fixture(policies, module, identity, tenant, person.id());
+    }
+
+    @Test
+    void aTenantAdminDesignsProcessesThroughTheDesignerRole() {
+        Fixture f = signedInAdmin();
+        TenantMemberGrantSeeder seeder = new TenantMemberGrantSeeder(f.module(), f.identity());
+        seeder.ensure();
+        seeder.ensure();
+
+        assertTrue(f.module().service().decide("process.definition", "write").allowed());
+        assertTrue(f.policies().findRoleByCode(f.tenant(), TenantMemberGrantSeeder.DESIGNER_ROLE).isPresent());
+        assertEquals(1, f.policies().listGrants(f.tenant()).stream()
+                .filter(g -> g.rule() != null && TenantMemberGrantSeeder.DESIGNER_ROLE.equals(g.rule().principalId()))
+                .count(), "idempotent designer grant");
+        assertTrue(f.policies().listGrants(f.tenant()).stream().noneMatch(g -> g.rule() != null
+                && TenantMemberGrantSeeder.ROLE_CODE.equals(g.rule().principalId())
+                && "process.definition".equals(g.rule().resource()) && "write".equals(g.rule().action())));
+        // Filling in forms stays with every member.
+        assertTrue(f.module().service().decide("form", "write").allowed());
+    }
+
+    @Test
+    void theOldMemberWideDesignGrantIsRetired() {
+        Fixture f = signedInAdmin();
+        // What earlier builds left behind: tenant_member holding process.definition:write.
+        new TenantMemberGrantSeeder(f.module()).ensure();
+        f.module().admin().grant("GRANT", "role", TenantMemberGrantSeeder.ROLE_CODE, "process.definition", "write",
+                one.nexus.permission.engine.DataScopeKind.ALL, java.util.List.of(), java.util.Map.of());
+        assertTrue(f.module().service().decide("process.definition", "write").allowed());
+        long before = f.policies().currentVersion(f.tenant());
+
+        new TenantMemberGrantSeeder(f.module()).ensure();
+
+        assertFalse(f.module().service().decide("process.definition", "write").allowed());
+        assertTrue(f.policies().currentVersion(f.tenant()) > before, "policy version republished");
+        assertTrue(f.module().service().decide("process.definition", "read").allowed());
     }
 }

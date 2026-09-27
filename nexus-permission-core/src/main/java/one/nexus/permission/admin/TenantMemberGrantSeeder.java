@@ -17,7 +17,7 @@ import org.springframework.beans.factory.ObjectProvider;
 /**
  * Demo-path bootstrap: role {@code tenant_member} with ledger/form read+write ALL,
  * process.task read/approve/reject, process.instance start/withdraw, and
- * process.definition read/write, assigned to
+ * process.definition read (PV4: write moved to {@link #DESIGNER_ROLE} for tenant admins), assigned to
  * the current person id
  * (M0-05 {@code IamSubjectDirectory} uses personId as userId; position
  * {@code TENANT_ADMIN} codes do not match).
@@ -48,14 +48,30 @@ public class TenantMemberGrantSeeder {
             new String[] {"process.task", "reject"},
             new String[] {"process.instance", "start"},
             new String[] {"process.instance", "withdraw"},
-            new String[] {"process.definition", "read"},
-            new String[] {"process.definition", "write"});
+            new String[] {"process.definition", "read"});
+
+    /**
+     * PV4: designing processes (save / validate / publish a process definition) is not part of every member's
+     * workbench. {@code tenant_member} no longer carries it; a person in a tenant-admin position gets it through
+     * {@link #DESIGNER_ROLE}. {@code form:write} stays with members — it is filling in and submitting a form.
+     */
+    public static final String DESIGNER_ROLE = "tenant_process_designer";
+    static final String[] RETIRED_MEMBER_GRANT = {"process.definition", "write"};
+    /** Same tenant-admin position test as {@code MarketService} / {@code AdminMfaPolicy}. */
+    static final java.util.Set<String> ADMIN_POSITIONS = java.util.Set.of("tenant_admin", "demo_tenant_admin");
 
     private final PermissionModule permission;
+    private final one.nexus.p2.domain.IdentityRepository identity;
     private final ConcurrentHashMap<UUID, Object> locks = new ConcurrentHashMap<>();
 
     public TenantMemberGrantSeeder(PermissionModule permission) {
+        this(permission, null);
+    }
+
+    /** With an identity repository the seeder also gives tenant admins the process designer role (PV4). */
+    public TenantMemberGrantSeeder(PermissionModule permission, one.nexus.p2.domain.IdentityRepository identity) {
         this.permission = permission;
+        this.identity = identity;
     }
 
     /**
@@ -112,6 +128,58 @@ public class TenantMemberGrantSeeder {
                         Map.of());
             }
         }
+        // PV4: retire the member-wide process design grant left by earlier seeds.
+        for (GrantRecord grant : repository.listGrants(tenantId)) {
+            if (matchesRoleGrant(grant, ROLE_CODE, RETIRED_MEMBER_GRANT[0], RETIRED_MEMBER_GRANT[1])) {
+                admin.revokeGrant(grant.id());
+            }
+        }
+        if (isTenantAdmin(context)) {
+            ensureDesigner(context, personId);
+        }
+    }
+
+    private void ensureDesigner(TenantContext context, String personId) {
+        PolicyRepository repository = permission.repository();
+        PolicyAdminService admin = permission.admin();
+        UUID tenantId = context.tenantId();
+        RoleRecord designer = repository.findRoleByCode(tenantId, DESIGNER_ROLE).orElseGet(
+                () -> admin.createRole(DESIGNER_ROLE, "流程设计（租户管理）", true));
+        boolean granted = repository.listGrants(tenantId).stream().anyMatch(grant ->
+                matchesRoleGrant(grant, DESIGNER_ROLE, RETIRED_MEMBER_GRANT[0], RETIRED_MEMBER_GRANT[1]));
+        if (!granted) {
+            admin.grant("GRANT", "role", DESIGNER_ROLE, RETIRED_MEMBER_GRANT[0], RETIRED_MEMBER_GRANT[1],
+                    DataScopeKind.ALL, List.of(), Map.of());
+        }
+        boolean assigned = repository.listAssignments(tenantId).stream()
+                .anyMatch(item -> matchesAssignment(item, personId, designer.id()));
+        if (!assigned) {
+            admin.assign("user", personId, designer.id());
+        }
+    }
+
+    private boolean isTenantAdmin(TenantContext context) {
+        if (identity == null) {
+            return false;
+        }
+        UUID tenantId = context.tenantId();
+        return identity.listEmploymentsByPerson(tenantId, context.personId()).stream()
+                .filter(item -> item.status() == one.nexus.p2.domain.Model.EmploymentStatus.ACTIVE
+                        && item.deletedAt() == null)
+                .anyMatch(item -> identity.findPosition(tenantId, item.positionId())
+                        .map(position -> position.code() != null
+                                && ADMIN_POSITIONS.contains(position.code().toLowerCase(java.util.Locale.ROOT)))
+                        .orElse(false));
+    }
+
+    private static boolean matchesRoleGrant(GrantRecord grant, String role, String resource, String action) {
+        if (!"GRANT".equalsIgnoreCase(grant.effect()) || grant.rule() == null) {
+            return false;
+        }
+        return "role".equals(grant.rule().principalType())
+                && role.equals(grant.rule().principalId())
+                && resource.equals(grant.rule().resource())
+                && action.equals(grant.rule().action());
     }
 
     private static boolean matchesAssignment(AssignmentRecord item, String personId, UUID roleId) {
