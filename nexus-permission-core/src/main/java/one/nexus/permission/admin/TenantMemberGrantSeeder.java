@@ -57,6 +57,11 @@ public class TenantMemberGrantSeeder {
      */
     public static final String DESIGNER_ROLE = "tenant_process_designer";
     static final String[] RETIRED_MEMBER_GRANT = {"process.definition", "write"};
+    /** Designer role grants: process design (PV4) and post-completion actions (FA3). */
+    static final List<String[]> DESIGNER_GRANTS = List.of(
+            RETIRED_MEMBER_GRANT,
+            new String[] {"process.action", "read"},
+            new String[] {"process.action", "write"});
     /** Same tenant-admin position test as {@code MarketService} / {@code AdminMfaPolicy}. */
     static final java.util.Set<String> ADMIN_POSITIONS = java.util.Set.of("tenant_admin", "demo_tenant_admin");
 
@@ -145,11 +150,13 @@ public class TenantMemberGrantSeeder {
         UUID tenantId = context.tenantId();
         RoleRecord designer = repository.findRoleByCode(tenantId, DESIGNER_ROLE).orElseGet(
                 () -> admin.createRole(DESIGNER_ROLE, "流程设计（租户管理）", true));
-        boolean granted = repository.listGrants(tenantId).stream().anyMatch(grant ->
-                matchesRoleGrant(grant, DESIGNER_ROLE, RETIRED_MEMBER_GRANT[0], RETIRED_MEMBER_GRANT[1]));
-        if (!granted) {
-            admin.grant("GRANT", "role", DESIGNER_ROLE, RETIRED_MEMBER_GRANT[0], RETIRED_MEMBER_GRANT[1],
-                    DataScopeKind.ALL, List.of(), Map.of());
+        for (String[] pair : DESIGNER_GRANTS) {
+            boolean granted = repository.listGrants(tenantId).stream().anyMatch(grant ->
+                    matchesRoleGrant(grant, DESIGNER_ROLE, pair[0], pair[1]));
+            if (!granted) {
+                admin.grant("GRANT", "role", DESIGNER_ROLE, pair[0], pair[1],
+                        DataScopeKind.ALL, List.of(), Map.of());
+            }
         }
         boolean assigned = repository.listAssignments(tenantId).stream()
                 .anyMatch(item -> matchesAssignment(item, personId, designer.id()));

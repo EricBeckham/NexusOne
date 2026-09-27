@@ -89,6 +89,14 @@ public class BusinessPathService {
         this.grantSeeder = grantSeeder;
     }
 
+    /** FA4: optional post-completion actions; absent on hosts without them. */
+    private one.nexus.p3.completion.CompletionActionTrigger completionActions;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void useCompletionActions(one.nexus.p3.completion.CompletionActionTrigger completionActions) {
+        this.completionActions = completionActions;
+    }
+
     @Transactional
     public PathView submitAndStart(SubmitStartCommand command) {
         requireIsolation();
@@ -333,6 +341,11 @@ public class BusinessPathService {
         UUID ledgerId = ledgerIdForRecord(recordId);
         if (!replay) {
             ledgerRecords.writeApprovalStatus(ledgerId, recordId, status);
+            // FA4: in the same transaction as the terminal status, record "post-completion actions are due".
+            if (completionActions != null) {
+                completionActions.onCompleted(iam.tenantId(), ledgerId, recordId, process.id(), process.processKey(),
+                        status, process.initiatorPersonId(), iam.personId());
+            }
             enqueueDecision(process, iam.personId(), template);
             audit(
                     AuditCaptures.data(
