@@ -18,6 +18,8 @@ export const ENROLL_CODES = {
 };
 
 export const MFA_REQUIRED_COPY = {
+  productBody: "此账号需要完成多因素验证。请先注册验证器，再返回登录。",
+  productHint: "注册完成后，请重新登录以完成身份验证。",
   title: "管理员需要先注册 TOTP",
   body: "口令 token 没有 acr=mfa / amr=otp。产品门禁 P2.IAM.MFA_REQUIRED 拒绝签发特权会话，也不会签发 TenantContext。请用验证器完成注册后再登录。默认 Stub 登录仍带演示 MFA，不重开 G18。",
   cta: "去注册验证器",

@@ -39,7 +39,11 @@ import { applySessionView, rememberTrace } from "../api/session";
 async function mountLogin() {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: "/login/dev", component: LoginView }],
+    routes: [
+      { path: "/login/dev", component: LoginView },
+      { path: "/login", component: { template: "<div>product login</div>" } },
+      { path: "/register", component: { template: "<div>register</div>" } },
+    ],
   });
   await router.push("/login/dev");
   await router.isReady();

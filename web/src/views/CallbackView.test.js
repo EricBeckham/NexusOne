@@ -62,6 +62,14 @@ describe("callback tenant context shell", () => {
     expect(shell.text()).toContain("/callback");
     expect(wrapper.text()).not.toMatch(/eyJ|secret|auth-code/);
   });
+  it("routes an MFA refusal to the product login without sensitive query data", async () => {
+    const error = new Error("sensitive detail must not be forwarded");
+    error.code = "P2.IAM.MFA_REQUIRED";
+    completeDesktopPkceCallback.mockRejectedValue(error);
+    const { router } = await mountAt("/callback?code=auth-code&state=abc");
+    expect(router.currentRoute.value.path).toBe("/login");
+    expect(router.currentRoute.value.query).toEqual({ reason: "mfa_required" });
+  });
 });
 
 describe("AUTH5 automatic tenant after the Keycloak callback", () => {

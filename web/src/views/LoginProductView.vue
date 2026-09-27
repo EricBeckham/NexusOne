@@ -6,7 +6,13 @@
         <p>登录进入工作台</p>
       </header>
       <div class="login-actions">
-        <template v-if="session.accountId">
+        <section v-if="mfaRequired" class="login-mfa" role="alert" aria-labelledby="mfa-title" data-testid="mfa-required-panel">
+          <h2 id="mfa-title">{{ MFA_REQUIRED_COPY.title }}</h2>
+          <p>{{ MFA_REQUIRED_COPY.productBody }}</p>
+          <p>{{ MFA_REQUIRED_COPY.productHint }}</p>
+          <router-link class="nx-btn nx-btn--primary" :to="{ path: '/p2/mfa/enroll', query: { reason: 'mfa_required' } }" data-testid="goto-totp-enroll">{{ MFA_REQUIRED_COPY.cta }}</router-link>
+        </section>
+        <template v-else-if="session.accountId">
           <p class="login-session" data-testid="signed-in">你已登录，可以继续进入工作台。</p>
           <router-link class="nx-btn nx-btn--primary" to="/" data-testid="goto-workspace">进入工作台</router-link>
         </template>
@@ -30,10 +36,15 @@
 import { computed, ref } from "vue";
 import { keycloakAuthorizeHref, keycloakPublicConfig } from "../auth/keycloakPublic";
 import { session } from "../api/session";
+import { useRoute } from "vue-router";
+import { MFA_REQUIRED_COPY } from "../auth/totpEnrollment";
 
 const idp = computed(() => keycloakPublicConfig(import.meta.env));
 const error = ref("");
 const development = import.meta.env.DEV;
+const route = useRoute();
+// This query only displays guidance; it never grants a session or tenant context.
+const mfaRequired = computed(() => route.query.reason === "mfa_required");
 function onKeycloakLogin() {
   error.value = "";
   if (!idp.value.configured) return;
@@ -82,6 +93,16 @@ function onKeycloakLogin() {
 .login-register { margin: var(--nx-space-0); }
 .login-secondary { display: grid; gap: var(--nx-space-3); }
 .nx-error { margin: var(--nx-space-0); }
+.login-mfa {
+  display: grid;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-4);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-warning-light);
+  color: var(--nx-text-regular);
+}
+.login-mfa h2 { margin: var(--nx-space-0); font-size: var(--nx-font-size-md); color: var(--nx-text-primary); }
+.login-mfa p { margin: var(--nx-space-0); font-size: var(--nx-font-size-md); }
 .login-secondary { text-align: center; font-size: var(--nx-font-size-md); }
 .login-dev-link { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .login-feedback:empty, .login-secondary:empty { display: none; }
