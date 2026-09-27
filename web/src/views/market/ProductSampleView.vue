@@ -530,7 +530,7 @@ async function savePrintMapping(basedOn = mappingRevision.value) {
   };
   if (basedOn != null) body.expected_revision = basedOn;
   try {
-    const saved = await p4.putProductPrintMapping(id, body);
+    const saved = await p4.saveProductPrintMapping(id, body);
     if (selectedId.value !== id) return;
     mappingConflict.value = null;
     applyMappingPayload(saved);
