@@ -46,6 +46,12 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
             return new Route(Pattern.compile(regex), PlatformDuty.SYSTEM_ADMIN, PlatformDutyCatalog.SYSTEM_ADMIN,
                     resource, action);
         }
+
+        /** AUTH6G3: three-power split — audit reads bind AUDIT_ADMIN only; a system admin never passes here. */
+        static Route auditAdmin(String regex, String resource, String action) {
+            return new Route(Pattern.compile(regex), PlatformDuty.AUDIT_ADMIN, PlatformDutyCatalog.AUDIT_ADMIN,
+                    resource, action);
+        }
     }
 
     static final List<Route> ROUTES = List.of(
@@ -58,7 +64,10 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
             Route.systemAdmin("/api/v1/p1/tenants/" + UUID_SEGMENT + "/ancestors", "tenant", "get"),
             Route.systemAdmin("/api/v1/p1/platform/services", "tenant", "list"),
             Route.systemAdmin("/api/v1/p1/platform/form-templates", "tenant", "list"),
-            Route.systemAdmin("/api/v1/p1/platform/form-templates/" + UUID_SEGMENT, "tenant", "list"));
+            Route.systemAdmin("/api/v1/p1/platform/form-templates/" + UUID_SEGMENT, "tenant", "list"),
+            // AUTH6G3: platform audit event search (the audit center list).
+            Route.auditAdmin("/api/v1/audit/events",
+                    PlatformDutyCatalog.RESOURCE_AUDIT, PlatformDutyCatalog.ACTION_READ));
 
     /** The bridged route for this request, if it is a GET on an allowlisted path. */
     static Optional<Route> route(HttpServletRequest request) {
