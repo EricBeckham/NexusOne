@@ -146,7 +146,7 @@
           </div>
           <div v-if="mapping" class="binding-version">
             <span class="nx-muted" data-testid="designer-binding-source">
-              {{ mapping.source === "IN_MEMORY" ? "已读回：服务器进程内映射" : "已读回：契约默认映射" }}
+              {{ ({ STORED: "已读回：数据库中已保存的映射", IN_MEMORY: "已读回：服务器进程内映射" })[mapping.source] || "已读回：契约默认映射" }}
             </span>
             <span class="version-tag" data-testid="designer-binding-version" :title="versionHint">{{ versionLabel }}</span>
           </div>
@@ -348,11 +348,20 @@ const revisionOf = (value) => (typeof value?.revision === "number" ? value.revis
 const versionLabel = computed(() => {
   const revision = revisionOf(mapping.value);
   if (revision == null) return "版本号：暂无";
+  if (mapping.value?.source === "STORED") return `已保存修订 r${revision}`;
   return mapping.value?.source === "IN_MEMORY" ? `进程内修订 r${revision}` : `契约默认 r${revision}`;
 });
-const versionHint = computed(() => (mapping.value?.source === "IN_MEMORY"
-  ? "保存在服务器进程内存里：服务重启后丢失，回到契约默认；这个修订号不是持久版本号。"
-  : "还没有覆盖，显示的是契约默认映射；保存后会存在服务器进程内存里（重启丢失）。"));
+// DPO-L3: STORED = saved in the database (survives restarts, every revision kept); IN_MEMORY only in old/test stores.
+const versionHint = computed(() => {
+  if (mapping.value?.source === "STORED") return "已保存到数据库：重启后仍在，每次保存修订号 +1，并保留修订历史。";
+  if (mapping.value?.source === "IN_MEMORY") return "保存在服务器进程内存里：服务重启后丢失，回到契约默认；这个修订号不是持久版本号。";
+  return "还没有保存过，显示的是契约默认映射；保存后写入数据库。";
+});
+const savedRevisionLabel = (value) => {
+  const revision = revisionOf(value);
+  if (revision == null) return "";
+  return value?.source === "IN_MEMORY" ? `（进程内修订 r${revision}）` : `（修订 r${revision}）`;
+};
 const conflictText = computed(() => {
   if (!conflict.value) return "";
   const theirs = revisionOf(conflict.value.server);
@@ -379,8 +388,7 @@ async function saveBinding(basedOn = revisionOf(mapping.value)) {
     resetBinding();
     const consistent = sameMappings(fresh?.mappings, sent);
     readBack.value = consistent ? "已保存并读回，一致。" : "已保存，但读回内容与提交不同，请核对。";
-    const revision = revisionOf(fresh);
-    nxMessage[consistent ? "success" : "info"](`打印绑定已保存${revision == null ? "" : `（进程内修订 r${revision}）`}`);
+    nxMessage[consistent ? "success" : "info"](`打印绑定已保存${savedRevisionLabel(fresh)}`);
   } catch (err) {
     if (selectedId.value !== id) return;
     if (err?.status === 409) {
