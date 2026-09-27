@@ -10,6 +10,7 @@
 
 - [ ] 发布 SHA（`main`）：`________________`，晚于 TC2（#716）；要求 U2 窗口插入身份时须含 ID1 / ID3（#720）**和 ID7（#723）**。纯 #720 包在已有 `platform_ops` 部门的演示库上会失败，见 §0.1。
 - [ ] 部署的就是该 SHA 的构建；未在演示机热修。
+- [ ] SPA 按 [PKG1](../engineering/runbooks/pkg1-spa-keycloak-public-env.md) 打包：硬刷新后打开 `/login` **不出现**「登录服务暂未配置」，有可用的 Keycloak 登录入口。这是前端公开配置，与 U2 / 身份插入无关；不满足即停，重新打包。
 - [ ] `NEXUS_DEMO_ENABLED`、`NEXUS_P1_DEMO_CONTEXT_ENABLED` 为 `false` 或未设置。
 - [ ] Keycloak 三个用户按 [DEMO-U4](../engineering/runbooks/demo-u4-keycloak-three-users.md) 创建 / 核对，邮箱与 [DEMO-U3](../engineering/runbooks/demo-u3-identity-packs.md) 冻结表一致。
 - [ ] DEMO-U2 一次性窗口已执行过一次并关闭（`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 重启一次 → 设回 `false` 再重启）。它负责：

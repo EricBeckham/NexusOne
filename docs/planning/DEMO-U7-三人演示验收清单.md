@@ -28,6 +28,7 @@
 - [ ] 每个演示浏览器 / 隐身窗口打开演示地址后执行**硬刷新**（Windows `Ctrl + Shift + R` 或 `Ctrl + F5`；macOS `Cmd + Shift + R`）。
 - [ ] 未登录时打开 `/` 或 `/p4` → 进入 `/login`（AUTH3）。
 - [ ] 登录页主按钮是 Keycloak 入口，不是本地 stub。
+- [ ] `/login` **不出现**「登录服务暂未配置」。出现即 SPA 打包漏了 Keycloak 公开变量，按 [PKG1](../engineering/runbooks/pkg1-spa-keycloak-public-env.md) 重新打包部署；不记成 U2 / TenantContext 问题。
 
 ## 2. 三人分别登录（各自独立会话）
 
