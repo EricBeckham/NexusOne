@@ -105,7 +105,7 @@ public class SequentialApprovalService {
         if (published == null) processBuilder.processDefinitionKey(processKey);
         else processBuilder.processDefinitionId(published.processDefinitionId());
         // Definition ownership and instance ownership differ for shared platform defaults.
-        if (platformDefault) processBuilder.tenantId(tenant.tenantId().toString());
+        if (platformDefault) processBuilder.overrideProcessDefinitionTenantId(tenant.tenantId().toString());
         ProcessInstance flowable = processBuilder
                 .businessKey(command.businessKey())
                 .variable("assignee", assignee.toString())
