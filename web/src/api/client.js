@@ -42,7 +42,75 @@ export function newTraceId() {
   return "0199a1c0-0000-7000-8000-00000000a000";
 }
 
-export async function api(path, { method = "GET", body, headers = {}, auth = true, platform = false, traceId } = {}) {
+/*
+ * AUTH7R2: silent access-token renewal. Keycloak access tokens are short-lived and the SPA only holds the access
+ * token; the refresh token stays on the server (AUTH7R1). On a 401 for an authenticated call, renew once through
+ * POST /api/v1/auth/refresh and replay the call once. Concurrent 401s share one renewal. If renewal fails the
+ * original error is returned unchanged (the page then says "sign in again"). Tokens are never logged.
+ */
+const renewalListeners = new Set();
+let pendingRenewal = null;
+
+/** Lets the session store follow a renewed token; returns an unsubscribe function. */
+export function onAccessTokenRenewed(listener) {
+  renewalListeners.add(listener);
+  return () => renewalListeners.delete(listener);
+}
+
+/**
+ * Renews the token that was sent with a rejected call. Resolves to the token to retry with, or "" if there is none.
+ * If the stored token already moved on (another call renewed it), that newer token is used without a new renewal.
+ */
+export function renewAccessToken(rejectedToken) {
+  const stored = loadSettings().accessToken || "";
+  if (!rejectedToken || !stored) return Promise.resolve("");
+  if (stored !== rejectedToken) return Promise.resolve(stored);
+  if (!pendingRenewal) {
+    pendingRenewal = requestRenewal(stored).finally(() => {
+      pendingRenewal = null;
+    });
+  }
+  return pendingRenewal;
+}
+
+async function requestRenewal(current) {
+  let data = null;
+  try {
+    const response = await fetch("/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { Accept: "application/json", Authorization: `Bearer ${current}` },
+    });
+    if (!response.ok) return "";
+    data = JSON.parse((await response.text()) || "null");
+  } catch {
+    return "";
+  }
+  const next = data?.access_token || data?.accessToken;
+  if (typeof next !== "string" || !next) return "";
+  const latest = loadSettings();
+  // Signed out (or switched user) while renewing: never resurrect a token.
+  if ((latest.accessToken || "") !== current) return "";
+  saveSettings({ ...latest, accessToken: next });
+  for (const listener of renewalListeners) {
+    try {
+      listener(next);
+    } catch {
+      // a broken listener must not break the request
+    }
+  }
+  return next;
+}
+
+function renewable(path, auth, sentToken, status) {
+  return status === 401 && auth && Boolean(sentToken) && !path.startsWith("/api/v1/auth/");
+}
+
+export async function api(path, options = {}) {
+  return send(path, options, true);
+}
+
+async function send(path, options, mayRenew) {
+  const { method = "GET", body, headers = {}, auth = true, platform = false, traceId } = options;
   const settings = loadSettings();
   const nextHeaders = { Accept: "application/json", ...headers };
   for (const key of Object.keys(nextHeaders)) {
@@ -75,6 +143,10 @@ export async function api(path, { method = "GET", body, headers = {}, auth = tru
     headers: nextHeaders,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (mayRenew && renewable(path, auth, settings.accessToken, response.status)) {
+    const renewed = await renewAccessToken(settings.accessToken);
+    if (renewed && renewed !== settings.accessToken) return send(path, options, false);
+  }
   const text = await response.text();
   let data = null;
   if (text) {
@@ -96,7 +168,12 @@ export async function api(path, { method = "GET", body, headers = {}, auth = tru
 }
 
 /** Binary download helper (IM4 export). Shares auth/platform headers with `api`. */
-export async function apiBlob(path, { method = "GET", body, headers = {}, auth = true, platform = false, traceId } = {}) {
+export async function apiBlob(path, options = {}) {
+  return sendBlob(path, options, true);
+}
+
+async function sendBlob(path, options, mayRenew) {
+  const { method = "GET", body, headers = {}, auth = true, platform = false, traceId } = options;
   const settings = loadSettings();
   const nextHeaders = { Accept: "application/json", ...headers };
   for (const key of Object.keys(nextHeaders)) {
@@ -126,6 +203,10 @@ export async function apiBlob(path, { method = "GET", body, headers = {}, auth =
     headers: nextHeaders,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (mayRenew && renewable(path, auth, settings.accessToken, response.status)) {
+    const renewed = await renewAccessToken(settings.accessToken);
+    if (renewed && renewed !== settings.accessToken) return sendBlob(path, options, false);
+  }
   if (!response.ok) {
     const text = await response.text();
     let data = null;
