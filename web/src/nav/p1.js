@@ -7,6 +7,7 @@ export const p1Nav = [
   { id: "relations", section: "租户", label: "租户关系", to: "/p1/relations" },
   { id: "quotas", section: "租户", label: "权益与配额", to: "/p1/quotas", detailSuffix: "/entitlement" },
   { id: "service", section: "平台", label: "平台服务态", to: "/p1/services" },
+  { id: "demo-deploy", section: "平台", label: "演示部署状态", to: "/p1/demo-deploy" },
   { id: "audit", section: "平台", label: "平台审计", to: "/p1/audit" },
   { id: "form-templates", section: "平台", label: "表单模板", to: "/p1/form-templates" },
 ];

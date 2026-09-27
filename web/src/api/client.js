@@ -170,6 +170,7 @@ export const p1 = {
   entitlement: (id) => api(`/api/v1/p1/tenants/${id}/entitlement`, { platform: true, auth: false }),
   quotas: (id) => api(`/api/v1/p1/tenants/${id}/quotas`, { platform: true, auth: false }),
   serviceStatus: () => api("/api/v1/p1/platform/services", { platform: true, auth: false }),
+  actuatorHealth: () => api("/actuator/health", { auth: false }),
   tenantTree: () => api("/api/v1/p1/tenants/tree", { platform: true, auth: false }),
   tenantChildren: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/children`, { platform: true, auth: false }),
   tenantAncestors: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/ancestors`, { platform: true, auth: false }),
