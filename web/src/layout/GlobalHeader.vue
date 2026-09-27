@@ -65,7 +65,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { clearIdentity, ensureContext, loadPrimaryPosition, persist, session, switchTenant } from "../api/session";
 import { p2 } from "../api/client";
-import { endSessionTarget, leaveTo } from "../auth/federatedLogout";
+import { endSessionTarget, leaveTo, replaceWith } from "../auth/federatedLogout";
 import { currentTenantLabel, tenantLabel } from "../api/tenantLabel";
 import { productById } from "../nav/products";
 import NxIcon from "../icons/NxIcon.vue";
@@ -134,7 +134,19 @@ async function logout() {
     leaveTo(target);
     return;
   }
-  await router.replace("/login");
+  await goToLogin();
+}
+
+// router.replace can resolve with a navigation failure and leave this shell mounted. The name then
+// falls back to "未登录" on the page the person was already on. A document replace still reaches /login.
+async function goToLogin() {
+  try {
+    const failure = await router.replace("/login");
+    if (!failure && router.currentRoute.value.path === "/login") return;
+  } catch {
+    // A cancelled in-app navigation must not leave the signed-out shell on screen.
+  }
+  replaceWith("/login");
 }
 
 function onKey(event) {
