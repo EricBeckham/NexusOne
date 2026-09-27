@@ -8,6 +8,8 @@
 
 默认关闭。关闭时启动任务什么都不写，空的 `perm_role` 保持 `no_grant`。
 
+**ID7：已有部门 code 的部署断点。** ID1 基线（`07198104` / #720）的部门 INSERT 只按 id 忽略冲突，已有平台租户 `code=platform_ops` 但 id 不同会撞 `uk_iam_department_code (tenant_id, code)`；身份事务回滚，runner 抛错导致进程退出，不会继续新增平台职责授权。包含 ID7 的已合构建按租户内 code 复用已有部门实际 id（也适用于 `engineering` / `platform_team`），职务关联使用该 id；不删除或改写已有真实部门。无同 code 行时仍插入固定种子 id，三人账号/person/membership 规则不变。软删除占用 code 等不安全冲突仍诚实拒启，不能把它当作空行。细节见 [ID1 / ID7](id1-u2-identity-bootstrap.md)。
+
 打开窗口之前**仍须先清孤儿**：核对三个 U3 邮箱（`platform.admin@` / `lin.xiao@` / `zhou.ran@demo.invalid`）都没有被登录对账写成固定 id 之外的账号。邮箱在 `iam_global_account` 上唯一，U3 固定账号是 `…0221` / `…0201` / `…0202`。含 ID1 的构建遇到被其他账号占用的邮箱（含大小写变体、软删除行）会抛 `ID1 identity conflict` 拒启，不抢占、不合并；孤儿须先由另行授权的运维流程处理，再打开本窗口。详见 [TC4](tc4-demo-u2-after-keycloak-checklist.md) 与 [ID1 / ID3](id1-u2-identity-bootstrap.md)。
 
 1. 确认 `NEXUS_P1_DEMO_CONTEXT_ENABLED` 与 `NEXUS_DEMO_ENABLED` 未设置或为 `false`。不要打开它们（演示机禁止开 `NEXUS_DEMO_ENABLED`；含 ID1 的构建插入身份也不需要它或回环数据库），也不要靠演示身份头代替这次安装。

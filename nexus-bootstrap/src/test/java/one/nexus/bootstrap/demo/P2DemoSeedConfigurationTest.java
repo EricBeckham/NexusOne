@@ -43,6 +43,15 @@ class P2DemoSeedConfigurationTest {
         org.mockito.Mockito.when(statement.param(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any()))
                 .thenReturn(statement);
         org.mockito.Mockito.when(statement.update()).thenReturn(1);
+        @SuppressWarnings("unchecked")
+        JdbcClient.MappedQuerySpec<java.util.UUID> departmentQuery =
+                org.mockito.Mockito.mock(JdbcClient.MappedQuerySpec.class);
+        org.mockito.Mockito.when(statement.query(java.util.UUID.class)).thenReturn(departmentQuery);
+        org.mockito.Mockito.when(departmentQuery.optional()).thenReturn(java.util.Optional.of(java.util.UUID.randomUUID()));
+        @SuppressWarnings("unchecked")
+        JdbcClient.MappedQuerySpec<String> pathQuery = org.mockito.Mockito.mock(JdbcClient.MappedQuerySpec.class);
+        org.mockito.Mockito.when(statement.query(String.class)).thenReturn(pathQuery);
+        org.mockito.Mockito.when(pathQuery.single()).thenReturn("/existing-parent/");
         org.mockito.Mockito.doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             Consumer<TransactionStatus> callback = invocation.getArgument(0);
