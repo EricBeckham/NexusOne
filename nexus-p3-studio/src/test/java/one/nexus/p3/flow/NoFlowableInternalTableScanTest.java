@@ -40,9 +40,11 @@ class NoFlowableInternalTableScanTest {
                 boolean ledgerWindow = version >= 400 && version <= 499;
                 boolean formWindow = version >= 530 && version <= 549;
                 boolean flowWindow = version >= 550 && version <= 599;
+        // FA2: later P3 tables take the next free global number (V700+, outOfOrder off), e.g. V710.
+        boolean globalWindow = version >= 700 && version <= 799;
                 assertTrue(
-                        ledgerWindow || formWindow || flowWindow,
-                        name + " must be V400-V499 (M0-06), V530-V549 (M0-07), or V550-V599 (M0-08)");
+                        ledgerWindow || formWindow || flowWindow || globalWindow,
+                        name + " must be V400-V499 (M0-06), V530-V549 (M0-07), V550-V599 (M0-08), or the global V700-V799 series");
             });
         }
         String sql = Files.readString(dir.resolve("V550__process_metadata.sql"), StandardCharsets.UTF_8)
