@@ -77,6 +77,8 @@
   --nx-sidebar: 200px;
   --nx-sidebar-collapsed: 64px;
   --nx-header: 56px;
+  /* LOGIN: responsive auth card, independent of the signed-in application shell. */
+  --nx-auth-panel-width: 440px;
   --nx-font: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
 }
 
