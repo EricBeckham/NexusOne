@@ -65,6 +65,24 @@
         </table>
       </NxPanelCard>
 
+      <NxPanelCard title="产品定义" description="条数与状态分布只来自产品定义列表，没有按时间编造的序列。" data-testid="operations-definitions">
+        <NxSkeleton v-if="loading" variant="list-row" label="正在加载产品定义" />
+        <p v-else-if="definitionsState === 'unknown'" class="nx-muted" data-testid="operations-definitions-unknown">产品定义列表未知。</p>
+        <NxEmpty
+          v-else-if="!definitions.length"
+          data-testid="operations-definitions-empty"
+          title="暂无产品定义"
+          description="列表为空。这里不会补一条假数据。"
+          compact
+        />
+        <div v-else data-testid="operations-definitions-panel">
+          <p data-testid="operations-definitions-count">共 {{ definitions.length }} 条</p>
+          <ul data-testid="operations-definitions-status">
+            <li v-for="row in definitionStatusCounts" :key="row.status">{{ row.status }}：{{ row.count }}</li>
+          </ul>
+        </div>
+      </NxPanelCard>
+
       <NxPanelCard title="使用趋势" description="无时间序列读模型时不画假图。" data-testid="operations-trend">
         <p class="nx-muted" data-testid="operations-trend-note">趋势暂无读模型。本波不发明聚合服务，也不绘制假折线。</p>
       </NxPanelCard>
@@ -81,6 +99,8 @@ import { p4 } from "../../api/client";
 import { session } from "../../api/session";
 
 const catalog = ref([]);
+const definitions = ref([]);
+const definitionsState = ref("unknown");
 const subscriptions = ref([]);
 const installations = ref([]);
 const loading = ref(true);
@@ -95,6 +115,14 @@ const crumbs = [
 const appCount = computed(() => new Set(catalog.value.map((item) => item.app?.id).filter(Boolean)).size);
 const subscriptionCount = computed(() => (Array.isArray(subscriptions.value) ? subscriptions.value.length : 0));
 const installationCount = computed(() => (Array.isArray(installations.value) ? installations.value.length : 0));
+const definitionStatusCounts = computed(() => {
+  const counts = new Map();
+  for (const row of definitions.value) {
+    const status = String(row?.status || "").trim() || "未知";
+    counts.set(status, (counts.get(status) || 0) + 1);
+  }
+  return [...counts.entries()].map(([status, count]) => ({ status, count }));
+});
 const tenantHint = computed(() => tenantPartial.value);
 
 async function load() {
@@ -102,6 +130,8 @@ async function load() {
   error.value = "";
   traceId.value = "";
   tenantPartial.value = "";
+  definitions.value = [];
+  definitionsState.value = "unknown";
   try {
     catalog.value = (await p4.catalog()) || [];
   } catch (err) {
@@ -129,6 +159,15 @@ async function load() {
         : "订阅/安装列表暂不可用，上架计数仍可用。";
       traceId.value = err.traceId || "";
     }
+  }
+
+  try {
+    const rows = await p4.productDefinitions();
+    definitions.value = Array.isArray(rows) ? rows.filter((row) => row && row.id) : [];
+    definitionsState.value = "ready";
+  } catch {
+    definitions.value = [];
+    definitionsState.value = "unknown";
   }
   loading.value = false;
 }
