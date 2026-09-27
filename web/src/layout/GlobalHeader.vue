@@ -65,6 +65,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { clearIdentity, ensureContext, loadPrimaryPosition, persist, session, switchTenant } from "../api/session";
 import { p2 } from "../api/client";
+import { endSessionTarget, leaveTo } from "../auth/federatedLogout";
 import { currentTenantLabel, tenantLabel } from "../api/tenantLabel";
 import { productById } from "../nav/products";
 import NxIcon from "../icons/NxIcon.vue";
@@ -117,16 +118,22 @@ async function refresh() {
 
 // AUTH3: end the server session when we still hold a token (best effort), always clear the local session, and
 // replace the history entry so Back cannot return to a page of the signed-out user.
+// LO4: when the server returns a Keycloak end_session URL, leave through it so the IdP SSO session ends too.
 async function logout() {
   open.value = false;
+  let target = "";
   if (session.accessToken) {
     try {
-      await p2.logout();
+      target = endSessionTarget(await p2.logout());
     } catch {
       // The local session is cleared regardless; a failed server logout must not keep the user signed in here.
     }
   }
   clearIdentity();
+  if (target) {
+    leaveTo(target);
+    return;
+  }
   await router.replace("/login");
 }
 
