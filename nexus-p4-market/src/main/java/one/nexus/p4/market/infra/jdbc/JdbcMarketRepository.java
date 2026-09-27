@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import one.nexus.p4.market.MarketRepository;
+import one.nexus.p4.market.PlatformActivationCommand;
 import one.nexus.p4.market.MarketModels.*;
 
 @Repository
@@ -65,20 +66,25 @@ public class JdbcMarketRepository implements MarketRepository {
     }
     @Override public void saveSubscription(Subscription s) {
         assertCurrentTenant(s.tenantId());
+        writeSubscription(s,true);
+    }
+    private void writeSubscription(Subscription s, boolean upsert) {
         jdbc.sql("""
                 INSERT INTO market.subscription(id,tenant_id,sku_code,status,started_at,ended_at)
-                VALUES(:id,:tenant,:sku,:status,:started,:ended) ON CONFLICT(id) DO UPDATE SET status=:status,ended_at=:ended
-                """)
+                VALUES(:id,:tenant,:sku,:status,:started,:ended)
+                """ + (upsert ? " ON CONFLICT(id) DO UPDATE SET status=:status,ended_at=:ended" : ""))
                 .param("id",s.id()).param("tenant",s.tenantId()).param("sku",s.skuCode()).param("status",s.status().name())
                 .param("started",sqlTimestamp(s.startedAt())).param("ended",sqlTimestamp(s.endedAt())).update();
     }
     @Override public void saveInstallation(Installation i) {
         assertCurrentTenant(i.tenantId());
+        writeInstallation(i,true);
+    }
+    private void writeInstallation(Installation i, boolean upsert) {
         jdbc.sql("""
                 INSERT INTO market.installation(id,tenant_id,app_id,version_id,status,installed_at,updated_at)
-                VALUES(:id,:tenant,:app,:version,:status,:installed,:updated) ON CONFLICT(id) DO UPDATE SET
-                version_id=:version,status=:status,updated_at=:updated
-                """)
+                VALUES(:id,:tenant,:app,:version,:status,:installed,:updated)
+                """ + (upsert ? " ON CONFLICT(id) DO UPDATE SET version_id=:version,status=:status,updated_at=:updated" : ""))
                 .param("id",i.id()).param("tenant",i.tenantId()).param("app",i.appId()).param("version",i.versionId())
                 .param("status",i.status().name()).param("installed",sqlTimestamp(i.installedAt()))
                 .param("updated",sqlTimestamp(i.updatedAt())).update();
@@ -211,6 +217,9 @@ public class JdbcMarketRepository implements MarketRepository {
     }
     @Override public void saveInstallationProductPin(InstallationProductPin pin) {
         assertCurrentTenantForInstallation(pin.installationId());
+        writeProductPin(pin);
+    }
+    private void writeProductPin(InstallationProductPin pin) {
         jdbc.sql("""
                 INSERT INTO market.installation_product_pin(installation_id,product_definition_id,form_template_version_id,
                     process_definition_key,process_definition_version,pinned_at)
@@ -381,6 +390,44 @@ public class JdbcMarketRepository implements MarketRepository {
     @Override public Optional<ActivationApplication> activationApplication(UUID id) {
         return jdbc.sql("SELECT * FROM market.activation_application WHERE id=:id")
                 .param("id", id).query(this::mapActivation).optional();
+    }
+
+    @Override public Optional<ActivationApplication> activationApplicationForReview(UUID id) {
+        return jdbc.sql("SELECT * FROM market.activation_application WHERE id=:id FOR UPDATE")
+                .param("id",id).query(this::mapActivation).optional();
+    }
+    private void approved(PlatformActivationCommand command) {
+        command.assertActive();
+        var expected=command.application();
+        var stored=activationApplication(expected.id()).orElseThrow(()->new SecurityException("activation missing"));
+        if(stored.status()!=ActivationApplicationStatus.PENDING || !stored.tenantId().equals(expected.tenantId())
+                || !stored.skuCode().equals(expected.skuCode()) || !stored.versionId().equals(expected.versionId()))
+            throw new SecurityException("activation capability does not match stored pending application");
+    }
+    @Override public void saveApprovedSubscription(PlatformActivationCommand command,Subscription row) {
+        approved(command); command.assertTenant(row.tenantId());
+        if(!row.skuCode().equals(command.application().skuCode()) || row.status()!=SubscriptionStatus.ACTIVE)
+            throw new SecurityException("activation subscription mismatch");
+        writeSubscription(row,false);
+    }
+    @Override public void saveApprovedInstallation(PlatformActivationCommand command,Installation row) {
+        approved(command); command.assertTenant(row.tenantId());
+        var sku=sku(command.application().skuCode()).orElseThrow();
+        if(!row.versionId().equals(command.application().versionId()) || !row.appId().equals(sku.appId()) || row.status()!=InstallationStatus.INSTALLED)
+            throw new SecurityException("activation installation mismatch");
+        writeInstallation(row,false);
+    }
+    @Override public void saveApprovedProductPin(PlatformActivationCommand command,InstallationProductPin row) {
+        approved(command);
+        var application=command.application();
+        var bound=productDefinitionForSku(application.skuCode()).orElseThrow();
+        command.assertDefinition(bound);
+        Integer owns=jdbc.sql("SELECT 1 FROM market.installation i JOIN market.sku s ON s.app_id=i.app_id WHERE i.id=:id AND i.tenant_id=:tenant AND i.version_id=:version AND s.code=:sku AND i.status='INSTALLED'")
+                .param("id",row.installationId()).param("tenant",application.tenantId()).param("version",application.versionId()).param("sku",application.skuCode()).query(Integer.class).optional().orElse(null);
+        if(owns==null || !row.productDefinitionId().equals(bound.id()) || !row.formTemplateVersionId().equals(bound.formTemplateVersionId())
+                || !java.util.Objects.equals(row.processDefinitionKey(),bound.processDefinitionKey())
+                || !java.util.Objects.equals(row.processDefinitionVersion(),bound.processDefinitionVersion())) throw new SecurityException("activation pin mismatch");
+        writeProductPin(row);
     }
 
     @Override public List<ActivationApplication> activationApplicationsForCurrentTenant() {

@@ -42,6 +42,10 @@ public interface MarketRepository {
     void saveUpgradeStepRecord(UpgradeStepRecord record);
     void saveActivationApplication(ActivationApplication application);
     Optional<ActivationApplication> activationApplication(UUID id);
+    default Optional<ActivationApplication> activationApplicationForReview(UUID id) { return activationApplication(id); }
+    default void saveApprovedSubscription(PlatformActivationCommand command, Subscription row) { throw new UnsupportedOperationException("platform activation writer required"); }
+    default void saveApprovedInstallation(PlatformActivationCommand command, Installation row) { throw new UnsupportedOperationException("platform activation writer required"); }
+    default void saveApprovedProductPin(PlatformActivationCommand command, InstallationProductPin row) { throw new UnsupportedOperationException("platform activation writer required"); }
     List<ActivationApplication> activationApplications();
     List<ActivationApplication> activationApplicationsForCurrentTenant();
     boolean hasActiveSubscription(UUID tenantId, String skuCode);
