@@ -35,6 +35,11 @@ public interface MarketRepository {
     ProductUsageCounts productUsageCounts(UUID productDefinitionId);
     void saveInstallationProductPin(InstallationProductPin pin);
     Optional<InstallationProductPin> installationProductPin(UUID installationId);
+    /** DPO-L6: step records of the current tenant's installation for one target version. */
+    List<UpgradeStepRecord> upgradeStepRecords(UUID installationId, UUID versionId);
+    /** DPO-L6: platform-only lookup for the controlled operator write (no tenant context). */
+    Optional<Installation> installationForPlatform(UUID installationId);
+    void saveUpgradeStepRecord(UpgradeStepRecord record);
     void saveActivationApplication(ActivationApplication application);
     Optional<ActivationApplication> activationApplication(UUID id);
     List<ActivationApplication> activationApplications();

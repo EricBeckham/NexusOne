@@ -384,7 +384,9 @@ public class MarketService {
     @Transactional(readOnly = true)
     public UpgradeSteps upgradeSteps(UUID installationId) {
         Installation current = installation(installationId);
-        return UpgradeSteps.unrecorded(current.id());
+        // DPO-L6: only operator records for the version the installation is on now count; none → all UNKNOWN.
+        List<MarketModels.UpgradeStepRecord> records = market.upgradeStepRecords(current.id(), current.versionId());
+        return UpgradeSteps.fromRecords(current.id(), current.versionId(), records == null ? List.of() : records);
     }
 
     /**
