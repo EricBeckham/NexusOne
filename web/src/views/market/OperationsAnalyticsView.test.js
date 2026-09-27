@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   catalog: vi.fn(),
   subscriptions: vi.fn(),
   installations: vi.fn(),
+  productDefinitions: vi.fn(),
   session: { contextId: "ctx-1" },
 }));
 vi.mock("../../api/client", () => ({
@@ -14,6 +15,7 @@ vi.mock("../../api/client", () => ({
     catalog: mocks.catalog,
     subscriptions: mocks.subscriptions,
     installations: mocks.installations,
+    productDefinitions: mocks.productDefinitions,
   },
 }));
 vi.mock("../../api/session", () => ({
@@ -42,6 +44,8 @@ describe("operations analytics (XB3/XB5)", () => {
     mocks.catalog.mockReset();
     mocks.subscriptions.mockReset();
     mocks.installations.mockReset();
+    mocks.productDefinitions.mockReset();
+    mocks.productDefinitions.mockResolvedValue([]);
     mocks.session.contextId = "ctx-1";
   });
 
@@ -102,5 +106,41 @@ describe("operations analytics (XB3/XB5)", () => {
     expect(wrapper.get("[data-testid='ops-stat-apps']").text()).toContain("1");
     expect(wrapper.get("[data-testid='ops-stat-subscriptions']").text()).toContain("0");
     expect(mocks.subscriptions).not.toHaveBeenCalled();
+  });
+
+  it("counts product definitions from the list and invents no series", async () => {
+    mocks.catalog.mockResolvedValue([]);
+    mocks.subscriptions.mockResolvedValue([]);
+    mocks.installations.mockResolvedValue([]);
+    mocks.productDefinitions.mockResolvedValue([
+      { id: "d1", status: "DRAFT" },
+      { id: "d2", status: "DRAFT" },
+      { id: "d3", status: "PUBLISHED" },
+      { id: "d4" },
+    ]);
+    const wrapper = await mountPage();
+    expect(mocks.productDefinitions).toHaveBeenCalledTimes(1);
+    expect(wrapper.get("[data-testid='operations-definitions-count']").text()).toBe("共 4 条");
+    const status = wrapper.get("[data-testid='operations-definitions-status']");
+    expect(status.findAll("li")).toHaveLength(3);
+    expect(status.text()).toContain("DRAFT：2");
+    expect(status.text()).toContain("PUBLISHED：1");
+    expect(status.text()).toContain("未知：1");
+    expect(wrapper.find("canvas, polyline, [data-testid='operations-chart']").exists()).toBe(false);
+  });
+
+  it("says 暂无 when the definition list is empty and 未知 when the list fails", async () => {
+    mocks.catalog.mockResolvedValue([]);
+    mocks.subscriptions.mockResolvedValue([]);
+    mocks.installations.mockResolvedValue([]);
+    const empty = await mountPage();
+    expect(empty.get("[data-testid='operations-definitions-empty']").text()).toContain("暂无产品定义");
+    expect(empty.find("[data-testid='operations-definitions-count']").exists()).toBe(false);
+
+    mocks.productDefinitions.mockRejectedValueOnce(new Error("definitions down"));
+    const unknown = await mountPage();
+    expect(unknown.get("[data-testid='operations-definitions-unknown']").text()).toContain("未知");
+    expect(unknown.get("[data-testid='ops-stat-apps']").text()).toContain("0");
+    expect(unknown.find("canvas, polyline, [data-testid='operations-chart']").exists()).toBe(false);
   });
 });
