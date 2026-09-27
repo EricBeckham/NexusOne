@@ -237,7 +237,7 @@ describe("honest save and revision (CF-RD3)", () => {
   it("shows the process-local revision honestly and sends the revision it was based on", async () => {
     const wrapper = await mountAt();
     expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("契约默认 r0");
-    expect(wrapper.get("[data-testid='designer-binding-durability']").text()).toContain("重启丢失");
+    expect(wrapper.get("[data-testid='designer-binding-durability']").text()).toContain("保存后写入数据库");
     await wrapper.get("[data-testid='designer-binding-days']").setValue("");
     expect(wrapper.get("[data-testid='designer-binding-dirty']").text()).toContain("未保存");
     expect(wrapper.get("[data-testid='designer-product-select']").attributes("disabled")).toBeDefined();
@@ -395,6 +395,43 @@ describe("unmapped wording matches the CF-R2 preview (CF-RD4)", () => {
     expect(wrapper.get("[data-testid='designer-binding-days'] option[value='']").text()).toBe("未映射（落入表单字段区）");
   });
 });
+describe("durable mapping wording (DPO-L3)", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((fn) => fn.mockReset());
+    clearToasts();
+    mocks.productDefinitions.mockResolvedValue([{ id: "d1", code: "leave", name: "请假报销" }]);
+    mocks.productPrintSample.mockResolvedValue(PRINT);
+    mocks.printMappingContract.mockResolvedValue(CONTRACT);
+    mocks.productPrintMapping.mockResolvedValue({ ...DEFAULT_MAPPING, source: "STORED", revision: 4 });
+  });
+
+  it("calls a stored mapping durable and never says it is lost on restart", async () => {
+    const wrapper = await mountAt();
+    expect(wrapper.get("[data-testid='designer-binding-version']").text()).toBe("已保存修订 r4");
+    expect(wrapper.get("[data-testid='designer-binding-source']").text()).toContain("数据库中已保存的映射");
+    expect(wrapper.get("[data-testid='designer-binding-durability']").text()).toContain("重启后仍在");
+    expect(wrapper.text()).not.toContain("重启后丢失");
+  });
+
+  it("toasts the stored revision after saving", async () => {
+    const wrapper = await mountAt();
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("header.application_no");
+    await wrapper.get("[data-testid='designer-binding-days']").setValue("form.fields");
+    await wrapper.get("[data-testid='designer-binding-title']").setValue("");
+    mocks.saveProductPrintMapping.mockResolvedValue({});
+    mocks.productPrintMapping.mockImplementationOnce(async () => ({
+      ...DEFAULT_MAPPING,
+      source: "STORED",
+      revision: 5,
+      mappings: mocks.saveProductPrintMapping.mock.calls[0][1].mappings,
+    }));
+    await wrapper.get("[data-testid='designer-binding-save']").trigger("click");
+    await flushPromises();
+    expect(mocks.saveProductPrintMapping.mock.calls[0][1].expected_revision).toBe(4);
+    expect(useNxToastState().items.map((t) => t.message)).toContain("打印绑定已保存（修订 r5）");
+  });
+});
+
 describe("paper and orientation share the revision guard (DPO-C5)", () => {
   beforeEach(() => {
     Object.values(mocks).forEach((fn) => fn.mockReset());

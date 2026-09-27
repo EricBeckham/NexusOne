@@ -46,24 +46,35 @@ public final class PrintMappingModels {
 
     /**
      * Per-product mapping view. {@code source=DEFAULT} means derived from the static contract;
-     * {@code IN_MEMORY} means a process-local override (lost on restart).
-     * CF-RD3: {@code revision} is 0 for the contract default and +1 per accepted PUT in this process. It is not a
-     * durable version: a restart drops the override and the product is back at the default, revision 0.
+     * {@code STORED} means saved in {@code market.print_mapping} (DPO-L3, survives restarts);
+     * {@code IN_MEMORY} means a process-local override (lost on restart; only the in-memory test store).
+     * CF-RD3: {@code revision} is 0 for the contract default and +1 per accepted PUT. With the JDBC store
+     * (DPO-L3) it is durable and every revision is kept in {@code market.print_mapping_revision}.
      */
     public record ProductPrintMapping(UUID productDefinitionId, String source, String paper, String orientation,
             String templateCode, List<FieldSlotMapping> mappings, String note, long revision) {
         public static final String SOURCE_DEFAULT = "DEFAULT";
+        public static final String SOURCE_STORED = "STORED";
         public static final String SOURCE_IN_MEMORY = "IN_MEMORY";
-        public static final String NOTE_DEFAULT = "来自 CF-R3 静态契约默认映射；尚未进程内覆盖。";
-        public static final String NOTE_IN_MEMORY = "进程内覆盖（JVM 内存，重启丢失）；持久化 / 设计器 later。";
+        public static final String NOTE_DEFAULT = "来自 CF-R3 静态契约默认映射；还没有保存过。";
+        public static final String NOTE_STORED = "已保存到数据库，重启后仍在；每次保存修订号 +1，可查看修订历史。";
+        public static final String NOTE_IN_MEMORY = "进程内覆盖（JVM 内存，重启丢失）。";
 
         public ProductPrintMapping {
             mappings = List.copyOf(mappings);
         }
     }
 
+    /** DPO-L3: one accepted save, read from {@code market.print_mapping_revision} (newest first). */
+    public record PrintMappingRevision(UUID productDefinitionId, long revision, String templateCode, String paper,
+            String orientation, List<FieldSlotMapping> mappings, java.time.Instant savedAt, UUID savedBy) {
+        public PrintMappingRevision {
+            mappings = List.copyOf(mappings);
+        }
+    }
+
     /**
-     * PUT body: optional paper/orientation; mappings replace the in-memory override.
+     * PUT body: optional paper/orientation; mappings replace the saved mapping.
      * CF-RD3: {@code expectedRevision}, when present, must equal the current revision or the PUT is refused (409),
      * so an editor never silently overwrites a mapping it has not seen.
      */

@@ -17,7 +17,9 @@ class PrintMappingMapperBootContractTest {
             .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
             .withPropertyValues("spring.jackson.property-naming-strategy=SNAKE_CASE")
             .withBean(IsolationGuard.class, () -> mock(IsolationGuard.class))
-            .withBean(MarketRepository.class, () -> mock(MarketRepository.class));
+            .withBean(MarketRepository.class, () -> mock(MarketRepository.class))
+            // DPO-L3: the service stamps saves with the platform clock.
+            .withBean(one.nexus.p1.port.ClockPort.class, () -> java.time.Instant::now);
 
     @Test
     void printServiceStartsAndLoadsCamelCaseContractWithOnlyProductJackson3() {

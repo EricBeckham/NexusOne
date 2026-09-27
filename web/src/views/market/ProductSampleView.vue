@@ -337,6 +337,9 @@ const designerLink = computed(() => ({
   query: selectedId.value ? { definition: selectedId.value } : {},
 }));
 const previewBasis = computed(() => {
+  if (mappingSource.value === "STORED") {
+    return mappingRevision.value == null ? "已保存的映射" : `已保存的映射（修订 r${mappingRevision.value}）`;
+  }
   if (mappingSource.value === "IN_MEMORY") {
     return mappingRevision.value == null ? "服务器进程内已保存的映射" : `服务器进程内已保存的映射（修订 r${mappingRevision.value}）`;
   }
@@ -534,7 +537,10 @@ async function savePrintMapping(basedOn = mappingRevision.value) {
     if (selectedId.value !== id) return;
     mappingConflict.value = null;
     applyMappingPayload(saved);
-    mappingSaveMessage.value = "映射已保存（进程内覆盖，重启后恢复默认）。";
+    // DPO-L3: say where it went; the server reports STORED (database) or IN_MEMORY (lost on restart).
+    mappingSaveMessage.value = saved?.source === "IN_MEMORY"
+      ? "映射已保存（进程内覆盖，重启后恢复默认）。"
+      : `映射已保存到数据库${typeof saved?.revision === "number" ? `（修订 r${saved.revision}）` : ""}，重启后仍在。`;
   } catch (err) {
     if (selectedId.value !== id) return;
     if (err?.status === 409) {
