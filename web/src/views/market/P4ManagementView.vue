@@ -8,6 +8,7 @@
       <router-link v-for="tab in tabs" :key="tab.to" :to="tab.to" :aria-current="route.path === tab.to ? 'page' : undefined">{{ tab.label }}</router-link>
     </nav>
 
+    <MarketAuthoringPanel v-if="session.platformMode && session.products?.includes('p1') && ['packages', 'skus'].includes(section)" :section="section" :apps="apps" :selected-app="selectedApp" :versions="versions" @saved="refreshAuthoring" />
     <template v-if="section === 'packages'">
       <div class="split-layout">
         <section class="nx-card">
@@ -245,6 +246,7 @@
 </template>
 
 <script setup>
+import MarketAuthoringPanel from './MarketAuthoringPanel.vue';
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { NxDataTable, NxEmpty, NxNoPermission, NxPageHeader, NxStatusTag } from "../../components";
@@ -370,6 +372,7 @@ async function load() {
   finally { loading.value = false; }
 }
 async function selectApp(app) { selectedApp.value = app; versions.value = versionsByApp[app.id] || camelRows(await p4.versions(app.id)); }
+async function refreshAuthoring() { await load(); if (selectedApp.value) await selectApp(selectedApp.value); }
 const skusFor = (app) => skus.value.filter((sku) => sku.appId === app.id);
 const skuByCode = (code) => skus.value.find((sku) => sku.code === code);
 const appForSku = (code) => { const sku = skuByCode(code); return sku ? appById(sku.appId) : null; };
