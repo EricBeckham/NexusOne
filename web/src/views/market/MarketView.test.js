@@ -211,7 +211,8 @@ describe("P4 catalog V11", () => {
     const failed = await mountCatalog();
     const state = failed.get('[data-testid="nx-error-state"]');
     expect(state.text()).toContain("应用目录暂时无法加载");
-    expect(state.text()).toContain("catalog unavailable");
+    expect(state.text()).toContain("prod-safe 内容手册");
+    expect(state.text()).not.toContain("catalog unavailable");
     expect(state.get("button").text()).toBe("重新加载");
   });
 });

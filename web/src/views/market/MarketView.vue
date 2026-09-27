@@ -32,7 +32,7 @@
       <NxEmpty
         v-else-if="!items.length"
         title="目录里还没有应用"
-        description="平台审核并发布应用后，会出现在这里，届时可以选择 SKU 申请开通。"
+        description="平台审核并发布应用后才会出现在这里。空目录不是已自动准备的演示数据。见 prod-safe 内容手册。"
         data-testid="catalog-empty"
       >
         <template #action><button class="ghost" type="button" data-testid="catalog-empty-reload" @click="load">刷新目录</button></template>
@@ -145,7 +145,14 @@ const visibleItems = computed(() => {
 async function load() {
   loading.value = true; error.value = "";
   try { [items.value] = await Promise.all([p4.catalog().then((rows) => rows || []), loadSubscriptions()]); }
-  catch (err) { error.value = err.message || "应用目录暂时不可用"; }
+  catch (err) {
+    const status = Number(err?.status) || 0;
+    error.value = status === 403
+      ? "HTTP 403。没有权限读取目录，也没有自动准备演示内容。见 prod-safe 内容手册。"
+      : status
+        ? `HTTP ${status}。目录没有被自动填上。见 prod-safe 内容手册。`
+        : "网络不可达。目录没有被自动填上。见 prod-safe 内容手册。";
+  }
   finally { loading.value = false; }
 }
 async function subscribe(skuCode, versionId, skuLabel = "") {

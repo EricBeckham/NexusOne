@@ -65,5 +65,21 @@ describe("ActivationApplicationReviewView", () => {
     mocks.activationApplications.mockResolvedValue([]);
     const wrapper = await mountPage();
     expect(wrapper.get('[data-testid="nx-data-table-empty"]').text()).toContain("暂无开通申请");
+    expect(wrapper.get('[data-testid="nx-data-table-empty"]').text()).toContain("不是已经自动准备好的演示数据");
+  });
+
+  it("shows an error shell for 403 and network failures without rendering secrets", async () => {
+    const forbidden = Object.assign(new Error("Bearer secret-token"), { status: 403 });
+    mocks.activationApplications.mockRejectedValueOnce(forbidden);
+    const denied = await mountPage();
+    const deniedShell = denied.get('[data-testid="nx-data-table-error"]');
+    expect(deniedShell.text()).toContain("HTTP 403");
+    expect(deniedShell.text()).toContain("prod-safe 内容手册");
+    expect(deniedShell.text()).not.toContain("secret-token");
+
+    mocks.activationApplications.mockRejectedValueOnce(new Error("Failed to fetch"));
+    const offline = await mountPage();
+    expect(offline.get('[data-testid="nx-data-table-error"]').text()).toContain("网络不可达");
+    expect(offline.find('[data-testid="activation-table"] tbody').exists()).toBe(false);
   });
 });
