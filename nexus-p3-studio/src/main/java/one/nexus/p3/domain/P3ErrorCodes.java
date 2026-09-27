@@ -17,6 +17,10 @@ public final class P3ErrorCodes {
     public static final ErrorCode RECORD_CONFLICT = ErrorCode.of("P3", "RECORD", 2);
     public static final ErrorCode QUERY_INVALID = ErrorCode.of("P3", "QUERY", 1);
     public static final ErrorCode MISSING_TENANT = ErrorCode.of("P3", "CTX", 1);
+    /** FA3: post-completion action config is invalid (mapping / ledgers). */
+    public static final ErrorCode ACTION_INVALID = ErrorCode.of("P3", "ACTION", 1);
+    public static final ErrorCode ACTION_NOT_FOUND = ErrorCode.of("P3", "ACTION", 2);
+    public static final ErrorCode ACTION_CONFLICT = ErrorCode.of("P3", "ACTION", 3);
 
     private P3ErrorCodes() {}
 }

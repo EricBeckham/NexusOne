@@ -68,8 +68,10 @@ class TenantMemberGrantSeederTest {
         assertTrue(module.service().decide("process.instance", "start").allowed());
         assertTrue(module.service().decide("process.instance", "withdraw").allowed());
         assertTrue(module.service().decide("process.definition", "read").allowed());
-        // PV4: tenant_member alone no longer designs processes.
+        // PV4: tenant_member alone no longer designs processes; FA3: nor configures post-completion actions.
         assertFalse(module.service().decide("process.definition", "write").allowed());
+        assertFalse(module.service().decide("process.action", "read").allowed());
+        assertFalse(module.service().decide("process.action", "write").allowed());
         assertTrue(policies.listAssignments(tenant).stream()
                 .noneMatch(item -> "TENANT_ADMIN".equals(item.principalId())));
     }
@@ -104,9 +106,12 @@ class TenantMemberGrantSeederTest {
 
         assertTrue(f.module().service().decide("process.definition", "write").allowed());
         assertTrue(f.policies().findRoleByCode(f.tenant(), TenantMemberGrantSeeder.DESIGNER_ROLE).isPresent());
-        assertEquals(1, f.policies().listGrants(f.tenant()).stream()
+        // Designer grants (PV4 process design + FA3 process.action read/write), each exactly once after two seeds.
+        assertEquals(3, f.policies().listGrants(f.tenant()).stream()
                 .filter(g -> g.rule() != null && TenantMemberGrantSeeder.DESIGNER_ROLE.equals(g.rule().principalId()))
-                .count(), "idempotent designer grant");
+                .count(), "idempotent designer grants");
+        assertTrue(f.module().service().decide("process.action", "read").allowed());
+        assertTrue(f.module().service().decide("process.action", "write").allowed());
         assertTrue(f.policies().listGrants(f.tenant()).stream().noneMatch(g -> g.rule() != null
                 && TenantMemberGrantSeeder.ROLE_CODE.equals(g.rule().principalId())
                 && "process.definition".equals(g.rule().resource()) && "write".equals(g.rule().action())));
