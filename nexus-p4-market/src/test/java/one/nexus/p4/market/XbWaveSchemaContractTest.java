@@ -73,6 +73,7 @@ class XbWaveSchemaContractTest {
         for (Path file : List.of(MARKET.resolve("V600__p4_market.sql"), MARKET.resolve("V601__market_product_definition.sql"),
                 MARKET.resolve("V705__market_installation_product_pin.sql"),
                 MARKET.resolve("V707__market_print_mapping.sql"),
+                MARKET.resolve("V708__market_print_template.sql"),
                 // P2 #601: activation applications live next to market data and must stay payment-free too.
                 Path.of("../nexus-p1-tenant/src/main/resources/db/migration/V706__tenant_self_reg_and_activation_application.sql"))) {
             var hit = money.matcher(read(file));
@@ -90,9 +91,9 @@ class XbWaveSchemaContractTest {
                     .map(name -> Integer.parseInt(name.substring(1, name.indexOf("__"))))
                     .max(Integer::compare).orElseThrow();
             // XB added none (V705 at XB12). V706 is P2 #601 (tenant self-registration + activation applications).
-            // V707 is DPO-L2 (durable print mapping + revision history).
+            // V707 is DPO-L2 (durable print mapping + revision history). V708 is DPO-L4-pre (print template metadata).
             // A new migration must update this pin on purpose, taking the next global version.
-            assertEquals(707, max,"unexpected new migration; take the next global version in a dedicated schema card");
+            assertEquals(708, max,"unexpected new migration; take the next global version in a dedicated schema card");
         }
     }
 
