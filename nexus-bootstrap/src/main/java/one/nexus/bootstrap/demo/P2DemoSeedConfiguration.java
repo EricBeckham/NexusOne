@@ -9,8 +9,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Minimal P2 directory and role rows for the local visual demo only.
- * Demo pack: platform admin (platform tenant), submitter 林晓 (TENANT_ADMIN),
- * approver 周然. Accounts use .invalid emails — no Keycloak credentials. */
+ * Three packs: platform ops, tenant admin 林晓, member 周然.
+ * Position codes are {@code demo_platform_ops} / {@code demo_tenant_admin} / {@code demo_member}.
+ * Emails and usernames are the DEMO-U4 freeze in {@link DemoIdentityConvention}. No passwords. */
 @Configuration
 public class P2DemoSeedConfiguration {
     static final UUID TENANT_ID = UUID.fromString("01900000-0000-7000-8000-000000000101");
@@ -51,7 +52,7 @@ public class P2DemoSeedConfiguration {
                           id, keycloak_user_id, email, phone, username, display_name, status,
                           created_at, updated_at, deleted_at, version)
                         VALUES (:id, 'demo-seed:p2:lin', 'lin.xiao@demo.invalid', '13800000000',
-                          'demo-lin', '林晓', 'ACTIVE', timestamptz '2026-01-01 00:00:00+00',
+                          'nexus-demo-tenant-admin', '林晓', 'ACTIVE', timestamptz '2026-01-01 00:00:00+00',
                           timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", ACCOUNT_LIN).update();
@@ -60,7 +61,7 @@ public class P2DemoSeedConfiguration {
                           id, keycloak_user_id, email, phone, username, display_name, status,
                           created_at, updated_at, deleted_at, version)
                         VALUES (:id, 'demo-seed:p2:zhou', 'zhou.ran@demo.invalid', '13900000000',
-                          'demo-zhou', '周然', 'ACTIVE', timestamptz '2026-01-01 00:00:00+00',
+                          'nexus-demo-member', '周然', 'ACTIVE', timestamptz '2026-01-01 00:00:00+00',
                           timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", ACCOUNT_ZHOU).update();
@@ -129,7 +130,7 @@ public class P2DemoSeedConfiguration {
                 jdbc.sql("""
                         INSERT INTO iam.iam_position (
                           id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
-                        VALUES (:id, :tenant, 'software_engineer', '软件工程师', '研发', '参与产品研发与维护', 'ACTIVE',
+                        VALUES (:id, :tenant, 'demo_member', '一般用户', '成员', '演示租户的一般用户', 'ACTIVE',
                           timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", POSITION_ENGINEER).param("tenant", TENANT_ID).update();
@@ -137,7 +138,7 @@ public class P2DemoSeedConfiguration {
                         INSERT INTO iam.iam_employment (
                           id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to,
                           created_at, updated_at, deleted_at, version)
-                        VALUES (:id, :tenant, :person, :department, :position, 'PRIMARY', 'ACTIVE', DATE '2024-03-12', NULL,
+                        VALUES (:id, :tenant, :person, :department, :position, 'SECONDARY', 'ACTIVE', DATE '2024-03-12', NULL,
                           timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", EMPLOYMENT_LIN).param("tenant", TENANT_ID).param("person", PERSON_LIN)
@@ -154,7 +155,7 @@ public class P2DemoSeedConfiguration {
                 jdbc.sql("""
                         INSERT INTO iam.iam_position (
                           id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
-                        VALUES (:id, :tenant, 'TENANT_ADMIN', '租户管理员', '管理', '演示租户的订阅开通', 'ACTIVE',
+                        VALUES (:id, :tenant, 'demo_tenant_admin', '租户管理', '管理', '演示租户的订阅开通', 'ACTIVE',
                           timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", POSITION_TENANT_ADMIN).param("tenant", TENANT_ID).update();
@@ -162,7 +163,7 @@ public class P2DemoSeedConfiguration {
                         INSERT INTO iam.iam_employment (
                           id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to,
                           created_at, updated_at, deleted_at, version)
-                        VALUES (:id, :tenant, :person, :department, :position, 'SECONDARY', 'ACTIVE', DATE '2024-03-12', NULL,
+                        VALUES (:id, :tenant, :person, :department, :position, 'PRIMARY', 'ACTIVE', DATE '2024-03-12', NULL,
                           timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", EMPLOYMENT_LIN_ADMIN).param("tenant", TENANT_ID).param("person", PERSON_LIN)
@@ -173,7 +174,7 @@ public class P2DemoSeedConfiguration {
                           id, keycloak_user_id, email, phone, username, display_name, status,
                           created_at, updated_at, deleted_at, version)
                         VALUES (:id, 'demo-seed:p2:platform-admin', 'platform.admin@demo.invalid', '13700000000',
-                          'demo-platform-admin', '平台管理员', 'ACTIVE', timestamptz '2026-01-01 00:00:00+00',
+                          'nexus-demo-platform', '平台运营', 'ACTIVE', timestamptz '2026-01-01 00:00:00+00',
                           timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", ACCOUNT_PLATFORM_ADMIN).update();
@@ -181,7 +182,7 @@ public class P2DemoSeedConfiguration {
                         INSERT INTO iam.iam_person (
                           id, tenant_id, account_id, display_name, employee_no, email, phone, hired_on,
                           status, created_at, updated_at, deleted_at, version)
-                        VALUES (:id, :tenant, :account, '平台管理员', 'DEMO-PLATFORM', 'platform.admin@demo.invalid',
+                        VALUES (:id, :tenant, :account, '平台运营', 'DEMO-PLATFORM', 'platform.admin@demo.invalid',
                           '13700000000', DATE '2024-01-01', 'ACTIVE', timestamptz '2026-01-01 00:00:00+00',
                           timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
@@ -208,7 +209,7 @@ public class P2DemoSeedConfiguration {
                 jdbc.sql("""
                         INSERT INTO iam.iam_position (
                           id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
-                        VALUES (:id, :tenant, 'PLATFORM_ADMIN', '平台管理员', '管理', '演示平台配置与开租户', 'ACTIVE',
+                        VALUES (:id, :tenant, 'demo_platform_ops', '平台运营', '管理', '演示平台配置与开租户', 'ACTIVE',
                           timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                         ON CONFLICT (id) DO NOTHING
                         """).param("id", POSITION_PLATFORM_ADMIN).param("tenant", PLATFORM_TENANT_ID).update();
@@ -223,7 +224,7 @@ public class P2DemoSeedConfiguration {
                         .param("person", PERSON_PLATFORM_ADMIN)
                         .param("department", DEPARTMENT_PLATFORM_OPS)
                         .param("position", POSITION_PLATFORM_ADMIN).update();
-
+                alignIdentities(jdbc);
 
                 jdbc.sql("""
                         INSERT INTO iam.perm_role (
@@ -236,9 +237,98 @@ public class P2DemoSeedConfiguration {
                         INSERT INTO iam.perm_assignment (id, tenant_id, principal_type, principal_id, role_id, created_at, deleted_at)
                         VALUES (:id, :tenant, 'user', :principal, :role, timestamptz '2026-01-01 00:00:00+00', NULL)
                         ON CONFLICT (id) DO NOTHING
-                        """).param("id", ASSIGNMENT_LIN).param("tenant", TENANT_ID).param("principal", PERSON_LIN.toString())
+                        """).param("id", ASSIGNMENT_LIN).param("tenant", TENANT_ID)                        .param("principal", PERSON_LIN.toString())
                         .param("role", ROLE_OPERATOR).update();
             });
         };
+    }
+
+    /**
+     * Idempotent corrections for rows already inserted with the old codes or a second ACTIVE
+     * membership. Safe to run from the demo seed and from the DEMO-U2 startup window.
+     * Does not write passwords.
+     */
+    public static void alignIdentities(JdbcClient jdbc) {
+        jdbc.sql("""
+                UPDATE iam.iam_global_account
+                SET username = 'nexus-demo-platform', display_name = '平台运营',
+                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND deleted_at IS NULL
+                  AND (username <> 'nexus-demo-platform' OR display_name <> '平台运营')
+                """).param("id", ACCOUNT_PLATFORM_ADMIN).update();
+        jdbc.sql("""
+                UPDATE iam.iam_global_account
+                SET username = 'nexus-demo-tenant-admin',
+                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND deleted_at IS NULL AND username <> 'nexus-demo-tenant-admin'
+                """).param("id", ACCOUNT_LIN).update();
+        jdbc.sql("""
+                UPDATE iam.iam_global_account
+                SET username = 'nexus-demo-member',
+                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND deleted_at IS NULL AND username <> 'nexus-demo-member'
+                """).param("id", ACCOUNT_ZHOU).update();
+        jdbc.sql("""
+                UPDATE iam.iam_person
+                SET display_name = '平台运营', updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND tenant_id = :platform AND deleted_at IS NULL AND display_name <> '平台运营'
+                """).param("id", PERSON_PLATFORM_ADMIN).param("platform", PLATFORM_TENANT_ID).update();
+        jdbc.sql("""
+                UPDATE iam.iam_position
+                SET code = 'demo_platform_ops', name = '平台运营',
+                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND tenant_id = :platform AND deleted_at IS NULL AND code <> 'demo_platform_ops'
+                """).param("id", POSITION_PLATFORM_ADMIN).param("platform", PLATFORM_TENANT_ID).update();
+        jdbc.sql("""
+                UPDATE iam.iam_position
+                SET code = 'demo_tenant_admin', name = '租户管理',
+                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL AND code <> 'demo_tenant_admin'
+                """).param("id", POSITION_TENANT_ADMIN).param("tenant", TENANT_ID).update();
+        jdbc.sql("""
+                UPDATE iam.iam_position
+                SET code = 'demo_member', name = '一般用户',
+                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL AND code <> 'demo_member'
+                """).param("id", POSITION_ENGINEER).param("tenant", TENANT_ID).update();
+        jdbc.sql("""
+                UPDATE iam.iam_employment
+                SET kind = 'SECONDARY', updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL AND kind <> 'SECONDARY'
+                """).param("id", EMPLOYMENT_LIN).param("tenant", TENANT_ID).update();
+        jdbc.sql("""
+                UPDATE iam.iam_employment
+                SET kind = 'PRIMARY', position_id = :position,
+                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
+                WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL
+                  AND (kind <> 'PRIMARY' OR position_id <> :position)
+                """).param("id", EMPLOYMENT_LIN_ADMIN).param("tenant", TENANT_ID)
+                .param("position", POSITION_TENANT_ADMIN).update();
+        jdbc.sql("""
+                UPDATE iam.iam_tenant_membership AS m
+                SET status = 'SUSPENDED', updated_at = timestamptz '2026-09-27 00:00:00+00', version = m.version + 1
+                WHERE m.deleted_at IS NULL AND m.status = 'ACTIVE' AND m.tenant_id = :tenant
+                  AND EXISTS (
+                    SELECT 1 FROM iam.iam_tenant_membership p
+                    WHERE p.account_id = m.account_id AND p.tenant_id = :platform
+                      AND p.deleted_at IS NULL AND p.status = 'ACTIVE')
+                  AND EXISTS (
+                    SELECT 1 FROM iam.iam_person person
+                    WHERE person.account_id = m.account_id AND person.tenant_id = :platform
+                      AND person.deleted_at IS NULL)
+                """).param("tenant", TENANT_ID).param("platform", PLATFORM_TENANT_ID).update();
+        jdbc.sql("""
+                UPDATE iam.iam_tenant_membership AS m
+                SET status = 'SUSPENDED', updated_at = timestamptz '2026-09-27 00:00:00+00', version = m.version + 1
+                WHERE m.deleted_at IS NULL AND m.status = 'ACTIVE' AND m.tenant_id = :platform
+                  AND EXISTS (
+                    SELECT 1 FROM iam.iam_tenant_membership d
+                    WHERE d.account_id = m.account_id AND d.tenant_id = :tenant
+                      AND d.deleted_at IS NULL AND d.status = 'ACTIVE')
+                  AND NOT EXISTS (
+                    SELECT 1 FROM iam.iam_person person
+                    WHERE person.account_id = m.account_id AND person.tenant_id = :platform
+                      AND person.deleted_at IS NULL)
+                """).param("platform", PLATFORM_TENANT_ID).param("tenant", TENANT_ID).update();
     }
 }

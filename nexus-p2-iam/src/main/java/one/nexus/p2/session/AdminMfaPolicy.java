@@ -14,7 +14,8 @@ public final class AdminMfaPolicy {
     public static final UUID DEFAULT_PLATFORM_TENANT =
             UUID.fromString("01900000-0000-7000-8000-000000000001");
     public static final List<String> DEFAULT_ADMIN_POSITION_CODES = List.of(
-            "TENANT_ADMIN", "PLATFORM_ADMIN", "SYSTEM_ADMIN", "SECURITY_ADMIN", "AUDIT_ADMIN");
+            "TENANT_ADMIN", "PLATFORM_ADMIN", "demo_tenant_admin", "demo_platform_ops",
+            "SYSTEM_ADMIN", "SECURITY_ADMIN", "AUDIT_ADMIN");
 
     private final boolean adminRequired;
     private final UUID platformTenantId;

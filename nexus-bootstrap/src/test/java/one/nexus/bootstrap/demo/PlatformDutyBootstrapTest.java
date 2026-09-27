@@ -23,7 +23,9 @@ import one.nexus.permission.surface.SurfaceCatalog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.transaction.support.TransactionTemplate;
 
 class PlatformDutyBootstrapTest {
     private static final UUID PLATFORM = UUID.fromString("01900000-0000-7000-8000-000000000001");
@@ -38,9 +40,12 @@ class PlatformDutyBootstrapTest {
         InMemoryIdentityRepository identity = identity();
         PermissionModule permissions = module(identity);
         var env = new MockEnvironment();
-        var runner = new PlatformDutyBootstrapRunner(env, permissions, new P1Properties());
+        var jdbc = org.mockito.Mockito.mock(JdbcClient.class);
+        var transaction = org.mockito.Mockito.mock(TransactionTemplate.class);
+        var runner = new PlatformDutyBootstrapRunner(env, permissions, new P1Properties(), jdbc, transaction);
         runner.run(new DefaultApplicationArguments());
         assertTrue(permissions.repository().listRoles(PLATFORM).isEmpty());
+        org.mockito.Mockito.verifyNoInteractions(jdbc, transaction);
     }
 
     @Test
@@ -51,7 +56,9 @@ class PlatformDutyBootstrapTest {
                 .withProperty(PlatformDutyBootstrap.ENABLED, "true")
                 .withProperty(PlatformDutyBootstrap.DEMO_CONTEXT, "true");
         assertThrows(IllegalStateException.class,
-                () -> new PlatformDutyBootstrapRunner(env, permissions, new P1Properties()));
+                () -> new PlatformDutyBootstrapRunner(env, permissions, new P1Properties(),
+                        org.mockito.Mockito.mock(JdbcClient.class),
+                        org.mockito.Mockito.mock(TransactionTemplate.class)));
         assertTrue(permissions.repository().listRoles(PLATFORM).isEmpty());
         assertTrue(permissions.repository().listAssignments(PLATFORM).isEmpty());
     }
