@@ -3,7 +3,7 @@
  * DL-C3 local stub browser smoke.
  *
  * Enable: set NEXUS_STUB_APP_URL to the local stub login page (for example
- * http://127.0.0.1:5173/login) while Chrome or Edge is installed.
+ * http://127.0.0.1:5173/login/dev) while Chrome or Edge is installed.
  * Optional browser override: NEXUS_STUB_BROWSER_PATH.
  *
  * Skip exit 0 when NEXUS_STUB_BROWSER_SMOKE_SKIP=1, when no browser binary is

@@ -14,7 +14,9 @@
       <div class="login-feedback" aria-live="polite" data-testid="login-feedback">
         <p v-if="error" class="nx-error" role="alert" data-testid="login-error">{{ error }}</p>
       </div>
-      <footer class="login-secondary" data-testid="login-secondary" />
+      <footer class="login-secondary" data-testid="login-secondary">
+        <router-link v-if="development" class="login-dev-link" to="/login/dev" data-testid="developer-login">开发者登录入口</router-link>
+      </footer>
     </section>
   </main>
 </template>
@@ -25,6 +27,7 @@ import { keycloakAuthorizeHref, keycloakPublicConfig } from "../auth/keycloakPub
 
 const idp = computed(() => keycloakPublicConfig(import.meta.env));
 const error = ref("");
+const development = import.meta.env.DEV;
 function onKeycloakLogin() {
   error.value = "";
   if (!idp.value.configured) return;
@@ -70,5 +73,6 @@ function onKeycloakLogin() {
 .login-actions { display: grid; gap: var(--nx-space-3); }
 .login-unconfigured { margin: var(--nx-space-0); color: var(--nx-text-secondary); text-align: center; }
 .login-secondary { text-align: center; font-size: var(--nx-font-size-md); }
+.login-dev-link { color: var(--nx-text-secondary); font-size: var(--nx-font-size-xs); }
 .login-feedback:empty, .login-secondary:empty { display: none; }
 </style>

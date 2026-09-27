@@ -14,7 +14,8 @@ const developmentRoutes = import.meta.env.DEV
   : [];
 
 const routes = [
-  { path: "/login", name: "login", component: () => import("./views/LoginProductView.vue"), meta: { public: true, title: "登录" } },
+  { path: "/login", name: "login", component: () => import("./views/LoginProductView.vue"), meta: { public: true, authLayout: true, title: "登录" } },
+  { path: "/login/dev", name: "login-dev", component: () => import("./views/LoginView.vue"), meta: { public: true, authLayout: true, title: "开发者登录" } },
   { path: "/register", name: "tenant-self-register", component: () => import("./views/tenants/TenantSelfRegisterView.vue"), meta: { public: true, title: "租户自助注册" } },
   { path: "/callback", name: "callback", component: () => import("./views/CallbackView.vue"), meta: { public: true, title: "授权码回跳" } },
   { path: "/", name: "product-picker", component: () => import("./views/ProductPickerView.vue"), meta: { title: "产品选择" } },

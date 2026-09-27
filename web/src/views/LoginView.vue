@@ -6,7 +6,8 @@
       （无支付，待平台审订）
     </p>
     <div class="nx-page-header">
-      <h1>会话与登录</h1>
+      <h1>开发者登录调试</h1>
+      <router-link to="/login">返回正式登录</router-link>
       <p>本机 Stub IdP 或已有 access token。产品路径是 Keycloak 授权码；M0-12 不把 stub 当作正式验收登录。</p>
       <p v-if="idp.configured" class="nx-muted" data-testid="keycloak-login-configured">
         公开 issuer 已配置。下面的 Keycloak 入口只带公开参数，不宣称真机已验收。
@@ -64,9 +65,9 @@
         <h3>粘贴 access token</h3>
         <div class="nx-field">
           <label>Bearer token</label>
-          <textarea v-model="token" rows="5" />
+          <textarea v-model="token" rows="5" data-testid="login-token" />
         </div>
-        <button :class="idp.configured ? 'ghost' : 'primary'" type="submit">登录</button>
+        <button :class="idp.configured ? 'ghost' : 'primary'" type="submit" data-testid="token-login">登录</button>
       </form>
     </div>
     <div class="nx-card" style="margin-top:16px;">
