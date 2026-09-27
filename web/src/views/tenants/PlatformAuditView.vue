@@ -97,6 +97,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { audit } from "../../api/client";
+import { explainPlatformRead } from "../../api/platformReadError";
 import { NxEmpty, NxErrorState, NxListFooter, NxPageHeader, NxPanelCard, NxSkeleton, NxStatusTag } from "../../components";
 
 const PAGE_SIZE = 20;
@@ -200,7 +201,7 @@ async function load() {
     };
   } catch (err) {
     if (load.generation !== generation) return;
-    error.value = err?.message || "审计事件加载失败";
+    error.value = explainPlatformRead(err, "审计事件加载失败", { audit: true });
     traceId.value = err?.traceId || "";
   } finally {
     if (load.generation === generation) loading.value = false;

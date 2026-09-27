@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { STORAGE_KEY, p1 } from "./client";
+import { AUTHENTICATED_PLATFORM_READ, STORAGE_KEY, audit, p1 } from "./client";
 import { explainPlatformRead, platformReadFailure } from "./platformReadError";
 
 describe("AUTH6G5 platform writes are left alone", () => {
@@ -21,11 +21,29 @@ describe("AUTH6G5 platform writes are left alone", () => {
     ["reparent", () => p1.reparentTenant("t-1", null)],
     ["create form template", () => p1.createFormTemplate({ name: "x" })],
     ["publish form template", () => p1.publishFormTemplate("f-1")],
+    // AUTH6G6: chain verify is a POST and is not bridged.
+    ["verify audit chain", () => audit.verifyChain()],
   ])("%s keeps its existing unauthenticated options", async (_, call) => {
     await call();
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers.Authorization).toBeUndefined();
     expect(init.headers["X-Nexus-Context-Id"]).toBeUndefined();
+  });
+});
+
+describe("AUTH6G6 shared options", () => {
+  it("is frozen and never turns authentication off", () => {
+    expect(Object.isFrozen(AUTHENTICATED_PLATFORM_READ)).toBe(true);
+    expect(AUTHENTICATED_PLATFORM_READ).toEqual({ platform: true });
+    expect(AUTHENTICATED_PLATFORM_READ.auth).toBeUndefined();
+  });
+
+  it("uses audit wording for the audit center and system-admin wording elsewhere", () => {
+    const denied = { code: "AUTH6.PLATFORM_READ_DENIED", body: { reason: "duty_set" } };
+    expect(explainPlatformRead(denied, "x", { audit: true })).toContain("审计管理员");
+    expect(explainPlatformRead(denied, "x")).toContain("系统管理员");
+    const noGrant = { code: "AUTH6.PLATFORM_READ_DENIED", body: { reason: "permission_denied" } };
+    expect(explainPlatformRead(noGrant, "x", { audit: true })).toContain("audit:read");
   });
 });
 
@@ -64,6 +82,8 @@ describe("AUTH6F4 platform read lists are authenticated", () => {
     ["platform service status", () => p1.serviceStatus(), "/api/v1/p1/platform/services"],
     ["form template list", () => p1.formTemplates(), "/api/v1/p1/platform/form-templates"],
     ["form template detail", () => p1.formTemplate("f-1"), "/api/v1/p1/platform/form-templates/f-1"],
+    // AUTH6G6
+    ["audit event search", () => audit.platformEvents({ action: "p1.tenant.disabled" }), "/api/v1/audit/events?action=p1.tenant.disabled"],
   ])("%s sends the Bearer token and the issued context", async (_, call, path) => {
     await call();
     const [url, init] = fetchMock.mock.calls[0];

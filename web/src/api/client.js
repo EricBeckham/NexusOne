@@ -150,10 +150,16 @@ export async function apiBlob(path, { method = "GET", body, headers = {}, auth =
   return { blob, filename, contentType: response.headers.get("Content-Type") || "" };
 }
 
+/**
+ * AUTH6G6: options for every read-only platform GET that the AUTH6 bridge serves (P1PlatformReadContextFilter
+ * ROUTES). It keeps the default `auth: true`, so the Bearer token and the issued X-Nexus-Context-Id go along;
+ * never add `auth: false` here. Writes are not bridged and do not use this.
+ */
+export const AUTHENTICATED_PLATFORM_READ = Object.freeze({ platform: true });
 export const p1 = {
   // AUTH6F4: the two platform read lists go through the authenticated AUTH6 bridge, which needs the Bearer token and
   // the issued X-Nexus-Context-Id; demo headers alone are refused there.
-  listTenants: () => api("/api/v1/p1/tenants", { platform: true }),
+  listTenants: () => api("/api/v1/p1/tenants", AUTHENTICATED_PLATFORM_READ),
   getTenant: (id) => api(`/api/v1/p1/tenants/${id}`, { platform: true, auth: false }),
   platformTenant: () => api("/api/v1/p1/platform-tenant", { platform: true, auth: false }),
   createTenant: (body) => api("/api/v1/p1/tenants", { method: "POST", body, platform: true, auth: false }),
@@ -172,12 +178,12 @@ export const p1 = {
   entitlement: (id) => api(`/api/v1/p1/tenants/${id}/entitlement`, { platform: true, auth: false }),
   quotas: (id) => api(`/api/v1/p1/tenants/${id}/quotas`, { platform: true, auth: false }),
   // AUTH6G5: read-only platform GETs bridged by AUTH6G2 need the Bearer token and the issued context.
-  serviceStatus: () => api("/api/v1/p1/platform/services", { platform: true }),
+  serviceStatus: () => api("/api/v1/p1/platform/services", AUTHENTICATED_PLATFORM_READ),
   actuatorHealth: () => api("/actuator/health", { auth: false }),
   demoReadiness: () => api("/api/v1/platform/demo-readiness", { platform: true, auth: false }),
-  tenantTree: () => api("/api/v1/p1/tenants/tree", { platform: true }),
-  tenantChildren: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/children`, { platform: true }),
-  tenantAncestors: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/ancestors`, { platform: true }),
+  tenantTree: () => api("/api/v1/p1/tenants/tree", AUTHENTICATED_PLATFORM_READ),
+  tenantChildren: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/children`, AUTHENTICATED_PLATFORM_READ),
+  tenantAncestors: (id) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/ancestors`, AUTHENTICATED_PLATFORM_READ),
   reparentTenant: (id, parentTenantId) => api(`/api/v1/p1/tenants/${encodeURIComponent(id)}/parent`, {
     method: "PATCH",
     body: { parent_tenant_id: parentTenantId },
@@ -187,8 +193,8 @@ export const p1 = {
   consume: (id, body) =>
     api(`/api/v1/p1/tenants/${id}/quotas/consume`, { method: "POST", body, platform: true, auth: false }),
   audit: (id) => api(`/api/v1/p1/tenants/${id}/audit-events?limit=50`, { platform: true, auth: false }),
-  formTemplates: () => api("/api/v1/p1/platform/form-templates", { platform: true }),
-  formTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { platform: true }),
+  formTemplates: () => api("/api/v1/p1/platform/form-templates", AUTHENTICATED_PLATFORM_READ),
+  formTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, AUTHENTICATED_PLATFORM_READ),
   createFormTemplate: (body) => api("/api/v1/p1/platform/form-templates", { method: "POST", body, platform: true, auth: false }),
   updateFormTemplate: (id, body) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}`, { method: "PUT", body, platform: true, auth: false }),
   validateFormTemplate: (id) => api(`/api/v1/p1/platform/form-templates/${encodeURIComponent(id)}/validate`, { method: "POST", body: {}, platform: true, auth: false }),
@@ -196,7 +202,7 @@ export const p1 = {
   applyTenantRegistration: (body) => api("/api/v1/p1/tenant-registrations", { method: "POST", body, auth: false }),
   listTenantRegistrations: (status) => {
     const q = status ? `?status=${encodeURIComponent(status)}` : "";
-    return api(`/api/v1/p1/tenant-registrations${q}`, { platform: true });
+    return api(`/api/v1/p1/tenant-registrations${q}`, AUTHENTICATED_PLATFORM_READ);
   },
   getTenantRegistration: (id) => api(`/api/v1/p1/tenant-registrations/${encodeURIComponent(id)}`, { platform: true, auth: false }),
   approveTenantRegistration: (id, note) => api(`/api/v1/p1/tenant-registrations/${encodeURIComponent(id)}/approve`, { method: "POST", body: { note }, platform: true, auth: false }),
@@ -368,7 +374,7 @@ export const audit = {
       if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
     }
     const suffix = query.toString() ? `?${query}` : "";
-    return api(`/api/v1/audit/events${suffix}`, { platform: true, auth: false });
+    return api(`/api/v1/audit/events${suffix}`, AUTHENTICATED_PLATFORM_READ);
   },
   verifyChain: () => api("/api/v1/audit/chain/verify", { method: "POST", platform: true, auth: false }),
 };
