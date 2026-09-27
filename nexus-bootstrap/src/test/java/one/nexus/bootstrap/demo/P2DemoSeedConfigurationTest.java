@@ -79,9 +79,10 @@ class P2DemoSeedConfigurationTest {
                     statementSql);
         }
         String joined = String.join("\n", sql.getAllValues());
-        assertTrue(joined.contains("'demo_tenant_admin'"));
-        assertTrue(joined.contains("'demo_platform_ops'"));
-        assertTrue(joined.contains("'demo_member'"));
+        for (String code : java.util.List.of("demo_tenant_admin", "demo_platform_ops", "demo_member", "engineering_manager")) {
+            org.mockito.Mockito.verify(statement, org.mockito.Mockito.atLeastOnce()).param("code", code);
+        }
+        assertTrue(!joined.contains("UPDATE iam.iam_position"), "existing positions must be preserved");
         assertTrue(joined.contains("'nexus-demo-platform'"));
         assertTrue(joined.contains("'nexus-demo-tenant-admin'"));
         assertTrue(joined.contains("'nexus-demo-member'"));

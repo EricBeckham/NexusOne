@@ -71,6 +71,10 @@ class U2IdentityBootstrapPostgresTest {
         assertEquals(java.util.Set.of(P2DemoSeedConfiguration.DEPARTMENT_ENGINEERING,
                         P2DemoSeedConfiguration.DEPARTMENT_PLATFORM, P2DemoSeedConfiguration.DEPARTMENT_PLATFORM_OPS),
                 new java.util.HashSet<>(jdbc.queryForList("SELECT id FROM iam.iam_department", UUID.class)));
+        assertEquals(java.util.Set.of(P2DemoSeedConfiguration.POSITION_MANAGER,
+                        P2DemoSeedConfiguration.POSITION_ENGINEER, P2DemoSeedConfiguration.POSITION_TENANT_ADMIN,
+                        P2DemoSeedConfiguration.POSITION_PLATFORM_ADMIN),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT id FROM iam.iam_position", UUID.class)));
     }
 
     @Test
@@ -89,7 +93,7 @@ class U2IdentityBootstrapPostgresTest {
         assertEquals("idp-existing-subject", jdbc.queryForObject(
                 "SELECT keycloak_user_id FROM iam.iam_global_account WHERE id = ?", String.class,
                 P2DemoSeedConfiguration.ACCOUNT_LIN));
-        assertEquals("租户管理", jdbc.queryForObject("SELECT name FROM iam.iam_position WHERE id = ?",
+        assertEquals("旧岗位", jdbc.queryForObject("SELECT name FROM iam.iam_position WHERE id = ?",
                 String.class, P2DemoSeedConfiguration.POSITION_TENANT_ADMIN));
     }
 
@@ -142,6 +146,86 @@ class U2IdentityBootstrapPostgresTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"demo_platform_ops", "demo_tenant_admin", "demo_member", "engineering_manager"})
+    void existingPositionCodeWithDifferentIdIsPreservedAndReused(String code) {
+        UUID tenant = code.equals("demo_platform_ops") ? P2DemoSeedConfiguration.PLATFORM_TENANT_ID
+                : P2DemoSeedConfiguration.TENANT_ID;
+        UUID existing = UUID.randomUUID();
+        UUID foreign = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO iam.iam_position
+                (id, tenant_id, code, name, status, created_at, updated_at, version)
+                VALUES (?, ?, ?, '另一租户岗位', 'ACTIVE', now(), now(), 3)
+                """, foreign, UUID.randomUUID(), code);
+        jdbc.update("""
+                INSERT INTO iam.iam_position
+                (id, tenant_id, code, name, category, duties, status, created_at, updated_at, version)
+                VALUES (?, ?, ?, '真实岗位', '保留分类', '保留职责', 'INACTIVE', now(), now(), 8)
+                """, existing, tenant, code);
+        var before = jdbc.queryForMap("SELECT * FROM iam.iam_position WHERE id = ?", existing);
+        UUID department = UUID.randomUUID();
+        String departmentCode = code.equals("demo_platform_ops") ? "platform_ops"
+                : code.equals("demo_member") ? "platform_team" : "engineering";
+        jdbc.update("""
+                INSERT INTO iam.iam_department
+                (id, tenant_id, code, name, path, sort_order, status, created_at, updated_at, version)
+                VALUES (?, ?, ?, '复用部门', '/preserved/', 12, 'ACTIVE', now(), now(), 6)
+                """, department, tenant, departmentCode);
+        var departmentBefore = jdbc.queryForMap("SELECT * FROM iam.iam_department WHERE id = ?", department);
+        run();
+        assertPacks();
+        UUID employment = switch (code) {
+            case "demo_platform_ops" -> P2DemoSeedConfiguration.EMPLOYMENT_PLATFORM_ADMIN;
+            case "demo_tenant_admin" -> P2DemoSeedConfiguration.EMPLOYMENT_LIN_ADMIN;
+            case "demo_member" -> P2DemoSeedConfiguration.EMPLOYMENT_ZHOU;
+            default -> P2DemoSeedConfiguration.EMPLOYMENT_LIN;
+        };
+        assertEquals(existing, jdbc.queryForObject("SELECT position_id FROM iam.iam_employment WHERE id = ?",
+                UUID.class, employment));
+        assertEquals(department, jdbc.queryForObject("SELECT department_id FROM iam.iam_employment WHERE id = ?",
+                UUID.class, employment));
+        // Existing jobs must be realigned too, including the manager SECONDARY job.
+        UUID wrongPosition = code.equals("demo_platform_ops") ? P2DemoSeedConfiguration.POSITION_MANAGER
+                : P2DemoSeedConfiguration.POSITION_PLATFORM_ADMIN;
+        jdbc.update("UPDATE iam.iam_employment SET position_id = ? WHERE id = ?", wrongPosition, employment);
+        run();
+        assertPacks();
+        assertEquals(existing, jdbc.queryForObject("SELECT position_id FROM iam.iam_employment WHERE id = ?",
+                UUID.class, employment));
+        var jobs = jdbc.queryForList("SELECT * FROM iam.iam_employment ORDER BY id");
+        run();
+        assertEquals(jobs, jdbc.queryForList("SELECT * FROM iam.iam_employment ORDER BY id"));
+        assertEquals(before, jdbc.queryForMap("SELECT * FROM iam.iam_position WHERE id = ?", existing));
+        assertEquals(departmentBefore, jdbc.queryForMap("SELECT * FROM iam.iam_department WHERE id = ?", department));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM iam.iam_position WHERE tenant_id = ? AND code = ?",
+                Integer.class, tenant, code));
+        assertEquals(3, jdbc.queryForObject("SELECT version FROM iam.iam_position WHERE id = ?", Integer.class, foreign));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"demo_platform_ops", "demo_tenant_admin", "demo_member", "engineering_manager"})
+    void softDeletedPositionCodeIsNotRevivedAndRollsBackIdentities(String code) {
+        UUID tenant = code.equals("demo_platform_ops") ? P2DemoSeedConfiguration.PLATFORM_TENANT_ID
+                : P2DemoSeedConfiguration.TENANT_ID;
+        UUID existing = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO iam.iam_position
+                (id, tenant_id, code, name, status, created_at, updated_at, deleted_at, version)
+                VALUES (?, ?, ?, '已删除岗位', 'ACTIVE', now(), now(), now(), 2)
+                """, existing, tenant, code);
+        var before = jdbc.queryForMap("SELECT * FROM iam.iam_position WHERE id = ?", existing);
+        var error = assertThrows(IllegalStateException.class, this::run);
+        assertTrue(error.getMessage().startsWith("ID9 position code " + code));
+        assertEquals(before, jdbc.queryForMap("SELECT * FROM iam.iam_position WHERE id = ?", existing));
+        assertEquals(0, count("SELECT count(*) FROM iam.iam_global_account"));
+        assertEquals(0, count("SELECT count(*) FROM iam.iam_person"));
+        assertEquals(0, count("SELECT count(*) FROM iam.iam_tenant_membership"));
+        assertEquals(0, count("SELECT count(*) FROM iam.iam_employment"));
+        assertTrue(permissions.repository().listRoles(P2DemoSeedConfiguration.PLATFORM_TENANT_ID).isEmpty());
+        assertTrue(permissions.repository().listAssignments(P2DemoSeedConfiguration.PLATFORM_TENANT_ID).isEmpty());
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"platform.admin@demo.invalid", "lin.xiao@demo.invalid", "zhou.ran@demo.invalid"})
     void orphanEmailFailsHonestlyAndDoesNotInsertOrGrantAnything(String email) {
         UUID orphan = UUID.randomUUID();
@@ -174,8 +258,8 @@ class U2IdentityBootstrapPostgresTest {
 
     @Test
     void partialInsertFailureRollsBackBeforeAnyAuthorizationIsInstalled() {
-        jdbc.update("INSERT INTO iam.iam_position VALUES (?, ?, 'demo_member', 'conflict', NULL, NULL, 'ACTIVE', "
-                + "now(), now(), NULL, 0)", UUID.randomUUID(), P2DemoSeedConfiguration.TENANT_ID);
+        jdbc.update("INSERT INTO iam.iam_position VALUES (?, ?, 'occupied_other', 'conflict', NULL, NULL, 'ACTIVE', "
+                + "now(), now(), NULL, 0)", P2DemoSeedConfiguration.POSITION_ENGINEER, P2DemoSeedConfiguration.TENANT_ID);
         assertThrows(org.springframework.dao.DataIntegrityViolationException.class, this::run);
         assertEquals(0, count("SELECT count(*) FROM iam.iam_global_account"));
         assertEquals(0, count("SELECT count(*) FROM iam.iam_person"));
@@ -193,6 +277,12 @@ class U2IdentityBootstrapPostgresTest {
     private void assertPacks() {
         assertEquals(3, count("SELECT count(*) FROM iam.iam_global_account"));
         assertEquals(3, count("SELECT count(*) FROM iam.iam_person"));
+        assertEquals(java.util.Set.of(P2DemoSeedConfiguration.ACCOUNT_PLATFORM_ADMIN,
+                        P2DemoSeedConfiguration.ACCOUNT_LIN, P2DemoSeedConfiguration.ACCOUNT_ZHOU),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT id FROM iam.iam_global_account", UUID.class)));
+        assertEquals(java.util.Set.of(P2DemoSeedConfiguration.PERSON_PLATFORM_ADMIN,
+                        P2DemoSeedConfiguration.PERSON_LIN, P2DemoSeedConfiguration.PERSON_ZHOU),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT id FROM iam.iam_person", UUID.class)));
         assertEquals(3, count("SELECT count(*) FROM iam.iam_tenant_membership WHERE status = 'ACTIVE'"));
         assertEquals(3, count("SELECT count(*) FROM iam.iam_employment WHERE kind = 'PRIMARY' AND status = 'ACTIVE'"));
         assertEquals(3, count("""
