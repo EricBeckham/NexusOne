@@ -90,6 +90,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { p1 } from "../../api/client";
+import { explainPlatformRead } from "../../api/platformReadError";
 import { NxEmpty, NxErrorState, NxPageHeader, NxPanelCard } from "../../components";
 import { entitlementItems, entitlementSummary, quotaRows, show, usagePercent } from "./entitlementDisplay";
 
@@ -114,7 +115,7 @@ const quotaError = ref("");
 const quotaTrace = ref("");
 
 function fail(err) {
-  return { message: err?.message || "加载失败", trace: err?.traceId || "" };
+  return { message: explainPlatformRead(err, "加载失败"), trace: err?.traceId || "" };
 }
 
 async function loadList() {

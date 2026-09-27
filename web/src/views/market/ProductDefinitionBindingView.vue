@@ -300,6 +300,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { p1, p4 } from "../../api/client";
+import { explainPlatformRead } from "../../api/platformReadError";
 import { p3 } from "../../api/p3";
 import { NxEmpty, NxErrorState, NxPageHeader, NxResult, NxStatusTag } from "../../components";
 import { nxMessage } from "../../feedback/nxMessage";
@@ -746,7 +747,7 @@ async function load() {
     }
     await loadBindings();
   } catch (err) {
-    error.value = err.message || "产品定义暂时不可用";
+    error.value = explainPlatformRead(err, "产品定义暂时不可用");
   } finally {
     loaded.value = true;
   }

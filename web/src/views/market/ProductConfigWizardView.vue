@@ -163,6 +163,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton } from "../../components";
 import { p1, p4 } from "../../api/client";
+import { explainPlatformRead } from "../../api/platformReadError";
 import { p3 } from "../../api/p3";
 
 /** PC1/PC3: fixed four steps. PC7: status comes from the PC6 readiness read for the selected product only. */
@@ -374,7 +375,7 @@ async function load() {
     skuCount.value = skus.value.length;
 
   } catch (err) {
-    error.value = err?.message || "配置摘要暂时不可用";
+    error.value = explainPlatformRead(err, "配置摘要暂时不可用");
     traceId.value = err?.traceId || "";
     loading.value = false;
     return;
