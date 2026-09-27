@@ -1,5 +1,7 @@
 # 请假报销产品演示 Runbook
 
+本册是本地 stub/demo 路径，不能替代 [真机演示分册](demo-host-realhost-launch.md) 或 [M7](../../planning/M7-Keycloak演示验收清单.md) Keycloak 登录验收。真机保持 demo flags OFF。
+
 本 Runbook 用于本机 / 内测演示 K20 的「演示数据 · 请假报销」产品：订阅开通 → 发起申请 → 审批人填写意见并同意或驳回 → 发起人在「我的申请」查看结果。
 
 > **禁止连生产 / 默认关闭。** 全程只允许回环地址数据库（`127.0.0.1`、`localhost` 或 `[::1]`）。页面中的「演示数据」不是生产数据。不要把 `demo` profile 或演示开关写进正式启动配置。
