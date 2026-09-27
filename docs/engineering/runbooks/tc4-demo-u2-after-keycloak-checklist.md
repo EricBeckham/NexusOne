@@ -1,6 +1,8 @@
 # TC4：U4 建用户之后必须做 U2 一次性
 
-> ID1 / ID3 已合入 `main`（#720，`07198104`）：包含 ID1 的构建改为 U2 窗口先插入/对齐三套身份再挂职责，不依赖本机 demo 开关；见下文「一次性能写什么」与 [ID1 / ID3](id1-u2-identity-bootstrap.md)。「ID1 之前的行为」一节只作历史记录。只有按 TC5 复验通过后才能关闭旧断点，本文不宣称演示机已修复。
+> ID1 / ID3 已合入 `main`（#720，`07198104`）：包含 ID1 的构建改为 U2 窗口先插入/对齐三套身份再挂职责，不依赖本机 demo 开关；见下文「一次性能写什么」与 [ID1 / ID3](id1-u2-identity-bootstrap.md)。「ID1 之前的行为」一节只作历史记录。
+>
+> **更正（ID8）**：只有在**同时包含 ID7（#723）**的构建上，「开 U2 窗口即可插入身份」才对演示库成立。纯 #720 的包遇到平台租户已有 `code=platform_ops`（id 与种子固定 id 不同）会撞部门唯一键、身份整体回滚、进程退出，见下文「部门 code 冲突（ID7）」。只有重新部署含 ID7 的包、再跑 U2 窗口并按 TC5 复验通过后才能关闭旧断点，本文不宣称演示机已修复。
 
 只改文档。不改演示机，不删库，不改 `NEXUS_*`。
 
@@ -28,7 +30,42 @@ DEMO-U4 只在 Keycloak 建三人。建完就登录、而 IAM 还没有对应 pe
 
 这一切**不依赖 `NEXUS_DEMO_ENABLED`，也不需要回环数据库**。演示机仍禁止打开 `NEXUS_DEMO_ENABLED`（非回环库会拒启）与 `NEXUS_P1_DEMO_CONTEXT_ENABLED`（与 U2 同开会在写入前拒启）。配置的平台租户必须是 U3 保留租户 `…0001`。职责与授权顺序、冲突策略以 [ID1 / ID3](id1-u2-identity-bootstrap.md) 为准。
 
-因此：部署含 ID1 的构建 → 先清孤儿 → 开一次 U2 窗口 → 按 [TC5](../../planning/TC5-三人登录TenantContext验收清单.md) 复验三人登录带 `context_id` → 关窗口再重启。复验通过之前不宣称旧卡点已关闭。
+因此：部署**含 ID7** 的构建 → 先清孤儿 → 开一次 U2 窗口 → 按 [TC5](../../planning/TC5-三人登录TenantContext验收清单.md) 复验三人登录带 `context_id` → 关窗口再重启。复验通过之前不宣称旧卡点已关闭。上面的 1–3 步在纯 #720 包上只对「部门 code 尚未被占用」的库成立。
+
+## 部门 code 冲突（ID7）
+
+### 失败模式（ID1 基线 #720）
+
+身份事务里的三个固定部门 `platform_ops`、`engineering`、`platform_team` 在 #720 中用 `INSERT … ON CONFLICT (id) DO NOTHING` 插入，只防固定 id 重复。但 V200 另有唯一键 `uk_iam_department_code (tenant_id, code)`。演示库平台租户里**已有 `code=platform_ops` 的部门、且 id 不是种子固定 id** 时：
+
+1. 部门 INSERT 撞 `uk_iam_department_code`，抛 `DuplicateKey`；
+2. 同一身份事务回滚，本次已插入的账号 / person / membership 全部撤销；
+3. U2 runner 抛错，进程退出；
+4. 结果是三人账号插不进去，登录仍缺 TenantContext。职责安装在身份提交之后，因此这次失败不会新增平台职责或授权；此前已有的授权也不会被删除。
+
+`engineering`、`platform_team` 已有同 code、不同 id 的行时同理。
+
+### 修复后行为（ID7 #723）
+
+- 部门按租户内自然键 `(tenant_id, code)` 处理：已有同 code 的行就**复用它的实际 id**，不删除、不改写这行真实部门（id、名称、parent/path、负责人、状态、版本都保留）。
+- 租户内没有同 code 行时，仍插入固定种子 id。其他租户的同 code 行不会被复用。
+- 职务和 U3 主职对齐使用解析后的实际部门 id。
+- 新建的 `platform_team` 的 parent / path 跟随实际的 `engineering` 行。
+- code 被**软删除**的行占用时，仍诚实拒启（`ID7 department code is unavailable`）并回滚，不当作空行，也不恢复那行。
+- 三人账号 / person / membership 的规则不变；「先提交身份（含 person `…0222`），再把 `…0222` 挂到 `platform_system_admin`」的顺序不变。
+- 没有 Flyway；演示机仍禁止打开 `NEXUS_DEMO_ENABLED`。
+
+权威描述以 ID7 的 [ID1 / ID7 runbook](id1-u2-identity-bootstrap.md) 与 [DEMO-U2](demo-u2-platform-duty-bootstrap.md) 为准。ID7 未合入 `main` 前，以 PR #723 正文为准；发布 SHA 须晚于其合入提交。
+
+### 历史：ID5 在演示机上的实测（不是操作步骤）
+
+Cursor ID5 在纯 #720 包上开过一次 U2 窗口，结果如下：
+
+- 失败点在部门插入（上面的失败模式）；
+- 三人的固定账号 / person 仍是 0 行；
+- 开关之后已关回。
+
+这只是记录，说明为什么需要 ID7；不要照此重做。下一步是部署含 ID7 的包，再按本节和 TC5 走一遍。
 
 ## ID1 之前的行为（历史记录）
 

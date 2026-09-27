@@ -38,7 +38,7 @@
 - 账号对齐优先查 `keycloak_user_id`；未知 subject 才由 AccountReconciler 尝试按邮箱匹配现有账号，无匹配则创建新 global account。JDBC 邮箱匹配忽略大小写，但仍应逐字核对批准地址、不依赖大小写差异区分三人。
 - 邮箱兜底可能更新现有账号的 subject 绑定，**不是无风险自动合并**。若现有 `keycloak_user_id` 与目标 User ID 不一致、邮箱重复/被占用、realm 不同或用户曾重建：停止登录试错，交 IAM/IdP 负责人核实并走已批准修复；不手改 SQL、不清空绑定、不重复建同邮箱账号。
 - Keycloak 用户创建不等于应用账号、person、租户 membership、职责/权限准备完成。应用 context 签发仍需要对应租户 person 与有效 membership；不能仅凭 Email 或 Username 进入平台。U3 应用侧缺项由该卡负责人解决，本册只指导 IdP 操作。
-- **U4 之后必须做 DEMO-U2 一次性，否则「缺少 TenantContext」是预期卡点。** 只建 Keycloak 用户就登录时，IAM 会按邮箱新建 0 person / 0 membership 的账号，服务端不签发 `context_id`。含 ID1（#720）的构建里，U2 窗口会插入 / 对齐三套固定身份，无需 `NEXUS_DEMO_ENABLED`（演示机仍禁止打开）；但窗口前仍须先清孤儿邮箱。步骤与冲突见 [TC4](tc4-demo-u2-after-keycloak-checklist.md) 与 [ID1 / ID3](id1-u2-identity-bootstrap.md)。
+- **U4 之后必须做 DEMO-U2 一次性，否则「缺少 TenantContext」是预期卡点。** 只建 Keycloak 用户就登录时，IAM 会按邮箱新建 0 person / 0 membership 的账号，服务端不签发 `context_id`。含 ID1（#720）的构建里，U2 窗口会插入 / 对齐三套固定身份（库里已有同 code、不同 id 的部门时须同时含 ID7 #723，否则撞部门唯一键回滚），无需 `NEXUS_DEMO_ENABLED`（演示机仍禁止打开）；但窗口前仍须先清孤儿邮箱。步骤与冲突见 [TC4](tc4-demo-u2-after-keycloak-checklist.md) 与 [ID1 / ID3](id1-u2-identity-bootstrap.md)。
 
 ## 4. 部署后只测试，不代签
 

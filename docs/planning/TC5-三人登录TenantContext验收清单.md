@@ -8,7 +8,7 @@
 
 ## 0. 前提（先勾，不满足即停）
 
-- [ ] 发布 SHA（`main`）：`________________`，晚于 TC2（#716）；要求 U2 窗口插入身份时须含 ID1 / ID3（#720）。
+- [ ] 发布 SHA（`main`）：`________________`，晚于 TC2（#716）；要求 U2 窗口插入身份时须含 ID1 / ID3（#720）**和 ID7（#723）**。纯 #720 包在已有 `platform_ops` 部门的演示库上会失败，见 §0.1。
 - [ ] 部署的就是该 SHA 的构建；未在演示机热修。
 - [ ] `NEXUS_DEMO_ENABLED`、`NEXUS_P1_DEMO_CONTEXT_ENABLED` 为 `false` 或未设置。
 - [ ] Keycloak 三个用户按 [DEMO-U4](../engineering/runbooks/demo-u4-keycloak-three-users.md) 创建 / 核对，邮箱与 [DEMO-U3](../engineering/runbooks/demo-u3-identity-packs.md) 冻结表一致。
@@ -24,7 +24,9 @@
 含 ID1 的构建里，U2 窗口先插入 / 对齐三套固定身份，再装职责、再给 `…0222` 授权（顺序见 [ID1 / ID3](../engineering/runbooks/id1-u2-identity-bootstrap.md)）。这一过程不需要 `NEXUS_DEMO_ENABLED`，演示机仍禁止打开它。下列核对只读，走已批准的只读查询或管理视图；不手写 SQL 补行，不记录 subject、token 或凭证。
 
 - [ ] 开窗口前已清孤儿：三个 U3 邮箱在 `iam_global_account`（含软删除行）上要么 0 行，要么就是固定 id `…0221` / `…0201` / `…0202`（见 [TC4](../engineering/runbooks/tc4-demo-u2-after-keycloak-checklist.md)）。
-- [ ] U2 窗口那次启动成功完成，日志中没有 `ID1 identity conflict`，也没有其他拒启。失败的启动不算通过。
+- [ ] 部署的包含 ID7（#723；合入后填其 SHA：`________`）。纯 #720 包遇到平台租户已有 `code=platform_ops`（或 `engineering` / `platform_team`）且 id 不同的部门，会撞 `uk_iam_department_code`，身份整体回滚、进程退出（见 [TC4 · 部门 code 冲突](../engineering/runbooks/tc4-demo-u2-after-keycloak-checklist.md#部门-code-冲突id7)）。
+- [ ] U2 窗口那次启动成功完成，日志中没有 `ID1 identity conflict`、没有 `DuplicateKey` / `uk_iam_department_code`、没有 `ID7 department code is unavailable`，也没有其他拒启。失败的启动不算通过。
+- [ ] 已有同 code 的真实部门行保持原样（id、名称、上下级不变）；三人主职挂在解析出的实际部门上。
 - [ ] person `…0222` 存在，归属账号 `…0221` 与平台租户 `…0001`。
 - [ ] `…0222` 已挂到 `platform_system_admin`，没有指向不存在 person 的悬空授权。
 - [ ] person `…0203` / `…0204` 存在，分别归属 `…0201` / `…0202` 与 `demo_acme` `…0101`。
@@ -32,6 +34,8 @@
 - [ ] 三人各有 1 条 ACTIVE PRIMARY 主职，岗位 code 分别是 `demo_platform_ops`、`demo_tenant_admin`、`demo_member`。
 - [ ] 窗口已关闭（`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=false` 并重启），再启动不追加身份或授权。
 - [ ] 随后按 §1 / §2 登录：三人**均进首页，不再出现缺 TenantContext**，既没有「还没有可进入的租户」壳，也没有「未能自动进入租户」壳。仍出现时记卡点，回到本节逐项核对，不在演示机手补。
+
+本节不声称演示机已修好：须重新部署含 ID7 的包，再跑一次 U2 窗口，并完成本清单的登录验收，才关闭「缺 TenantContext」旧卡点。
 
 ## 1. 每位验收者的通用步骤
 
