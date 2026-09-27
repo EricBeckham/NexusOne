@@ -113,20 +113,57 @@ public final class ProductionProfileGuard {
     static List<String> keycloakViolations(Environment env) {
         List<String> violations = new ArrayList<>();
         for (KeycloakSetting setting : KEYCLOAK_SETTINGS) {
-            String raw = env.getProperty(setting.property());
-            String resolved = raw == null ? "" : raw.trim();
-            if (resolved.isEmpty()) {
-                violations.add(setting.env() + " is not set (" + setting.property()
+            switch (keycloakPresence(env, setting)) {
+                case MISSING -> violations.add(setting.env() + " is not set (" + setting.property()
                         + "); required when prod runs with nexus.iam.idp=keycloak");
-            } else if (resolved.contains("REPLACE_")) {
-                violations.add(setting.env() + " still holds a template placeholder (" + setting.property()
-                        + "); fill it from the secret store");
-            } else if (setting.devDefault() != null && setting.devDefault().equals(resolved)) {
-                violations.add(setting.env() + " is not set (" + setting.property()
+                case PLACEHOLDER -> violations.add(setting.env() + " still holds a template placeholder ("
+                        + setting.property() + "); fill it from the secret store");
+                case DEV_DEFAULT -> violations.add(setting.env() + " is not set (" + setting.property()
                         + " is still the local development default); required when prod runs with nexus.iam.idp=keycloak");
+                case CONFIGURED -> { }
             }
         }
         return violations;
+    }
+
+    /** DL-L3 / DL-L5: how one Keycloak setting looks, without ever exposing its value. */
+    public enum Presence { CONFIGURED, MISSING, PLACEHOLDER, DEV_DEFAULT }
+
+    static Presence keycloakPresence(Environment env, KeycloakSetting setting) {
+        String raw = env.getProperty(setting.property());
+        String resolved = raw == null ? "" : raw.trim();
+        if (resolved.isEmpty()) return Presence.MISSING;
+        if (resolved.contains("REPLACE_")) return Presence.PLACEHOLDER;
+        if (setting.devDefault() != null && setting.devDefault().equals(resolved)) return Presence.DEV_DEFAULT;
+        return Presence.CONFIGURED;
+    }
+
+    /** DL-L3: environment variable name → presence, in template order. Names only; values never leave here. */
+    public static java.util.Map<String, Presence> keycloakPresence(Environment env) {
+        java.util.Map<String, Presence> out = new java.util.LinkedHashMap<>();
+        for (KeycloakSetting setting : KEYCLOAK_SETTINGS) out.put(setting.env(), keycloakPresence(env, setting));
+        return out;
+    }
+
+    /** DL-L3: true when no demo switch that trusts demo identity or seeds demo data is on. */
+    public static boolean demoFlagsOff(Environment env) {
+        if (env.acceptsProfiles(Profiles.of("demo")) || flag(env, "nexus.demo.enabled")) return false;
+        return DEMO_CONTEXT_SWITCHES.stream().noneMatch(name -> flag(env, name));
+    }
+
+    /** DL-L3: the IdP mode as a fixed word ({@code keycloak} / {@code stub} / {@code other}), never the raw value. */
+    public static String idpMode(Environment env) {
+        String idp = value(env, "nexus.iam.idp", "stub");
+        return "keycloak".equals(idp) || "stub".equals(idp) ? idp : "other";
+    }
+
+    public static boolean cryptoKeyFromEnv(Environment env) {
+        return "env".equals(value(env, "nexus.crypto.key-source", "ephemeral"));
+    }
+
+    public static boolean durablePersistence(Environment env) {
+        return "jdbc".equals(value(env, "nexus.iam.persistence", "memory"))
+                && "jdbc".equals(value(env, "nexus.permission.persistence", "memory"));
     }
 
     private static boolean flag(Environment env, String name) {
