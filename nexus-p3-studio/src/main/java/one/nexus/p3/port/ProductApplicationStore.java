@@ -28,6 +28,12 @@ public interface ProductApplicationStore {
     /** Flowable task id of the most recent acted todo on the instance; empty when none acted yet. */
     Optional<String> latestActedTaskId(UUID tenantId, UUID processInstanceId);
 
+    /** DPO-L5: one application owned by {@code tenantId}; empty when absent or owned by another tenant. */
+    Optional<ApplicationSnapshot> findForTenant(UUID tenantId, UUID applicationId);
+
+    record ApplicationSnapshot(UUID id, UUID installationId, UUID productDefinitionId, UUID formTemplateVersionId,
+            String valuesJson, String status, UUID initiatorPersonId, Instant createdAt) { }
+
     record InstalledPin(UUID formTemplateVersionId, UUID productDefinitionId,
             String processDefinitionKey, Integer processDefinitionVersion) { }
 

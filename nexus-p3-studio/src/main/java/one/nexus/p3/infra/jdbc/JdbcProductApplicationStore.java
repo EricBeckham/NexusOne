@@ -39,6 +39,19 @@ public class JdbcProductApplicationStore implements ProductApplicationStore {
     }
 
     @Override
+    public Optional<ApplicationSnapshot> findForTenant(UUID tenantId, UUID applicationId) {
+        return Optional.ofNullable(jdbc.query("""
+                SELECT id, installation_id, product_definition_id, form_template_version_id, values_json::text,
+                       status, initiator_person_id, created_at
+                  FROM business_meta.product_application
+                 WHERE id = ? AND tenant_id = ?
+                """, rs -> rs.next() ? new ApplicationSnapshot(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
+                        rs.getObject(3, UUID.class), rs.getObject(4, UUID.class), rs.getString(5), rs.getString(6),
+                        rs.getObject(7, UUID.class), rs.getTimestamp(8).toInstant()) : null,
+                applicationId, tenantId));
+    }
+
+    @Override
     public Optional<String> formTemplateSnapshot(UUID formTemplateVersionId) {
         return Optional.ofNullable(jdbc.query(
                 "SELECT fields_snapshot::text FROM platform.form_template_version WHERE id = ?",
