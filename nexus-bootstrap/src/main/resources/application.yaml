@@ -74,6 +74,9 @@ nexus:
       enabled: ${NEXUS_P1_PLATFORM_READ_CONTEXT_ENABLED:false}
     demo-context:
       enabled: ${NEXUS_P1_DEMO_CONTEXT_ENABLED:false}
+  # DEMO-U2: one-shot platform duty install. Default off. Must stay off together with demo context.
+  platform-duty-bootstrap:
+    enabled: ${NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED:false}
   platform:
     status:
       # Per-probe wall clock. A timed-out dependency is UNKNOWN and does not block the others.
