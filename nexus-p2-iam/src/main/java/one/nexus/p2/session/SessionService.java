@@ -26,7 +26,16 @@ import java.util.UUID;
  * to the IdP subject. Client-supplied tenant_id is never trusted.
  */
 public final class SessionService {
-    public record MembershipView(UUID tenantId, UUID personId, Model.MembershipStatus status) {}
+    /**
+     * DEMO-U6: {@code tenantCode} / {@code tenantName} are display labels only (null when unknown, omitted on the
+     * wire); {@code tenantId} stays the value used for switching.
+     */
+    public record MembershipView(UUID tenantId, UUID personId, Model.MembershipStatus status, String tenantCode,
+            String tenantName) {
+        public MembershipView(UUID tenantId, UUID personId, Model.MembershipStatus status) {
+            this(tenantId, personId, status, null, null);
+        }
+    }
 
     public record SessionView(
             UUID accountId,
@@ -48,7 +57,12 @@ public final class SessionService {
     private final Duration contextTtl;
     private final AuditPort audits;
     private final AdminMfaPolicy mfaPolicy;
+    private volatile TenantLabelPort tenantLabels = TenantLabelPort.NONE;
 
+    /** DEMO-U6: wire tenant labels (code / name) into membership views; null resets to none. */
+    public void useTenantLabels(TenantLabelPort labels) {
+        this.tenantLabels = labels == null ? TenantLabelPort.NONE : labels;
+    }
     public SessionService(
             IdentityRepository repository,
             AccountReconciler reconciler,
@@ -308,13 +322,23 @@ public final class SessionService {
                 "platform or tenant admin privileged session requires MFA");
     }
 
+    private TenantLabelPort.TenantLabel labelOf(UUID tenantId) {
+        try {
+            return tenantLabels.label(tenantId).orElse(null);
+        } catch (RuntimeException unavailable) {
+            return null; // labels are cosmetic; never fail a login because a label could not be read
+        }
+    }
+
     private List<MembershipView> membershipsOf(UUID accountId) {
         return repository.listMembershipsByAccount(accountId).stream()
                 .map(item -> {
                     UUID personId = repository.findPersonByAccount(item.tenantId(), accountId)
                             .map(Model.Person::id)
                             .orElse(null);
-                    return new MembershipView(item.tenantId(), personId, item.status());
+                    TenantLabelPort.TenantLabel label = labelOf(item.tenantId());
+                    return new MembershipView(item.tenantId(), personId, item.status(),
+                            label == null ? null : label.code(), label == null ? null : label.name());
                 })
                 .toList();
     }

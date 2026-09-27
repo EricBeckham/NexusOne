@@ -37,7 +37,7 @@
         </button>
         <div v-if="open" class="menu">
           <p><span>用户名</span><strong>{{ session.displayName || "未登录" }}</strong></p>
-          <p><span>租户</span><strong>{{ session.tenantId || "暂无" }}</strong></p>
+          <p><span>租户</span><strong data-testid="shell-tenant">{{ currentTenantLabel(session) }}</strong></p>
           <p><span>岗位</span><strong data-testid="shell-position">{{ session.positionName || "暂无" }}</strong></p>
           <label class="switch">
             <input v-model="session.platformMode" type="checkbox" @change="persist" />
@@ -45,10 +45,10 @@
           </label>
           <label v-if="session.memberships.length > 1" class="switch">
             切换租户
-            <select :value="session.tenantId" @change="onSwitch($event.target.value)">
+            <select :value="session.tenantId" data-testid="shell-tenant-switch" @change="onSwitch($event.target.value)">
               <option value="" disabled>切换租户</option>
               <option v-for="item in session.memberships" :key="itemKey(item)" :value="itemKey(item)">
-                {{ itemKey(item) }}
+                {{ tenantLabel(item) }}
               </option>
             </select>
           </label>
@@ -65,6 +65,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { clearIdentity, ensureContext, loadPrimaryPosition, persist, session, switchTenant } from "../api/session";
 import { p2 } from "../api/client";
+import { currentTenantLabel, tenantLabel } from "../api/tenantLabel";
 import { productById } from "../nav/products";
 import NxIcon from "../icons/NxIcon.vue";
 
