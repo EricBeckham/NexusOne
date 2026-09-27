@@ -151,7 +151,9 @@ export async function apiBlob(path, { method = "GET", body, headers = {}, auth =
 }
 
 export const p1 = {
-  listTenants: () => api("/api/v1/p1/tenants", { platform: true, auth: false }),
+  // AUTH6F4: the two platform read lists go through the authenticated AUTH6 bridge, which needs the Bearer token and
+  // the issued X-Nexus-Context-Id; demo headers alone are refused there.
+  listTenants: () => api("/api/v1/p1/tenants", { platform: true }),
   getTenant: (id) => api(`/api/v1/p1/tenants/${id}`, { platform: true, auth: false }),
   platformTenant: () => api("/api/v1/p1/platform-tenant", { platform: true, auth: false }),
   createTenant: (body) => api("/api/v1/p1/tenants", { method: "POST", body, platform: true, auth: false }),
@@ -193,7 +195,7 @@ export const p1 = {
   applyTenantRegistration: (body) => api("/api/v1/p1/tenant-registrations", { method: "POST", body, auth: false }),
   listTenantRegistrations: (status) => {
     const q = status ? `?status=${encodeURIComponent(status)}` : "";
-    return api(`/api/v1/p1/tenant-registrations${q}`, { platform: true, auth: false });
+    return api(`/api/v1/p1/tenant-registrations${q}`, { platform: true });
   },
   getTenantRegistration: (id) => api(`/api/v1/p1/tenant-registrations/${encodeURIComponent(id)}`, { platform: true, auth: false }),
   approveTenantRegistration: (id, note) => api(`/api/v1/p1/tenant-registrations/${encodeURIComponent(id)}/approve`, { method: "POST", body: { note }, platform: true, auth: false }),

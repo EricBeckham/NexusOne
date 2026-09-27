@@ -94,6 +94,7 @@
 import { onMounted, ref } from "vue";
 import { NxDataTable, NxFilterBar, NxPageHeader, NxStatusTag } from "../../components";
 import { p1 } from "../../api/client";
+import { platformReadFailure } from "../../api/platformReadError";
 import { nxMessage } from "../../feedback/nxMessage";
 
 const rows = ref([]);
@@ -121,7 +122,7 @@ async function load() {
   try {
     rows.value = await p1.listTenantRegistrations(statusFilter.value || undefined);
   } catch (err) {
-    error.value = err.message || "无法加载注册申请";
+    error.value = err?.code ? platformReadFailure(err, "无法加载注册申请") : err.message || "无法加载注册申请";
     rows.value = [];
   } finally {
     loading.value = false;
