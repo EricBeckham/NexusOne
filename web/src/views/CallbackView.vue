@@ -47,7 +47,7 @@
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p2 } from "../api/client";
-import { applySessionView, rememberTrace } from "../api/session";
+import { applySessionView, autoSelectTenant, rememberTrace, session } from "../api/session";
 import { DESKTOP_PKCE_AFTER, completeDesktopPkceCallback } from "../api/pkce-desktop";
 import { keycloakPublicConfig } from "../auth/keycloakPublic";
 import { callbackFailureCopy, sessionHasTenantContext } from "../auth/callbackHonesty";
@@ -79,7 +79,11 @@ async function run() {
       applySession: applySessionView,
       rememberTrace,
     });
+    // AUTH5: several ACTIVE memberships and no context → enter demo_acme (or the first ACTIVE) automatically.
     if (!sessionHasTenantContext(result.view)) {
+      await autoSelectTenant();
+    }
+    if (!session.contextId) {
       status.value = "";
       contextMissing.value = true;
       return;

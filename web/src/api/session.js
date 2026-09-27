@@ -120,12 +120,51 @@ export function applySessionView(view) {
   return view;
 }
 
+/** AUTH5: the agreed demo business tenant (demo_acme). */
+export const DEMO_BUSINESS_TENANT_ID = "01900000-0000-7000-8000-000000000101";
+
+function membershipTenant(item) {
+  return item?.tenant_id || item?.tenantId || "";
+}
+
+/**
+ * AUTH5: which tenant to enter when login returned no context and there are several ACTIVE memberships:
+ * demo_acme if it is one of them, otherwise the first ACTIVE one. Fewer than two ACTIVE → null (the server already
+ * issues the context for exactly one).
+ */
+export function pickAutoTenant(memberships) {
+  const active = (Array.isArray(memberships) ? memberships : [])
+    .filter((item) => String(item?.status || "").toUpperCase() === "ACTIVE" && membershipTenant(item));
+  if (active.length < 2) return null;
+  const demo = active.find((item) => membershipTenant(item) === DEMO_BUSINESS_TENANT_ID);
+  return membershipTenant(demo || active[0]);
+}
+
+/**
+ * AUTH5: enter a tenant automatically after login when there is no context yet. A failed switch leaves the user
+ * signed in without a context (the header still offers the manual switch) and records the reason.
+ */
+export async function autoSelectTenant() {
+  if (session.contextId) return null;
+  const tenantId = pickAutoTenant(session.memberships);
+  if (!tenantId) return null;
+  try {
+    await switchTenant(tenantId);
+    session.error = "";
+    return tenantId;
+  } catch (error) {
+    session.error = error?.message || "自动进入租户失败，请在右上角手动切换租户。";
+    return null;
+  }
+}
+
 export async function loginWithAccessToken(accessToken) {
   session.accessToken = accessToken;
   persist();
   const view = await p2.login({ access_token: accessToken });
   applyView(view);
-  await loadPrimaryPosition();
+  // switchTenant already loads the position for the tenant it enters.
+  if (!(await autoSelectTenant())) await loadPrimaryPosition();
   return view;
 }
 
