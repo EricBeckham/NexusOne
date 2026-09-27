@@ -238,6 +238,36 @@ public class JdbcTenantRepository implements TenantRepository, TenantRelationSto
     }
 
     @Override
+    public void insertProjection(EntitlementProjection projection) {
+        if (projection.version() != 1) {
+            throw new IllegalArgumentException("first entitlement projection must have version 1");
+        }
+        int inserted = jdbc.sql("""
+                        INSERT INTO platform.entitlement_projection (
+                          tenant_id, source, pack_code, pack_version, sku_code, subscription_id,
+                          projected_at, payload, updated_at, version)
+                        VALUES (
+                          :tenant_id, :source, :pack_code, :pack_version, :sku_code, :subscription_id,
+                          :projected_at, CAST(:payload AS jsonb), :updated_at, :version)
+                        ON CONFLICT (tenant_id) DO NOTHING
+                        """)
+                .param("tenant_id", projection.tenantId())
+                .param("source", projection.source().name())
+                .param("pack_code", projection.packCode())
+                .param("pack_version", projection.packVersion())
+                .param("sku_code", projection.skuCode())
+                .param("subscription_id", projection.subscriptionId())
+                .param("projected_at", JdbcValues.timestamp(projection.projectedAt()))
+                .param("payload", json(projection.payload()))
+                .param("updated_at", JdbcValues.timestamp(projection.updatedAt()))
+                .param("version", projection.version())
+                .update();
+        if (inserted != 1) {
+            throw new IllegalStateException("optimistic lock failed for entitlement projection " + projection.tenantId());
+        }
+    }
+
+    @Override
     public void updateProjection(EntitlementProjection projection) {
         int updated = jdbc.sql("""
                         UPDATE platform.entitlement_projection
