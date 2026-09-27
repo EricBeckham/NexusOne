@@ -18,7 +18,44 @@ export const session = reactive({
   lastTraceId: "",
   loginMethod: "",
   error: "",
+  // PV3: product ids from GET /api/v1/auth/products; null = unknown (older server / not loaded) → show all.
+  products: null,
 });
+
+// PV3: which account + context the product list belongs to; a new context (tenant switch, new login) reloads it.
+let productsLoadedFor = null;
+let productsInFlight = null;
+
+/**
+ * Loads the visible products once per account + issued context. Never throws: on an older server (404) or any
+ * failure the list stays null and the whole switcher is shown — the server still refuses what the person may not use.
+ */
+export async function ensureProducts() {
+  if (!session.accessToken) {
+    return session.products;
+  }
+  const key = `${session.accountId || ""}|${session.contextId || ""}`;
+  if (productsLoadedFor === key) {
+    return session.products;
+  }
+  if (!productsInFlight) {
+    productsInFlight = (async () => {
+      let products = null;
+      try {
+        const body = await p2.visibleProducts();
+        products = Array.isArray(body?.products) ? body.products.filter((id) => typeof id === "string") : null;
+      } catch {
+        products = null;
+      }
+      session.products = products;
+      productsLoadedFor = key;
+      return products;
+    })().finally(() => {
+      productsInFlight = null;
+    });
+  }
+  return productsInFlight;
+}
 
 function hydrate() {
   const stored = loadSettings();
@@ -220,5 +257,7 @@ export function clearIdentity() {
   session.memberships = [];
   session.lastTraceId = "";
   session.loginMethod = "";
+  session.products = null;
+  productsLoadedFor = null;
   persist();
 }

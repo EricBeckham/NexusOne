@@ -312,6 +312,8 @@ export const p2 = {
   switchTenant: (tenantId) =>
     api("/api/v1/auth/tenant-switch", { method: "POST", body: { tenant_id: tenantId } }),
   logout: () => api("/api/v1/auth/logout", { method: "POST", body: {} }),
+  // PV3: products this person may enter in the issued context (PV2). Navigation only; each product still checks.
+  visibleProducts: () => api("/api/v1/auth/products"),
   persons: () => api("/api/v1/persons"),
   getPerson: (id) => api(`/api/v1/persons/${id}`),
   createPerson: (body) => api("/api/v1/persons", { method: "POST", body }),

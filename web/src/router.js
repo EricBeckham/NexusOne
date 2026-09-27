@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { session } from "./api/session";
+import { ensureProducts, session } from "./api/session";
 import { productById } from "./nav/products";
+import { productGuard } from "./nav/productAccess";
 import { postHost } from "./mobile/host/hostBridge";
 import { routeGuard } from "./auth/routeGuard";
 
@@ -19,6 +20,7 @@ const routes = [
   { path: "/register", name: "tenant-self-register", component: () => import("./views/tenants/TenantSelfRegisterView.vue"), meta: { public: true, title: "租户自助注册" } },
   { path: "/callback", name: "callback", component: () => import("./views/CallbackView.vue"), meta: { public: true, title: "授权码回跳" } },
   { path: "/", name: "product-picker", component: () => import("./views/ProductPickerView.vue"), meta: { title: "产品选择" } },
+  { path: "/no-access", name: "product-no-access", component: () => import("./views/ProductNoAccessView.vue"), meta: { title: "无权访问" } },
   { path: "/p1", name: "p1-home", component: () => import("./views/tenants/TenantHomeView.vue"), meta: { title: "首页", product: "p1" } },
   { path: "/p2", name: "p2-home", component: () => import("./views/org/IamHomeView.vue"), meta: { title: "首页", product: "p2" } },
   { path: "/p3", name: "p3-home", component: () => import("./views/studio/StudioHomeView.vue"), meta: { title: "首页", product: "p3" } },
@@ -243,7 +245,12 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => routeGuard(to, session));
+router.beforeEach(async (to) => {
+  const signedIn = routeGuard(to, session);
+  if (signedIn !== true) return signedIn;
+  // PV3: only products this person may enter; "/" goes straight to the only product.
+  return productGuard(to, ensureProducts);
+});
 
 router.afterEach((to) => {
   const product = productById(to.meta.product);

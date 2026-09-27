@@ -1,9 +1,9 @@
 <template>
-  <nav class="switcher" :class="{ collapsed }" aria-label="产品切换">
+  <nav v-if="items.length > 1" class="switcher" :class="{ collapsed }" aria-label="产品切换" data-testid="product-switcher">
     <p v-if="!collapsed">切换产品</p>
-    <div class="row">
+    <div class="row" :style="{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }">
       <router-link
-        v-for="item in PRODUCTS"
+        v-for="item in items"
         :key="item.id"
         :to="item.home"
         :title="item.name"
@@ -19,8 +19,13 @@
 </template>
 
 <script setup>
-import { PRODUCTS } from "../nav/products";
+import { computed } from "vue";
+import { session } from "../api/session";
+import { visibleProducts } from "../nav/productAccess";
 import NxIcon from "../icons/NxIcon.vue";
+
+// PV3: only the products this person may enter; a single product needs no switcher.
+const items = computed(() => visibleProducts(session.products));
 
 defineProps({
   currentId: { type: String, default: "" },
