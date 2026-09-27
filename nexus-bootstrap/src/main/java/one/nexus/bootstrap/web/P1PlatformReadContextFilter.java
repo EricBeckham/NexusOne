@@ -59,12 +59,12 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
             String authorization = request.getHeader("Authorization");
             String contextId = request.getHeader("X-Nexus-Context-Id");
             if (request.getHeader("X-Tenant-Id") != null) {
-                deny(response, 400);
+                deny(response, 400, Reason.CLIENT_TENANT_HEADER);
                 return;
             }
             if (authorization == null || !authorization.startsWith("Bearer ")
                     || contextId == null || contextId.isBlank()) {
-                deny(response, 401);
+                deny(response, 401, Reason.MISSING_CREDENTIALS);
                 return;
             }
             try {
@@ -72,14 +72,14 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
                 var context = identity.sessions().loadContext(UUID.fromString(contextId), session);
                 if (!properties.getPlatformTenant().getId().equals(context.tenantId())
                         || context.personId() == null) {
-                    deny(response, 403);
+                    deny(response, 403, Reason.NOT_PLATFORM_CONTEXT);
                     return;
                 }
                 var service = permissions.service();
                 var duties = PlatformDutyCatalog.heldDuties(PermissionEngine.expandedRoleCodes(
                         service.currentSubject(), service.snapshot()));
                 if (!duties.equals(Set.of(PlatformDutyCatalog.SYSTEM_ADMIN))) {
-                    deny(response, 403);
+                    deny(response, 403, Reason.DUTY_SET);
                     return;
                 }
                 service.check("tenant", "list");
@@ -90,14 +90,17 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
                         actor, trace, context.tenantId());
                 IsolationContextHolder.set(new IsolationSnapshot(actor, platform, null, trace));
             } catch (one.nexus.p2.support.DomainException ex) {
-                deny(response, ex.httpStatus());
+                deny(response, ex.httpStatus(), "P2.IAM.MFA_REQUIRED".equals(ex.code()) ? Reason.MFA_REQUIRED
+                        : ex.httpStatus() == 401 ? Reason.SESSION_INVALID : Reason.SESSION_FORBIDDEN);
                 return;
             } catch (IllegalArgumentException ex) {
-                deny(response, 401);
+                deny(response, 401, Reason.SESSION_INVALID);
                 return;
-            } catch (one.nexus.permission.support.PermissionException
-                    | one.nexus.permission.engine.SnapshotUnavailableException ex) {
-                deny(response, 403);
+            } catch (one.nexus.permission.support.PermissionException ex) {
+                deny(response, 403, Reason.PERMISSION_DENIED);
+                return;
+            } catch (one.nexus.permission.engine.SnapshotUnavailableException ex) {
+                deny(response, 403, Reason.SNAPSHOT_UNAVAILABLE);
                 return;
             }
             chain.doFilter(request, response);
@@ -109,9 +112,30 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
         }
     }
 
-    private static void deny(HttpServletResponse response, int status) throws IOException {
+    /**
+     * AUTH6F2: which branch denied, so a denial can be located on site. Fixed lower-case tokens only — never the
+     * token, context id, person id, role set or exception text.
+     */
+    enum Reason {
+        CLIENT_TENANT_HEADER,
+        MISSING_CREDENTIALS,
+        SESSION_INVALID,
+        SESSION_FORBIDDEN,
+        MFA_REQUIRED,
+        NOT_PLATFORM_CONTEXT,
+        DUTY_SET,
+        PERMISSION_DENIED,
+        SNAPSHOT_UNAVAILABLE;
+
+        String wire() {
+            return name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
+
+    private static void deny(HttpServletResponse response, int status, Reason reason) throws IOException {
         response.setStatus(status);
         response.setContentType("application/json");
-        response.getWriter().write("{\"code\":\"AUTH6.PLATFORM_READ_DENIED\",\"message\":\"platform read context denied\"}");
+        response.getWriter().write("{\"code\":\"AUTH6.PLATFORM_READ_DENIED\",\"message\":\"platform read context denied\","
+                + "\"reason\":\"" + reason.wire() + "\"}");
     }
 }
