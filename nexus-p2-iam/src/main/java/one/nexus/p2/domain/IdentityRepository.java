@@ -72,6 +72,9 @@ public interface IdentityRepository {
 
     void revokeContextsForAccount(UUID accountId);
 
+    /** Normal logout targets one issued context, with an account ownership guard. */
+    void revokeContext(UUID contextId, UUID accountId);
+
     Model.IdpConfiguration saveIdpConfiguration(Model.IdpConfiguration configuration);
 
     Optional<Model.IdpConfiguration> findIdpConfiguration(UUID tenantId, UUID id);
