@@ -74,13 +74,25 @@ public class SequentialApprovalService {
     /** Starts from the exact published definition version pinned by a product installation. */
     @Transactional
     public ProcessInstanceView start(StartCommand command, Integer pinnedVersion) {
+        return startResolved(command, pinnedVersion, false, false);
+    }
+
+    /** Called by product submission after reading a server-owned installation pin/override. */
+    @Transactional
+    public ProcessInstanceView startProduct(StartCommand command, int version, boolean tenantOverride) {
+        return startResolved(command, version, !tenantOverride, true);
+    }
+
+    private ProcessInstanceView startResolved(StartCommand command, Integer pinnedVersion, boolean platformDefault, boolean productRequest) {
         TenantContext tenant = requireTenant();
         requireText(command.businessKey(), "business_key is required");
         String processKey = command.processKey() == null || command.processKey().isBlank()
                 ? FlowEngineConfiguration.PROCESS_KEY
                 : command.processKey();
         ProcessDefinitionPublishService.PublishedDefinition published =
-                FlowEngineConfiguration.PROCESS_KEY.equals(processKey) ? null
+                platformDefault ? publishing.getPlatformDefault(processKey, pinnedVersion)
+                        : productRequest ? publishing.get(processKey, pinnedVersion)
+                        : FlowEngineConfiguration.PROCESS_KEY.equals(processKey) ? null
                         : pinnedVersion == null ? publishing.get(processKey) : publishing.get(processKey, pinnedVersion);
         guard("process.instance", "start");
         List<UUID> candidates = assignees.resolve(tenant.tenantId(), command.assigneeType(), command.assigneeRef());
@@ -92,6 +104,8 @@ public class SequentialApprovalService {
         var processBuilder = runtimeService.createProcessInstanceBuilder();
         if (published == null) processBuilder.processDefinitionKey(processKey);
         else processBuilder.processDefinitionId(published.processDefinitionId());
+        // Definition ownership and instance ownership differ for shared platform defaults.
+        if (platformDefault) processBuilder.overrideProcessDefinitionTenantId(tenant.tenantId().toString());
         ProcessInstance flowable = processBuilder
                 .businessKey(command.businessKey())
                 .variable("assignee", assignee.toString())

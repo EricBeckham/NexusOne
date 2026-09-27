@@ -52,6 +52,17 @@ public class JdbcProductApplicationStore implements ProductApplicationStore {
     }
 
     @Override
+    public Optional<ProcessOverride> findProcessOverride(UUID tenantId, UUID installationId) {
+        return Optional.ofNullable(jdbc.query("""
+                SELECT o.process_definition_key, o.process_definition_version
+                FROM market.installation_process_override o
+                JOIN market.installation i ON i.id=o.installation_id AND i.tenant_id=o.tenant_id
+                WHERE o.installation_id=? AND o.tenant_id=? AND i.status='INSTALLED'
+                """, rs -> rs.next() ? new ProcessOverride(rs.getString(1), rs.getInt(2)) : null,
+                installationId, tenantId));
+    }
+
+    @Override
     public Optional<String> formTemplateSnapshot(UUID formTemplateVersionId) {
         return Optional.ofNullable(jdbc.query(
                 "SELECT fields_snapshot::text FROM platform.form_template_version WHERE id = ?",

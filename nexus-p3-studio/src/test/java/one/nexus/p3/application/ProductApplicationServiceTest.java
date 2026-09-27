@@ -5,6 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,6 +38,28 @@ class ProductApplicationServiceTest {
     @AfterEach void clearContexts() {
         AccessContextHolder.clear();
         TenantContextHolder.clear();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void submissionUsesExactDefaultOrTenantOverrideWithoutRewritingGlobalPin(boolean customized) throws Exception {
+        UUID tenant = UUID.randomUUID(), installation = UUID.randomUUID(), form = UUID.randomUUID(), product = UUID.randomUUID();
+        AccessContextHolder.set(new TenantContext(tenant.toString(), Actor.person("member"), "membership", "trace", Instant.now()));
+        TenantContextHolder.set(new one.nexus.p2.kernel.TenantContext(UUID.randomUUID(), tenant, UUID.randomUUID(),
+                UUID.randomUUID(), "subject", Instant.now(), Instant.now().plusSeconds(60)));
+        when(validation.validate(eq(installation), any())).thenReturn(new PinnedProductApplicationValidationService.ValidationResult(
+                installation, product, form, true, List.of()));
+        when(store.findInstalledPin(tenant, installation)).thenReturn(java.util.Optional.of(
+                new ProductApplicationStore.InstalledPin(form, product, "platform-expense", 2)));
+        when(store.findProcessOverride(tenant, installation)).thenReturn(customized ? java.util.Optional.of(
+                new ProductApplicationStore.ProcessOverride("tenant-expense", 4)) : java.util.Optional.empty());
+        when(store.formTemplateSnapshot(form)).thenReturn(java.util.Optional.of("[{\"key\":\"approver\",\"type\":\"PERSON\"}]"));
+        doThrow(new IllegalStateException("stop before engine side effects")).when(approvals).startProduct(any(), anyInt(), anyBoolean());
+        assertThrows(IllegalStateException.class, () -> service.create(installation,
+                new ObjectMapper().readTree("{\"approver\":\"00000000-0000-0000-0000-000000000001\"}")));
+        verify(approvals).startProduct(argThat(command -> command.processKey().equals(customized ? "tenant-expense" : "platform-expense")),
+                eq(customized ? 4 : 2), eq(customized));
+        verify(approvals, org.mockito.Mockito.never()).start(any(), any());
     }
 
     @Test void invalidValuesDoNotCreateApplicationOrStartApproval() throws Exception {

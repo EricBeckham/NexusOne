@@ -75,7 +75,7 @@ class ProductConfigReadinessTest {
         definition("leave", 2);
         when(market.publishedFormTemplateVersion(formVersion)).thenReturn(Optional.of(formVersion));
         when(processes.getIfAvailable()).thenReturn(publish);
-        when(publish.isPublishedVersionAvailable("leave", 2)).thenReturn(true);
+        when(publish.isPlatformDefaultAvailable("leave", 2)).thenReturn(true);
         when(market.skusBoundToProductDefinition(id)).thenReturn(List.of(new Sku("HR_BASIC", appId, "HR", Map.of())));
         when(market.versions(appId)).thenReturn(List.of(new AppVersion(UUID.randomUUID(), appId, "1.0.0",
                 VersionStatus.PUBLISHED, null, Instant.EPOCH, Instant.EPOCH)));
@@ -91,7 +91,7 @@ class ProductConfigReadinessTest {
         definition("leave", 2);
         when(market.publishedFormTemplateVersion(formVersion)).thenReturn(Optional.of(formVersion));
         when(processes.getIfAvailable()).thenReturn(publish);
-        when(publish.isPublishedVersionAvailable("leave", 2)).thenReturn(false);
+        when(publish.isPlatformDefaultAvailable("leave", 2)).thenReturn(false);
         when(market.skusBoundToProductDefinition(id)).thenReturn(List.of(new Sku("HR_BASIC", appId, "HR", Map.of())));
         when(market.versions(appId)).thenReturn(List.of(new AppVersion(UUID.randomUUID(), appId, "1.0.0",
                 VersionStatus.APPROVED, null, Instant.EPOCH, null)));
@@ -108,7 +108,7 @@ class ProductConfigReadinessTest {
         when(processes.getIfAvailable()).thenReturn(null);
         assertThat(statuses(service.readiness(id))).containsEntry("process", ReadinessStatus.UNKNOWN);
         when(processes.getIfAvailable()).thenReturn(publish);
-        when(publish.isPublishedVersionAvailable("leave", 2)).thenThrow(new IllegalStateException("engine down"));
+        when(publish.isPlatformDefaultAvailable("leave", 2)).thenThrow(new IllegalStateException("engine down"));
         ProductConfigReadiness readiness = service.readiness(id);
         assertThat(statuses(readiness)).containsEntry("process", ReadinessStatus.UNKNOWN);
         assertThat(readiness.complete()).isFalse();

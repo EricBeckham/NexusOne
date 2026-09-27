@@ -91,7 +91,9 @@ public class ProductApplicationService {
 
         ProductApplicationStore.InstalledPin installed = store.findInstalledPin(tenantId, installationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "installed product not found"));
-        PinnedProcess pin = new PinnedProcess(installed.processDefinitionKey(), installed.processDefinitionVersion());
+        var override = store.findProcessOverride(tenantId, installationId);
+        PinnedProcess pin = override.map(value -> new PinnedProcess(value.key(), value.version()))
+                .orElseGet(() -> new PinnedProcess(installed.processDefinitionKey(), installed.processDefinitionVersion()));
         if (pin.key() == null || pin.version() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "installed product has no pinned approval process");
         }
@@ -108,8 +110,8 @@ public class ProductApplicationService {
         store.insertRunning(new ProductApplicationStore.NewApplication(id, tenantId, installationId,
                 result.productDefinitionId(), result.formTemplateVersionId(), writeValues(values),
                 iamTenant.personId(), now));
-        ProcessInstanceView process = approvals.start(new StartCommand(pin.key(), businessKey, AssigneeType.PERSON,
-                values.get(personField).asText()), pin.version());
+        ProcessInstanceView process = approvals.startProduct(new StartCommand(pin.key(), businessKey, AssigneeType.PERSON,
+                values.get(personField).asText()), pin.version(), override.isPresent());
         store.attachProcessInstance(tenantId, id, process.id(), Utc.now());
 
         AuditPort port = auditPort.getIfAvailable();
