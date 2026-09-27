@@ -114,6 +114,12 @@ class Auth6RouteRealChainTest {
             "/api/v1/p1/platform/services, platform.service.status",
             "/api/v1/p1/platform/form-templates, form-template.list",
             "/api/v1/p1/platform/form-templates/" + ID + ", form-template.get",
+            // AUTH6H2
+            "/api/v1/p1/tenants/" + ID + "/entitlement, tenant.entitlement.get",
+            "/api/v1/p1/tenants/" + ID + "/quotas, quota.list",
+            "/api/v1/p4/product-definitions, product-definition.list",
+            "/api/v1/p4/product-definitions/" + ID + ", product-definition.get",
+            "/api/v1/p4/product-definitions/" + ID + "/config-readiness, product-definition.readiness",
     })
     void systemAdminRoutesPassForTheSystemAdmin(String uri, String operation) throws Exception {
         assignOnly(PlatformDutyCatalog.SYSTEM_ADMIN);
@@ -134,7 +140,9 @@ class Auth6RouteRealChainTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "/api/v1/p1/tenants/tree", "/api/v1/p1/platform/services", "/api/v1/p1/platform/form-templates",
-            "/api/v1/p1/tenants/" + ID + "/children"})
+            "/api/v1/p1/tenants/" + ID + "/children",
+            "/api/v1/p1/tenants/" + ID + "/entitlement", "/api/v1/p1/tenants/" + ID + "/quotas",
+            "/api/v1/p4/product-definitions"})
     void systemAdminRoutesRefuseMissingCredentialsInvalidContextAndWrongDuty(String uri) throws Exception {
         refused(request("GET", uri, null, null), 401, "missing_credentials");
         refused(request("GET", uri, token, null), 401, "missing_credentials");
@@ -213,6 +221,10 @@ class Auth6RouteRealChainTest {
             "POST, /api/v1/p1/platform/form-templates/" + ID + "/publish",
             "POST, /api/v1/audit/chain/verify",
             "GET, /api/v1/audit/traces/abc",
+            "POST, /api/v1/p1/tenants/" + ID + "/quotas/consume",
+            "POST, /api/v1/p4/product-definitions",
+            "PUT, /api/v1/p4/product-definitions/" + ID,
+            "GET, /api/v1/p4/product-definitions/" + ID + "/export",
     })
     void unlistedReadsAndAllWritesAreNeverBridged(String method, String uri) throws Exception {
         assignOnly(PlatformDutyCatalog.SYSTEM_ADMIN);
