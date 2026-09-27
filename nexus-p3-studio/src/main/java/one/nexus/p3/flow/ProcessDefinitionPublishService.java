@@ -27,6 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @ConditionalOnProperty(name = "nexus.flow.engine")
 public class ProcessDefinitionPublishService {
+    private one.nexus.p1.config.P1Properties platformProperties;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setPlatformProperties(one.nexus.p1.config.P1Properties properties) { this.platformProperties = properties; }
     private final RepositoryService repositoryService;
     private final ProcessDefinitionDraftService drafts;
     private final ProcessDefinitionValidationService validation;
@@ -135,6 +139,26 @@ public class ProcessDefinitionPublishService {
                 .processDefinitionVersion(version)
                 .list()
                 .isEmpty();
+    }
+
+    /** Exact owner + version, only for a trusted installation's immutable default pin. */
+    @Transactional(readOnly = true)
+    public PublishedDefinition getPlatformDefault(String key, int version) {
+        if (platformProperties == null || platformProperties.getPlatformTenant().getId() == null) {
+            throw FlowException.conflict("platform process owner is not configured");
+        }
+        ProcessDefinition definition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(key).processDefinitionVersion(version)
+                .processDefinitionTenantId(platformProperties.getPlatformTenant().getId().toString()).singleResult();
+        if (definition == null) throw FlowException.notFound("pinned platform default process version not found");
+        Deployment deployment = repositoryService.createDeploymentQuery().deploymentId(definition.getDeploymentId()).singleResult();
+        return view(definition, deployment);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isPlatformDefaultAvailable(String key, int version) {
+        try { getPlatformDefault(key, version); return true; }
+        catch (FlowException missing) { return false; }
     }
 
     @Transactional(readOnly = true)

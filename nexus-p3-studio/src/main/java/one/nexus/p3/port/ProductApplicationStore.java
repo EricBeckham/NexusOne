@@ -16,6 +16,10 @@ public interface ProductApplicationStore {
     /** Pin of an {@code INSTALLED} installation owned by {@code tenantId}; empty when absent or foreign. */
     Optional<InstalledPin> findInstalledPin(UUID tenantId, UUID installationId);
 
+    /** Tenant-owned customization; never rewrites the immutable platform pin. */
+    default Optional<ProcessOverride> findProcessOverride(UUID tenantId, UUID installationId) { return Optional.empty(); }
+    record ProcessOverride(String key, int version) { }
+
     /** {@code fields_snapshot} JSON text of a platform form template version; empty when missing. */
     Optional<String> formTemplateSnapshot(UUID formTemplateVersionId);
 

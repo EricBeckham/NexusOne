@@ -90,7 +90,7 @@ public class ProductDefinitionService {
             return new ConfigReadinessStep("process", "配流程", ReadinessStatus.UNKNOWN, "流程服务不可用，无法确认流程是否已发布。");
         }
         try {
-            return publish.isPublishedVersionAvailable(key, version)
+            return publish.isPlatformDefaultAvailable(key, version)
                     ? new ConfigReadinessStep("process", "配流程", ReadinessStatus.DONE, "流程 " + key + " v" + version + " 已发布。")
                     : new ConfigReadinessStep("process", "配流程", ReadinessStatus.NOT_READY, "绑定的流程版本未发布或不存在。");
         } catch (RuntimeException unavailable) {
@@ -170,7 +170,7 @@ public class ProductDefinitionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "process key and version must be supplied together");
         }
         if (key != null && (request.processDefinitionVersion() <= 0 || processes.getIfAvailable() == null
-                || !processes.getIfAvailable().isPublishedVersionAvailable(key, request.processDefinitionVersion()))) {
+                || !processes.getIfAvailable().isPlatformDefaultAvailable(key, request.processDefinitionVersion()))) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "process definition version is not published or does not exist");
         }
         if (request.defaultPermissionPack().size() > 100) {
