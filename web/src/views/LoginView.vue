@@ -13,8 +13,36 @@
       </p>
       <p v-else class="nx-muted" data-testid="idp-unconfigured">{{ idp.unconfiguredCopy }}。Stub 登录仍可用，不是 Keycloak 真机验收。</p>
     </div>
+    <div v-if="idp.configured" class="nx-card" data-testid="keycloak-login-shell">
+      <h3>Keycloak 登录</h3>
+      <p class="nx-muted">这是主入口。跳转到已配置的公开 issuer，回跳 <code>/callback</code>。不在浏览器里保存密钥，也不宣称真机已验收。</p>
+      <button class="primary" type="button" data-testid="keycloak-login" @click="onKeycloakLogin">
+        使用 Keycloak 登录
+      </button>
+    </div>
     <div class="nx-grid" style="grid-template-columns: 1fr 1fr;">
-      <form class="nx-card" @submit.prevent="onStubLogin">
+      <details v-if="idp.configured" class="nx-card" data-testid="stub-login-demoted">
+        <summary>仅本地 stub</summary>
+        <form @submit.prevent="onStubLogin">
+          <h3>仅本地 stub</h3>
+          <p class="nx-muted">折叠的本地入口，不是主登录，也不是 Keycloak 真机验收。演示 token 带 <code>acr=mfa</code>（不是真实 TOTP）。</p>
+          <div class="nx-field">
+            <label>邮箱</label>
+            <input v-model="email" type="email" required />
+          </div>
+          <div class="nx-field">
+            <label>显示名</label>
+            <input v-model="name" required />
+          </div>
+          <div class="nx-row">
+            <button class="ghost" type="submit" data-testid="stub-login">生成 token 并登录</button>
+            <button class="ghost" type="button" data-testid="admin-password-login" @click="onAdminPasswordLogin">
+              管理员口令登录（无 TOTP）
+            </button>
+          </div>
+        </form>
+      </details>
+      <form v-else class="nx-card" @submit.prevent="onStubLogin">
         <h3>Stub 登录（NEXUS_IAM_IDP=stub）</h3>
         <p class="nx-muted">演示 token 带 <code>acr=mfa</code>（不是真实 TOTP）。管理员无 MFA 的产品门禁仍会拒绝签发特权会话。</p>
         <div class="nx-field">
@@ -38,15 +66,8 @@
           <label>Bearer token</label>
           <textarea v-model="token" rows="5" />
         </div>
-        <button class="primary" type="submit">登录</button>
+        <button :class="idp.configured ? 'ghost' : 'primary'" type="submit">登录</button>
       </form>
-    </div>
-    <div v-if="idp.configured" class="nx-card" style="margin-top:16px;" data-testid="keycloak-login-shell">
-      <h3>Keycloak 登录</h3>
-      <p class="nx-muted">跳转到已配置的公开 issuer 授权端点，回跳 <code>/callback</code>。不在浏览器里保存密钥。</p>
-      <button class="primary" type="button" data-testid="keycloak-login" @click="onKeycloakLogin">
-        使用 Keycloak 登录
-      </button>
     </div>
     <div class="nx-card" style="margin-top:16px;">
       <h3>Authorization Code + PKCE（桌面 leftover）</h3>
@@ -55,7 +76,7 @@
         <code>/callback</code> 时 POST <code>code</code> + <code>code_verifier</code>。
         不是 H5 <code>/m/login</code>，也不是产品 G4 关闭。默认授权 URL 仍是 confidential client。
       </p>
-      <button class="primary" type="button" data-testid="pkce-login" @click="onPkceLogin">
+      <button :class="idp.configured ? 'ghost' : 'primary'" type="button" data-testid="pkce-login" @click="onPkceLogin">
         开始 PKCE 登录
       </button>
     </div>
