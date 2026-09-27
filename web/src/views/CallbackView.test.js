@@ -1,14 +1,17 @@
 /** @vitest-environment happy-dom */
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const completeDesktopPkceCallback = vi.fn();
+const sessionMock = vi.hoisted(() => ({ session: { contextId: "" }, autoSelectTenant: vi.fn() }));
 
 vi.mock("../api/client", () => ({ p2: { login: vi.fn() } }));
 vi.mock("../api/session", () => ({
   applySessionView: vi.fn(),
   rememberTrace: vi.fn(),
+  autoSelectTenant: sessionMock.autoSelectTenant,
+  session: sessionMock.session,
 }));
 vi.mock("../api/pkce-desktop", () => ({
   DESKTOP_PKCE_AFTER: "/",
@@ -33,6 +36,12 @@ async function mountAt(path) {
 }
 
 describe("callback tenant context shell", () => {
+  beforeEach(() => {
+    sessionMock.session.contextId = "";
+    sessionMock.autoSelectTenant.mockReset();
+    sessionMock.autoSelectTenant.mockResolvedValue(null);
+  });
+
   it("shows a missing TenantContext shell and does not enter the app", async () => {
     completeDesktopPkceCallback.mockResolvedValue({
       view: { display_name: "Admin", context_id: "" },
@@ -52,5 +61,37 @@ describe("callback tenant context shell", () => {
     expect(shell.text()).toContain("state 不一致");
     expect(shell.text()).toContain("/callback");
     expect(wrapper.text()).not.toMatch(/eyJ|secret|auth-code/);
+  });
+});
+
+describe("AUTH5 automatic tenant after the Keycloak callback", () => {
+  beforeEach(() => {
+    sessionMock.session.contextId = "";
+    sessionMock.autoSelectTenant.mockReset();
+  });
+
+  it("enters the chosen tenant and continues when several ACTIVE memberships left no context", async () => {
+    completeDesktopPkceCallback.mockResolvedValue({
+      view: { display_name: "林晓", context_id: "", memberships: [{}, {}] },
+      pending: { trace_id: "trace-2" },
+    });
+    sessionMock.autoSelectTenant.mockImplementation(async () => {
+      sessionMock.session.contextId = "ctx-demo";
+      return "01900000-0000-7000-8000-000000000101";
+    });
+    const { router } = await mountAt("/callback?code=auth-code&state=abc");
+    expect(sessionMock.autoSelectTenant).toHaveBeenCalledTimes(1);
+    expect(router.currentRoute.value.path).toBe("/");
+  });
+
+  it("does not switch when the login already has a context", async () => {
+    completeDesktopPkceCallback.mockResolvedValue({
+      view: { display_name: "林晓", context_id: "ctx-1" },
+      pending: { trace_id: "trace-3" },
+    });
+    sessionMock.session.contextId = "ctx-1";
+    const { router } = await mountAt("/callback?code=auth-code&state=abc");
+    expect(sessionMock.autoSelectTenant).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.path).toBe("/");
   });
 });
