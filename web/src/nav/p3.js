@@ -1,5 +1,6 @@
 export const p3Nav = [
   { id: "home", label: "首页", to: "/p3" },
+  { id: "applications", label: "可用应用", to: "/p3/applications", section: "工作台" },
   { id: "todos", label: "待办", to: "/p3/todos", section: "工作台" },
   { id: "forms", label: "表单", to: "/p3/forms", section: "工作台" },
   { id: "ledgers", label: "台账", to: "/p3/ledgers", section: "工作台" },
