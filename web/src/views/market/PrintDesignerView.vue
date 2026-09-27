@@ -97,7 +97,7 @@
         </aside>
 
         <div class="designer-stage" data-testid="designer-stage">
-          <article class="designer-paper" :class="designer.orientation === 'LANDSCAPE' ? 'landscape' : 'portrait'" aria-label="画板">
+          <article class="designer-paper" :class="draftOrientation === 'LANDSCAPE' ? 'landscape' : 'portrait'" aria-label="画板">
             <h3 class="paper-title">{{ designer.title }}</h3>
             <section
               v-for="section in designer.sections"
@@ -205,6 +205,20 @@
         <p v-else-if="!contract" class="nx-muted">正在读取映射契约…</p>
 
         <template v-else>
+          <div class="print-paper-row">
+            <label class="nx-field">
+              <span>纸张</span>
+              <select v-model="draftPaper" data-testid="designer-paper-size">
+                <option v-for="paper in paperChoices" :key="paper.code" :value="paper.code">{{ paper.label || paper.code }}</option>
+              </select>
+            </label>
+            <label class="nx-field">
+              <span>方向</span>
+              <select v-model="draftOrientation" data-testid="designer-orientation">
+                <option v-for="item in orientationChoices" :key="item.code" :value="item.code">{{ item.label || item.code }}</option>
+              </select>
+            </label>
+          </div>
           <table class="nx-table nx-table--compact" data-testid="designer-binding-table">
             <thead>
               <tr><th>字段</th><th>来源</th><th>槽位</th></tr>
@@ -294,6 +308,8 @@ const slots = computed(() => allSlots(designer.value));
 const contract = ref(null);
 const mapping = ref(null);
 const rows = ref([]);
+const draftPaper = ref("A4");
+const draftOrientation = ref("PORTRAIT");
 const bindingError = ref("");
 const bindingTraceId = ref("");
 const saving = ref(false);
@@ -301,7 +317,11 @@ const readBack = ref("");
 const spillId = computed(() => spillSlotId(contract.value));
 const bindingErrors = computed(() => validateBindings(rows.value, contract.value));
 const hasBindingErrors = computed(() => Object.keys(bindingErrors.value).length > 0);
-const dirty = computed(() => Boolean(mapping.value) && !sameMappings(mappingsFromRows(rows.value), baselineMappings.value));
+const dirty = computed(() => Boolean(mapping.value) && (
+  draftPaper.value !== serverPaper()
+  || draftOrientation.value !== serverOrientation()
+  || !sameMappings(mappingsFromRows(rows.value), baselineMappings.value)
+));
 const baselineMappings = computed(() => mappingsFromRows(bindingRows(designer.value, contract.value, mapping.value)));
 const selectedRow = computed(() => rows.value.find((row) => row.fieldKey === selectedSlot.value?.fieldKey) || null);
 
@@ -311,8 +331,35 @@ function slotLabel(id) {
   return contractSlots(contract.value).find((slot) => slot.id === id)?.label || id;
 }
 
+function serverPaper() {
+  return mapping.value?.paper || designer.value?.paper || "A4";
+}
+
+function serverOrientation() {
+  return mapping.value?.orientation || designer.value?.orientation || "PORTRAIT";
+}
+
+const paperChoices = computed(() => {
+  const rows = contract.value?.paper_sizes ?? contract.value?.paperSizes;
+  return Array.isArray(rows) && rows.length ? rows : [
+    { code: "A4", label: "A4" },
+    { code: "A5", label: "A5" },
+    { code: "LETTER", label: "Letter" },
+  ];
+});
+
+const orientationChoices = computed(() => {
+  const rows = contract.value?.orientations;
+  return Array.isArray(rows) && rows.length ? rows : [
+    { code: "PORTRAIT", label: "纵向" },
+    { code: "LANDSCAPE", label: "横向" },
+  ];
+});
+
 function resetBinding() {
   rows.value = bindingRows(designer.value, contract.value, mapping.value);
+  draftPaper.value = serverPaper();
+  draftOrientation.value = serverOrientation();
 }
 
 async function loadBinding() {
@@ -369,7 +416,7 @@ async function saveBinding(basedOn = revisionOf(mapping.value)) {
   saveTraceId.value = "";
   const sent = mappingsFromRows(rows.value);
   try {
-    const body = { paper: mapping.value.paper, orientation: mapping.value.orientation, mappings: sent };
+    const body = { paper: draftPaper.value, orientation: draftOrientation.value, mappings: sent };
     if (basedOn != null) body.expected_revision = basedOn;
     await p4.saveProductPrintMapping(id, body);
     const fresh = await p4.productPrintMapping(id);
@@ -441,7 +488,7 @@ function overwriteServer() {
   saveBinding(theirs);
 }
 const paperText = computed(() => {
-  const paper = `${designer.value?.paper || "A4"} ${designer.value?.orientation === "LANDSCAPE" ? "横向" : "纵向"}`;
+  const paper = `${draftPaper.value || designer.value?.paper || "A4"} ${draftOrientation.value === "LANDSCAPE" ? "横向" : "纵向"}`;
   const name = designer.value?.templateName || "";
   return name.includes(paper) ? name : `${name} · ${paper}`;
 });
@@ -728,7 +775,8 @@ onMounted(load);
   color: var(--nx-danger, inherit);
   font-size: var(--nx-font-size-sm);
 }
-.binding-actions {
+.binding-actions,
+.print-paper-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
