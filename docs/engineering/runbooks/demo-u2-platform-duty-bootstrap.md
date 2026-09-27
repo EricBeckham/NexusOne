@@ -4,6 +4,14 @@
 
 不打开 `NEXUS_P1_DEMO_CONTEXT_ENABLED`。不授予租户侧物理导出（`ledger.export.csv`）；导出归租户管理，本卡安装后该资源仍是 `no_grant`。
 
+## ID9 · 岗位 code 与部门同型冲突
+
+含 ID7 的基线 `665968f2` / #723 已修复部门，但四个岗位 INSERT 仍只 `ON CONFLICT (id)`。平台租户 `…0001` 已有 `demo_platform_ops`、id 不同，仍会撞 `uk_iam_position_code (tenant_id, code)` → 身份事务回滚 → 启动退出；租户侧 `demo_tenant_admin`、`demo_member`、`engineering_manager` 同理。不能仅凭部门修复宣称 U2 或三人登录已通。
+
+包含 ID9 的已合构建将部门与岗位都按租户内自然键复用：岗位整行（名称、分类、职责、状态、时间、版本）保留，读回实际 id 后供新职务及已有主职/副职对齐使用。没有同 code 行时仍插固定种子 id；软删除占用 code 报 `ID9 position code ... is unavailable`、回滚并拒启，不恢复、不删除。需插入时固定 UUID 被另一 code 占用也诚实失败。身份（含 person `…0222`）先提交，再挂平台职责，顺序不变。
+
+发布须先合入 ID9，再构建部署并通过 U2/TC5 复验；此文与一次性本机测试不代表演示机验收，也不授权改演示机 env。仍保持 `NEXUS_DEMO_ENABLED=false`、`NEXUS_P1_DEMO_CONTEXT_ENABLED=false`，只通过 U2 窗口插身份。详见 [ID9 回归与复用规则](id1-u2-identity-bootstrap.md#id9--岗位自然键冲突修复)。
+
 ## 部署后如何启用（一次性启动任务，fail-closed）
 
 默认关闭。关闭时启动任务什么都不写，空的 `perm_role` 保持 `no_grant`。

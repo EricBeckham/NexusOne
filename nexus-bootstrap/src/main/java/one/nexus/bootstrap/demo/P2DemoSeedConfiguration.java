@@ -115,20 +115,10 @@ public class P2DemoSeedConfiguration {
                 """).param("tenant", TENANT_ID).param("id", engineering).query(String.class).single();
         UUID platformTeam = ensureDepartment(jdbc, DEPARTMENT_PLATFORM, TENANT_ID, engineering,
                 "platform_team", "平台组", engineeringPath, 20, PERSON_ZHOU);
-        jdbc.sql("""
-                INSERT INTO iam.iam_position (
-                  id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
-                VALUES (:id, :tenant, 'engineering_manager', '研发经理', '研发', '负责团队协作与交付', 'ACTIVE',
-                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
-                ON CONFLICT (id) DO NOTHING
-                """).param("id", POSITION_MANAGER).param("tenant", TENANT_ID).update();
-        jdbc.sql("""
-                INSERT INTO iam.iam_position (
-                  id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
-                VALUES (:id, :tenant, 'demo_member', '一般用户', '成员', '演示租户的一般用户', 'ACTIVE',
-                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
-                ON CONFLICT (id) DO NOTHING
-                """).param("id", POSITION_ENGINEER).param("tenant", TENANT_ID).update();
+        UUID managerPosition = ensurePosition(jdbc, POSITION_MANAGER, TENANT_ID,
+                "engineering_manager", "研发经理", "研发", "负责团队协作与交付");
+        UUID memberPosition = ensurePosition(jdbc, POSITION_ENGINEER, TENANT_ID,
+                "demo_member", "一般用户", "成员", "演示租户的一般用户");
         jdbc.sql("""
                 INSERT INTO iam.iam_employment (
                   id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to,
@@ -137,7 +127,7 @@ public class P2DemoSeedConfiguration {
                   timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                 ON CONFLICT (id) DO NOTHING
                 """).param("id", EMPLOYMENT_LIN).param("tenant", TENANT_ID).param("person", PERSON_LIN)
-                .param("department", engineering).param("position", POSITION_MANAGER).update();
+                .param("department", engineering).param("position", managerPosition).update();
         jdbc.sql("""
                 INSERT INTO iam.iam_employment (
                   id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to,
@@ -146,14 +136,9 @@ public class P2DemoSeedConfiguration {
                   timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                 ON CONFLICT (id) DO NOTHING
                 """).param("id", EMPLOYMENT_ZHOU).param("tenant", TENANT_ID).param("person", PERSON_ZHOU)
-                .param("department", platformTeam).param("position", POSITION_ENGINEER).update();
-        jdbc.sql("""
-                INSERT INTO iam.iam_position (
-                  id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
-                VALUES (:id, :tenant, 'demo_tenant_admin', '租户管理', '管理', '演示租户的订阅开通', 'ACTIVE',
-                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
-                ON CONFLICT (id) DO NOTHING
-                """).param("id", POSITION_TENANT_ADMIN).param("tenant", TENANT_ID).update();
+                .param("department", platformTeam).param("position", memberPosition).update();
+        UUID tenantAdminPosition = ensurePosition(jdbc, POSITION_TENANT_ADMIN, TENANT_ID,
+                "demo_tenant_admin", "租户管理", "管理", "演示租户的订阅开通");
         jdbc.sql("""
                 INSERT INTO iam.iam_employment (
                   id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to,
@@ -162,7 +147,7 @@ public class P2DemoSeedConfiguration {
                   timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
                 ON CONFLICT (id) DO NOTHING
                 """).param("id", EMPLOYMENT_LIN_ADMIN).param("tenant", TENANT_ID).param("person", PERSON_LIN)
-                .param("department", engineering).param("position", POSITION_TENANT_ADMIN).update();
+                .param("department", engineering).param("position", tenantAdminPosition).update();
         // Platform admin on the reserved platform tenant (V101). Stub IdP subject demo-seed:p2:platform-admin.
         jdbc.sql("""
                 INSERT INTO iam.iam_global_account (
@@ -193,13 +178,8 @@ public class P2DemoSeedConfiguration {
                 .param("account", ACCOUNT_PLATFORM_ADMIN).update();
         UUID platformOps = ensureDepartment(jdbc, DEPARTMENT_PLATFORM_OPS, PLATFORM_TENANT_ID, null,
                 "platform_ops", "平台运营", null, 10, PERSON_PLATFORM_ADMIN);
-        jdbc.sql("""
-                INSERT INTO iam.iam_position (
-                  id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
-                VALUES (:id, :tenant, 'demo_platform_ops', '平台运营', '管理', '演示平台配置与开租户', 'ACTIVE',
-                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
-                ON CONFLICT (id) DO NOTHING
-                """).param("id", POSITION_PLATFORM_ADMIN).param("tenant", PLATFORM_TENANT_ID).update();
+        UUID platformPosition = ensurePosition(jdbc, POSITION_PLATFORM_ADMIN, PLATFORM_TENANT_ID,
+                "demo_platform_ops", "平台运营", "管理", "演示平台配置与开租户");
         jdbc.sql("""
                 INSERT INTO iam.iam_employment (
                   id, tenant_id, person_id, department_id, position_id, kind, status, valid_from, valid_to,
@@ -210,10 +190,47 @@ public class P2DemoSeedConfiguration {
                 """).param("id", EMPLOYMENT_PLATFORM_ADMIN).param("tenant", PLATFORM_TENANT_ID)
                 .param("person", PERSON_PLATFORM_ADMIN)
                 .param("department", platformOps)
-                .param("position", POSITION_PLATFORM_ADMIN).update();
+                .param("position", platformPosition).update();
+        alignJobReferences(jdbc, EMPLOYMENT_LIN, TENANT_ID, PERSON_LIN, engineering, managerPosition);
+        alignJobReferences(jdbc, EMPLOYMENT_ZHOU, TENANT_ID, PERSON_ZHOU, platformTeam, memberPosition);
+        alignJobReferences(jdbc, EMPLOYMENT_LIN_ADMIN, TENANT_ID, PERSON_LIN, engineering, tenantAdminPosition);
+        alignJobReferences(jdbc, EMPLOYMENT_PLATFORM_ADMIN, PLATFORM_TENANT_ID,
+                PERSON_PLATFORM_ADMIN, platformOps, platformPosition);
         alignIdentities(jdbc);
         return java.util.Map.of(DEPARTMENT_ENGINEERING, engineering, DEPARTMENT_PLATFORM, platformTeam,
-                DEPARTMENT_PLATFORM_OPS, platformOps);
+                DEPARTMENT_PLATFORM_OPS, platformOps, POSITION_MANAGER, managerPosition,
+                POSITION_ENGINEER, memberPosition, POSITION_TENANT_ADMIN, tenantAdminPosition,
+                POSITION_PLATFORM_ADMIN, platformPosition);
+    }
+
+    private static void alignJobReferences(JdbcClient jdbc, UUID employment, UUID tenant, UUID person,
+            UUID department, UUID position) {
+        jdbc.sql("""
+                UPDATE iam.iam_employment SET department_id = :department, position_id = :position,
+                    updated_at = current_timestamp, version = version + 1
+                WHERE id = :id AND tenant_id = :tenant AND person_id = :person AND deleted_at IS NULL
+                  AND (department_id IS DISTINCT FROM :department OR position_id IS DISTINCT FROM :position)
+                """).param("id", employment).param("tenant", tenant).param("person", person)
+                .param("department", department).param("position", position).update();
+    }
+
+    /** ID9: reuse tenant/code without changing the existing position, including its status/version. */
+    private static UUID ensurePosition(JdbcClient jdbc, UUID fixedId, UUID tenant,
+            String code, String name, String category, String duties) {
+        jdbc.sql("""
+                INSERT INTO iam.iam_position (
+                  id, tenant_id, code, name, category, duties, status, created_at, updated_at, deleted_at, version)
+                VALUES (:id, :tenant, :code, :name, :category, :duties, 'ACTIVE',
+                  timestamptz '2026-01-01 00:00:00+00', timestamptz '2026-01-01 00:00:00+00', NULL, 0)
+                ON CONFLICT (tenant_id, code) DO NOTHING
+                """).param("id", fixedId).param("tenant", tenant).param("code", code)
+                .param("name", name).param("category", category).param("duties", duties).update();
+        return jdbc.sql("""
+                SELECT id FROM iam.iam_position
+                WHERE tenant_id = :tenant AND code = :code AND deleted_at IS NULL
+                """).param("tenant", tenant).param("code", code).query(UUID.class).optional()
+                .orElseThrow(() -> new IllegalStateException("ID9 position code " + code
+                        + " is unavailable in tenant " + tenant));
     }
 
     /** ID7: the natural key is tenant + code, not the reserved seed UUID. Preserve existing real rows. */
@@ -289,19 +306,16 @@ public class P2DemoSeedConfiguration {
                     """).param("tenant", pack.tenant()).param("account", pack.account())
                     .query(Integer.class).single();
             int jobConflicts = jdbc.sql("""
-                    SELECT (SELECT count(*) FROM iam.iam_employment WHERE id = :employment
-                              AND (tenant_id <> :tenant OR person_id <> :person OR deleted_at IS NOT NULL))
-                         + (SELECT count(*) FROM iam.iam_position WHERE id = :position
-                              AND (tenant_id <> :tenant OR deleted_at IS NOT NULL))
+                    SELECT count(*) FROM iam.iam_employment WHERE id = :employment
+                      AND (tenant_id <> :tenant OR person_id <> :person OR deleted_at IS NOT NULL)
                     """).param("employment", pack.employment()).param("person", pack.person())
-                    .param("position", pack.position())
                     .param("tenant", pack.tenant()).query(Integer.class).single();
             if (conflicts != 0 || personConflicts != 0 || deletedMembership != 0 || jobConflicts != 0) {
                 throw new IllegalStateException("ID1 identity conflict for fixed account " + pack.account()
                         + "; resolve ownership/deleted rows outside this bootstrap window");
             }
         }
-        var departments = ensureIdentities(jdbc);
+        var resolvedIds = ensureIdentities(jdbc);
         for (IdentityPack pack : packs) {
             jdbc.sql("""
                     UPDATE iam.iam_global_account
@@ -332,7 +346,8 @@ public class P2DemoSeedConfiguration {
                     WHERE id = :employment AND tenant_id = :tenant AND person_id = :person AND deleted_at IS NULL
                       AND (kind <> 'PRIMARY' OR status <> 'ACTIVE' OR valid_to IS NOT NULL
                            OR position_id <> :position OR department_id <> :department)
-                    """).param("position", pack.position()).param("department", departments.get(pack.department()))
+                    """).param("position", resolvedIds.get(pack.position()))
+                    .param("department", resolvedIds.get(pack.department()))
                     .param("employment", pack.employment()).param("tenant", pack.tenant())
                     .param("person", pack.person()).update();
             jdbc.sql("""
@@ -386,39 +401,17 @@ public class P2DemoSeedConfiguration {
                 WHERE id = :id AND tenant_id = :platform AND deleted_at IS NULL AND display_name <> '平台运营'
                 """).param("id", PERSON_PLATFORM_ADMIN).param("platform", PLATFORM_TENANT_ID).update();
         jdbc.sql("""
-                UPDATE iam.iam_position
-                SET code = 'demo_platform_ops', name = '平台运营',
-                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
-                WHERE id = :id AND tenant_id = :platform AND deleted_at IS NULL
-                  AND (code IS DISTINCT FROM 'demo_platform_ops' OR name IS DISTINCT FROM '平台运营')
-                """).param("id", POSITION_PLATFORM_ADMIN).param("platform", PLATFORM_TENANT_ID).update();
-        jdbc.sql("""
-                UPDATE iam.iam_position
-                SET code = 'demo_tenant_admin', name = '租户管理',
-                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
-                WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL
-                  AND (code IS DISTINCT FROM 'demo_tenant_admin' OR name IS DISTINCT FROM '租户管理')
-                """).param("id", POSITION_TENANT_ADMIN).param("tenant", TENANT_ID).update();
-        jdbc.sql("""
-                UPDATE iam.iam_position
-                SET code = 'demo_member', name = '一般用户',
-                    updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
-                WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL
-                  AND (code IS DISTINCT FROM 'demo_member' OR name IS DISTINCT FROM '一般用户')
-                """).param("id", POSITION_ENGINEER).param("tenant", TENANT_ID).update();
-        jdbc.sql("""
                 UPDATE iam.iam_employment
                 SET kind = 'SECONDARY', updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
                 WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL AND kind <> 'SECONDARY'
                 """).param("id", EMPLOYMENT_LIN).param("tenant", TENANT_ID).update();
         jdbc.sql("""
                 UPDATE iam.iam_employment
-                SET kind = 'PRIMARY', position_id = :position,
+                SET kind = 'PRIMARY',
                     updated_at = timestamptz '2026-09-27 00:00:00+00', version = version + 1
                 WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL
-                  AND (kind <> 'PRIMARY' OR position_id <> :position)
-                """).param("id", EMPLOYMENT_LIN_ADMIN).param("tenant", TENANT_ID)
-                .param("position", POSITION_TENANT_ADMIN).update();
+                  AND kind <> 'PRIMARY'
+                """).param("id", EMPLOYMENT_LIN_ADMIN).param("tenant", TENANT_ID).update();
         jdbc.sql("""
                 UPDATE iam.iam_tenant_membership AS m
                 SET status = 'SUSPENDED', updated_at = timestamptz '2026-09-27 00:00:00+00', version = m.version + 1

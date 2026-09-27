@@ -16,9 +16,9 @@
 
 ## 已有行与冲突策略
 
-- 固定 id 不存在：插入 U3 行。已存在：对齐邮箱、username、显示名、岗位及主职；保留真实 `keycloak_user_id`，不覆盖 IdP subject。
-- 仅处理三个固定账号；目标租户 membership 激活，其余未删除的 membership 置 SUSPENDED，因此每个固定账号恰好一条 ACTIVE。主职按 U3 固定岗位对齐，其他 ACTIVE 职务降为 SECONDARY；不处理无关用户。
-- 邮箱若被其他账号占用（包括大小写变体或软删除行），抛出 `ID1 identity conflict`，不抢占邮箱、不打印身份凭证。固定账号已删除/停用、person 归属不符、固定成员资格或主职/岗位已删除也拒绝；部门按下文 ID7 的租户/code 检查可用行，不依赖固定 UUID。先查明归属再按独立流程处理。
+- 固定账号/person id 不存在：插入 U3 行。已存在：对齐邮箱、username、显示名及职务引用；保留真实 `keycloak_user_id`，不覆盖 IdP subject。ID9 起不再改写已有岗位标签，部门/岗位按租户内 code 复用整行。
+- 仅处理三个固定账号；目标租户 membership 激活，其余未删除的 membership 置 SUSPENDED，因此每个固定账号恰好一条 ACTIVE。主职按 U3 岗位 code 解析的实际 id 对齐，其他 ACTIVE 职务降为 SECONDARY；不处理无关用户。
+- 邮箱若被其他账号占用（包括大小写变体或软删除行），抛出 `ID1 identity conflict`，不抢占邮箱、不打印身份凭证。固定账号已删除/停用、person 归属不符、固定成员资格或主职已删除也拒绝；部门/岗位按下文 ID7/ID9 的租户/code 检查可用行，不依赖固定 UUID。软删除占用 code 仍拒启。先查明归属再按独立流程处理。
 - 插入中遇到唯一约束等数据库冲突，身份事务回滚，尚未安装任何新平台职责或授权；异常导致启动失败，不吞错。错误可能包含非秘密字段，外部日志仍须按常规脱敏。
 - 重复启动使用固定 id/租户账号唯一键，不追加身份、成员资格或平台授权；标签无变化不更新账号版本。
 
@@ -39,6 +39,18 @@ ID7 对 `platform_ops`、`engineering`、`platform_team` 改用 `ON CONFLICT (te
 `U2IdentityBootstrapPostgresTest` 使用一次性 PostgreSQL、既有 V200 schema 和真实 JDBC，覆盖空库、重复启动、旧行 align、IdP subject 保留、三种孤儿邮箱冲突、错误 person 归属及中途唯一约束失败回滚。`PlatformDutyBootstrapTest` 继续覆盖关闭窗口、P1 demo context 拒绝、职责重复安装与不授予租户物理导出。没有新增 Flyway，没有演示机操作。
 
 完整启动回归为 `U2IdentityBootstrapBootTest`：显式配置 Spring、IAM、权限三个 JDBC 连接到同一个一次性 PostgreSQL；demo 模式和 P1 demo context 均关闭，检查身份及无悬空平台授权的真实落库和重复运行。
+
+### ID9 · 岗位自然键冲突修复
+
+复现基线为 `c3c432b8`（含 ID7 `665968f2` / #723、ID8 #724）。`ensureIdentities` 四处 `iam_position` INSERT 只 `ON CONFLICT (id) DO NOTHING`，但 V200 的 `uk_iam_position_code` 是 `UNIQUE (tenant_id, code)`。同租户同 code、不同 id → `DuplicateKey` → 同事务身份整体回滚 → U2 runner 抛错、进程退出；身份提交后才安装职责，所以失败不新增授权。四种一次性 PostgreSQL 回归在修复前均复现该唯一键错误，不需要触碰演示库。
+
+ID9 对平台租户 `demo_platform_ops` 及租户侧 `demo_tenant_admin`、`demo_member`、`engineering_manager` 使用 `ON CONFLICT (tenant_id, code) DO NOTHING`，随后按同租户/code 读取未删除行的实际 id。无同 code 行仍插固定种子 id；已有岗位整行保留，不改名称/分类/职责/状态/版本，不删除、不抢写。其他租户同 code 行不能被复用。旧的按固定 UUID 改岗位标签逻辑已移除；旧 code 或被占用的固定 UUID 不能靠抢写改名修复，须另行核实归属。
+
+职务 INSERT 与已有 PRIMARY/SECONDARY 引用对齐均使用实际岗位 id 和 ID7 实际部门 id；账号/person/目标 membership 的 U3 固定 id 不变。软删除行占用 code 时抛 `ID9 position code ... is unavailable`，不恢复，身份事务回滚、不新增职责或授权。先提交含 person `…0222` 的身份，再挂 `platform_system_admin` 的顺序保持不变。既有唯一键已覆盖需求，无需 Flyway。
+
+回归覆盖四种岗位自然键复用、整行保留、跨租户隔离、已有职务引用纠正、重复开窗幂等及四种软删除 code 的回滚；保留 ID7 三种部门复用与部门软删除用例、空库固定岗位/三人身份、邮箱冲突、真实 JDBC Spring 启动回归。所有 PostgreSQL 数据/临时产物位于本 ID9 worktree，一次性随机端口 `/postgres`；Spring、IAM、权限 JDBC 显式钉死，禁止连接本机已有 `nexusone` 或演示库。
+
+本卡不操作演示机。须 Eric 批准合入后再构建部署；仍只通过 U2 窗口插身份，不开启 `NEXUS_DEMO_ENABLED` 或 P1 demo context，不提供手写 SQL 造身份步骤。本机回归不等于演示机或 Keycloak 真机验收。
 
 ### 本次执行偏差记录（不能当作隔离验证通过）
 
