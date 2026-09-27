@@ -65,6 +65,7 @@ describe("product shell menus", () => {
       "/p3/notifications",
       "/p3/workflow",
       "/p3/publish-center",
+      "/p3/completion-actions",
       "/p3/reports",
       "/p3/exports/wizard",
       "/p3/dumps",
@@ -72,7 +73,9 @@ describe("product shell menus", () => {
     ]);
     expect(links.every((link) => link === "/p3" || link.startsWith("/p3/"))).toBe(true);
     expect(items.filter((item) => !item.to && item.later).map((item) => item.label)).toEqual([]);
-    expect(items.filter((item) => !item.to).every((item) => item.later)).toBe(true);
+    // Items without a link are either deferred or a group of real links (FA5 "流程与自动化").
+    expect(items.filter((item) => !item.to).every((item) => item.later || item.children?.every((child) => child.to)))
+      .toBe(true);
   });
 
   it("groups every product menu into contiguous titled sections after 首页 (O8)", () => {

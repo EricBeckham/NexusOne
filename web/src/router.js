@@ -60,6 +60,7 @@ const routes = [
   { path: "/p3/audit", name: "audit", component: () => import("./views/studio/AuditTraceView.vue"), meta: { title: "审计哈希链", product: "p3" } },
   { path: "/p3/workflow", name: "workflow-designer", component: () => import("./views/studio/ProcessViewerView.vue"), meta: { title: "流程设计器", product: "p3" } },
   { path: "/p3/workflow/:key", name: "workflow-definition", component: () => import("./views/studio/ProcessViewerView.vue"), meta: { title: "流程设计器", product: "p3" } },
+  { path: "/p3/completion-actions", name: "completion-actions", component: () => import("./views/studio/CompletionActionsView.vue"), meta: { title: "办结后动作", product: "p3" } },
   { path: "/p3/publish-center", name: "publish-center", component: () => import("./views/studio/PublishCenterView.vue"), meta: { title: "发布中心", product: "p3" } },
   { path: "/p3/publish-center/:id", name: "publish-center-detail", component: () => import("./views/studio/PublishCenterView.vue"), meta: { title: "发布中心", product: "p3" } },
   { path: "/p3/reports", name: "reports", component: () => import("./views/studio/ReportView.vue"), meta: { title: "报表表面", product: "p3" } },
