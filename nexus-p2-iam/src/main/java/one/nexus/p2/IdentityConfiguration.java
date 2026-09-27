@@ -129,9 +129,10 @@ public class IdentityConfiguration {
             SmtpHook smtp,
             Clock clock,
             IamProperties properties,
-            ObjectProvider<AuditPort> audits
+            ObjectProvider<AuditPort> audits,
+            ObjectProvider<one.nexus.p2.session.TenantLabelPort> tenantLabels
     ) {
-        return new IdentityModule(
+        IdentityModule module = new IdentityModule(
                 repository,
                 idp,
                 smtp,
@@ -139,6 +140,8 @@ public class IdentityConfiguration {
                 Duration.parse(properties.contextTtl()),
                 audits.getIfAvailable(),
                 properties.mfaPolicy());
+        module.sessions().useTenantLabels(tenantLabels.getIfAvailable());
+        return module;
     }
 
     @ConfigurationProperties(prefix = "nexus.iam")

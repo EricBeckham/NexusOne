@@ -120,3 +120,31 @@ describe("AUTH4 header position", () => {
     expect(wrapper.get("[data-testid='shell-position']").text()).toBe("暂无");
   });
 });
+describe("DEMO-U6 header tenant labels", () => {
+  const ACME = "01900000-0000-7000-8000-000000000101";
+  const PLATFORM = "01900000-0000-7000-8000-000000000001";
+
+  beforeEach(() => {
+    localStorage.clear();
+    signIn();
+    mocks.employments.mockResolvedValue([]);
+    mocks.positions.mockResolvedValue([]);
+    session.tenantId = ACME;
+    session.memberships = [
+      { tenant_id: ACME, status: "ACTIVE", tenant_code: "demo_acme", tenant_name: "演示租户 · 星河科技" },
+      { tenant_id: PLATFORM, status: "ACTIVE", tenant_code: "platform" },
+    ];
+  });
+
+  it("shows names in the tenant row and the switch options while values stay tenant ids", async () => {
+    const { wrapper } = await mountAt();
+    await flushPromises();
+    await wrapper.get("[data-testid='shell-user']").trigger("click");
+    expect(wrapper.get("[data-testid='shell-tenant']").text()).toBe("演示租户 · 星河科技");
+    const options = wrapper.findAll("[data-testid='shell-tenant-switch'] option").filter((o) => o.attributes("value"));
+    expect(options.map((o) => o.text())).toEqual(["演示租户 · 星河科技", "platform"]);
+    expect(options.map((o) => o.attributes("value"))).toEqual([ACME, PLATFORM]);
+    expect(wrapper.get("[data-testid='shell-tenant']").text()).not.toContain(ACME);
+    expect(options.every((o) => !o.text().includes("01900000"))).toBe(true);
+  });
+});
