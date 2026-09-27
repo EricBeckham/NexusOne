@@ -1,15 +1,20 @@
 /** @vitest-environment happy-dom */
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ logout: vi.fn(), employments: vi.fn(), positions: vi.fn() }));
+const mocks = vi.hoisted(() => ({ logout: vi.fn(), employments: vi.fn(), positions: vi.fn(), leaveTo: vi.fn() }));
 vi.mock("../api/client", async (importOriginal) => {
   const original = await importOriginal();
   return {
     ...original,
     p2: { ...original.p2, logout: mocks.logout, employments: mocks.employments, positions: mocks.positions },
   };
+});
+// LO5: the full-page navigation to Keycloak is mocked; the URL checks stay real.
+vi.mock("../auth/federatedLogout", async (importOriginal) => {
+  const original = await importOriginal();
+  return { ...original, leaveTo: mocks.leaveTo };
 });
 
 import GlobalHeader from "./GlobalHeader.vue";
@@ -92,6 +97,111 @@ describe("AUTH3 logout", () => {
     await clickLogout(wrapper);
     expect(mocks.logout).not.toHaveBeenCalled();
     expect(router.currentRoute.value.path).toBe("/login");
+  });
+});
+
+describe("LO5 federated logout", () => {
+  const ISSUER = "https://id.example.test/realms/nexus";
+  const END_SESSION = `${ISSUER}/protocol/openid-connect/logout?client_id=nexus-web&id_token_hint=h.i.t&post_logout_redirect_uri=https%3A%2F%2Fapp.example.test%2Flogin`;
+
+  beforeEach(() => {
+    mocks.logout.mockReset();
+    mocks.leaveTo.mockReset();
+    mocks.employments.mockResolvedValue([]);
+    mocks.positions.mockResolvedValue([]);
+    localStorage.clear();
+    vi.stubEnv("VITE_NEXUS_KEYCLOAK_ISSUER", ISSUER);
+    signIn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  async function clickLogout(wrapper) {
+    await wrapper.get("[data-testid='shell-user']").trigger("click");
+    await wrapper.findAll("button.link").find((b) => b.text() === "退出").trigger("click");
+    await flushPromises();
+  }
+
+  function expectSignedOut() {
+    for (const key of ["accessToken", "contextId", "tenantId", "accountId", "personId", "email", "displayName"]) {
+      expect(session[key]).toBe("");
+    }
+    expect(loadSettings().accessToken || "").toBe("");
+  }
+
+  it("leaves through the Keycloak end_session URL after clearing the local session", async () => {
+    mocks.logout.mockResolvedValue({ end_session_url: END_SESSION });
+    mocks.leaveTo.mockImplementation(() => {
+      // By the time the browser leaves, nothing of the signed-out user is left locally.
+      expect(session.accessToken).toBe("");
+    });
+    const { wrapper, replace } = await mountAt();
+    await clickLogout(wrapper);
+    expect(mocks.logout).toHaveBeenCalledTimes(1);
+    expect(mocks.leaveTo).toHaveBeenCalledTimes(1);
+    expect(mocks.leaveTo).toHaveBeenCalledWith(END_SESSION);
+    expect(replace).not.toHaveBeenCalled();
+    expectSignedOut();
+  });
+
+  it("accepts the camelCase field as well", async () => {
+    mocks.logout.mockResolvedValue({ endSessionUrl: END_SESSION });
+    const { wrapper } = await mountAt();
+    await clickLogout(wrapper);
+    expect(mocks.leaveTo).toHaveBeenCalledWith(END_SESSION);
+  });
+
+  it("falls back to /login when the server returns no URL", async () => {
+    mocks.logout.mockResolvedValue({ end_session_url: "" });
+    const { wrapper, router, replace } = await mountAt();
+    await clickLogout(wrapper);
+    expect(mocks.leaveTo).not.toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith("/login");
+    expect(router.currentRoute.value.path).toBe("/login");
+    expectSignedOut();
+  });
+
+  it("still clears the session and goes to /login when the logout API fails", async () => {
+    mocks.logout.mockRejectedValue(new Error("network down"));
+    const { wrapper, router } = await mountAt();
+    await clickLogout(wrapper);
+    expect(mocks.leaveTo).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.path).toBe("/login");
+    expectSignedOut();
+  });
+
+  it("does not call the logout API without a token and goes to /login", async () => {
+    session.accessToken = "";
+    const { wrapper, router } = await mountAt();
+    await clickLogout(wrapper);
+    expect(mocks.logout).not.toHaveBeenCalled();
+    expect(mocks.leaveTo).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.path).toBe("/login");
+  });
+
+  it("refuses a URL carrying token fields or another host and goes to /login instead", async () => {
+    for (const bad of [`${END_SESSION}&access_token=x`, END_SESSION.replace("id.example.test", "evil.example.test")]) {
+      signIn();
+      mocks.logout.mockResolvedValue({ end_session_url: bad });
+      const { wrapper, router } = await mountAt();
+      await clickLogout(wrapper);
+      expect(mocks.leaveTo).not.toHaveBeenCalled();
+      expect(router.currentRoute.value.path).toBe("/login");
+      expectSignedOut();
+    }
+  });
+
+  it("does not print the end_session URL to the console", async () => {
+    const spies = ["log", "info", "warn", "error", "debug"].map((level) => vi.spyOn(console, level).mockImplementation(() => {}));
+    mocks.logout.mockResolvedValue({ end_session_url: END_SESSION });
+    const { wrapper } = await mountAt();
+    await clickLogout(wrapper);
+    for (const spy of spies) {
+      expect(spy.mock.calls.flat().join(" ")).not.toContain("id_token_hint");
+      spy.mockRestore();
+    }
   });
 });
 
