@@ -13,6 +13,8 @@
 
 ## 2. 内容与登录
 
+具体内容准备按 [Prod-safe 内容手册](demo-host-prod-safe-content.md) 执行；空列表/缺目录记卡点，不开自动 seed。
+
 1. 保持 `NEXUS_DEMO_ENABLED` 和 demo-context 相关开关关闭；使用独立最小内容，不复用本机种子身份。
 2. 由具名平台管理员准备租户、账号 membership、已发布产品/SKU 与最小审批表单/流程；内容不足时记断点，不把空态算成功。受控 bootstrap 需单独已合 API、强鉴权和审计，不能假设规划卡已实现。
 3. 按 M7 §1.5 在浏览器走 Keycloak 登录、HTTPS 回跳与 tenant context；确认不是 stub token/demo header。回调异常核 issuer/redirect/反代路由，日志不得保存授权 code、token、cookie 或完整 URL query。
