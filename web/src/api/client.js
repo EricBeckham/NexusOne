@@ -175,8 +175,8 @@ export const p1 = {
   getConfig: (id) => api(`/api/v1/p1/tenants/${id}/config`, { platform: true, auth: false }),
   putConfig: (id, body) =>
     api(`/api/v1/p1/tenants/${id}/config`, { method: "PUT", body, platform: true, auth: false }),
-  entitlement: (id) => api(`/api/v1/p1/tenants/${id}/entitlement`, { platform: true, auth: false }),
-  quotas: (id) => api(`/api/v1/p1/tenants/${id}/quotas`, { platform: true, auth: false }),
+  entitlement: (id) => api(`/api/v1/p1/tenants/${id}/entitlement`, AUTHENTICATED_PLATFORM_READ),
+  quotas: (id) => api(`/api/v1/p1/tenants/${id}/quotas`, AUTHENTICATED_PLATFORM_READ),
   // AUTH6G5: read-only platform GETs bridged by AUTH6G2 need the Bearer token and the issued context.
   serviceStatus: () => api("/api/v1/p1/platform/services", AUTHENTICATED_PLATFORM_READ),
   actuatorHealth: () => api("/actuator/health", { auth: false }),
@@ -277,9 +277,9 @@ export const p4 = {
   createVersion: (appId, body) => api(`/api/v1/p4/apps/${appId}/versions`, { method: "POST", body, platform: true, auth: false }),
   transition: (versionId, action) => api(`/api/v1/p4/versions/${versionId}/${action}`, { method: "POST", body: {}, platform: true, auth: false }),
   createSku: (body) => api("/api/v1/p4/skus", { method: "POST", body, platform: true, auth: false }),
-  productDefinitions: () => api("/api/v1/p4/product-definitions", { platform: true, auth: false }),
+  productDefinitions: () => api("/api/v1/p4/product-definitions", AUTHENTICATED_PLATFORM_READ),
   // PC6: wizard readiness for one product definition (DONE / NOT_READY / UNKNOWN per step, from stored data).
-  productConfigReadiness: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/config-readiness`, { platform: true, auth: false }),
+  productConfigReadiness: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/config-readiness`, AUTHENTICATED_PLATFORM_READ),
   // PC9: sample ledger for the current product (columns from its published form; rows always empty).
   productLedgerSample: (id) => api(`/api/v1/p4/product-definitions/${encodeURIComponent(id)}/samples/ledger`, { platform: true, auth: false }),
   // PC11: built-in print layout filled with the current product's form fields (values always blank).

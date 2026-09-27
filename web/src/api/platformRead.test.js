@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AUTHENTICATED_PLATFORM_READ, STORAGE_KEY, audit, p1 } from "./client";
+import { AUTHENTICATED_PLATFORM_READ, STORAGE_KEY, audit, p1, p4 } from "./client";
 import { explainPlatformRead, platformReadFailure } from "./platformReadError";
 
 describe("AUTH6G5 platform writes are left alone", () => {
@@ -23,6 +23,9 @@ describe("AUTH6G5 platform writes are left alone", () => {
     ["publish form template", () => p1.publishFormTemplate("f-1")],
     // AUTH6G6: chain verify is a POST and is not bridged.
     ["verify audit chain", () => audit.verifyChain()],
+    // AUTH6H3: writes around the new reads stay as they were.
+    ["create product definition", () => p4.createProductDefinition({ name: "x" })],
+    ["consume quota", () => p1.consume("t-1", { metric: "APP", amount: 1 })],
   ])("%s keeps its existing unauthenticated options", async (_, call) => {
     await call();
     const [, init] = fetchMock.mock.calls[0];
@@ -84,6 +87,11 @@ describe("AUTH6F4 platform read lists are authenticated", () => {
     ["form template detail", () => p1.formTemplate("f-1"), "/api/v1/p1/platform/form-templates/f-1"],
     // AUTH6G6
     ["audit event search", () => audit.platformEvents({ action: "p1.tenant.disabled" }), "/api/v1/audit/events?action=p1.tenant.disabled"],
+    // AUTH6H3
+    ["tenant entitlement", () => p1.entitlement("t-1"), "/api/v1/p1/tenants/t-1/entitlement"],
+    ["tenant quotas", () => p1.quotas("t-1"), "/api/v1/p1/tenants/t-1/quotas"],
+    ["product definitions", () => p4.productDefinitions(), "/api/v1/p4/product-definitions"],
+    ["product config readiness", () => p4.productConfigReadiness("d-1"), "/api/v1/p4/product-definitions/d-1/config-readiness"],
   ])("%s sends the Bearer token and the issued context", async (_, call, path) => {
     await call();
     const [url, init] = fetchMock.mock.calls[0];
