@@ -8,6 +8,8 @@
 
 DL 真机分册：[真机演示 runbook](../engineering/runbooks/demo-host-realhost-launch.md)；本地 stub 单独看 [本地 runbook](../engineering/runbooks/demo-simple-approval.md)。预备 ≠ 验收，真机不复用 demo seed/reset。
 
+演示前由 Eric 使用 [DL-X5 离线 Go/No-Go 一页纸](DL-X5-离线Go-NoGo一页纸.md) 核对 E1–E7 与 T-30；勾选和签名均留给环境所有者，不由 agent 代签。
+
 ### DPO 预备索引（不勾真机验收）
 
 - 本地 [Keycloak compose / realm stub](../../deploy/keycloak/README.md)（DPO-X1）：client 默认禁用、REPLACE_* 占位；不是演示机部署。

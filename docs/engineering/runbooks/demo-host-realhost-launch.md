@@ -6,6 +6,8 @@
 
 ## 1. 发布前门禁
 
+现场决策用 [DL-X5 离线 Go/No-Go 一页纸](../../planning/DL-X5-离线Go-NoGo一页纸.md)，逐项补真实证据后由 Eric 手签；不预勾门禁。
+
 - 对照 [DL 规划 §2.2](../../planning/WEB上线演示任务卡_DL波_V0.1.md)：E1 主机权限、E2 DNS/TLS、E3 vault、E4 realm/client/redirect、E5 受控账号、E6 SPA/回调反代、E7 制品与真机验收。逐项填写证据，不能用代码合入代替。
 - 按 [M7 §1](../../planning/M7-Keycloak演示验收清单.md) 准备专用 confidential client、受控账号及 membership；凭据只在 IdP/vault，记录仅显示名与 subject 类型。
 - 依 [prod 部署 checklist](demo-host-prod-deployment.md) 完成依赖、profile、DB、crypto master key、IAM/permission JDBC、证书与配置注入。只记录变量名/发布 SHA，不记录值。
