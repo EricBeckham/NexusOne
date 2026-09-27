@@ -128,6 +128,14 @@
           </template>
         </dl>
       </div>
+
+      <!-- FA6: this action's executions, with retry for failed ones. -->
+      <CompletionRunsPanel v-if="draft.id" :action-id="draft.id" />
+    </section>
+
+    <!-- FA6: the tenant's latest executions across all actions. -->
+    <section v-if="!loading && !error && actions.length && !editing" class="nx-card">
+      <CompletionRunsPanel />
     </section>
   </main>
 </template>
@@ -137,6 +145,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { NxEmpty, NxErrorState, NxPageHeader, NxSkeleton, NxStatusTag } from "../../components";
 import { p3 } from "../../api/p3";
 import { explainPlatformRead } from "../../api/platformReadError";
+import CompletionRunsPanel from "./CompletionRunsPanel.vue";
 import {
   NOT_MAPPABLE, SOURCE_KINDS, SYSTEM_VALUES, TRIGGERS, actionProblems, completionActions,
 } from "../../api/completionActions";

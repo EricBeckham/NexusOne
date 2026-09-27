@@ -52,6 +52,28 @@ export function mapAction(row) {
   };
 }
 
+export const RUN_STATUS = {
+  PENDING: { label: "执行中", tone: "PENDING" },
+  DONE: { label: "成功", tone: "ENABLED" },
+  FAILED: { label: "失败", tone: "DISABLED" },
+};
+
+export function mapRun(row) {
+  if (!row) return row;
+  return {
+    id: pick(row, "id"),
+    actionId: pick(row, "action_id", "actionId"),
+    sourceLedgerCode: pick(row, "source_ledger_code", "sourceLedgerCode") || "",
+    sourceRecordId: pick(row, "source_record_id", "sourceRecordId") || "",
+    outcome: pick(row, "outcome") || "",
+    status: pick(row, "status") || "PENDING",
+    targetRecordId: pick(row, "target_record_id", "targetRecordId") || "",
+    attempts: pick(row, "attempts") ?? 0,
+    errorCode: pick(row, "error_code", "errorCode") || "",
+    updatedAt: pick(row, "updated_at", "updatedAt") || "",
+  };
+}
+
 function toWire(draft) {
   return {
     name: draft.name,
@@ -75,6 +97,17 @@ export const completionActions = {
   create: async (draft) => mapAction(await api("/api/v1/p3/completion-actions", { method: "POST", body: toWire(draft) })),
   update: async (id, draft) =>
     mapAction(await api(`/api/v1/p3/completion-actions/${encodeURIComponent(id)}`, { method: "PUT", body: toWire(draft) })),
+  /** FA6: execution records, newest first; `actionId` null lists every action of the tenant. */
+  runs: async (actionId, limit = 50) => {
+    const query = new URLSearchParams();
+    if (actionId) query.set("action_id", actionId);
+    query.set("limit", String(limit));
+    const body = await api(`/api/v1/p3/completion-actions/runs?${query}`);
+    return (Array.isArray(body) ? body : []).map(mapRun);
+  },
+  /** FA6: re-run one failed execution (the server never inserts a second row for the same form). */
+  retry: async (runId) =>
+    mapRun(await api(`/api/v1/p3/completion-actions/runs/${encodeURIComponent(runId)}/retry`, { method: "POST", body: {} })),
   preview: async (id, sourceRecordId, outcome) => {
     const body = await api(`/api/v1/p3/completion-actions/${encodeURIComponent(id)}/preview`, {
       method: "POST",
