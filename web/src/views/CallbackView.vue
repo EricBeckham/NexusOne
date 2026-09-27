@@ -1,16 +1,12 @@
 <template>
   <div class="page">
     <div class="nx-page-header">
-      <h1>授权码回跳</h1>
-      <p>
-        桌面 Authorization Code + PKCE leftover。用 <code>code</code> + 本地
-        <code>code_verifier</code> 换会话，随后从地址栏去掉。不是 H5
-        <code>/m/callback</code>，也不是产品 G4 关闭。
-      </p>
+      <h1>登录回调</h1>
+      <p data-testid="callback-lead">正在完成登录并建立会话。不会在浏览器里保存客户端密钥。</p>
     </div>
     <div class="nx-card">
       <p v-if="idp.configured" class="nx-muted" data-testid="keycloak-callback-shell">
-        Keycloak 授权码回跳壳。公开 issuer 已配置；不宣称真机已验收。
+        Keycloak 授权码回跳。公开 issuer 已配置。
       </p>
       <p v-else class="nx-muted" data-testid="callback-stub-note">演示 IdP 未配置。这条回跳不是 Keycloak 真机验收。</p>
       <NxErrorState
@@ -36,7 +32,6 @@
         </template>
       </NxErrorState>
       <template v-else>
-        <p class="nx-muted" data-testid="pkce-callback-state">{{ state ? "已收到 state" : "没有 state" }}</p>
         <p v-if="status" class="nx-muted" data-testid="pkce-callback-status">{{ status }}</p>
       </template>
     </div>
@@ -48,7 +43,12 @@ import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { p2 } from "../api/client";
 import { applySessionView, autoSelectTenant, rememberTrace, session } from "../api/session";
-import { DESKTOP_PKCE_AFTER, completeDesktopPkceCallback } from "../api/pkce-desktop";
+import {
+  DESKTOP_PKCE_AFTER,
+  completeDesktopPkceCallback,
+  readDesktopPkcePending,
+} from "../api/pkce-desktop";
+import { PRODUCT_AUTH_AFTER, completeProductAuthCodeCallback } from "../auth/productAuthCode";
 import { keycloakPublicConfig } from "../auth/keycloakPublic";
 import { callbackFailureCopy, sessionHasTenantContext } from "../auth/callbackHonesty";
 import { isMfaRequiredError } from "../auth/totpEnrollment";
@@ -73,13 +73,24 @@ async function run() {
   }
   status.value = "正在用授权码换会话…";
   try {
-    const result = await completeDesktopPkceCallback({
-      code: String(route.query.code || ""),
-      state: state.value,
-      login: p2.login,
-      applySession: applySessionView,
-      rememberTrace,
-    });
+    const code = String(route.query.code || "");
+    const pending = readDesktopPkcePending();
+    const usingDesktopPkce = Boolean(pending?.code_verifier);
+    const result = usingDesktopPkce
+      ? await completeDesktopPkceCallback({
+          code,
+          state: state.value,
+          login: p2.login,
+          applySession: applySessionView,
+          rememberTrace,
+        })
+      : await completeProductAuthCodeCallback({
+          code,
+          redirectUri: `${window.location.origin}/callback`,
+          login: p2.login,
+          applySession: applySessionView,
+          rememberTrace,
+        });
     // AUTH5: several ACTIVE memberships and no context → enter demo_acme (or the first ACTIVE) automatically.
     if (!sessionHasTenantContext(result.view)) {
       await autoSelectTenant();
@@ -91,10 +102,9 @@ async function run() {
     }
     const name = result.view?.display_name || result.view?.displayName || "";
     status.value = name ? `已建立租户上下文 · ${name}` : "已建立租户上下文";
-    await router.replace({
-      path: DESKTOP_PKCE_AFTER,
-      query: { trace: result.pending.trace_id },
-    });
+    const after = usingDesktopPkce ? DESKTOP_PKCE_AFTER : PRODUCT_AUTH_AFTER;
+    const query = result.pending?.trace_id ? { trace: result.pending.trace_id } : {};
+    await router.replace({ path: after, query });
   } catch (err) {
     status.value = "";
     if (isMfaRequiredError(err)) {
