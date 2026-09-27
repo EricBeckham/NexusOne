@@ -1,0 +1,67 @@
+/** @vitest-environment happy-dom */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { STORAGE_KEY, p1 } from "./client";
+import { platformReadFailure } from "./platformReadError";
+
+describe("AUTH6F4 platform read lists are authenticated", () => {
+  let fetchMock;
+
+  beforeEach(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ accessToken: "access-token-value", contextId: "ctx-platform" }));
+    fetchMock = vi.fn(async () => new Response("[]", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    sessionStorage.clear();
+  });
+
+  it.each([
+    ["tenant directory", () => p1.listTenants(), "/api/v1/p1/tenants"],
+    ["registration review", () => p1.listTenantRegistrations("PENDING"), "/api/v1/p1/tenant-registrations?status=PENDING"],
+  ])("%s sends the Bearer token and the issued context", async (_, call, path) => {
+    await call();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(path);
+    expect(init.headers.Authorization).toBe("Bearer access-token-value");
+    expect(init.headers["X-Nexus-Context-Id"]).toBe("ctx-platform");
+    expect(Object.keys(init.headers).map((key) => key.toLowerCase())).not.toContain("x-tenant-id");
+  });
+
+  it("surfaces the AUTH6 deny body on the thrown error", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(
+      JSON.stringify({ code: "AUTH6.PLATFORM_READ_DENIED", message: "platform read context denied", reason: "duty_set" }),
+      { status: 403 },
+    ));
+    const error = await p1.listTenants().catch((err) => err);
+    expect(error.status).toBe(403);
+    expect(error.code).toBe("AUTH6.PLATFORM_READ_DENIED");
+    expect(platformReadFailure(error, "无法读取租户目录")).toContain("系统管理员");
+  });
+});
+
+describe("AUTH6F4 platform read failure copy", () => {
+  const denied = (reason) => ({ code: "AUTH6.PLATFORM_READ_DENIED", body: { code: "AUTH6.PLATFORM_READ_DENIED", reason } });
+
+  it("maps each deny reason to product wording and keeps the code for support", () => {
+    expect(platformReadFailure(denied("missing_credentials"))).toContain("重新登录");
+    expect(platformReadFailure(denied("session_invalid"))).toContain("已过期");
+    expect(platformReadFailure(denied("not_platform_context"))).toContain("平台运营");
+    expect(platformReadFailure(denied("duty_set"))).toContain("DEMO-U2");
+    expect(platformReadFailure(denied("permission_denied"))).toContain("tenant:list");
+    expect(platformReadFailure(denied("mfa_required"))).toContain("多因素");
+    expect(platformReadFailure(denied("duty_set"))).toContain("AUTH6.PLATFORM_READ_DENIED · duty_set");
+  });
+
+  it("stays honest for an older server without a reason and for unknown reasons", () => {
+    expect(platformReadFailure({ code: "AUTH6.PLATFORM_READ_DENIED", body: {} })).toBe("平台只读列表拒绝了这次请求。（AUTH6.PLATFORM_READ_DENIED）");
+    expect(platformReadFailure(denied("<script>"))).not.toContain("<script>");
+  });
+
+  it("explains the missing platform context and keeps other errors as before", () => {
+    expect(platformReadFailure({ code: "P1.CONTEXT.0001", message: "platform context required" })).toContain("开关");
+    expect(platformReadFailure({ message: "平台服务暂不可用" }, "无法读取租户目录")).toBe("平台服务暂不可用");
+    expect(platformReadFailure({}, "无法读取租户目录")).toBe("无法读取租户目录");
+  });
+});

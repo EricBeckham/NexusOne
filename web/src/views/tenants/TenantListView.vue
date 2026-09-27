@@ -101,6 +101,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { NxDataTable, NxFilterBar, NxPageHeader, NxStatusTag } from "../../components";
 import { p1 } from "../../api/client";
+import { platformReadFailure } from "../../api/platformReadError";
 
 const rows = ref([]);
 const loading = ref(true);
@@ -138,7 +139,7 @@ async function load() {
   try {
     rows.value = (await p1.listTenants()) || [];
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message || "无法读取租户目录"}`.trim();
+    error.value = platformReadFailure(err, "无法读取租户目录");
   } finally {
     loading.value = false;
   }
