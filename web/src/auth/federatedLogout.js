@@ -37,3 +37,8 @@ export function endSessionTarget(response, idp = keycloakPublicConfig()) {
 export function leaveTo(url) {
   window.location.assign(url);
 }
+
+/** Full-page replace used when the in-app route to /login does not actually leave the shell. */
+export function replaceWith(url) {
+  window.location.replace(url);
+}

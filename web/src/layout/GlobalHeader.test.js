@@ -3,7 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ logout: vi.fn(), employments: vi.fn(), positions: vi.fn(), leaveTo: vi.fn() }));
+const mocks = vi.hoisted(() => ({ logout: vi.fn(), employments: vi.fn(), positions: vi.fn(), leaveTo: vi.fn(), replaceWith: vi.fn() }));
 vi.mock("../api/client", async (importOriginal) => {
   const original = await importOriginal();
   return {
@@ -14,7 +14,7 @@ vi.mock("../api/client", async (importOriginal) => {
 // LO5: the full-page navigation to Keycloak is mocked; the URL checks stay real.
 vi.mock("../auth/federatedLogout", async (importOriginal) => {
   const original = await importOriginal();
-  return { ...original, leaveTo: mocks.leaveTo };
+  return { ...original, leaveTo: mocks.leaveTo, replaceWith: mocks.replaceWith };
 });
 
 import GlobalHeader from "./GlobalHeader.vue";
@@ -53,6 +53,7 @@ function signIn() {
 describe("AUTH3 logout", () => {
   beforeEach(() => {
     mocks.logout.mockReset();
+    mocks.replaceWith.mockReset();
     mocks.employments.mockResolvedValue([]);
     mocks.positions.mockResolvedValue([]);
     localStorage.clear();
@@ -97,6 +98,25 @@ describe("AUTH3 logout", () => {
     await clickLogout(wrapper);
     expect(mocks.logout).not.toHaveBeenCalled();
     expect(router.currentRoute.value.path).toBe("/login");
+    expect(mocks.replaceWith).not.toHaveBeenCalled();
+  });
+
+  it("replaces the document with /login when the in-app navigation stays on the page", async () => {
+    mocks.logout.mockResolvedValue({});
+    const { wrapper, router, replace } = await mountAt();
+    replace.mockImplementation(() => Promise.resolve({ type: 16 }));
+    await clickLogout(wrapper);
+    expect(router.currentRoute.value.path).toBe("/p4");
+    expect(wrapper.text()).toContain("未登录");
+    expect(mocks.replaceWith).toHaveBeenCalledWith("/login");
+  });
+
+  it("replaces the document with /login when the in-app navigation rejects", async () => {
+    mocks.logout.mockResolvedValue({});
+    const { wrapper, replace } = await mountAt();
+    replace.mockRejectedValue(new Error("navigation aborted"));
+    await clickLogout(wrapper);
+    expect(mocks.replaceWith).toHaveBeenCalledWith("/login");
   });
 });
 
@@ -107,6 +127,7 @@ describe("LO5 federated logout", () => {
   beforeEach(() => {
     mocks.logout.mockReset();
     mocks.leaveTo.mockReset();
+    mocks.replaceWith.mockReset();
     mocks.employments.mockResolvedValue([]);
     mocks.positions.mockResolvedValue([]);
     localStorage.clear();
