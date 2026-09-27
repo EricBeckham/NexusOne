@@ -57,19 +57,32 @@ class XbWaveSchemaContractTest {
     }
 
     @Test
-    void noMigrationStoresUpgradeStepsFactsOrMoney() throws IOException {
-        Pattern upgradeStorage = Pattern.compile("\\b(upgrade_step\\w*|upgrade_fact\\w*|upgrade_run\\w*)\\b");
+    void upgradeStateOnlyInTheControlledRecordTableAndNoMoney() throws IOException {
+        Pattern upgradeStorage = Pattern.compile("(upgrade_step\\w*|upgrade_fact\\w*|upgrade_run\\w*)");
         Pattern money = Pattern.compile("\\b(price\\w*|amount\\w*|invoice\\w*|coupon\\w*|billing\\w*|payment\\w*|fee\\w*)\\b");
+        String allowed = "V709__market_upgrade_step_record.sql";
         try (Stream<Path> roots = Stream.of(Path.of("..")).flatMap(XbWaveSchemaContractTest::modules)) {
             List<Path> files = roots.toList();
             assertTrue(files.size() >= 30, "all module migrations must be scanned, found " + files.size());
             for (Path file : files) {
+                if (file.getFileName().toString().equals(allowed)) continue;
                 String sql = read(file);
                 var hit = upgradeStorage.matcher(sql);
                 boolean found = hit.find();
                 assertFalse(found, () -> file.getFileName() + " stores upgrade state: " + hit.group());
             }
         }
+        // DPO-L6-pre: the one place upgrade steps are stored must keep XB honesty — no UNKNOWN or default status
+        // (absence is UNKNOWN), no facts table, and every row names an operator and a reason.
+        String record = table(read(MARKET.resolve(allowed)), "market.upgrade_step_record");
+        assertTrue(record.contains("check (status in ('active', 'done', 'failed'))"), record);
+        assertFalse(record.contains("unknown"), "UNKNOWN is never stored");
+        assertFalse(Pattern.compile("status varchar\\(16\\) not null default").matcher(record).find(), "no default status");
+        assertTrue(record.contains("recorded_by uuid not null"), record);
+        assertTrue(record.contains("reason text not null"), record);
+        assertFalse(read(MARKET.resolve(allowed)).contains("upgrade_fact"), "facts stay undeclared");
+        var recordMoney = money.matcher(read(MARKET.resolve(allowed)));
+        assertFalse(recordMoney.find(), "upgrade records carry no money");
         for (Path file : List.of(MARKET.resolve("V600__p4_market.sql"), MARKET.resolve("V601__market_product_definition.sql"),
                 MARKET.resolve("V705__market_installation_product_pin.sql"),
                 MARKET.resolve("V707__market_print_mapping.sql"),
@@ -92,8 +105,9 @@ class XbWaveSchemaContractTest {
                     .max(Integer::compare).orElseThrow();
             // XB added none (V705 at XB12). V706 is P2 #601 (tenant self-registration + activation applications).
             // V707 is DPO-L2 (durable print mapping + revision history). V708 is DPO-L4-pre (print template metadata).
+            // V709 is DPO-L6-pre (operator-recorded upgrade steps).
             // A new migration must update this pin on purpose, taking the next global version.
-            assertEquals(708, max,"unexpected new migration; take the next global version in a dedicated schema card");
+            assertEquals(709, max,"unexpected new migration; take the next global version in a dedicated schema card");
         }
     }
 
