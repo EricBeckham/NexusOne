@@ -64,6 +64,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { clearIdentity, ensureContext, persist, session, switchTenant } from "../api/session";
+import { p2 } from "../api/client";
 import { productById } from "../nav/products";
 import NxIcon from "../icons/NxIcon.vue";
 
@@ -113,10 +114,19 @@ async function refresh() {
   }
 }
 
-function logout() {
-  clearIdentity();
+// AUTH3: end the server session when we still hold a token (best effort), always clear the local session, and
+// replace the history entry so Back cannot return to a page of the signed-out user.
+async function logout() {
   open.value = false;
-  router.push("/login");
+  if (session.accessToken) {
+    try {
+      await p2.logout();
+    } catch {
+      // The local session is cleared regardless; a failed server logout must not keep the user signed in here.
+    }
+  }
+  clearIdentity();
+  await router.replace("/login");
 }
 
 function onKey(event) {

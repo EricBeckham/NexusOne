@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { session } from "./api/session";
 import { productById } from "./nav/products";
-import { isSafeMobileReturn, safeMobileReturn } from "./mobile/auth/safeReturn";
 import { postHost } from "./mobile/host/hostBridge";
+import { routeGuard } from "./auth/routeGuard";
 
 const developmentRoutes = import.meta.env.DEV
   ? [{
@@ -242,16 +242,7 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
-  if (to.meta.harness || !to.meta.mobile || to.meta.public) {
-    return true;
-  }
-  if (session.accessToken || session.accountId || session.contextId) {
-    return true;
-  }
-  const returnTo = isSafeMobileReturn(to.fullPath) ? to.fullPath : safeMobileReturn(to.path);
-  return { path: "/m/login", query: { return: returnTo } };
-});
+router.beforeEach((to) => routeGuard(to, session));
 
 router.afterEach((to) => {
   const product = productById(to.meta.product);
