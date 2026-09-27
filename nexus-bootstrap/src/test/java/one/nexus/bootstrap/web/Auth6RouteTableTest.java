@@ -38,6 +38,16 @@ class Auth6RouteTableTest {
         assertEquals(action, route.action());
     }
 
+    @org.junit.jupiter.api.Test
+    void auditSearchBindsAuditAdminNotSystemAdmin() {
+        var route = P1PlatformReadContextFilter.route(request("GET", "/api/v1/audit/events")).orElseThrow();
+        assertEquals(PlatformDuty.AUDIT_ADMIN, route.duty());
+        assertEquals("platform_audit_admin", route.dutyRole());
+        assertEquals("audit", route.resource());
+        assertEquals("read", route.action());
+        assertTrue(P1PlatformReadContextFilter.route(request("POST", "/api/v1/audit/events")).isEmpty());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"POST", "PUT", "PATCH", "DELETE"})
     void writesAreNeverBridged(String method) {
@@ -61,7 +71,9 @@ class Auth6RouteTableTest {
             "/api/v1/p1/platform/form-templates/" + ID + "/validate",
             "/api/v1/p1/platform/form-templates/not-a-uuid",
             "/api/v1/p1/platform/tenants",
-            "/api/v1/audit/events",
+            "/api/v1/audit/events/x",
+            "/api/v1/audit/traces/abc",
+            "/api/v1/audit/chain/verify",
             "/api/v1/p1/tenants/",
     })
     void unlistedGetsAreNotBridged(String uri) {
