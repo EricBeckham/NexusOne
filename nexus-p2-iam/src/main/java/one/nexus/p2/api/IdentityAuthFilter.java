@@ -112,7 +112,9 @@ public class IdentityAuthFilter extends OncePerRequestFilter {
         return path.equals("/api/v1/auth/authorize-url")
                 || path.equals("/api/v1/auth/login")
                 || path.equals("/api/v1/auth/callback")
-                || path.equals("/api/v1/auth/password-reset");
+                || path.equals("/api/v1/auth/password-reset")
+                // AUTH7R1: the access token being renewed is expired by definition; the endpoint checks it itself.
+                || path.equals("/api/v1/auth/refresh");
     }
 
     private static void writeError(HttpServletResponse response, DomainException ex, String traceId) throws IOException {

@@ -103,6 +103,29 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
     }
 
     @Override
+    public TokenSet refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("refresh token is required");
+        }
+        StringBuilder form = new StringBuilder("grant_type=refresh_token&refresh_token=").append(enc(refreshToken))
+                .append("&client_id=").append(enc(clientId));
+        if (clientSecret != null && !clientSecret.isBlank()) {
+            form.append("&client_secret=").append(enc(clientSecret));
+        }
+        Map<String, Object> body = postForm(issuer + "/protocol/openid-connect/token", form.toString());
+        if (body.get("access_token") == null) {
+            throw new IllegalStateException("Keycloak token endpoint returned no access_token on refresh");
+        }
+        Object tokenType = body.get("token_type");
+        return new TokenSet(
+                String.valueOf(body.get("access_token")),
+                stringOrNull(body.get("refresh_token")),
+                stringOrNull(body.get("id_token")),
+                tokenType == null ? "Bearer" : String.valueOf(tokenType),
+                asLong(body.get("expires_in")));
+    }
+
+    @Override
     public IdentityClaims validate(String accessToken) {
         try {
             JWTClaimsSet claims = jwtProcessor.process(accessToken, null);

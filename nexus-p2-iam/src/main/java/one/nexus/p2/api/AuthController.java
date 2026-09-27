@@ -112,6 +112,21 @@ public class AuthController {
         }
     }
 
+    /**
+     * AUTH7R1: renew the access token of this login. The (possibly expired) access token comes in the Authorization
+     * header and is only a lookup key for the server-held refresh token; the answer is {@code {"access_token": ...}}.
+     * Anything else is 401 {@code P2.IAM.REFRESH_UNAVAILABLE} / {@code P2.IAM.REFRESH_FAILED}: sign in again.
+     */
+    @PostMapping("/refresh")
+    public Map<String, String> refresh(HttpServletRequest http) {
+        String header = http.getHeader("Authorization");
+        String presented = header != null && header.startsWith("Bearer ") ? header.substring(7) : null;
+        var renewed = module.sessions().refresh(presented);
+        Map<String, String> response = new LinkedHashMap<>();
+        response.put("access_token", renewed.accessToken());
+        return response;
+    }
+
     @PostMapping("/password-reset")
     public Map<String, String> passwordReset(@RequestBody PasswordResetRequest request) {
         Model.GlobalAccount account = module.repository().findAccountByEmail(request.email())

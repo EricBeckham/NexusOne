@@ -186,6 +186,53 @@ public final class SessionService {
         }
     }
 
+    /** AUTH7R1: only the new access token goes back to the browser; refresh / id tokens stay server-side. */
+    public record RefreshView(String accessToken) {
+        @Override
+        public String toString() {
+            return "RefreshView[accessToken=" + (accessToken == null ? "absent" : "present") + "]";
+        }
+    }
+
+    /**
+     * AUTH7R1: renews an expired access token with the refresh token kept server-side at login (LO2).
+     * The presented access token is only used as the lookup key of that login's hint (it may be expired; it is never
+     * trusted for identity). The hint is single-use: it is taken, and re-keyed to the new access token on success, so
+     * a replayed old token cannot refresh twice. Any failure means "sign in again" and leaves no hint behind.
+     */
+    public RefreshView refresh(String presentedAccessToken) {
+        if (presentedAccessToken == null || presentedAccessToken.isBlank()) {
+            throw refreshUnavailable();
+        }
+        LogoutHintStore.Hint hint = logoutHints.take(LogoutHintStore.sessionKey(presentedAccessToken)).orElse(null);
+        if (hint == null || hint.refreshToken() == null) {
+            throw refreshUnavailable();
+        }
+        IdentityProviderPort.TokenSet renewed;
+        IdentityProviderPort.IdentityClaims claims;
+        try {
+            renewed = idp.refresh(hint.refreshToken());
+            claims = idp.validate(renewed.accessToken());
+        } catch (RuntimeException ex) {
+            throw new DomainException("P2.IAM.REFRESH_FAILED", 401, "session refresh failed; sign in again");
+        }
+        Model.GlobalAccount account = repository.findAccountByKeycloakUserId(claims.subject())
+                .orElseThrow(() -> new DomainException("P2.IAM.REFRESH_FAILED", 401,
+                        "session refresh failed; sign in again"));
+        if (account.status() != Model.AccountStatus.ACTIVE) {
+            throw DomainException.forbidden("account is not active");
+        }
+        logoutHints.remember(LogoutHintStore.sessionKey(renewed.accessToken()),
+                renewed.idToken() == null ? hint.idToken() : renewed.idToken(),
+                renewed.refreshToken() == null ? hint.refreshToken() : renewed.refreshToken(),
+                hint.expiresAt());
+        return new RefreshView(renewed.accessToken());
+    }
+
+    private static DomainException refreshUnavailable() {
+        return new DomainException("P2.IAM.REFRESH_UNAVAILABLE", 401, "no refreshable session; sign in again");
+    }
+
     public SessionView switchTenant(AuthenticatedIdentity identity, UUID requestedTenantId) {
         if (requestedTenantId == null) {
             throw DomainException.badRequest("P2.IAM.TENANT_REQUIRED", "tenantId is required for switch");
