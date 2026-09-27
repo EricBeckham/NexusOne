@@ -229,13 +229,14 @@ public class MarketService {
     /** Platform 审订购 — approve pending application and run subscribeProduct install path. */
     @Transactional
     public ActivationApplication approveActivation(UUID applicationId, String note) {
-        ActivationApplication current = getActivationApplication(applicationId);
+        UUID reviewer = PlatformActivationCommand.requireOperator();
+        ActivationApplication current = market.activationApplicationForReview(applicationId)
+                .orElseThrow(() -> new NexusException(ACTIVATION_NOT_FOUND,404,"activation application not found"));
         if (current.status() != ActivationApplicationStatus.PENDING) {
             throw new NexusException(ACTIVATION_INVALID_STATE, 400, "activation application is not pending");
         }
         Installation installation = activatePending(current);
         Instant now = clock.instant();
-        UUID reviewer = platformActorOrNull();
         ActivationApplication next = new ActivationApplication(
                 current.id(), current.tenantId(), current.skuCode(), current.versionId(),
                 ActivationApplicationStatus.APPROVED, blankToNull(note), now, reviewer,
@@ -246,7 +247,7 @@ public class MarketService {
                     ? UUID.randomUUID().toString()
                     : AccessContextHolder.currentOrNull().traceId();
             audit.append(new AuditEvent(UUID.randomUUID(), "market.activation.approved", AuditEvent.VERSION,
-                    now, current.tenantId(), reviewer, current.tenantId(), true, note, trace, trace, null,
+                    now, current.tenantId(), reviewer, one.nexus.p2.kernel.TenantContextHolder.require().tenantId(), true, note, trace, trace, null,
                     AuditEvent.OUTCOME_ACCEPTED, "activation_application", current.id().toString(),
                     Map.of("sku_code", current.skuCode(), "installation_id", installation.id().toString())));
         }
@@ -255,7 +256,9 @@ public class MarketService {
 
     @Transactional
     public ActivationApplication rejectActivation(UUID applicationId, String note) {
-        ActivationApplication current = getActivationApplication(applicationId);
+        UUID reviewer = PlatformActivationCommand.requireOperator();
+        ActivationApplication current = market.activationApplicationForReview(applicationId)
+                .orElseThrow(() -> new NexusException(ACTIVATION_NOT_FOUND,404,"activation application not found"));
         if (current.status() != ActivationApplicationStatus.PENDING) {
             throw new NexusException(ACTIVATION_INVALID_STATE, 400, "activation application is not pending");
         }
@@ -263,7 +266,6 @@ public class MarketService {
             throw new IllegalArgumentException("reject note is required");
         }
         Instant now = clock.instant();
-        UUID reviewer = platformActorOrNull();
         ActivationApplication next = new ActivationApplication(
                 current.id(), current.tenantId(), current.skuCode(), current.versionId(),
                 ActivationApplicationStatus.REJECTED, note.trim(), now, reviewer,
@@ -274,7 +276,7 @@ public class MarketService {
                     ? UUID.randomUUID().toString()
                     : AccessContextHolder.currentOrNull().traceId();
             audit.append(new AuditEvent(UUID.randomUUID(), "market.activation.rejected", AuditEvent.VERSION,
-                    now, current.tenantId(), reviewer, current.tenantId(), true, note.trim(), trace, trace, null,
+                    now, current.tenantId(), reviewer, one.nexus.p2.kernel.TenantContextHolder.require().tenantId(), true, note.trim(), trace, trace, null,
                     AuditEvent.OUTCOME_REJECTED, "activation_application", current.id().toString(),
                     Map.of("sku_code", current.skuCode(), "review_note", note.trim())));
         }
@@ -286,22 +288,23 @@ public class MarketService {
         ProductDefinition definition = market.productDefinitionForSku(application.skuCode())
                 .orElseThrow(() -> new NexusException(SUBSCRIBE_DEFINITION_MISSING, 404,
                         "catalog SKU has no product definition"));
+        var command=PlatformActivationCommand.forPending(application,definition);
         if (market.hasActiveSubscription(application.tenantId(), application.skuCode())) {
             throw new NexusException(SUBSCRIBE_CONFLICT, 409,
                     "tenant already has an active subscription for this SKU");
         }
         // Platform approve must install into the application's tenant, not the reviewer's context.
         Installation installation = subscribeAndInstallUnchecked(
-                application.tenantId(), application.skuCode(), application.versionId());
-        market.saveInstallationProductPin(new InstallationProductPin(installation.id(), definition.id(),
+                application.tenantId(), application.skuCode(), application.versionId(),command);
+        market.saveApprovedProductPin(command,new InstallationProductPin(installation.id(), definition.id(),
                 definition.formTemplateVersionId(), definition.processDefinitionKey(),
                 definition.processDefinitionVersion(), clock.instant()));
         if (permissionPacks == null) throw new IllegalStateException("default permission pack provisioner is required");
-        permissionPacks.provision(application.tenantId(), definition);
+        permissionPacks.provisionApproved(command, definition);
         return installation;
     }
 
-    private Installation subscribeAndInstallUnchecked(UUID tenantId, String skuCode, UUID versionId) {
+    private Installation subscribeAndInstallUnchecked(UUID tenantId, String skuCode, UUID versionId, PlatformActivationCommand command) {
         tenants.findById(tenantId).orElseThrow(() -> new IllegalArgumentException("tenant not found"));
         Sku sku = market.sku(skuCode).orElseThrow(() -> new IllegalArgumentException("sku not found"));
         AppVersion version = version(versionId);
@@ -311,7 +314,7 @@ public class MarketService {
         Instant now = clock.instant();
         Subscription subscription = new Subscription(UUID.randomUUID(), tenantId, skuCode,
                 SubscriptionStatus.ACTIVE, now, null);
-        market.saveSubscription(subscription);
+        market.saveApprovedSubscription(command,subscription);
         Map<String, EntitlementPayload.EntitlementItem> items = new LinkedHashMap<>();
         sku.entitlements().forEach((key, spec) -> items.put(key,
                 new EntitlementPayload.EntitlementItem(spec.enabled(), spec.quota(), spec.attributes())));
@@ -320,20 +323,8 @@ public class MarketService {
                 subscription.id(), new EntitlementPayload(EntitlementPayload.SCHEMA_V1, items), now, nextVersion));
         Installation installation = new Installation(UUID.randomUUID(), tenantId, sku.appId(), versionId,
                 InstallationStatus.INSTALLED, now, now);
-        market.saveInstallation(installation);
+        market.saveApprovedInstallation(command,installation);
         return installation;
-    }
-
-    private static UUID platformActorOrNull() {
-        AccessContext context = AccessContextHolder.currentOrNull();
-        if (context == null || context.actor() == null || context.actor().actorId() == null) {
-            return UUID.fromString("00000000-0000-7000-8000-0000000000ac");
-        }
-        try {
-            return UUID.fromString(context.actor().actorId());
-        } catch (IllegalArgumentException ex) {
-            return UUID.fromString("00000000-0000-7000-8000-0000000000ac");
-        }
     }
 
     private static String blankToNull(String value) {

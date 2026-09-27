@@ -68,6 +68,55 @@ public class ProductDefaultPermissionProvisioner {
         return members.size();
     }
 
+    /** Approved install only: fixed runtime pack, explicit target, no impersonated tenant context. */
+    @Transactional
+    public int provisionApproved(PlatformActivationCommand command, ProductDefinition definition) {
+        command.assertActive();
+        command.assertDefinition(definition);
+        UUID tenant=command.application().tenantId();
+        String code=roleCode(definition.id());
+        var repository=permission.repository();
+        var role=repository.findRoleByCode(tenant,code).orElse(null);
+        boolean changed=false;
+        if(role==null) {
+            role=repository.saveRole(new PolicyRepository.RoleRecord(one.nexus.common.id.UuidV7.generate(),tenant,code,
+                    "Product "+definition.name()+" members",true,"ACTIVE")); changed=true;
+        } else if(!role.systemRole() || !"ACTIVE".equals(role.status())) {
+            throw new SecurityException("product permission role is not an active system-managed pack");
+        }
+        var grants=repository.listGrants(tenant);
+        // Only the existing fixed runtime capabilities, never arbitrary caller-supplied grants/admin roles.
+        for(String[] capability:REQUIRED_CAPABILITIES) {
+            boolean exists=grants.stream().anyMatch(grant->grant.rule()!=null && "GRANT".equalsIgnoreCase(grant.effect())
+                    && "role".equals(grant.rule().principalType()) && code.equals(grant.rule().principalId())
+                    && capability[0].equals(grant.rule().resource()) && capability[1].equals(grant.rule().action()));
+            if(!exists) {
+                repository.saveGrant(new PolicyRepository.GrantRecord(one.nexus.common.id.UuidV7.generate(),tenant,"GRANT",
+                        one.nexus.permission.engine.Rule.scoped("role",code,capability[0],capability[1],DataScopeKind.ALL,List.of(),Map.of())));
+                changed=true;
+            }
+        }
+        var members=identities.listPersons(tenant).stream().filter(person->person.status()==Model.PersonStatus.ACTIVE).toList();
+        var assignments=repository.listAssignments(tenant);
+        for(var person:members) {
+            if(!tenant.equals(person.tenantId())) throw new SecurityException("permission pack member belongs to another tenant");
+            UUID roleId=role.id();
+            if(assignments.stream().noneMatch(item->"user".equals(item.principalType()) && person.id().toString().equals(item.principalId()) && roleId.equals(item.roleId()))) {
+                repository.saveAssignment(new PolicyRepository.AssignmentRecord(one.nexus.common.id.UuidV7.generate(),tenant,"user",person.id().toString(),roleId,code));
+                changed=true;
+            }
+        }
+        if(changed) {
+            repository.bumpVersion(tenant);
+            if(permission.invalidation()!=null) permission.invalidation().notifyTenant(tenant.toString());
+        }
+        audit.append(new AuditEvent(UUID.randomUUID(),"p4.product_permission_pack.provisioned",AuditEvent.VERSION,
+                java.time.Instant.now(),tenant,command.actorId(),TenantContextHolder.require().tenantId(),true,
+                "approved activation "+command.application().id(),command.traceId(),command.traceId(),null,
+                AuditEvent.OUTCOME_ACCEPTED,"product_definition",definition.id().toString(),Map.of("role_code",code,"member_count",members.size(),"activation_id",command.application().id().toString())));
+        return members.size();
+    }
+
     /** Must be used by application submission / approver selection to reject non-members. */
     public void requireTenantMember(UUID tenantId, UUID personId) {
         boolean member = identities.findPerson(tenantId, personId)

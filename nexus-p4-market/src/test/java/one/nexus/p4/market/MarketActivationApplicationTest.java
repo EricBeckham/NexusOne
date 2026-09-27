@@ -29,6 +29,7 @@ import one.nexus.p4.market.MarketModels.*;
 import org.junit.jupiter.api.Test;
 
 class MarketActivationApplicationTest {
+    @org.junit.jupiter.api.AfterEach void clearPlatform() { PlatformActivationTestContext.clear(); }
     private static final Instant NOW = Instant.parse("2026-09-26T12:00:00Z");
 
     @Test
@@ -102,22 +103,26 @@ class MarketActivationApplicationTest {
         when(market.productDefinitionForSku("HR_BASIC")).thenReturn(Optional.of(
                 new ProductDefinition(productId, "hr", "HR", "", formId, null, null, Map.of(), "PUBLISHED", NOW, NOW, 1)));
 
+        PlatformActivationTestContext.bind();
+        when(market.activationApplicationForReview(applicationId)).thenReturn(Optional.of(pending));
         ActivationApplication approved = service.approveActivation(applicationId, "通过");
         assertThat(approved.status()).isEqualTo(ActivationApplicationStatus.APPROVED);
         assertThat(approved.resultingInstallationId()).isNotNull();
-        verify(market).saveSubscription(any());
-        verify(market).saveInstallation(any());
-        verify(market).saveInstallationProductPin(any());
-        verify(packs).provision(eq(tenantId), any());
+        verify(market).saveApprovedSubscription(any(),any());
+        verify(market).saveApprovedInstallation(any(),any());
+        verify(market).saveApprovedProductPin(any(),any());
+        verify(market,never()).saveInstallation(any());
+        verify(packs).provisionApproved(any(),any());
         verify(audit).append(any());
     }
 
     @Test
     void rejectRequiresNote() {
+        PlatformActivationTestContext.bind();
         UUID applicationId = UUID.randomUUID();
         MarketRepository market = mock(MarketRepository.class);
         MarketService service = new MarketService(market, mock(TenantRepository.class), Clock.fixed(NOW, ZoneOffset.UTC));
-        when(market.activationApplication(applicationId)).thenReturn(Optional.of(new ActivationApplication(
+        when(market.activationApplicationForReview(applicationId)).thenReturn(Optional.of(new ActivationApplication(
                 applicationId, UUID.randomUUID(), "SKU", UUID.randomUUID(),
                 ActivationApplicationStatus.PENDING, null, null, null, null, null, NOW, UUID.randomUUID())));
         assertThatThrownBy(() -> service.rejectActivation(applicationId, " "))
