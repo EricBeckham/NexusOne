@@ -191,7 +191,8 @@ class LiveKeycloakSmokeTest {
                         .header("Authorization", "Bearer " + tokens.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.end_session_url").exists());
     }
 
     private static void recordKeycloakVersion() throws Exception {

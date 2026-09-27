@@ -237,13 +237,48 @@ public final class SessionService {
                 null);
     }
 
+    /** LO3: {@code endSessionUrl} is empty when there was no IdP hint; the browser may then still hold an SSO session. */
+    public record LogoutResult(String endSessionUrl) {
+        public boolean hasEndSessionUrl() {
+            return endSessionUrl != null && !endSessionUrl.isBlank();
+        }
+    }
+
     public void logout(AuthenticatedIdentity identity, String refreshToken, String idTokenHint) {
+        logout(identity, refreshToken, idTokenHint, null);
+    }
+
+    /**
+     * Clears the app session, then best-effort ends the IdP session: back-channel with the server-held hint
+     * (failures never block logout), and an RP-initiated logout URL for the browser when a hint and an allowed
+     * {@code postLogoutRedirectUri} exist.
+     */
+    public LogoutResult logout(
+            AuthenticatedIdentity identity, String refreshToken, String idTokenHint, String postLogoutRedirectUri) {
         TenantContext current = TenantContextHolder.get();
+        // LO2: the session is over, so its IdP hint is spent too (take = read once and drop).
+        LogoutHintStore.Hint hint = logoutHints.take(identity.claims().subject()).orElse(null);
         repository.revokeContextsForAccount(identity.account().id());
         TenantContextHolder.clear();
-        // LO2: the session is over, so its IdP hint is spent too.
-        logoutHints.forget(identity.claims().subject());
-        idp.logout(refreshToken, idTokenHint);
+        String refresh = firstNonBlank(refreshToken, hint == null ? null : hint.refreshToken());
+        String idToken = firstNonBlank(idTokenHint, hint == null ? null : hint.idToken());
+        String backChannel = "skipped";
+        if (refresh != null || idToken != null) {
+            try {
+                idp.logout(refresh, idToken);
+                backChannel = "ok";
+            } catch (RuntimeException ignored) {
+                backChannel = "failed"; // best-effort; the browser redirect below still ends the SSO session
+            }
+        }
+        String endSessionUrl = "";
+        if (idToken != null && postLogoutRedirectUri != null && !postLogoutRedirectUri.isBlank()) {
+            try {
+                endSessionUrl = idp.endSessionUrl(idToken, postLogoutRedirectUri).orElse("");
+            } catch (RuntimeException ignored) {
+                endSessionUrl = "";
+            }
+        }
         if (audits != null) {
             audits.append(AuditCaptures.logout(
                     current == null ? null : current.tenantId(),
@@ -253,8 +288,18 @@ public final class SessionService {
                             : current.contextId().toString(),
                     "logout",
                     TraceIds.currentOrUnknown(),
-                    Map.of("account_id", identity.account().id().toString())));
+                    Map.of("account_id", identity.account().id().toString(),
+                            "idp_backchannel", backChannel,
+                            "end_session", endSessionUrl.isEmpty() ? "absent" : "issued")));
         }
+        return new LogoutResult(endSessionUrl);
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        return second == null || second.isBlank() ? null : second;
     }
 
     public AuthenticatedIdentity authenticate(String accessToken) {
