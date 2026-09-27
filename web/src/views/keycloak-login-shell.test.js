@@ -26,7 +26,7 @@ vi.mock("../api/pkce-desktop", () => ({
   startDesktopPkceLogin: vi.fn(),
 }));
 
-import LoginView from "./LoginView.vue";
+import LoginView from "./LoginProductView.vue";
 
 async function mountLogin() {
   const router = createRouter({
@@ -42,14 +42,14 @@ async function mountLogin() {
   return wrapper;
 }
 
-describe("login shell issuer branches (DPO-C1)", () => {
-  afterEach(() => vi.unstubAllEnvs());
+describe("product login shell issuer branches (LOGIN2)", () => {
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
-  it("keeps stub login and says the demo IdP is unconfigured", async () => {
+  it("shows a friendly unconfigured state without debug fallback", async () => {
     vi.stubEnv("VITE_NEXUS_KEYCLOAK_ISSUER", "");
     const wrapper = await mountLogin();
-    expect(wrapper.get("[data-testid='idp-unconfigured']").text()).toContain("演示 IdP 未配置");
-    expect(wrapper.get("[data-testid='stub-login']").classes()).toContain("primary");
+    expect(wrapper.get("[data-testid='idp-unconfigured']").text()).toContain("登录服务暂未配置");
+    expect(wrapper.find("[data-testid='stub-login']").exists()).toBe(false);
     expect(wrapper.find("[data-testid='keycloak-login']").exists()).toBe(false);
     expect(wrapper.find("[data-testid='stub-login-demoted']").exists()).toBe(false);
     expect(wrapper.text()).not.toMatch(/CLIENT_SECRET|REPLACE_FROM_SECRET/);
@@ -61,10 +61,9 @@ describe("login shell issuer branches (DPO-C1)", () => {
     const assign = vi.fn();
     vi.stubGlobal("location", { ...window.location, origin: "http://127.0.0.1:4173", assign });
     const wrapper = await mountLogin();
-    expect(wrapper.get("[data-testid='keycloak-login']").classes()).toContain("primary");
-    expect(wrapper.get("[data-testid='stub-login-demoted']").text()).toContain("仅本地 stub");
-    expect(wrapper.get("[data-testid='stub-login']").classes()).not.toContain("primary");
-    expect(wrapper.findAll("button.primary").map((button) => button.attributes("data-testid"))).toEqual(["keycloak-login"]);
+    expect(wrapper.get("[data-testid='keycloak-login']").classes()).toContain("nx-btn--primary");
+    expect(wrapper.find("[data-testid='stub-login']").exists()).toBe(false);
+    expect(wrapper.findAll("button.nx-btn--primary").map((button) => button.attributes("data-testid"))).toEqual(["keycloak-login"]);
     expect(wrapper.text()).not.toMatch(/CLIENT_SECRET|must-not-leak|REPLACE_FROM_SECRET/);
     await wrapper.get("[data-testid='keycloak-login']").trigger("click");
     expect(assign).toHaveBeenCalled();
@@ -73,5 +72,13 @@ describe("login shell issuer branches (DPO-C1)", () => {
     expect(href).toContain("client_id=nexus-web");
     expect(href).not.toMatch(/secret/i);
     vi.unstubAllGlobals();
+  });
+
+  it("uses product error copy when navigation cannot start", async () => {
+    vi.stubEnv("VITE_NEXUS_KEYCLOAK_ISSUER", "invalid issuer");
+    const wrapper = await mountLogin();
+    await wrapper.get("[data-testid=keycloak-login]").trigger("click");
+    expect(wrapper.get("[data-testid=login-error]").text()).toContain("暂时无法打开登录服务");
+    expect(wrapper.text()).not.toContain("invalid issuer");
   });
 });
