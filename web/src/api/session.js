@@ -66,6 +66,10 @@ export function persist() {
 
 function applyView(view) {
   const previousContext = session.contextId;
+  const token = view?.access_token || view?.accessToken;
+  if (token) {
+    session.accessToken = token;
+  }
   session.accountId = view?.account_id || view?.accountId || "";
   session.email = view?.email || "";
   session.displayName = view?.display_name || view?.displayName || "";
@@ -112,10 +116,6 @@ export async function loadPrimaryPosition() {
 }
 
 export function applySessionView(view) {
-  const token = view?.access_token || view?.accessToken;
-  if (token) {
-    session.accessToken = token;
-  }
   applyView(view);
   return view;
 }
@@ -130,6 +130,9 @@ export async function loginWithAccessToken(accessToken) {
 }
 
 export async function switchTenant(tenantId) {
+  if (!session.accessToken) {
+    throw new Error("没有 access token，无法切换租户。请重新登录后再试。");
+  }
   const view = await p2.switchTenant(tenantId);
   applyView(view);
   await loadPrimaryPosition();
