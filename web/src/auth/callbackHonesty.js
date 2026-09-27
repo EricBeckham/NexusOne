@@ -26,6 +26,40 @@ export function callbackFailureCopy({ queryError, message } = {}) {
   return { title: "回调失败", description: `换会话没有完成。${NEXT_STEP}` };
 }
 
+/**
+ * TC3: why the user is signed in but not inside a tenant. Product wording only.
+ * - `no_membership`: the identity came back but has no ACTIVE tenant membership → back to login / ask an admin;
+ * - `auto_enter_failed`: there are ACTIVE memberships but entering one did not succeed → retry, or switch manually
+ *   from the user menu (offered only when there is more than one membership to choose from).
+ */
+export function activeMembershipCount(memberships) {
+  return (Array.isArray(memberships) ? memberships : [])
+    .filter((item) => String(item?.status || "").toUpperCase() === "ACTIVE").length;
+}
+
+export function tenantContextMissingCopy(memberships) {
+  const active = activeMembershipCount(memberships);
+  if (active === 0) {
+    return {
+      kind: "no_membership",
+      title: "还没有可进入的租户",
+      description: "登录已成功，但这个账号还没有开通任何租户。请回到登录页换一个账号，或联系管理员为你开通租户后再登录。",
+      canRetry: false,
+      canSwitchManually: false,
+    };
+  }
+  const manual = active > 1;
+  return {
+    kind: "auto_enter_failed",
+    title: "未能自动进入租户",
+    description: manual
+      ? `登录已成功，你有 ${active} 个可用租户，但没能自动进入。请点「重试」，或进入首页后在右上角用户菜单里手动切换租户。`
+      : "登录已成功，但没能进入你的租户。请点「重试」；仍不行请联系管理员。",
+    canRetry: true,
+    canSwitchManually: manual,
+  };
+}
+
 export function sessionHasTenantContext(view) {
   const id = view?.context_id || view?.contextId || "";
   return Boolean(String(id).trim());
