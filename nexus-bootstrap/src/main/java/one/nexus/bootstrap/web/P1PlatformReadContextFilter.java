@@ -101,15 +101,19 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !enabled || route(request).isEmpty();
+        return !enabled || matchedRoute(request).isEmpty();
     }
+
+    protected Optional<Route> matchedRoute(HttpServletRequest request) { return route(request); }
+    protected String bridgeReason() { return "authenticated platform read-only list"; }
+    protected String denialCode() { return "AUTH6.PLATFORM_READ_DENIED"; }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         var previousTenant = TenantContextHolder.get();
         var previousIsolation = IsolationContextHolder.get();
-        Route route = route(request).orElseThrow(); // shouldNotFilter already kept everything else out
+        Route route = matchedRoute(request).orElseThrow(); // shouldNotFilter already kept everything else out
         try {
             // Never let an existing/demo snapshot substitute for authentication.
             String authorization = request.getHeader("Authorization");
@@ -140,9 +144,9 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
                 }
                 service.check(route.resource(), route.action());
                 String trace = String.valueOf(request.getAttribute("trace_id"));
-                var actor = new Actor(context.personId(), context.tenantId(), "authenticated-platform-reader",
+                var actor = new Actor(context.personId(), context.tenantId(), "authenticated-platform-operator",
                         Set.of(route.duty()));
-                var platform = new PlatformContext(true, "authenticated platform read-only list",
+                var platform = new PlatformContext(true, bridgeReason(),
                         actor, trace, context.tenantId());
                 IsolationContextHolder.set(new IsolationSnapshot(actor, platform, null, trace));
             } catch (one.nexus.p2.support.DomainException ex) {
@@ -188,10 +192,10 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
         }
     }
 
-    private static void deny(HttpServletResponse response, int status, Reason reason) throws IOException {
+    private void deny(HttpServletResponse response, int status, Reason reason) throws IOException {
         response.setStatus(status);
         response.setContentType("application/json");
-        response.getWriter().write("{\"code\":\"AUTH6.PLATFORM_READ_DENIED\",\"message\":\"platform read context denied\","
+        response.getWriter().write("{\"code\":\"" + denialCode() + "\",\"message\":\"platform context denied\","
                 + "\"reason\":\"" + reason.wire() + "\"}");
     }
 }

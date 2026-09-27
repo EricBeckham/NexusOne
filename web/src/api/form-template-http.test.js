@@ -1,9 +1,10 @@
 /** @vitest-environment happy-dom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { p1 } from "./client";
+import { p1, saveSettings } from "./client";
 
 describe("platform form template HTTP", () => {
   beforeEach(() => {
+    saveSettings({ accessToken: "test-access", contextId: "issued-context" });
     vi.stubGlobal("fetch", vi.fn(async () => ({
       ok: true,
       status: 200,
@@ -27,6 +28,8 @@ describe("platform form template HTTP", () => {
       "PUT /api/v1/p1/platform/form-templates/tpl%201",
     ]);
     for (const call of calls) {
+      expect(call.headers.Authorization).toBe("Bearer test-access");
+      expect(call.headers["X-Nexus-Context-Id"]).toBe("issued-context");
       expect(call.headers["X-Nexus-Demo-Actor-Id"]).toBeTruthy();
       expect(call.headers["X-Tenant-Id"]).toBeUndefined();
     }
