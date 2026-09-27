@@ -244,6 +244,17 @@ public final class InMemoryIdentityRepository implements IdentityRepository {
     }
 
     @Override
+    public void revokeContext(UUID contextId, UUID accountId) {
+        contexts.computeIfPresent(contextId, (id, context) -> {
+            if (context.accountId().equals(accountId) && context.revokedAt() == null) {
+                return new Model.IssuedContext(context.id(), context.tenantId(), context.accountId(), context.personId(),
+                        context.idpSubject(), context.issuedAt(), context.expiresAt(), Instant.now());
+            }
+            return context;
+        });
+    }
+
+    @Override
     public void revokeContextsForAccount(UUID accountId) {
         Instant now = Instant.now();
         contexts.replaceAll((id, context) -> {

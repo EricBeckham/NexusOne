@@ -44,7 +44,7 @@ class LogoutHintStoreTest {
         assertNotNull(view.contextId());
 
         SessionService.AuthenticatedIdentity identity = module.sessions().authenticate(view.accessToken());
-        String subject = identity.claims().subject();
+        String subject = identity.logoutSessionKey();
         assertTrue(module.sessions().logoutHints().holds(subject));
 
         module.sessions().logout(identity, null, null);
@@ -66,7 +66,7 @@ class LogoutHintStoreTest {
         IdentityModule module = module(new StubIdentityProvider());
         String token = StubIdentityProvider.token("lo2-direct", "lo2-direct@example.com", "lo2-direct", "Direct");
         module.sessions().loginWithAccessToken(token);
-        assertFalse(module.sessions().logoutHints().holds("lo2-direct"));
+        assertFalse(module.sessions().logoutHints().holds(LogoutHintStore.sessionKey(token)));
     }
 
     @Test

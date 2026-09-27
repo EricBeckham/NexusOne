@@ -48,7 +48,12 @@ public final class SessionService {
             String accessToken
     ) {}
 
-    public record AuthenticatedIdentity(Model.GlobalAccount account, IdentityProviderPort.IdentityClaims claims) {}
+    public record AuthenticatedIdentity(Model.GlobalAccount account, IdentityProviderPort.IdentityClaims claims,
+            String logoutSessionKey) {
+        public AuthenticatedIdentity(Model.GlobalAccount account, IdentityProviderPort.IdentityClaims claims) {
+            this(account, claims, null);
+        }
+    }
 
     private final IdentityRepository repository;
     private final AccountReconciler reconciler;
@@ -165,7 +170,7 @@ public final class SessionService {
             accepted = true;
             if (exchanged != null) {
                 // LO2: keep the IdP tokens server-side for RP logout; the SPA only ever gets the access token.
-                logoutHints.remember(claims.subject(), exchanged.idToken(), exchanged.refreshToken(),
+                logoutHints.remember(LogoutHintStore.sessionKey(accessToken), exchanged.idToken(), exchanged.refreshToken(),
                         clock.instant().plus(contextTtl));
             }
             appendLogin(true, view.tenantId(), view.accountId(), view.contextId(), "accepted", Map.of(
@@ -249,19 +254,27 @@ public final class SessionService {
     }
 
     /**
-     * Clears the app session, then best-effort ends the IdP session: back-channel with the server-held hint
+     * Revokes only the owned current context; missing context never implies account-wide logout.
+     * Then best-effort ends the IdP session: back-channel with the server-held hint
      * (failures never block logout), and an RP-initiated logout URL for the browser when a hint and an allowed
      * {@code postLogoutRedirectUri} exist.
      */
     public LogoutResult logout(
             AuthenticatedIdentity identity, String refreshToken, String idTokenHint, String postLogoutRedirectUri) {
         TenantContext current = TenantContextHolder.get();
+        if (current != null && (!identity.account().id().equals(current.accountId())
+                || !identity.claims().subject().equals(current.idpSubject()))) {
+            throw DomainException.forbidden("tenant context does not belong to this identity");
+        }
         // LO2: the session is over, so its IdP hint is spent too (take = read once and drop).
-        LogoutHintStore.Hint hint = logoutHints.take(identity.claims().subject()).orElse(null);
-        repository.revokeContextsForAccount(identity.account().id());
+        LogoutHintStore.Hint hint = logoutHints.take(identity.logoutSessionKey()).orElse(null);
+        if (current != null && current.contextId() != null) {
+            repository.revokeContext(current.contextId(), identity.account().id());
+        }
         TenantContextHolder.clear();
-        String refresh = firstNonBlank(refreshToken, hint == null ? null : hint.refreshToken());
-        String idToken = firstNonBlank(idTokenHint, hint == null ? null : hint.idToken());
+        // Legacy body hints are not proof of session ownership. Only use the token-bound server hint.
+        String refresh = hint == null ? null : hint.refreshToken();
+        String idToken = hint == null ? null : hint.idToken();
         String backChannel = "skipped";
         if (refresh != null || idToken != null) {
             try {
@@ -295,18 +308,11 @@ public final class SessionService {
         return new LogoutResult(endSessionUrl);
     }
 
-    private static String firstNonBlank(String first, String second) {
-        if (first != null && !first.isBlank()) {
-            return first;
-        }
-        return second == null || second.isBlank() ? null : second;
-    }
-
     public AuthenticatedIdentity authenticate(String accessToken) {
         IdentityProviderPort.IdentityClaims claims = idp.validate(accessToken);
         Model.GlobalAccount account = repository.findAccountByKeycloakUserId(claims.subject())
                 .orElseGet(() -> reconciler.reconcile(claims));
-        return new AuthenticatedIdentity(account, claims);
+        return new AuthenticatedIdentity(account, claims, LogoutHintStore.sessionKey(accessToken));
     }
 
     private SessionView issue(

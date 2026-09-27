@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * LO2: server-side keeper of the IdP {@code id_token} / {@code refresh_token} from the auth-code exchange, bound to
- * the IdP subject, so logout can end the Keycloak session. These tokens never go to the SPA.
+ * the verified access-token fingerprint, not the account/subject shared by browsers. Tokens never go to the SPA.
  * <p>
  * Process memory only: a restart (or another instance) has no hint and logout degrades to app-only. A hint is
  * single-use — {@link #take} removes it — and expires with the tenant context TTL.
@@ -24,47 +24,58 @@ public final class LogoutHintStore {
         }
     }
 
-    private final Map<String, Hint> bySubject = new ConcurrentHashMap<>();
+    private final Map<String, Hint> bySession = new ConcurrentHashMap<>();
     private final Clock clock;
 
     public LogoutHintStore(Clock clock) {
         this.clock = clock;
     }
 
-    /** Keeps the latest hint for {@code subject}; blank tokens are dropped, and nothing is kept if both are blank. */
-    public void remember(String subject, String idToken, String refreshToken, Instant expiresAt) {
-        if (subject == null || subject.isBlank()) {
+    /** No raw access token is retained or logged; call this only after validating the token. */
+    static String sessionKey(String accessToken) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(accessToken.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is unavailable", impossible);
+        }
+    }
+
+    /** Keeps only this login's hint; another browser's login must never overwrite it. */
+    public void remember(String sessionKey, String idToken, String refreshToken, Instant expiresAt) {
+        if (sessionKey == null || sessionKey.isBlank()) {
             return;
         }
+        bySession.entrySet().removeIf(entry -> !clock.instant().isBefore(entry.getValue().expiresAt()));
         String id = blankToNull(idToken);
         String refresh = blankToNull(refreshToken);
         if (id == null && refresh == null) {
-            bySubject.remove(subject);
+            bySession.remove(sessionKey);
             return;
         }
-        bySubject.put(subject, new Hint(id, refresh, expiresAt));
+        bySession.put(sessionKey, new Hint(id, refresh, expiresAt));
     }
 
-    /** Removes and returns the live hint for {@code subject}; an expired hint is discarded and reported as absent. */
-    public Optional<Hint> take(String subject) {
-        if (subject == null) {
+    /** Removes only this session's live hint; expired or missing hints never fall back to subject/account. */
+    public Optional<Hint> take(String sessionKey) {
+        if (sessionKey == null) {
             return Optional.empty();
         }
-        Hint hint = bySubject.remove(subject);
+        Hint hint = bySession.remove(sessionKey);
         if (hint == null || !clock.instant().isBefore(hint.expiresAt())) {
             return Optional.empty();
         }
         return Optional.of(hint);
     }
 
-    public boolean holds(String subject) {
-        Hint hint = subject == null ? null : bySubject.get(subject);
+    public boolean holds(String sessionKey) {
+        Hint hint = sessionKey == null ? null : bySession.get(sessionKey);
         return hint != null && clock.instant().isBefore(hint.expiresAt());
     }
 
-    public void forget(String subject) {
-        if (subject != null) {
-            bySubject.remove(subject);
+    public void forget(String sessionKey) {
+        if (sessionKey != null) {
+            bySession.remove(sessionKey);
         }
     }
 

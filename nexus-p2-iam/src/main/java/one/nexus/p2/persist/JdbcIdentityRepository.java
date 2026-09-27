@@ -323,6 +323,13 @@ public final class JdbcIdentityRepository implements IdentityRepository {
     }
 
     @Override
+    public void revokeContext(UUID contextId, UUID accountId) {
+        jdbc.update("UPDATE iam.iam_issued_context SET revoked_at = ? "
+                        + "WHERE id = ? AND account_id = ? AND revoked_at IS NULL",
+                ts(Instant.now()), contextId, accountId);
+    }
+
+    @Override
     public Model.IdpConfiguration saveIdpConfiguration(Model.IdpConfiguration configuration) {
         jdbc.update("""
                 INSERT INTO iam.iam_idp_configuration

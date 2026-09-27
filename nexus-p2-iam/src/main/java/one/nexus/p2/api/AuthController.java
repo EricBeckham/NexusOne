@@ -77,7 +77,8 @@ public class AuthController {
     }
 
     /**
-     * LO3: always clears the app session; {@code end_session_url} is the Keycloak RP-logout URL for the browser, or
+     * LO3: revokes only the owned current context, never every context of the account. Legacy body hints are ignored.
+     * {@code end_session_url} is the Keycloak RP-logout URL for the browser, or
      * an empty string when the server holds no IdP hint (the browser may then still have an SSO session).
      */
     @PostMapping("/logout")

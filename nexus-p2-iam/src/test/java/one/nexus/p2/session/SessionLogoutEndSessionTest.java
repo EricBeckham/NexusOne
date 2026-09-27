@@ -42,7 +42,16 @@ class SessionLogoutEndSessionTest {
 
         @Override public AuthorizeUrl authorizationUrl(String state, String redirectUri) { return stub.authorizationUrl(state, redirectUri); }
         @Override public AuthorizeUrl authorizationUrl(String state, String redirectUri, String acr, Pkce.Challenge pkce) { return stub.authorizationUrl(state, redirectUri, acr, pkce); }
-        @Override public TokenSet exchangeAuthorizationCode(String code, String redirectUri) { return stub.exchangeAuthorizationCode(code, redirectUri); }
+        @Override public TokenSet exchangeAuthorizationCode(String code, String redirectUri) {
+            TokenSet tokens = stub.exchangeAuthorizationCode(code, redirectUri);
+            if (!code.startsWith("browser-")) return tokens;
+            String json = new String(java.util.Base64.getUrlDecoder().decode(tokens.accessToken().substring(5)),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            String payload = json.substring(0, json.length() - 1) + ",\"device\":\"" + code + "\"}";
+            String access = "stub." + java.util.Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return new TokenSet(access, "refresh-" + code, "id-" + code, "Bearer", 3600);
+        }
         @Override public IdentityClaims validate(String accessToken) { return stub.validate(accessToken); }
         @Override public Optional<IdentityClaims> userInfo(String accessToken) { return stub.userInfo(accessToken); }
         @Override public ProvisionedUser ensureUser(String email, String username, String displayName) { return stub.ensureUser(email, username, displayName); }
@@ -75,6 +84,75 @@ class SessionLogoutEndSessionTest {
     }
 
     @Test
+    void oneBrowserLogoutDoesNotRevokeTheOtherOrUseItsIdpHint() {
+        LogoutIdp idp = new LogoutIdp();
+        IdentityModule module = module(idp);
+        var a = module.sessions().loginWithCode("browser-a", "https://app.example.test/callback");
+        var b = module.sessions().loginWithCode("browser-b", "https://app.example.test/callback");
+        var identityA = module.sessions().authenticate(a.accessToken());
+        var identityB = module.sessions().authenticate(b.accessToken());
+        assertEquals(a.accountId(), b.accountId());
+        module.sessions().loadContext(a.contextId(), identityA);
+        // Request-body tokens from another login are not an ownership proof and must be ignored.
+        module.sessions().logout(identityA, "refresh-browser-b", "id-browser-b", AFTER);
+        var revoked = assertThrows(DomainException.class, () -> module.sessions().loadContext(a.contextId(), identityA));
+        assertEquals("tenant context is revoked", revoked.getMessage());
+        assertEquals(b.contextId(), module.sessions().loadContext(b.contextId(), identityB).contextId());
+        assertEquals("refresh-browser-a", idp.backChannel.getFirst()[0]);
+        assertEquals("id-browser-a", idp.backChannel.getFirst()[1]);
+        module.sessions().logout(identityB, null, null, AFTER);
+        assertEquals("refresh-browser-b", idp.backChannel.get(1)[0]);
+        assertEquals("id-browser-b", idp.backChannel.get(1)[1]);
+        assertThrows(DomainException.class, () -> module.sessions().loadContext(b.contextId(), identityB));
+    }
+
+    @Test
+    void tokenOnlyLoginDoesNotBorrowAnotherBrowserHint() {
+        LogoutIdp idp = new LogoutIdp();
+        IdentityModule module = module(idp);
+        var b = module.sessions().loginWithCode("browser-b", "https://app.example.test/callback");
+        String tokenA = idp.exchangeAuthorizationCode("browser-a", "https://app.example.test/callback").accessToken();
+        var a = module.sessions().loginWithAccessToken(tokenA);
+        var identityA = module.sessions().authenticate(tokenA);
+        var identityB = module.sessions().authenticate(b.accessToken());
+        assertEquals("", module.sessions().logout(identityA, "untrusted-refresh", "untrusted-id", AFTER).endSessionUrl());
+        assertTrue(idp.backChannel.isEmpty());
+        assertThrows(DomainException.class, () -> module.sessions().loadContext(a.contextId(), identityA));
+        assertEquals(b.contextId(), module.sessions().loadContext(b.contextId(), identityB).contextId());
+        assertTrue(module.sessions().logoutHints().holds(identityB.logoutSessionKey()));
+    }
+
+    @Test
+    void missingContextNeverFallsBackToAccountWideRevocation() {
+        LogoutIdp idp = new LogoutIdp();
+        IdentityModule module = module(idp);
+        var a = module.sessions().loginWithCode("browser-a", "https://app.example.test/callback");
+        var b = module.sessions().loginWithCode("browser-b", "https://app.example.test/callback");
+        var identityA = module.sessions().authenticate(a.accessToken());
+        var identityB = module.sessions().authenticate(b.accessToken());
+        TenantContextHolder.clear();
+        module.sessions().logout(identityA, null, null, AFTER);
+        assertEquals(b.contextId(), module.sessions().loadContext(b.contextId(), identityB).contextId());
+        assertEquals("refresh-browser-a", idp.backChannel.getFirst()[0]);
+        assertTrue(module.sessions().logoutHints().holds(identityB.logoutSessionKey()));
+    }
+
+    @Test
+    void foreignContextIsRejectedBeforeRevocationOrHintConsumption() {
+        LogoutIdp idp = new LogoutIdp();
+        IdentityModule module = module(idp);
+        var a = module.sessions().loginWithCode("browser-a", "https://app.example.test/callback");
+        var identityA = module.sessions().authenticate(a.accessToken());
+        TenantContextHolder.set(new one.nexus.p2.kernel.TenantContext(UUID.randomUUID(), TENANT,
+                UUID.randomUUID(), a.personId(), identityA.claims().subject(), java.time.Instant.now(),
+                java.time.Instant.now().plusSeconds(60)));
+        assertThrows(DomainException.class, () -> module.sessions().logout(identityA, null, null, AFTER));
+        assertTrue(idp.backChannel.isEmpty());
+        assertTrue(module.sessions().logoutHints().holds(identityA.logoutSessionKey()));
+        module.sessions().loadContext(a.contextId(), identityA);
+    }
+
+    @Test
     void withAHintLogoutClearsTheSessionCallsBackChannelAndReturnsTheUrl() {
         LogoutIdp idp = new LogoutIdp();
         IdentityModule module = module(idp);
@@ -90,7 +168,7 @@ class SessionLogoutEndSessionTest {
         assertEquals("stub-refresh", idp.backChannel.getFirst()[0]);
         assertNotNull(idp.backChannel.getFirst()[1]);
         assertThrows(DomainException.class, () -> module.sessions().loadContext(view.contextId(), identity));
-        assertFalse(module.sessions().logoutHints().holds(identity.claims().subject()));
+        assertFalse(module.sessions().logoutHints().holds(identity.logoutSessionKey()));
     }
 
     @Test
