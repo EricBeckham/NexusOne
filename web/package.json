@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "test": "vitest run",
+    "smoke:stub-browser": "node scripts/stub-browser-smoke.mjs",
     "test:g7-withdraw": "vitest run src/views/studio/todo-withdraw.browser.test.js src/api/p3-withdraw-http-reachability.test.js",
     "assert:g7-withdraw-browser": "node scripts/assert-g7-withdraw-browser.mjs",
     "test:g7-withdraw-browser-honesty": "vitest run src/api/g7WithdrawBrowserHonesty.test.js",
