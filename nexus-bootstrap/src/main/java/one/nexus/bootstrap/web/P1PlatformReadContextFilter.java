@@ -65,6 +65,13 @@ public class P1PlatformReadContextFilter extends OncePerRequestFilter {
             Route.systemAdmin("/api/v1/p1/platform/services", "tenant", "list"),
             Route.systemAdmin("/api/v1/p1/platform/form-templates", "tenant", "list"),
             Route.systemAdmin("/api/v1/p1/platform/form-templates/" + UUID_SEGMENT, "tenant", "list"),
+            // AUTH6H2: tenant entitlement projection and quota usage (权益与配额), product definitions (P4 平台配置 /
+            // 产品配置向导). QuotaService.list already accepts a SYSTEM_ADMIN platform context.
+            Route.systemAdmin("/api/v1/p1/tenants/" + UUID_SEGMENT + "/entitlement", "tenant.entitlement", "get"),
+            Route.systemAdmin("/api/v1/p1/tenants/" + UUID_SEGMENT + "/quotas", "tenant", "get"),
+            Route.systemAdmin("/api/v1/p4/product-definitions", "tenant", "list"),
+            Route.systemAdmin("/api/v1/p4/product-definitions/" + UUID_SEGMENT, "tenant", "list"),
+            Route.systemAdmin("/api/v1/p4/product-definitions/" + UUID_SEGMENT + "/config-readiness", "tenant", "list"),
             // AUTH6G3: platform audit event search (the audit center list).
             Route.auditAdmin("/api/v1/audit/events",
                     PlatformDutyCatalog.RESOURCE_AUDIT, PlatformDutyCatalog.ACTION_READ));

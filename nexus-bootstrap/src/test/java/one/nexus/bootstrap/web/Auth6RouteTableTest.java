@@ -29,6 +29,11 @@ class Auth6RouteTableTest {
             "/api/v1/p1/platform/services, tenant, list",
             "/api/v1/p1/platform/form-templates, tenant, list",
             "/api/v1/p1/platform/form-templates/" + ID + ", tenant, list",
+            "/api/v1/p1/tenants/" + ID + "/entitlement, tenant.entitlement, get",
+            "/api/v1/p1/tenants/" + ID + "/quotas, tenant, get",
+            "/api/v1/p4/product-definitions, tenant, list",
+            "/api/v1/p4/product-definitions/" + ID + ", tenant, list",
+            "/api/v1/p4/product-definitions/" + ID + "/config-readiness, tenant, list",
     })
     void systemAdminReadsAreBridged(String uri, String resource, String action) {
         var route = P1PlatformReadContextFilter.route(request("GET", uri)).orElseThrow();
@@ -55,7 +60,11 @@ class Auth6RouteTableTest {
                 "/api/v1/p1/tenants", "/api/v1/p1/tenants/" + ID + "/parent",
                 "/api/v1/p1/platform/form-templates", "/api/v1/p1/platform/form-templates/" + ID,
                 "/api/v1/p1/platform/form-templates/" + ID + "/validate",
-                "/api/v1/p1/platform/form-templates/" + ID + "/publish"}) {
+                "/api/v1/p1/platform/form-templates/" + ID + "/publish",
+                // AUTH6H2 writes stay outside the bridge.
+                "/api/v1/p1/tenants/" + ID + "/quotas/consume", "/api/v1/p1/tenants/" + ID + "/quotas/release",
+                "/api/v1/p4/product-definitions", "/api/v1/p4/product-definitions/" + ID,
+                "/api/v1/p4/product-definitions/import", "/api/v1/p4/product-definitions/" + ID + "/skus"}) {
             assertTrue(P1PlatformReadContextFilter.route(request(method, uri)).isEmpty(), method + " " + uri);
         }
     }
@@ -75,6 +84,15 @@ class Auth6RouteTableTest {
             "/api/v1/audit/traces/abc",
             "/api/v1/audit/chain/verify",
             "/api/v1/p1/tenants/",
+            // AUTH6H2 boundary: only the listed product-definition reads, no export / samples / print / import jobs.
+            "/api/v1/p1/tenants/" + ID + "/config",
+            "/api/v1/p1/tenants/not-a-uuid/quotas",
+            "/api/v1/p4/product-definitions/" + ID + "/export",
+            "/api/v1/p4/product-definitions/" + ID + "/samples/ledger",
+            "/api/v1/p4/product-definitions/" + ID + "/print-mapping",
+            "/api/v1/p4/product-definitions/import-jobs/" + ID,
+            "/api/v1/p4/product-definitions/not-a-uuid",
+            "/api/v1/p4/skus",
     })
     void unlistedGetsAreNotBridged(String uri) {
         assertTrue(P1PlatformReadContextFilter.route(request("GET", uri)).isEmpty(), uri);
