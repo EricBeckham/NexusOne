@@ -58,6 +58,7 @@ async function mountStart(runtime = false) {
 
 describe("provisioned product start form", () => {
   it('keeps the member runtime cancel and breadcrumbs within P3', async () => {
+    mocks.productApplicationForm.mockResolvedValue({ fields });
     const wrapper = await mountStart(true);
     expect(wrapper.html()).not.toContain('/p4/');
     await wrapper.get('[data-testid="start-cancel"]').trigger('click'); await flushPromises();
