@@ -30,7 +30,7 @@ defineProps({
 
 <style scoped>
 /* A compact product row, not a second menu (O8): five marks with short names under a divider. */
-.switcher { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--nx-border); }
+.switcher { margin-top: var(--nx-space-4); padding-top: var(--nx-space-3); border-top: 1px solid var(--nx-border); }
 .switcher p {
   margin: 0 10px 8px;
   font-size: 12px;
