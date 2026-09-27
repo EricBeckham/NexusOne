@@ -19,18 +19,32 @@ describe("AUTH6G5 platform writes are left alone", () => {
 
   it.each([
     ["reparent", () => p1.reparentTenant("t-1", null)],
-    ["create form template", () => p1.createFormTemplate({ name: "x" })],
-    ["publish form template", () => p1.publishFormTemplate("f-1")],
     // AUTH6G6: chain verify is a POST and is not bridged.
     ["verify audit chain", () => audit.verifyChain()],
     // AUTH6H3: writes around the new reads stay as they were.
-    ["create product definition", () => p4.createProductDefinition({ name: "x" })],
     ["consume quota", () => p1.consume("t-1", { metric: "APP", amount: 1 })],
   ])("%s keeps its existing unauthenticated options", async (_, call) => {
     await call();
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers.Authorization).toBeUndefined();
     expect(init.headers["X-Nexus-Context-Id"]).toBeUndefined();
+  });
+
+  it.each([
+    ["create template", () => p1.createFormTemplate({ name: "x" })],
+    ["publish template", () => p1.publishFormTemplate("f-1")],
+    ["create product", () => p4.createProductDefinition({ name: "x" })],
+    ["create app", () => p4.createApp({ code: "expense" })],
+    ["create version", () => p4.createVersion("a-1", { version: "1.0" })],
+    ["publish app", () => p4.transition("v-1", "publish")],
+    ["create SKU", () => p4.createSku({ code: "expense.standard" })],
+    ["approve activation", () => p4.approveActivation("r-1", "批准")],
+  ])("%s sends real issued identity", async (_, call) => {
+    await call();
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers.Authorization).toBe("Bearer access-token-value");
+    expect(init.headers["X-Nexus-Context-Id"]).toBe("ctx-platform");
+    expect(init.headers["X-Tenant-Id"]).toBeUndefined();
   });
 });
 
