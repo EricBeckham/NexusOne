@@ -50,6 +50,8 @@ DL 真机分册：[真机演示 runbook](../engineering/runbooks/demo-host-realh
 
 ### 1.4 受控演示账号
 
+三人创建及邮箱/subject 对应见 [DEMO-U4 Keycloak 三人 runbook](../engineering/runbooks/demo-u4-keycloak-three-users.md)；须先冻结 DEMO-U3 邮箱表，用户名不代替 IAM 权限，本文不代签真实用户验收。
+
 - [ ] 至少一个**受控**演示用户（非本地 stub token）；口令/身份源由 IdP 管理，不写入本仓库。
 - [ ] 账号具备完成一次「登录 → 建立 tenant context → 只读打开主路径页」的最小权限。
 - [ ] 验收记录只写账号**显示名 / subject 类型**，不写口令。
