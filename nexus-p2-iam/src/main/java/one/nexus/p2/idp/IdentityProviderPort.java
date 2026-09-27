@@ -57,6 +57,14 @@ public interface IdentityProviderPort {
         return exchangeAuthorizationCode(code, redirectUri);
     }
 
+    /**
+     * AUTH7R1: refresh-token grant. Returns the new token set (the IdP may rotate the refresh token).
+     * Default is unsupported, which callers treat as "sign in again".
+     */
+    default TokenSet refresh(String refreshToken) {
+        throw new UnsupportedOperationException("refresh is not supported by this IdP");
+    }
+
     IdentityClaims validate(String accessToken);
 
     Optional<IdentityClaims> userInfo(String accessToken);
