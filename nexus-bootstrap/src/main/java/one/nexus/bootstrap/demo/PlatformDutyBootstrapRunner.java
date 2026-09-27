@@ -34,7 +34,10 @@ public class PlatformDutyBootstrapRunner implements ApplicationRunner {
             return;
         }
         PlatformDutyBootstrap.refuseDemoContext(env);
+        // Permission JDBC may own a different datasource/transaction. Commit the
+        // person first so a later grant failure cannot leave a dangling principal.
+        transaction.executeWithoutResult(status ->
+                P2DemoSeedConfiguration.ensureU2Identities(jdbc, properties.getPlatformTenant().getId()));
         PlatformDutyBootstrap.install(permissions, properties.getPlatformTenant().getId());
-        transaction.executeWithoutResult(status -> P2DemoSeedConfiguration.alignIdentities(jdbc));
     }
 }

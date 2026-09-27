@@ -12,7 +12,7 @@
 
 1. 确认 `NEXUS_P1_DEMO_CONTEXT_ENABLED` 未设置或为 `false`。不要打开它，也不要靠演示身份头代替这次安装。
 2. 将 `NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED` 设为 `true`。
-3. 用已合入 `main` 的构建重启一次。启动任务在配置的平台租户上安装职责目录，并在尚未挂接时把上述 person 赋为 `platform_system_admin`。同一窗口会按固定 id 对齐已有身份；固定账号行还不存在时，这次重启不会插入它们。重复启动不会再插一条授权。
+3. 用包含 ID1、已合入 `main` 的构建重启一次。启动任务先事务性插入或对齐 U3 三套固定身份，确保 person `…0222` 存在，随后才安装职责并赋为 `platform_system_admin`。不依赖 `NEXUS_DEMO_ENABLED`，无需回环数据库；保持该开关关闭。重复启动不重复插入身份或授权。邮箱冲突、固定行归属不符会诚实拒启，详见 [ID1 / ID3](id1-u2-identity-bootstrap.md)。
 4. 验收平台只读列表的前提已满足后，把 `NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED` 设回 `false` 再重启。已写入的角色和授权保留。AUTH6 自己的 `NEXUS_P1_PLATFORM_READ_CONTEXT_ENABLED` 仍按该卡单独开关，本任务不代开。
 
 若两个开关同时为 `true`，进程拒绝启动，不安装职责，也不回退到演示上下文。错误只报变量名。

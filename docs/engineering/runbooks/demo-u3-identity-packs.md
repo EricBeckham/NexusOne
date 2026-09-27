@@ -12,4 +12,4 @@
 
 同一账号不得同时在平台租户和 `demo_acme` 上保持 ACTIVE。平台侧已有 person 的账号，其 `demo_acme` 成员资格改为 `SUSPENDED`；只有 `demo_acme` person 的账号，其平台成员资格改为 `SUSPENDED`。
 
-本地演示开关打开时，P2 种子会做上述对齐。演示机不打开 `NEXUS_DEMO_ENABLED` / `NEXUS_P1_DEMO_CONTEXT_ENABLED` 时，沿用 DEMO-U2 的一次性启动任务：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 且演示上下文保持 false，重启一次会安装平台职责并执行同样的身份对齐。没有 Flyway。
+本地演示开关打开时，P2 种子会做上述对齐。包含 ID1 的构建在演示机上保持 `NEXUS_DEMO_ENABLED=false` / `NEXUS_P1_DEMO_CONTEXT_ENABLED=false`，沿用 DEMO-U2 的一次性启动任务：`NEXUS_PLATFORM_DUTY_BOOTSTRAP_ENABLED=true` 会先补齐缺失固定身份、对齐已有行，再安装平台职责。无需回环数据库，没有 Flyway。冲突策略及关闭窗口见 [ID1 / ID3](id1-u2-identity-bootstrap.md)；文档不代表已部署或真实 Keycloak 验收。
