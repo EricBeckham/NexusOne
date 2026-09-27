@@ -58,6 +58,7 @@ public final class SessionService {
     private final AuditPort audits;
     private final AdminMfaPolicy mfaPolicy;
     private volatile TenantLabelPort tenantLabels = TenantLabelPort.NONE;
+    private final LogoutHintStore logoutHints;
 
     /** DEMO-U6: wire tenant labels (code / name) into membership views; null resets to none. */
     public void useTenantLabels(TenantLabelPort labels) {
@@ -100,6 +101,12 @@ public final class SessionService {
         this.contextTtl = contextTtl;
         this.audits = audits;
         this.mfaPolicy = mfaPolicy == null ? AdminMfaPolicy.forced() : mfaPolicy;
+        this.logoutHints = new LogoutHintStore(clock);
+    }
+
+    /** LO2: server-held IdP logout hints (id_token / refresh_token); never part of a {@link SessionView}. */
+    public LogoutHintStore logoutHints() {
+        return logoutHints;
     }
 
     public IdentityProviderPort.AuthorizeUrl authorizationUrl(String state, String redirectUri) {
@@ -121,16 +128,17 @@ public final class SessionService {
 
     public SessionView loginWithCode(String code, String redirectUri, String codeVerifier) {
         IdentityProviderPort.TokenSet tokens = idp.exchangeAuthorizationCode(code, redirectUri, codeVerifier);
-        return loginWithAccessToken(tokens.accessToken(), true);
+        return loginWithAccessToken(tokens.accessToken(), true, tokens);
     }
 
     public SessionView loginWithAccessToken(String accessToken) {
         // Token-based provisioning can precede membership assignment. Auth-code
         // login, however, must not silently return an unusable tenant session.
-        return loginWithAccessToken(accessToken, false);
+        return loginWithAccessToken(accessToken, false, null);
     }
 
-    private SessionView loginWithAccessToken(String accessToken, boolean requireActiveMembership) {
+    private SessionView loginWithAccessToken(
+            String accessToken, boolean requireActiveMembership, IdentityProviderPort.TokenSet exchanged) {
         boolean accepted = false;
         try {
             IdentityProviderPort.IdentityClaims claims;
@@ -155,6 +163,11 @@ public final class SessionService {
                     : new SessionView(
                             account.id(), account.email(), account.displayName(), null, null, null, memberships, accessToken);
             accepted = true;
+            if (exchanged != null) {
+                // LO2: keep the IdP tokens server-side for RP logout; the SPA only ever gets the access token.
+                logoutHints.remember(claims.subject(), exchanged.idToken(), exchanged.refreshToken(),
+                        clock.instant().plus(contextTtl));
+            }
             appendLogin(true, view.tenantId(), view.accountId(), view.contextId(), "accepted", Map.of(
                     "email", account.email(),
                     "account_id", account.id().toString(),
@@ -224,11 +237,48 @@ public final class SessionService {
                 null);
     }
 
+    /** LO3: {@code endSessionUrl} is empty when there was no IdP hint; the browser may then still hold an SSO session. */
+    public record LogoutResult(String endSessionUrl) {
+        public boolean hasEndSessionUrl() {
+            return endSessionUrl != null && !endSessionUrl.isBlank();
+        }
+    }
+
     public void logout(AuthenticatedIdentity identity, String refreshToken, String idTokenHint) {
+        logout(identity, refreshToken, idTokenHint, null);
+    }
+
+    /**
+     * Clears the app session, then best-effort ends the IdP session: back-channel with the server-held hint
+     * (failures never block logout), and an RP-initiated logout URL for the browser when a hint and an allowed
+     * {@code postLogoutRedirectUri} exist.
+     */
+    public LogoutResult logout(
+            AuthenticatedIdentity identity, String refreshToken, String idTokenHint, String postLogoutRedirectUri) {
         TenantContext current = TenantContextHolder.get();
+        // LO2: the session is over, so its IdP hint is spent too (take = read once and drop).
+        LogoutHintStore.Hint hint = logoutHints.take(identity.claims().subject()).orElse(null);
         repository.revokeContextsForAccount(identity.account().id());
         TenantContextHolder.clear();
-        idp.logout(refreshToken, idTokenHint);
+        String refresh = firstNonBlank(refreshToken, hint == null ? null : hint.refreshToken());
+        String idToken = firstNonBlank(idTokenHint, hint == null ? null : hint.idToken());
+        String backChannel = "skipped";
+        if (refresh != null || idToken != null) {
+            try {
+                idp.logout(refresh, idToken);
+                backChannel = "ok";
+            } catch (RuntimeException ignored) {
+                backChannel = "failed"; // best-effort; the browser redirect below still ends the SSO session
+            }
+        }
+        String endSessionUrl = "";
+        if (idToken != null && postLogoutRedirectUri != null && !postLogoutRedirectUri.isBlank()) {
+            try {
+                endSessionUrl = idp.endSessionUrl(idToken, postLogoutRedirectUri).orElse("");
+            } catch (RuntimeException ignored) {
+                endSessionUrl = "";
+            }
+        }
         if (audits != null) {
             audits.append(AuditCaptures.logout(
                     current == null ? null : current.tenantId(),
@@ -238,8 +288,18 @@ public final class SessionService {
                             : current.contextId().toString(),
                     "logout",
                     TraceIds.currentOrUnknown(),
-                    Map.of("account_id", identity.account().id().toString())));
+                    Map.of("account_id", identity.account().id().toString(),
+                            "idp_backchannel", backChannel,
+                            "end_session", endSessionUrl.isEmpty() ? "absent" : "issued")));
         }
+        return new LogoutResult(endSessionUrl);
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        return second == null || second.isBlank() ? null : second;
     }
 
     public AuthenticatedIdentity authenticate(String accessToken) {

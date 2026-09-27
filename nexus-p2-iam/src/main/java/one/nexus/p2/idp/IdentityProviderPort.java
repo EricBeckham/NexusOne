@@ -63,6 +63,15 @@ public interface IdentityProviderPort {
 
     void logout(String refreshToken, String idTokenHint);
 
+    /**
+     * LO3: browser (RP-initiated) logout URL that ends the IdP SSO session and returns to
+     * {@code postLogoutRedirectUri}. Empty when the IdP has no such endpoint or no hint is available.
+     * Never carries a client secret.
+     */
+    default java.util.Optional<String> endSessionUrl(String idTokenHint, String postLogoutRedirectUri) {
+        return java.util.Optional.empty();
+    }
+
     ProvisionedUser ensureUser(String email, String username, String displayName);
 
     /**
