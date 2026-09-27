@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { loadSettings, p2, saveSettings } from "./client";
+import { loadSettings, onAccessTokenRenewed, p2, saveSettings } from "./client";
 
 export const session = reactive({
   accessToken: "",
@@ -42,6 +42,11 @@ function hydrate() {
 }
 
 hydrate();
+
+// AUTH7R2: keep the in-memory session on the renewed token, so a later persist() never writes the expired one back.
+onAccessTokenRenewed((token) => {
+  session.accessToken = token;
+});
 
 export function persist() {
   saveSettings({
