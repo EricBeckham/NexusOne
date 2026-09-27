@@ -1,0 +1,10 @@
+{
+  "migration": "V707__market_print_mapping.sql",
+  "tables": {
+    "market.print_mapping": ["product_definition_id", "template_code", "paper", "orientation", "mappings", "revision", "updated_at", "updated_by"],
+    "market.print_mapping_revision": ["product_definition_id", "revision", "template_code", "paper", "orientation", "mappings", "saved_at", "saved_by"]
+  },
+  "example": {"template_code": "builtin.approval-form.a4.v1", "paper": "A4", "orientation": "PORTRAIT", "revision": 1, "mappings": [{"fieldKey": "title", "slotId": "header.title"}]},
+  "outOfOrder": false,
+  "note": "Schema-only fixture, not a persisted real document; revision 0 is default and is not stored."
+}
