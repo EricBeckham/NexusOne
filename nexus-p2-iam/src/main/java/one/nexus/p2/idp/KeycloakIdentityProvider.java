@@ -159,6 +159,18 @@ public final class KeycloakIdentityProvider implements IdentityProviderPort {
     }
 
     @Override
+    public Optional<String> endSessionUrl(String idTokenHint, String postLogoutRedirectUri) {
+        if (idTokenHint == null || idTokenHint.isBlank()
+                || postLogoutRedirectUri == null || postLogoutRedirectUri.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(issuer + "/protocol/openid-connect/logout"
+                + "?client_id=" + enc(clientId)
+                + "&id_token_hint=" + enc(idTokenHint)
+                + "&post_logout_redirect_uri=" + enc(postLogoutRedirectUri));
+    }
+
+    @Override
     public void setPassword(String subject, String password) {
         if (subject == null || subject.isBlank()) {
             throw new IllegalArgumentException("subject is required");
