@@ -67,6 +67,7 @@ public class TenantMemberGrantSeeder {
 
     private final PermissionModule permission;
     private final one.nexus.p2.domain.IdentityRepository identity;
+    private final MemberAccessMode mode;
     private final ConcurrentHashMap<UUID, Object> locks = new ConcurrentHashMap<>();
 
     public TenantMemberGrantSeeder(PermissionModule permission) {
@@ -75,9 +76,24 @@ public class TenantMemberGrantSeeder {
 
     /** With an identity repository the seeder also gives tenant admins the process designer role (PV4). */
     public TenantMemberGrantSeeder(PermissionModule permission, one.nexus.p2.domain.IdentityRepository identity) {
+        this(permission, identity, MemberAccessMode.LEGACY);
+    }
+
+    /**
+     * PLA5: in {@link MemberAccessMode#POSITION} the seeder only keeps the {@code tenant_member} / designer role
+     * definitions and grants current; it no longer assigns them to each person — position bindings do that.
+     */
+    public TenantMemberGrantSeeder(PermissionModule permission, one.nexus.p2.domain.IdentityRepository identity,
+            MemberAccessMode mode) {
         this.permission = permission;
         this.identity = identity;
+        this.mode = mode == null ? MemberAccessMode.LEGACY : mode;
     }
+
+    public MemberAccessMode mode() {
+        return mode;
+    }
+
 
     /**
      * No-op when the seeder bean is off (permission-core ITs) or the provider
@@ -108,14 +124,28 @@ public class TenantMemberGrantSeeder {
         PolicyRepository repository = permission.repository();
         PolicyAdminService admin = permission.admin();
         UUID tenantId = context.tenantId();
-        RoleRecord role = repository.findRoleByCode(tenantId, ROLE_CODE).orElseGet(
-                () -> admin.createRole(ROLE_CODE, "Tenant member", true));
+        RoleRecord role = ensureMemberRole(tenantId);
+        if (mode == MemberAccessMode.POSITION) {
+            // PLA5: roles stay defined; people get them through position bindings only.
+            ensureDesignerRole(tenantId);
+            return;
+        }
         String personId = context.personId().toString();
         boolean assigned = repository.listAssignments(tenantId).stream()
                 .anyMatch(item -> matchesAssignment(item, personId, role.id()));
         if (!assigned) {
             admin.assign("user", personId, role.id());
         }
+        if (isTenantAdmin(context)) {
+            ensureDesigner(context, personId);
+        }
+    }
+
+    private RoleRecord ensureMemberRole(UUID tenantId) {
+        PolicyRepository repository = permission.repository();
+        PolicyAdminService admin = permission.admin();
+        RoleRecord role = repository.findRoleByCode(tenantId, ROLE_CODE).orElseGet(
+                () -> admin.createRole(ROLE_CODE, "Tenant member", true));
         for (String[] pair : GRANTS) {
             String resource = pair[0];
             String action = pair[1];
@@ -139,15 +169,12 @@ public class TenantMemberGrantSeeder {
                 admin.revokeGrant(grant.id());
             }
         }
-        if (isTenantAdmin(context)) {
-            ensureDesigner(context, personId);
-        }
+        return role;
     }
 
-    private void ensureDesigner(TenantContext context, String personId) {
+    private RoleRecord ensureDesignerRole(UUID tenantId) {
         PolicyRepository repository = permission.repository();
         PolicyAdminService admin = permission.admin();
-        UUID tenantId = context.tenantId();
         RoleRecord designer = repository.findRoleByCode(tenantId, DESIGNER_ROLE).orElseGet(
                 () -> admin.createRole(DESIGNER_ROLE, "流程设计（租户管理）", true));
         for (String[] pair : DESIGNER_GRANTS) {
@@ -158,6 +185,14 @@ public class TenantMemberGrantSeeder {
                         DataScopeKind.ALL, List.of(), Map.of());
             }
         }
+        return designer;
+    }
+
+    private void ensureDesigner(TenantContext context, String personId) {
+        PolicyRepository repository = permission.repository();
+        PolicyAdminService admin = permission.admin();
+        UUID tenantId = context.tenantId();
+        RoleRecord designer = ensureDesignerRole(tenantId);
         boolean assigned = repository.listAssignments(tenantId).stream()
                 .anyMatch(item -> matchesAssignment(item, personId, designer.id()));
         if (!assigned) {

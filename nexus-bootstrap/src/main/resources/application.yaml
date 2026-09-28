@@ -127,6 +127,9 @@ nexus:
       password: ${NEXUS_PERMISSION_JDBC_PASSWORD:${spring.datasource.password}}
       migrate: false
     seed-tenant-member-grants: ${NEXUS_PERMISSION_SEED_TENANT_MEMBER_GRANTS:true}
+    # PLA5: legacy = every member seeded personally + all installed portal entries shown;
+    # position = member roles only via position bindings + portal entries by fn.* grants.
+    member-access: ${NEXUS_PERMISSION_MEMBER_ACCESS:legacy}
     snapshot-load-timeout: ${NEXUS_PERM_SNAPSHOT_LOAD_TIMEOUT:2s}
   cache:
     env: ${NEXUS_CACHE_ENV:dev}
