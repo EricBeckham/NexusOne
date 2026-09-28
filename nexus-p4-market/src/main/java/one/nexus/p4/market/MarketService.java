@@ -42,6 +42,13 @@ public class MarketService {
     private final AuditPort audit;
     private final ProductDefaultPermissionProvisioner permissionPacks;
     private final AppDesignService appDesign;
+    /** PLB7: product-native SKUs install through app instances; legacy single-app SKUs keep the paths below. */
+    private AppInstanceService appInstances;
+
+    @Autowired(required = false)
+    void useAppInstances(AppInstanceService appInstances) {
+        this.appInstances = appInstances;
+    }
 
     @Autowired
     public MarketService(MarketRepository market, TenantRepository tenants,
@@ -177,12 +184,42 @@ public class MarketService {
 
 
     /**
+     * PLB7: tenant-admin self-service subscription to a product-native SKU — installs every application of the
+     * product as a tenant instance and lands their role packs.
+     */
+    @Transactional
+    public List<AppInstanceService.AppInstance> subscribeProductSku(UUID tenantId, String skuCode) {
+        assertTenant(requireTenantId(), tenantId);
+        requireTenantAdmin(tenantId);
+        return requireAppInstances().subscribe(tenantId, skuCode);
+    }
+
+    /** PLB7: the current tenant's application instances. */
+    @Transactional(readOnly = true)
+    public List<AppInstanceService.AppInstance> appInstances() {
+        requireTenantId();
+        return requireAppInstances().current();
+    }
+
+    private AppInstanceService requireAppInstances() {
+        if (appInstances == null) throw new IllegalStateException("app instance service is required for product SKUs");
+        return appInstances;
+    }
+
+    private boolean productNative(String skuCode) {
+        return market.sku(skuCode).map(AppInstanceService::productNative).orElse(false);
+    }
+
+    /**
      * Tenant-admin 开通申请 — PENDING until platform approves. No payment; no install yet.
      */
     @Transactional
     public ActivationApplication requestActivation(UUID tenantId, String skuCode, UUID versionId) {
         assertTenant(requireTenantId(), tenantId);
         requireTenantAdmin(tenantId);
+        if (productNative(skuCode)) {
+            return requestProductActivation(tenantId, skuCode, versionId);
+        }
         ProductDefinition definition = market.productDefinitionForSku(skuCode)
                 .orElseThrow(() -> new NexusException(SUBSCRIBE_DEFINITION_MISSING, 404,
                         "catalog SKU has no product definition"));
@@ -217,6 +254,28 @@ public class MarketService {
         return application;
     }
 
+    /** PLB7: product-native SKUs pin their versions per application, so the request carries none. */
+    private ActivationApplication requestProductActivation(UUID tenantId, String skuCode, UUID versionId) {
+        if (versionId != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "a product SKU is requested without a version");
+        }
+        requireAppInstances().plan(skuCode);
+        if (market.hasActiveSubscription(tenantId, skuCode)) {
+            throw new NexusException(SUBSCRIBE_CONFLICT, 409, "tenant already has an active subscription for this SKU");
+        }
+        if (market.activationApplicationsForCurrentTenant().stream().anyMatch(row ->
+                row.skuCode().equals(skuCode) && row.status() == ActivationApplicationStatus.PENDING)) {
+            throw new NexusException(SUBSCRIBE_CONFLICT, 409,
+                    "tenant already has a pending activation application for this SKU");
+        }
+        AccessContext context = AccessContextHolder.current();
+        UUID actorId = UUID.fromString(((TenantContext) context).actor().actorId());
+        ActivationApplication application = new ActivationApplication(UUID.randomUUID(), tenantId, skuCode, null,
+                ActivationApplicationStatus.PENDING, null, null, null, null, null, clock.instant(), actorId);
+        market.saveActivationApplication(application);
+        return application;
+    }
+
     @Transactional(readOnly = true)
     public List<ActivationApplication> activationApplications() {
         return market.activationApplications();
@@ -243,12 +302,13 @@ public class MarketService {
         if (current.status() != ActivationApplicationStatus.PENDING) {
             throw new NexusException(ACTIVATION_INVALID_STATE, 400, "activation application is not pending");
         }
-        Installation installation = activatePending(current);
+        Installation installation = activatePending(current); // null for product SKUs (PLB7): they install app instances
+        UUID installationId = installation == null ? null : installation.id();
         Instant now = clock.instant();
         ActivationApplication next = new ActivationApplication(
                 current.id(), current.tenantId(), current.skuCode(), current.versionId(),
                 ActivationApplicationStatus.APPROVED, blankToNull(note), now, reviewer,
-                null, installation.id(), current.createdAt(), current.createdBy());
+                null, installationId, current.createdAt(), current.createdBy());
         market.saveActivationApplication(next);
         if (audit != null) {
             String trace = AccessContextHolder.currentOrNull() == null
@@ -257,7 +317,8 @@ public class MarketService {
             audit.append(new AuditEvent(UUID.randomUUID(), "market.activation.approved", AuditEvent.VERSION,
                     now, current.tenantId(), reviewer, one.nexus.p2.kernel.TenantContextHolder.require().tenantId(), true, note, trace, trace, null,
                     AuditEvent.OUTCOME_ACCEPTED, "activation_application", current.id().toString(),
-                    Map.of("sku_code", current.skuCode(), "installation_id", installation.id().toString())));
+                    Map.of("sku_code", current.skuCode(),
+                            "installation_id", installationId == null ? "app_instances" : installationId.toString())));
         }
         return next;
     }
@@ -293,6 +354,11 @@ public class MarketService {
 
     /** Run install+pin+packs for a pending application without re-checking tenant-admin (platform path). */
     private Installation activatePending(ActivationApplication application) {
+        if (productNative(application.skuCode())) {
+            // PLB7: install every application of the product into the application's tenant; role packs via C3.
+            requireAppInstances().installApproved(PlatformActivationCommand.forProduct(application));
+            return null;
+        }
         ProductDefinition definition = market.productDefinitionForSku(application.skuCode())
                 .orElseThrow(() -> new NexusException(SUBSCRIBE_DEFINITION_MISSING, 404,
                         "catalog SKU has no product definition"));

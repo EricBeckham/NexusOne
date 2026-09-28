@@ -419,7 +419,8 @@ public class JdbcMarketRepository implements MarketRepository {
         var expected=command.application();
         var stored=activationApplication(expected.id()).orElseThrow(()->new SecurityException("activation missing"));
         if(stored.status()!=ActivationApplicationStatus.PENDING || !stored.tenantId().equals(expected.tenantId())
-                || !stored.skuCode().equals(expected.skuCode()) || !stored.versionId().equals(expected.versionId()))
+                || !stored.skuCode().equals(expected.skuCode())
+                || !java.util.Objects.equals(stored.versionId(), expected.versionId())) // PLB7: NULL for product SKUs
             throw new SecurityException("activation capability does not match stored pending application");
     }
     @Override public void saveApprovedSubscription(PlatformActivationCommand command,Subscription row) {

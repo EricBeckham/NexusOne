@@ -6,13 +6,17 @@ import one.nexus.p1.domain.PlatformDuty;
 import one.nexus.p1.infra.isolation.IsolationContextHolder;
 import one.nexus.p1.port.IsolationGuard.IsolationSnapshot;
 import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.permission.pack.ApprovedTenantWrite;
 import one.nexus.p4.market.MarketModels.ActivationApplication;
 import one.nexus.p4.market.MarketModels.ActivationApplicationStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Request-bound capability, minted only from the server's locked pending application. Never an HTTP DTO. */
-public final class PlatformActivationCommand {
+/**
+ * Request-bound capability, minted only from the server's locked pending application. Never an HTTP DTO.
+ * PLB7: also the {@link ApprovedTenantWrite} the permission module needs to land role packs in the target tenant.
+ */
+public final class PlatformActivationCommand implements ApprovedTenantWrite {
     private final ActivationApplication application;
     private final IsolationSnapshot snapshot;
     private final UUID contextId;
@@ -21,9 +25,14 @@ public final class PlatformActivationCommand {
         requireOperator();
         if(application.status()!=ActivationApplicationStatus.PENDING) throw new ResponseStatusException(HttpStatus.CONFLICT,"activation is not pending");
         this.application=application; this.snapshot=IsolationContextHolder.get(); this.contextId=TenantContextHolder.require().contextId();
-        this.definition=java.util.Objects.requireNonNull(definition);
+        this.definition=definition;
     }
-    static PlatformActivationCommand forPending(ActivationApplication application,MarketModels.ProductDefinition definition) { return new PlatformActivationCommand(application,definition); }
+    static PlatformActivationCommand forPending(ActivationApplication application,MarketModels.ProductDefinition definition) {
+        return new PlatformActivationCommand(application,java.util.Objects.requireNonNull(definition));
+    }
+    /** PLB7: a product-native SKU has no legacy ProductDefinition; its apps come from market.product_app. */
+    static PlatformActivationCommand forProduct(ActivationApplication application) { return new PlatformActivationCommand(application,null); }
+    @Override public UUID targetTenantId() { assertActive(); return application.tenantId(); }
     static UUID requireOperator() {
         var snapshot=IsolationContextHolder.get(); var context=TenantContextHolder.get();
         if(context==null || context.expired(java.time.Instant.now()) || snapshot==null || snapshot.platform()==null || !snapshot.platform().active()
@@ -40,8 +49,8 @@ public final class PlatformActivationCommand {
             throw new SecurityException("activation capability is outside its issuing request");
     }
     public void assertTenant(UUID tenant) { assertActive(); if(!application.tenantId().equals(tenant)) throw new SecurityException("activation target mismatch"); }
-    public void assertDefinition(MarketModels.ProductDefinition value) { assertActive(); if(!definition.equals(value)) throw new SecurityException("activation product snapshot mismatch"); }
+    public void assertDefinition(MarketModels.ProductDefinition value) { assertActive(); if(definition==null || !definition.equals(value)) throw new SecurityException("activation product snapshot mismatch"); }
     public ActivationApplication application() { return application; }
-    public UUID actorId() { assertActive(); return snapshot.actorId(); }
-    public String traceId() { assertActive(); return snapshot.traceId(); }
+    @Override public UUID actorId() { assertActive(); return snapshot.actorId(); }
+    @Override public String traceId() { assertActive(); return snapshot.traceId(); }
 }

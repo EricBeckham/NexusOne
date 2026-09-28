@@ -54,7 +54,25 @@ public class MarketIsolationConfiguration {
                         "resulting_subscription_id",
                         "resulting_installation_id",
                         "created_at",
-                        "created_by");
+                        "created_by")
+                // PLB7 / PLX1 C4: tenant application instances, read by AppInstanceQuery.
+                .registerTenant(
+                        "market.app_instance",
+                        "nexus-p4-market",
+                        1,
+                        "id",
+                        "tenant_id",
+                        "product_id",
+                        "sku_code",
+                        "subscription_id",
+                        "app_id",
+                        "app_version_id",
+                        "status",
+                        "mode",
+                        "entries",
+                        "revision",
+                        "created_at",
+                        "changed_at");
         return IsolationKernel.create(tables.freeze(), Set.of(), sink);
     }
 }
