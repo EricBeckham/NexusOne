@@ -32,6 +32,14 @@
       "purpose": "APPROVE",
       "layout": { "sections": [ { "title": "申请内容", "fields": ["title", "days", "start_at", "reason"] } ] },
       "readonly_fields": ["title", "days", "start_at", "reason"]
+    },
+    {
+      "code": "leave_view",
+      "name": "请假记录",
+      "ledger_code": "leave",
+      "purpose": "VIEW",
+      "layout": { "sections": [ { "title": "请假记录", "fields": ["title", "days", "start_at", "reason"] } ] },
+      "readonly_fields": ["title", "days", "start_at", "reason"]
     }
   ],
   "processes": [
@@ -40,7 +48,8 @@
       "name": "请假审批",
       "form_code": "leave_apply",
       "nodes": [
-        { "id": "n1", "name": "部门审批", "assignee": { "type": "ROLE", "ref": "leave_approver" } }
+        { "id": "n1", "name": "部门审批", "form_code": "leave_approve", "assignee": { "type": "ROLE", "ref": "leave_approver" } },
+        { "id": "n2", "name": "人事备案", "form_code": "leave_approve", "assignee": { "type": "POSITION", "ref": "hr_clerk" } }
       ]
     }
   ],
@@ -57,9 +66,7 @@
       "code": "leave_approver",
       "name": "请假审批人",
       "grants": [
-        { "resource": "fn.leave.leave_apply", "action": "read", "scope": "DEPT_AND_CHILDREN" },
-        { "resource": "fn.leave.leave_approve", "action": "read", "scope": "DEPT_AND_CHILDREN" },
-        { "resource": "fn.leave.leave_approve", "action": "write", "scope": "DEPT_AND_CHILDREN" }
+        { "resource": "fn.leave.leave_view", "action": "read", "scope": "DEPT_AND_CHILDREN" }
       ]
     }
   ],
@@ -69,6 +76,7 @@
       "app_code": "leave",
       "form_code": "leave_apply",
       "ledger_code": "leave",
+      "process_key": "leave_approval",
       "name": "请假申请",
       "icon": "calendar",
       "kind": "FILL",
@@ -76,13 +84,14 @@
       "sort": 10
     },
     {
-      "key": "fn:leave:leave_approve",
+      "key": "fn:leave:leave_view",
       "app_code": "leave",
-      "form_code": "leave_approve",
+      "form_code": "leave_view",
       "ledger_code": "leave",
-      "name": "请假审批",
-      "icon": "check",
-      "kind": "VIEW",
+      "process_key": null,
+      "name": "请假记录",
+      "icon": "list",
+      "kind": "LIST",
       "default_group": "办公",
       "sort": 20
     }
