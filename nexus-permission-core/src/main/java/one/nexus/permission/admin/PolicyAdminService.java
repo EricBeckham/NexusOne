@@ -105,6 +105,31 @@ public final class PolicyAdminService {
         return saved;
     }
 
+    /** PLA1: removes one role assignment of the current tenant and republishes the policy. False when absent. */
+    public boolean unassign(UUID assignmentId) {
+        TenantContext context = TenantContextHolder.require();
+        PolicyRepository.AssignmentRecord existing = repository.listAssignments(context.tenantId()).stream()
+                .filter(item -> item.id().equals(assignmentId))
+                .findFirst()
+                .orElse(null);
+        if (existing == null || !repository.deleteAssignment(context.tenantId(), assignmentId)) {
+            return false;
+        }
+        bump(context.tenantId());
+        appendPermission(
+                false,
+                context,
+                "role_assignment",
+                String.valueOf(existing.roleCode()),
+                "unassigned",
+                Map.of(
+                        "principal_type", existing.principalType(),
+                        "principal_id", existing.principalId(),
+                        "role_id", existing.roleId().toString(),
+                        "role_code", String.valueOf(existing.roleCode())));
+        return true;
+    }
+
     public PolicyRepository.GrantRecord grant(
             String effect,
             String principalType,

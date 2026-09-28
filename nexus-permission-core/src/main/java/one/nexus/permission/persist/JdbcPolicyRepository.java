@@ -100,6 +100,13 @@ public final class JdbcPolicyRepository implements PolicyRepository {
     }
 
     @Override
+    public boolean deleteAssignment(UUID tenantId, UUID assignmentId) {
+        return jdbc.update(
+                "UPDATE iam.perm_assignment SET deleted_at = now() WHERE tenant_id = ? AND id = ? AND deleted_at IS NULL",
+                tenantId, assignmentId) > 0;
+    }
+
+    @Override
     public List<AssignmentRecord> listAssignments(UUID tenantId) {
         return jdbc.query(
                 """

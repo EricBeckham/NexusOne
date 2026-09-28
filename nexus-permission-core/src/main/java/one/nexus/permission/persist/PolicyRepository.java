@@ -23,6 +23,9 @@ public interface PolicyRepository {
 
     List<AssignmentRecord> listAssignments(UUID tenantId);
 
+    /** PLA1: soft-removes one role assignment of this tenant; false when it was not there. */
+    boolean deleteAssignment(UUID tenantId, UUID assignmentId);
+
     Set<String> roleCodesFor(UUID tenantId, String userId, Set<String> positionIds, Set<String> departmentIds);
 
     GrantRecord saveGrant(GrantRecord grant);
