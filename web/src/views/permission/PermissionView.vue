@@ -379,6 +379,24 @@ function newFieldRule() {
   return { name: "", visible: true, editable: false, mask: "NONE", secondAuthorization: false };
 }
 
+/**
+ * The product API answers in snake_case (principal_type, scope_kind, …) while this page reads camelCase; without this
+ * the subject and scope columns rendered empty. Keys inside `fields` are field names and are left untouched.
+ */
+function camelize(value, keepKeys = false) {
+  if (Array.isArray(value)) return value.map((item) => camelize(item));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+    keepKeys ? key : key.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase()),
+    key === "fields" ? mapValues(item) : camelize(item),
+  ]));
+}
+
+function mapValues(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return camelize(value);
+  return Object.fromEntries(Object.entries(value).map(([name, rule]) => [name, camelize(rule)]));
+}
+
 function normalizeError(reason) {
   if (!reason) return "加载权限数据失败";
   traceId.value = reason.traceId || reason.body?.trace_id || reason.body?.traceId || "";
@@ -414,7 +432,7 @@ async function load() {
     perm.grants(),
   ]);
   [matrix, snapshot, roles, assignments, grants].forEach((target, index) => {
-    if (results[index].status === "fulfilled") target.value = results[index].value;
+    if (results[index].status === "fulfilled") target.value = camelize(results[index].value);
   });
   const failure = results.find((result) => result.status === "rejected");
   if (failure) error.value = normalizeError(failure.reason);
