@@ -10,6 +10,16 @@ export function portalModules() {
   return api("/api/v1/p3/portal/home-modules");
 }
 
+/** PLC3 replace the tenant menu. Body is `{ items }`. */
+export function replacePortalMenu(body) {
+  return api("/api/v1/p3/portal/menu", { method: "PUT", body });
+}
+
+/** PLC3 replace home modules. Body is `{ modules }`. */
+export function replacePortalModules(body) {
+  return api("/api/v1/p3/portal/home-modules", { method: "PUT", body });
+}
+
 /**
  * PLA6 / C5. Filters the candidate keys down to the ones this member may read.
  * The response is `{ entries: string[] }`.
