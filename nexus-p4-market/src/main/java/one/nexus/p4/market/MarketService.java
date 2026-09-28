@@ -128,9 +128,7 @@ public class MarketService {
         Map<String, EntitlementPayload.EntitlementItem> items = new LinkedHashMap<>();
         sku.entitlements().forEach((key, spec) -> items.put(key,
                 new EntitlementPayload.EntitlementItem(spec.enabled(), spec.quota(), spec.attributes())));
-        long nextVersion = tenants.findProjection(tenantId).map(p -> p.version() + 1).orElse(1L);
-        tenants.updateProjection(EntitlementProjection.fromSubscription(tenantId, skuCode,
-                subscription.id(), new EntitlementPayload(EntitlementPayload.SCHEMA_V1, items), now, nextVersion));
+        writeSubscriptionProjection(tenantId, skuCode, subscription.id(), items, now);
         Installation installation = new Installation(UUID.randomUUID(), tenantId, sku.appId(), versionId,
                 InstallationStatus.INSTALLED, now, now);
         market.saveInstallation(installation);
@@ -318,13 +316,24 @@ public class MarketService {
         Map<String, EntitlementPayload.EntitlementItem> items = new LinkedHashMap<>();
         sku.entitlements().forEach((key, spec) -> items.put(key,
                 new EntitlementPayload.EntitlementItem(spec.enabled(), spec.quota(), spec.attributes())));
-        long nextVersion = tenants.findProjection(tenantId).map(p -> p.version() + 1).orElse(1L);
-        tenants.updateProjection(EntitlementProjection.fromSubscription(tenantId, skuCode,
-                subscription.id(), new EntitlementPayload(EntitlementPayload.SCHEMA_V1, items), now, nextVersion));
+        writeSubscriptionProjection(tenantId, skuCode, subscription.id(), items, now);
         Installation installation = new Installation(UUID.randomUUID(), tenantId, sku.appId(), versionId,
                 InstallationStatus.INSTALLED, now, now);
         market.saveApprovedInstallation(command,installation);
         return installation;
+    }
+
+    private void writeSubscriptionProjection(UUID tenantId, String skuCode, UUID subscriptionId,
+            Map<String, EntitlementPayload.EntitlementItem> items, Instant now) {
+        var current = tenants.findProjection(tenantId);
+        var projection = EntitlementProjection.fromSubscription(tenantId, skuCode,
+                subscriptionId, new EntitlementPayload(EntitlementPayload.SCHEMA_V1, items), now,
+                current.map(existing -> existing.version() + 1).orElse(1L));
+        if (current.isPresent()) {
+            tenants.updateProjection(projection);
+        } else {
+            tenants.insertProjection(projection);
+        }
     }
 
     private static String blankToNull(String value) {

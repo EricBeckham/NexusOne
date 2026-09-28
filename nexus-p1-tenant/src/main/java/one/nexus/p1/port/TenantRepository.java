@@ -28,6 +28,9 @@ public interface TenantRepository {
 
     Optional<EntitlementProjection> findProjection(UUID tenantId);
 
+    /** First projection for an existing tenant. Never overwrite a concurrent writer. */
+    void insertProjection(EntitlementProjection projection);
+
     void updateProjection(EntitlementProjection projection);
 
     void insertAdminInit(UUID requestId, UUID tenantId, String displayName, String email,

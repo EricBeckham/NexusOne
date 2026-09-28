@@ -423,6 +423,13 @@ class T2PlatformAdminAuditTest {
         }
 
         @Override
+        public void insertProjection(EntitlementProjection projection) {
+            if (projection.version() != 1 || projections.putIfAbsent(projection.tenantId(), projection) != null) {
+                throw new IllegalStateException("optimistic lock failed for entitlement projection " + projection.tenantId());
+            }
+        }
+
+        @Override
         public void updateProjection(EntitlementProjection projection) {
             EntitlementProjection current = projections.get(projection.tenantId());
             if (current == null || current.version() != projection.version() - 1) {

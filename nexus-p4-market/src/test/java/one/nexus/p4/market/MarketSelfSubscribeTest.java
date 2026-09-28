@@ -63,6 +63,9 @@ class MarketSelfSubscribeTest {
             Installation installation=service.subscribeProduct(tenantId,"HR_BASIC",versionId);
             assertThat(installation.status()).isEqualTo(InstallationStatus.INSTALLED);
             verify(market).saveInstallationProductPin(new InstallationProductPin(installation.id(),productId,formId,null,null,NOW));
+            verify(tenants).insertProjection(argThat(projection -> projection.tenantId().equals(tenantId)
+                    && projection.version() == 1 && projection.skuCode().equals("HR_BASIC")));
+            verify(tenants, never()).updateProjection(any());
             verify(permissionPacks).provision(tenantId, new ProductDefinition(productId,"hr","HR","",formId,null,null,Map.of(),"DRAFT",NOW,NOW,1));
             verify(audit).append(any());
             return null;

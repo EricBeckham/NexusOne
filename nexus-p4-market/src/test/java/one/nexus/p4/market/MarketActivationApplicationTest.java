@@ -109,6 +109,9 @@ class MarketActivationApplicationTest {
         assertThat(approved.status()).isEqualTo(ActivationApplicationStatus.APPROVED);
         assertThat(approved.resultingInstallationId()).isNotNull();
         verify(market).saveApprovedSubscription(any(),any());
+        verify(tenants).insertProjection(argThat(projection -> projection.tenantId().equals(tenantId)
+                && projection.version() == 1 && projection.skuCode().equals("HR_BASIC")));
+        verify(tenants, never()).updateProjection(any());
         verify(market).saveApprovedInstallation(any(),any());
         verify(market).saveApprovedProductPin(any(),any());
         verify(market,never()).saveInstallation(any());
