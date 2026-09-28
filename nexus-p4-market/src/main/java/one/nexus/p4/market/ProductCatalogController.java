@@ -40,6 +40,11 @@ public class ProductCatalogController {
     public ProductView publish(@PathVariable UUID id, @RequestBody Publish request) {
         return service.publish(id, request.version());
     }
+    /** PLB6: 下架. A later publish puts an archived product back on the shelf. */
+    @PostMapping("/{id}/archive")
+    public ProductView archive(@PathVariable UUID id, @RequestBody Publish request) {
+        return service.archive(id, request == null ? 0 : request.version());
+    }
     @PostMapping("/{id}/skus") @ResponseStatus(HttpStatus.CREATED)
     public String createSku(@PathVariable UUID id, @RequestBody SkuWrite request) {
         return service.createSku(id, request);

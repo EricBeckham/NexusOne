@@ -128,13 +128,25 @@ public class ProductCatalogService {
         platform("product.publish");
         int changed = jdbc.sql("""
                 UPDATE market.product p SET status='PUBLISHED',updated_at=CURRENT_TIMESTAMP,version=version+1
-                WHERE p.id=:id AND p.status='DRAFT' AND p.version=:version
+                WHERE p.id=:id AND p.status IN ('DRAFT','ARCHIVED') AND p.version=:version
                   AND EXISTS(SELECT 1 FROM market.product_app pa WHERE pa.product_id=p.id AND pa.app_version_id IS NOT NULL)
                   AND NOT EXISTS(SELECT 1 FROM market.product_app pa
                     LEFT JOIN market.app_version av ON av.id=pa.app_version_id
                     WHERE pa.product_id=p.id AND (av.id IS NULL OR av.status<>'PUBLISHED' OR av.manifest IS NULL))
                 """).param("id", id).param("version", expectedVersion).update();
         if (changed != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "product not ready or version changed");
+        return view(id);
+    }
+
+    /** PLB6: take a published product off the catalog. The row stays so it can be published again. */
+    @Transactional
+    public ProductView archive(UUID id, long expectedVersion) {
+        platform("product.archive");
+        int changed = jdbc.sql("""
+                UPDATE market.product SET status='ARCHIVED', updated_at=CURRENT_TIMESTAMP, version=version+1
+                WHERE id=:id AND status='PUBLISHED' AND version=:version
+                """).param("id", id).param("version", expectedVersion).update();
+        if (changed != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "product is not published or version changed");
         return view(id);
     }
 

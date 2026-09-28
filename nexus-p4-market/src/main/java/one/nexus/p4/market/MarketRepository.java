@@ -22,6 +22,8 @@ public interface MarketRepository {
     List<Subscription> subscriptions();
     Optional<Subscription> subscriptionForCurrentTenant(UUID id);
     List<CatalogItem> catalog();
+    /** Published product-native SKUs grouped by application category. Archived products are absent. */
+    List<CatalogGroup> catalogGroups();
     void saveProductDefinition(ProductDefinition definition);
     List<ProductDefinition> productDefinitions();
     Optional<ProductDefinition> productDefinition(UUID id);

@@ -510,6 +510,8 @@ public class MarketService {
     }
 
     @Transactional(readOnly = true) public List<CatalogItem> catalog() { return market.catalog(); }
+    /** PLB6: published product-native SKUs, grouped by the first application's category. */
+    @Transactional(readOnly = true) public List<CatalogGroup> catalogGroups() { return market.catalogGroups(); }
     @Transactional(readOnly = true) public List<AppPackage> apps() { return market.apps(); }
     @Transactional(readOnly = true) public AppPackage getApp(UUID id) {
         return market.app(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "app not found"));

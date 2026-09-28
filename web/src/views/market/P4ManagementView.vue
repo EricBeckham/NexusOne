@@ -56,10 +56,14 @@
             <h3>版本与发布记录</h3>
             <div v-if="catalogProducts.length" data-testid="product-auto-upgrade">
               <h3>产品小版本自动升级</h3>
-              <label v-for="product in catalogProducts" :key="product.id">
-                <input type="checkbox" :checked="product.autoUpgradeMinor" :data-testid="`auto-upgrade-${product.code}`" @change="toggleAutoUpgrade(product, $event)" />
-                {{ product.name }} 跟随同一主版本的新发布
-              </label>
+              <div v-for="product in catalogProducts" :key="product.id" class="product-shelf-row">
+                <label>
+                  <input type="checkbox" :checked="product.autoUpgradeMinor" :data-testid="`auto-upgrade-${product.code}`" @change="toggleAutoUpgrade(product, $event)" />
+                  {{ product.name }} 跟随同一主版本的新发布
+                </label>
+                <button v-if="product.status === 'PUBLISHED'" class="ghost" type="button" :data-testid="`archive-${product.code}`" @click="archiveProduct(product)">下架</button>
+                <button v-if="product.status === 'ARCHIVED'" class="ghost" type="button" :data-testid="`publish-${product.code}`" @click="publishProduct(product)">重新上架</button>
+              </div>
             </div>
             <NxDataTable
               :loading="loading"
@@ -427,6 +431,14 @@ async function uninstallInstance(offer) {
   try { await p4.uninstallAppInstance(offer.instanceId); await load(); notice.value = "已卸载 " + offer.appCode + "。"; }
   catch (err) { error.value = err.message || "卸载失败"; }
   finally { busyId.value = ""; }
+}
+async function archiveProduct(product) {
+  try { await p4.archiveProduct(product.id, product.version); await load(); notice.value = `已下架 ${product.name}。`; }
+  catch (err) { error.value = err.message || "下架失败"; }
+}
+async function publishProduct(product) {
+  try { await p4.publishProduct(product.id, product.version); await load(); notice.value = `已重新上架 ${product.name}。`; }
+  catch (err) { error.value = err.message || "上架失败"; }
 }
 async function toggleAutoUpgrade(product, event) {
   const enabled = event.target.checked;
