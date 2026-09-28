@@ -29,5 +29,5 @@ public class PortalEntryController {
         return new PortalEntries(portal.visible(context.tenantId()));
     }
 
-    public record PortalEntries(List<FunctionEntry> entries) {}
+    public record PortalEntries(List<PortalEntry> entries) {}
 }

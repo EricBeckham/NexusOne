@@ -13,5 +13,6 @@ public record FunctionEntry(
         String icon,
         EntryKind kind,
         String defaultGroup,
-        int sort
+        int sort,
+        String processKey
 ) {}

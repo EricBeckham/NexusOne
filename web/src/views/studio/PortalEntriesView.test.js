@@ -33,4 +33,25 @@ describe("portal entries", () => {
     await flushPromises();
     expect(wrapper.text()).toContain("还没有可进入的功能入口");
   });
+
+  it("keeps a fill entry visible and shows that its position is not mapped", async () => {
+    mocks.api.mockResolvedValue({
+      entries: [
+        {
+          key: "fn:leave:leave_apply",
+          name: "请假申请",
+          kind: "FILL",
+          default_group: "办公",
+          sort: 10,
+          submittable: false,
+          blocked_reason: "管理员尚未配置审批岗位",
+        },
+      ],
+    });
+    const wrapper = mount(PortalEntriesView);
+    await flushPromises();
+    expect(wrapper.get("[data-testid='portal-entry'] strong").text()).toBe("请假申请");
+    expect(wrapper.get("[data-testid='portal-blocked']").text()).toBe("管理员尚未配置审批岗位");
+    expect(wrapper.find("button").exists()).toBe(false);
+  });
 });

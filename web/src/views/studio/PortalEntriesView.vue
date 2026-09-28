@@ -18,6 +18,7 @@
         <article v-for="entry in group.entries" :key="entry.key" data-testid="portal-entry">
           <strong>{{ entry.name }}</strong>
           <small>{{ kindLabel(entry.kind) }}</small>
+          <p v-if="entry.blocked_reason" data-testid="portal-blocked">{{ entry.blocked_reason }}</p>
         </article>
       </section>
     </template>
