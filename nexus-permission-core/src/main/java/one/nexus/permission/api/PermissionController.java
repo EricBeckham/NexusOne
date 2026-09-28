@@ -22,9 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/permission")
 public class PermissionController {
     private final PermissionModule module;
+    private final PermissionAdminGuard guard;
 
-    public PermissionController(PermissionModule module) {
+    public PermissionController(PermissionModule module, PermissionAdminGuard guard) {
         this.module = module;
+        this.guard = guard;
     }
 
     @GetMapping("/health")
@@ -40,36 +42,43 @@ public class PermissionController {
 
     @GetMapping("/roles")
     public List<RoleMatrixService.RoleView> roles() {
+        guard.requireRead();
         return module.matrix().roles().stream().map(RoleMatrixService.RoleView::from).toList();
     }
 
     @GetMapping("/assignments")
     public List<RoleMatrixService.AssignmentView> assignments() {
+        guard.requireRead();
         return module.matrix().assignments().stream().map(RoleMatrixService.AssignmentView::from).toList();
     }
 
     @GetMapping("/grants")
     public List<RoleMatrixService.CellView> grants() {
+        guard.requireRead();
         return module.matrix().grants();
     }
 
     @GetMapping("/matrix")
     public RoleMatrixService.MatrixView matrix() {
+        guard.requireRead();
         return module.matrix().view();
     }
 
     @PostMapping("/matrix/example")
     public RoleMatrixService.MatrixView installExample() {
+        guard.requireWrite(PermissionAdminGuard.ROLE);
         return module.matrix().installExample();
     }
 
     @GetMapping("/duties")
     public PlatformDutyService.DutyView duties() {
+        guard.requireRead();
         return module.duties().view();
     }
 
     @PostMapping("/duties/example")
     public PlatformDutyService.DutyView installDuties() {
+        guard.requireWrite(PermissionAdminGuard.ROLE);
         return module.duties().install();
     }
 
@@ -85,16 +94,19 @@ public class PermissionController {
 
     @PostMapping("/roles")
     public PolicyRepository.RoleRecord createRole(@RequestBody RoleBody body) {
+        guard.requireWrite(PermissionAdminGuard.ROLE);
         return module.admin().createRole(body.code(), body.name(), body.systemRole());
     }
 
     @PostMapping("/assignments")
     public PolicyRepository.AssignmentRecord assign(@RequestBody AssignmentBody body) {
+        guard.requireWrite(PermissionAdminGuard.ASSIGNMENT);
         return module.admin().assign(body.principalType(), body.principalId(), body.roleId());
     }
 
     @PostMapping("/grants")
     public PolicyRepository.GrantRecord grant(@RequestBody GrantBody body) {
+        guard.requireWrite(PermissionAdminGuard.GRANT);
         Map<String, FieldRule> fields = Map.of();
         if (body.fields() != null) {
             fields = body.fields().entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
