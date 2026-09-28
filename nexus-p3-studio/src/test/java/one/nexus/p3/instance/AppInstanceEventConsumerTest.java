@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,8 +57,7 @@ class AppInstanceEventConsumerTest {
     @Test
     void aGapUsesTheQuerySnapshotAndNotTheEventEntries() {
         consumer.accept(tenant, event(first, 1, "1.0.0", null, "INHERIT", List.of("fn:leave:leave_apply")));
-        query.put(new InstanceSnapshot(instance, 4, "oa_basic", "leave", "1.3.0", "1.2.0", "INHERIT",
-                List.of("fn:leave:leave_view"), true));
+        query.put(state(4, "INSTALLED", "1.3.0", "INHERIT", List.of("fn:leave:leave_view")));
         consumer.accept(tenant, event(fourth, 4, "1.2.0", "1.1.0", "INHERIT", List.of("fn:leave:from_event")));
         InstanceSnapshot saved = store.find(tenant, instance).orElseThrow();
         assertEquals(4, saved.revision());
@@ -68,15 +68,13 @@ class AppInstanceEventConsumerTest {
     @Test
     void aGapIsRetriedWhenTheQueryIsStillBehind() {
         consumer.accept(tenant, event(first, 1, "1.0.0", null, "INHERIT", List.of("fn:leave:leave_apply")));
-        query.put(new InstanceSnapshot(instance, 2, "oa_basic", "leave", "1.1.0", "1.0.0", "INHERIT",
-                List.of("fn:leave:leave_apply"), true));
+        query.put(state(2, "INSTALLED", "1.1.0", "INHERIT", List.of("fn:leave:leave_apply")));
         assertThrows(InstanceEventRetry.class,
                 () -> consumer.accept(tenant, event(fourth, 4, "1.2.0", "1.1.0", "INHERIT", List.of("fn:leave:leave_apply"))));
         assertFalse(store.seen(tenant, fourth));
         assertEquals(1, store.find(tenant, instance).orElseThrow().revision());
 
-        query.put(new InstanceSnapshot(instance, 4, "oa_basic", "leave", "1.3.0", "1.2.0", "INHERIT",
-                List.of("fn:leave:leave_view"), true));
+        query.put(state(4, "INSTALLED", "1.3.0", "INHERIT", List.of("fn:leave:leave_view")));
         consumer.accept(tenant, event(fourth, 4, "1.2.0", "1.1.0", "INHERIT", List.of("fn:leave:from_event")));
         assertEquals(4, store.find(tenant, instance).orElseThrow().revision());
     }
@@ -133,16 +131,26 @@ class AppInstanceEventConsumerTest {
         }
     }
 
-    private static final class MemoryQuery implements AppInstanceQuery {
-        private InstanceSnapshot snapshot;
+    private AppInstanceState state(long revision, String status, String version, String mode, List<String> entries) {
+        return new AppInstanceState(instance, revision, status, "oa_basic", "leave", version, mode, entries,
+                Instant.parse("2026-09-28T08:00:00Z"));
+    }
 
-        void put(InstanceSnapshot snapshot) {
-            this.snapshot = snapshot;
+    private static final class MemoryQuery implements AppInstanceQuery {
+        private final Map<UUID, AppInstanceState> rows = new HashMap<>();
+
+        void put(AppInstanceState state) {
+            rows.put(state.instanceId(), state);
         }
 
         @Override
-        public Optional<InstanceSnapshot> current(UUID tenantId, UUID instanceId) {
-            return Optional.ofNullable(snapshot);
+        public List<AppInstanceState> current() {
+            return List.copyOf(rows.values());
+        }
+
+        @Override
+        public Optional<AppInstanceState> current(UUID instanceId) {
+            return Optional.ofNullable(rows.get(instanceId));
         }
     }
 }

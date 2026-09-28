@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
- * PLX1 r3.1. Pulls current instance state in a real tenant context.
+ * PLX1 r3.3. Pulls {@link AppInstanceQuery#current()}, which includes uninstalled instances.
  * A higher revision replaces the local pin. An equal revision is a no-op. Tenant overrides are not touched.
  */
 @Service

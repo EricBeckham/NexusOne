@@ -18,7 +18,7 @@ import one.nexus.p3.portal.PortalEntryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** PLX1 r3.1 contract tests C①–⑤. Event consumption is not exercised here. */
+/** PLX1 r3.3 contract tests C①–⑤. The query has no tenant argument. Event consumption is not exercised here. */
 class InstanceReconcilerTest {
     private final UUID tenant = UUID.fromString("01900000-0000-7000-8000-000000000101");
     private final UUID instance = UUID.fromString("03123926-7307-4cc6-a634-8c6e87081189");
@@ -31,13 +31,13 @@ class InstanceReconcilerTest {
         store = new MemoryStore();
         reconciler = new InstanceReconciler(new AppInstanceQuery() {
             @Override
-            public Optional<InstanceSnapshot> current(UUID tenantId, UUID instanceId) {
-                return Optional.empty();
+            public List<AppInstanceState> current() {
+                return List.copyOf(remote);
             }
 
             @Override
-            public List<AppInstanceState> current() {
-                return List.copyOf(remote);
+            public Optional<AppInstanceState> current(UUID instanceId) {
+                return remote.stream().filter(state -> instanceId.equals(state.instanceId())).findFirst();
             }
         }, store);
     }
@@ -67,11 +67,17 @@ class InstanceReconcilerTest {
 
     @Test
     void uninstalledStateRemovesEntries() {
+        UUID removed = UUID.fromString("03123926-7307-4cc6-a634-8c6e87081190");
+        store.save(tenant, new InstanceSnapshot(instance, 1, "oa_basic", "leave", "1.0.0", null, "INHERIT",
+                List.of("fn:leave:leave_apply"), true));
         remote.add(state(2, "UNINSTALLED", "1.0.0", null, List.of()));
+        remote.add(new AppInstanceState(removed, 1, "UNINSTALLED", "oa_basic", "expense", "1.0.0", null, List.of(),
+                Instant.parse("2026-09-28T08:00:00Z")));
         reconciler.reconcile(tenant);
-        PortalEntryService portal = portal();
-        assertTrue(portal.visible(tenant).isEmpty());
+        assertTrue(portal().visible(tenant).isEmpty());
         assertFalse(store.find(tenant, instance).orElseThrow().installed());
+        assertTrue(store.find(tenant, instance).orElseThrow().entries().isEmpty());
+        assertFalse(store.find(tenant, removed).orElseThrow().installed());
     }
 
     @Test

@@ -33,11 +33,19 @@ public class AppInstanceEventConsumer {
             store.markSeen(tenantId, event.instanceId(), event.eventId());
             return;
         }
-        InstanceSnapshot current = query.current(tenantId, event.instanceId())
-                .filter(snapshot -> snapshot.revision() >= event.revision())
+        InstanceSnapshot current = query.current(event.instanceId())
+                .filter(state -> state.revision() >= event.revision())
+                .map(AppInstanceEventConsumer::fromState)
                 .orElseThrow(InstanceEventRetry::new);
         store.save(tenantId, current);
         store.markSeen(tenantId, event.instanceId(), event.eventId());
+    }
+
+    private static InstanceSnapshot fromState(AppInstanceState state) {
+        boolean installed = state.installed();
+        List<String> entries = installed && state.entries() != null ? List.copyOf(state.entries()) : List.of();
+        return new InstanceSnapshot(state.instanceId(), state.revision(), state.productCode(), state.appCode(),
+                state.version(), null, installed ? state.mode() : null, entries, installed);
     }
 
     private static InstanceSnapshot fromEvent(InstanceEvent event) {
