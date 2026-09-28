@@ -36,9 +36,16 @@
 
       <section aria-label="已开通应用">
         <h2 class="section-title">已开通应用</h2>
+        <ul v-if="apps.length" class="entries" data-testid="portal-apps">
+          <li v-for="app in apps" :key="app.instance_id" class="nx-card entry">
+            <strong>{{ app.app_code }}</strong>
+            <span v-if="app.version" class="nx-code">{{ app.version }}</span>
+          </li>
+        </ul>
         <NxEmpty
+          v-else
           title="还没有应用实例"
-          description="实例查询尚未接通。平台批准开通后，这里会按修订号补上入口。"
+          description="订购或批准开通后，已安装的应用会出现在这里。"
           compact
         />
       </section>
@@ -57,6 +64,7 @@ const error = ref("");
 const traceId = ref("");
 const entries = ref([]);
 const modules = ref([]);
+const apps = ref([]);
 
 async function load() {
   loading.value = true;
@@ -67,19 +75,27 @@ async function load() {
     const menu = Array.isArray(menuBody?.items) ? menuBody.items : [];
     const keys = menu.map((item) => item.entry_key).filter(Boolean);
     const readable = await readableEntries(keys);
+    let instances = [];
+    try {
+      instances = await currentInstances();
+    } catch {
+      instances = [];
+    }
     const view = visiblePortal({
       menu,
       modules: Array.isArray(moduleBody?.modules) ? moduleBody.modules : [],
       readable,
-      instances: currentInstances(),
+      instances,
     });
     entries.value = view.entries;
     modules.value = view.modules;
+    apps.value = instances.filter((row) => row && row.status !== "UNINSTALLED");
   } catch (cause) {
     error.value = cause?.message || "加载失败";
     traceId.value = cause?.traceId || "";
     entries.value = [];
     modules.value = [];
+    apps.value = [];
   } finally {
     loading.value = false;
   }

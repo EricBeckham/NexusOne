@@ -35,12 +35,12 @@ export async function readableEntries(keys) {
 }
 
 /**
- * Stand-in for {@code AppInstanceQuery.current()} until B registers that bean.
- * Platform approval does not emit an event, so a later wiring replaces this
- * with the reconciled instance list. Until then the portal has no instance entries.
+ * Current tenant instances from {@code AppInstanceQuery.current()}.
+ * Includes uninstalled rows. The response is `{ instances }`.
  */
-export function currentInstances() {
-  return [];
+export async function currentInstances() {
+  const body = await api("/api/v1/p3/portal/instances");
+  return Array.isArray(body?.instances) ? body.instances : [];
 }
 
 /** PLC8 drifted overrides for the current tenant. */

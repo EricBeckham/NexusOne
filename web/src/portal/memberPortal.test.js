@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { currentInstances } from "../api/portal";
 import { visiblePortal } from "./memberPortal";
 
 const menu = [
@@ -18,9 +17,8 @@ describe("PLC5 member portal filter", () => {
         { code: "draft", title: "草稿", sort: 1, hidden: true },
       ],
       readable: ["fn:leave:leave_apply"],
-      instances: currentInstances(),
+      instances: [],
     });
-    expect(currentInstances()).toEqual([]);
     expect(view.entries.map((item) => item.label)).toEqual(["办公", "请假申请"]);
     expect(view.modules.map((item) => item.code)).toEqual(["todos"]);
   });
