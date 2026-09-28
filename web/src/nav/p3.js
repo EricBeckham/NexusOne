@@ -11,6 +11,7 @@ export const p3Nav = [
     children: [
       { id: "portal-entries", label: "功能入口", to: "/p3/portal" },
       { id: "portal-config", label: "门户配置", to: "/p3/portal/config" },
+      { id: "baseline-diff", label: "基线差异", to: "/p3/portal/baseline" },
     ],
   },
   {

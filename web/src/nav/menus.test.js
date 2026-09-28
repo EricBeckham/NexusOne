@@ -65,6 +65,7 @@ describe("product shell menus", () => {
       "/p3/notifications",
       "/p3/portal",
       "/p3/portal/config",
+      "/p3/portal/baseline",
       "/p3/workflow",
       "/p3/publish-center",
       "/p3/completion-actions",
