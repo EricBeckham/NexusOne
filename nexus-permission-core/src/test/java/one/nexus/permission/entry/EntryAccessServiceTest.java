@@ -25,6 +25,7 @@ import one.nexus.p2.smtp.KeycloakSmtpHook;
 import one.nexus.permission.PermissionModule;
 import one.nexus.permission.admin.MemberAccessMode;
 import one.nexus.permission.engine.DataScopeKind;
+import one.nexus.permission.pack.RolePackService;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.position.PositionRoleService;
 import one.nexus.permission.redis.InMemoryPolicyInvalidation;
@@ -70,8 +71,9 @@ class EntryAccessServiceTest {
         clerk = person.id();
 
         // The leave app's applicant role, bound to the clerk position (PLA1).
-        permissions.admin().createRole("app_leave_leave_applicant", "请假申请人", false);
-        grant("GRANT", "role", "app_leave_leave_applicant", "fn.leave.leave_apply");
+        permissions.rolePacks().apply(new RolePackService.RolePackCommand("leave", "1.0.0", List.of(
+                new RolePackService.RoleSpec("leave_applicant", "请假申请人", List.of(
+                        new RolePackService.GrantSpec("fn.leave.leave_apply", "read", "SELF"))))));
         UUID applicant = permissions.repository().findRoleByCode(tenant, "app_leave_leave_applicant").orElseThrow().id();
         new PositionRoleService(permissions, iam.repository()).set(clerkPosition, List.of(applicant));
     }
