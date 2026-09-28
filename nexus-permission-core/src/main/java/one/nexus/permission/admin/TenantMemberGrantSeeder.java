@@ -63,7 +63,7 @@ public class TenantMemberGrantSeeder {
             new String[] {"process.action", "read"},
             new String[] {"process.action", "write"});
     /** Same tenant-admin position test as {@code MarketService} / {@code AdminMfaPolicy}. */
-    static final java.util.Set<String> ADMIN_POSITIONS = java.util.Set.of("tenant_admin", "demo_tenant_admin");
+    static final java.util.Set<String> ADMIN_POSITIONS = TenantAdminPositions.CODES;
 
     private final PermissionModule permission;
     private final one.nexus.p2.domain.IdentityRepository identity;
@@ -166,17 +166,7 @@ public class TenantMemberGrantSeeder {
     }
 
     private boolean isTenantAdmin(TenantContext context) {
-        if (identity == null) {
-            return false;
-        }
-        UUID tenantId = context.tenantId();
-        return identity.listEmploymentsByPerson(tenantId, context.personId()).stream()
-                .filter(item -> item.status() == one.nexus.p2.domain.Model.EmploymentStatus.ACTIVE
-                        && item.deletedAt() == null)
-                .anyMatch(item -> identity.findPosition(tenantId, item.positionId())
-                        .map(position -> position.code() != null
-                                && ADMIN_POSITIONS.contains(position.code().toLowerCase(java.util.Locale.ROOT)))
-                        .orElse(false));
+        return TenantAdminPositions.holds(identity, context);
     }
 
     private static boolean matchesRoleGrant(GrantRecord grant, String role, String resource, String action) {
