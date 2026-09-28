@@ -89,6 +89,7 @@
           <NxEmpty v-else title="选择一个应用包" description="应用包详情和版本记录将显示在这里。" />
         </section>
       </div>
+      <AppDesignPanel v-if="designReady" :app="selectedApp" :versions="versions" />
     </template>
 
     <template v-else-if="section === 'skus'">
@@ -267,6 +268,7 @@
 
 <script setup>
 import MarketAuthoringPanel from './MarketAuthoringPanel.vue';
+import AppDesignPanel from './AppDesignPanel.vue';
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { NxDataTable, NxEmpty, NxNoPermission, NxPageHeader, NxStatusTag } from "../../components";
@@ -281,6 +283,7 @@ const upgradeOffers = ref([]); const catalogProducts = ref([]);
 const versionsByApp = reactive({}); const selectedApp = ref(null); const versions = ref([]);
 const targets = reactive({}); const loading = ref(true); const error = ref(""); const notice = ref(""); const busyId = ref("");
 const section = computed(() => ({ "p4-packages": "packages", "p4-skus": "skus", "p4-subscriptions": "subscriptions", "p4-installations": "installations" })[route.name] || "packages");
+const designReady = computed(() => Boolean(session.platformMode) && section.value === "packages" && typeof p4.appCategories === "function");
 const tabs = [{ label: "应用包", to: "/p4/packages" }, { label: "商品与 SKU", to: "/p4/skus" }, { label: "订阅", to: "/p4/subscriptions" }, { label: "我的已开通", to: "/p4/installations" }];
 const titles = { packages: ["应用包", "浏览应用包、版本与发布状态。"], skus: ["SKU", "SKU 定义可开通的权益与配额，无价格字段。"], subscriptions: ["开通记录", "查看当前租户已开通的周期、状态与关联安装。无支付。"], installations: ["已开通可用", "无支付、即时开通后的产品记录。可从此发起申请。"] };
 const title = computed(() => titles[section.value][0]); const description = computed(() => titles[section.value][1]);
