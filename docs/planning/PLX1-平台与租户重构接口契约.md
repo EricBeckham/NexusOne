@@ -207,7 +207,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 
 **Java 端口**：`Set<String> EntryAccessService.readableEntries()`（`nexus-permission-core`，包 `one.nexus.permission.entry`，经 `PermissionModule.entries()` 取得）—— 当前上下文成员可 `read` 的入口键集合。入口候选集合由调用方传入的「租户已安装入口」决定：`readableEntries(Collection<String> candidateKeys)`，A 只做权限过滤，不维护入口清单。
 
-**HTTP**（仅运维 / 调试，门户走 Java 端口）：`GET /api/v1/permission/entries/readable?keys=fn:leave:leave_apply&keys=...`，只回答调用者本人。候选键由调用方给出（r3，与 Java 端口一致；实现见 #784）→
+**HTTP**（r3.4：门户前端也可以直接调用，#789 即如此；它只回答调用者本人，结果仅用于显示）：`GET /api/v1/permission/entries/readable?keys=fn:leave:leave_apply&keys=...`，只回答调用者本人。候选键由调用方给出（r3，与 Java 端口一致；实现见 #784）→
 
 ```json
 { "entries": ["fn:leave:leave_apply", "fn:expense:expense_apply"], "computed_at": "2026-09-28T08:00:00Z" }
@@ -219,6 +219,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 | 范围 | 仅业务租户；平台租户返回空集合（平台功能走 PV / AUTH6） |
 | 一致性 | 以当前策略版本计算；策略版本变化后下次调用即生效 |
 | 服务端兜底 | 门户仅据此显示；每个入口的接口仍独立校验 `fn.*` 授权 |
+| 兼容开关（PLA5，#790） | `nexus.permission.member-access`：`legacy`（默认）时，已安装的入口除非被主动拒绝都显示（「没有授权」不算拒绝），与重构前「成员什么都能用」一致；`position` 时严格按 `fn.*:read` 授权。调用方不用区分两种模式 |
 
 ## C6 · 个性化解析（C 提供，B 与运行时使用）
 
@@ -293,3 +294,5 @@ r2 中的 `previous_version` 取消；`event_id` 与三种事件类型在 r3.1 �
 **r3.2（2026-09-28）**：更正 C3 的事务描述。权限库使用独立的 DataSource，无法与市场写入同一事务，改为「落地幂等 + 未绑定的角色无害 + 安装提交前调用」。
 
 **r3.3（2026-09-28，回应开发 B 对 r3.1 的复核）**：① `event_id` 由 B 在组装载荷时生成，不要求等于 outbox 行 id，新增 B⓪ 同事务与重投测试；② `AppInstanceQuery` 不带租户参数，C 在 PLC7 中把 #779 的现有签名改成契约形状；③ 旧键冲突改由迁移工具接受显式、写审计的「旧键 → 新键」映射，不修改已发布的旧产品。
+
+**r3.4（2026-09-28）**：C5 的 HTTP 接口允许门户前端直接调用；补充 PLA5 兼容开关对 C5 结果的影响。
