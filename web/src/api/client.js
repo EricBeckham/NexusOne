@@ -440,6 +440,19 @@ export const perm = {
   installExample: () => api("/api/v1/permission/matrix/example", { method: "POST", body: {} }),
   createRole: (body) => api("/api/v1/permission/roles", { method: "POST", body }),
   assign: (body) => api("/api/v1/permission/assignments", { method: "POST", body }),
+  /** PLA4: exception grants (grants / roles attached directly to a person). */
+  exceptions: (filter = {}) => {
+    const query = new URLSearchParams();
+    if (filter.personId) query.set("person_id", filter.personId);
+    if (filter.kind) query.set("kind", filter.kind);
+    if (filter.q) query.set("q", filter.q);
+    if (filter.includeSystem) query.set("include_system", "true");
+    const suffix = query.toString();
+    return api(`/api/v1/permission/exceptions${suffix ? `?${suffix}` : ""}`);
+  },
+  revokeExceptionGrant: (id) => api(`/api/v1/permission/exceptions/grants/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  revokeExceptionAssignment: (id) =>
+    api(`/api/v1/permission/exceptions/assignments/${encodeURIComponent(id)}`, { method: "DELETE" }),
   /** PLA3: effective-permission preview. */
   effectivePerson: (personId) => api(`/api/v1/permission/effective/persons/${encodeURIComponent(personId)}`),
   effectivePosition: (positionId) => api(`/api/v1/permission/effective/positions/${encodeURIComponent(positionId)}`),
