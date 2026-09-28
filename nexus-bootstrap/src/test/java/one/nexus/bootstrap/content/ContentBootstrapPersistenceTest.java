@@ -19,6 +19,8 @@ import one.nexus.p1.domain.Actor;
 import one.nexus.p1.domain.PlatformDuty;
 import one.nexus.p1.port.IsolationGuard;
 import one.nexus.p1.port.PlatformContext;
+import one.nexus.p1.domain.QuotaMetric;
+import one.nexus.p3.infra.quota.P3QuotaRowRecovery;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,7 @@ class ContentBootstrapPersistenceTest {
     @Autowired ContentBootstrapService bootstrap;
     @Autowired JdbcClient jdbc;
     @Autowired Environment env;
+    @Autowired P3QuotaRowRecovery quotaRecovery;
     @MockitoBean IsolationGuard isolation;
 
     @BeforeAll
@@ -89,6 +92,35 @@ class ContentBootstrapPersistenceTest {
         assertTrue(second.steps().stream().allMatch(step -> step.outcome().equals(StepResult.ALREADY_PRESENT)), second::toString);
         assertEquals(1, count("SELECT count(*) FROM act_re_procdef WHERE key_ = 'demoSimpleApproval'"), "no second deployment");
         assertEquals(upgradeRecords, count("SELECT count(*) FROM market.upgrade_step_record"), "no upgrade step touched");
-        assertEquals(2, count("SELECT count(*) FROM platform.audit_event WHERE event_type = 'platform.content_bootstrap.applied'"));
+        jdbc.sql("UPDATE platform.quota SET used_value = 3 WHERE tenant_id = "
+                + "'01900000-0000-7000-8000-000000000101' AND metric = 'APP'").update();
+        jdbc.sql("DELETE FROM platform.quota WHERE tenant_id = '01900000-0000-7000-8000-000000000101' "
+                + "AND metric = 'CUSTOM_LEDGER'").update();
+        BootstrapResult repaired = bootstrap.bootstrap(new BootstrapRequest("repair incomplete tenant content"));
+        assertEquals(StepResult.CREATED, repaired.steps().getFirst().outcome(), "missing quota is not complete tenant content");
+        assertEquals(3, count("SELECT used_value FROM platform.quota WHERE tenant_id = "
+                + "'01900000-0000-7000-8000-000000000101' AND metric = 'APP'"),
+                "repair must not overwrite the surviving quota row");
+        assertEquals(1, count("SELECT count(*) FROM platform.quota WHERE tenant_id = "
+                + "'01900000-0000-7000-8000-000000000101' AND metric = 'CUSTOM_LEDGER'"));
+
+        UUID app = UUID.randomUUID();
+        jdbc.sql("""
+                INSERT INTO business_meta.application (id, tenant_id, tenant_code, app_code, display_name,
+                    kind, status, created_at, created_by, updated_at, updated_by, version)
+                VALUES (:app, :tenant, 'demo_acme', 'quota_recovery_test', 'Quota recovery test',
+                    'CUSTOM', 'ACTIVE', now(), 'test', now(), 'test', 1)
+                """).param("app", app).param("tenant", one.nexus.bootstrap.demo.P1DemoSeedConfiguration.TENANT_ID).update();
+        jdbc.sql("DELETE FROM platform.quota WHERE tenant_id = '01900000-0000-7000-8000-000000000101' "
+                + "AND metric = 'APP'").update();
+        quotaRecovery.ensure(one.nexus.bootstrap.demo.P1DemoSeedConfiguration.TENANT_ID, QuotaMetric.APP);
+        quotaRecovery.ensure(one.nexus.bootstrap.demo.P1DemoSeedConfiguration.TENANT_ID, QuotaMetric.APP);
+        assertEquals(1, count("SELECT used_value FROM platform.quota WHERE tenant_id = "
+                + "'01900000-0000-7000-8000-000000000101' AND metric = 'APP'"),
+                "recovery must count existing applications rather than grant a fresh empty allowance");
+        assertEquals(5, count("SELECT limit_value FROM platform.quota WHERE tenant_id = "
+                + "'01900000-0000-7000-8000-000000000101' AND metric = 'APP'"));
+        assertEquals(upgradeRecords, count("SELECT count(*) FROM market.upgrade_step_record"), "no upgrade step touched");
+        assertEquals(3, count("SELECT count(*) FROM platform.audit_event WHERE event_type = 'platform.content_bootstrap.applied'"));
     }
 }

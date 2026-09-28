@@ -25,14 +25,15 @@
       </label>
       <div v-if="creationMode === 'custom'" class="create-section" data-testid="custom-ledger-fields">
         <div class="create-grid four">
-          <label class="nx-field"><span>应用代码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.appCode" required data-testid="application-code" placeholder="crm" /></label>
+          <label class="nx-field"><span>应用代码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.appCode" required maxlength="24" data-testid="application-code" placeholder="crm" /></label>
           <label class="nx-field"><span>应用名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.appName" required data-testid="application-name" placeholder="客户管理" /></label>
-          <label class="nx-field"><span>台账代码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.ledgerCode" required data-testid="ledger-code" placeholder="customers" /></label>
+          <label class="nx-field"><span>台账代码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.ledgerCode" required maxlength="24" data-testid="ledger-code" placeholder="customers" /></label>
           <label class="nx-field"><span>台账名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.ledgerName" required data-testid="ledger-name" placeholder="客户台账" /></label>
         </div>
+        <p class="nx-muted">代码请以英文字母开头，最多 24 位，只能使用英文字母、数字和下划线；中文请填在名称中。</p>
         <h3>首个字段</h3>
         <div class="create-grid four">
-          <label class="nx-field"><span>字段代码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.fieldCode" required data-testid="ledger-field-code" /></label>
+          <label class="nx-field"><span>字段代码<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.fieldCode" required maxlength="24" data-testid="ledger-field-code" /></label>
           <label class="nx-field"><span>字段名称<em class="nx-req" aria-hidden="true">*</em></span><input v-model="custom.fieldName" required data-testid="ledger-field-name" /></label>
           <label class="nx-field">
             <span>字段类型</span>
@@ -147,6 +148,19 @@ const custom = reactive({
   fieldType: "text",
   required: true,
 });
+const CODE_PATTERN = /^[a-z][a-z0-9_]{0,23}$/;
+const RESERVED_FIELD_CODES = new Set([
+  "id", "tenant_id", "owner_id", "department_id", "created_at", "created_by",
+  "updated_at", "updated_by", "deleted_at", "version", "schema_version", "ext_data",
+]);
+function normalizedCode(value) { return String(value ?? "").trim().toLowerCase(); }
+function validateCustomCodes(codes) {
+  for (const [label, value] of [["应用代码", codes.appCode], ["台账代码", codes.ledgerCode], ["字段代码", codes.fieldCode]]) {
+    if (!CODE_PATTERN.test(value)) return `${label}须以英文字母开头，最多 24 位，只能使用小写英文字母、数字和下划线。`;
+  }
+  if (RESERVED_FIELD_CODES.has(codes.fieldCode)) return "字段代码是系统保留字段，请换一个代码。";
+  return "";
+}
 
 const selectedType = computed(() => types.value.find((item) => item.code === draft.type_code));
 const fieldSummary = computed(() =>
@@ -226,18 +240,34 @@ async function onCreate() {
   error.value = "";
   try {
     if (creationMode.value === "custom") {
-      const application = await p3.createApplication({
-        app_code: custom.appCode,
-        display_name: custom.appName,
-        kind: "CUSTOM",
-      });
+      const codes = {
+        appCode: normalizedCode(custom.appCode),
+        ledgerCode: normalizedCode(custom.ledgerCode),
+        fieldCode: normalizedCode(custom.fieldCode),
+      };
+      error.value = validateCustomCodes(codes);
+      if (error.value) return;
+      let application = applications.value.find((item) => item.app_code === codes.appCode);
+      if (application && (application.kind !== "CUSTOM" || application.display_name !== custom.appName.trim())) {
+        error.value = "应用代码已存在且与当前名称或类型不符；请换一个应用代码。";
+        return;
+      }
+      if (!application) {
+        application = await p3.createApplication({
+          app_code: codes.appCode,
+          display_name: custom.appName,
+          kind: "CUSTOM",
+        });
+        // If ledger creation fails, keep the created app available for a safe retry.
+        applications.value.push(application);
+      }
       const ledger = await p3.createLedger({
         application_id: application.id,
-        ledger_code: custom.ledgerCode,
+        ledger_code: codes.ledgerCode,
         display_name: custom.ledgerName,
         scope: "TENANT",
         fields: [{
-          code: custom.fieldCode,
+          code: codes.fieldCode,
           name: custom.fieldName,
           type: custom.fieldType,
           required: custom.required,
@@ -257,7 +287,9 @@ async function onCreate() {
       await router.push(`/p3/forms/${created.form_id}?tab=publish`);
     }
   } catch (err) {
-    error.value = `${err.code || ""} ${err.message}`;
+    error.value = err.code === "P3.SCHEMA.0001"
+      ? "代码不符合台账标识符规则。请检查应用、台账和字段代码：英文字母开头，最多 24 位，仅小写英文字母、数字和下划线。"
+      : `${err.code || ""} ${err.message}`;
   }
 }
 </script>

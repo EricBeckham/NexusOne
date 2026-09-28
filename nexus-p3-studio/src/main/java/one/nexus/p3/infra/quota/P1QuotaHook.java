@@ -15,18 +15,22 @@ import one.nexus.p3.port.QuotaHook;
 @ConditionalOnBean(QuotaService.class)
 public class P1QuotaHook implements QuotaHook {
     private final QuotaService quotas;
+    private final P3QuotaRowRecovery recovery;
 
-    public P1QuotaHook(QuotaService quotas) {
+    public P1QuotaHook(QuotaService quotas, P3QuotaRowRecovery recovery) {
         this.quotas = quotas;
+        this.recovery = recovery;
     }
 
     @Override
     public void consumeApp(UUID tenantId, String idempotencyKey) {
+        recovery.ensure(tenantId, QuotaMetric.APP);
         quotas.consume(tenantId, QuotaMetric.APP, 1, idempotencyKey);
     }
 
     @Override
     public void consumeCustomLedger(UUID tenantId, String idempotencyKey) {
+        recovery.ensure(tenantId, QuotaMetric.CUSTOM_LEDGER);
         quotas.consume(tenantId, QuotaMetric.CUSTOM_LEDGER, 1, idempotencyKey);
     }
 

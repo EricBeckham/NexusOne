@@ -64,8 +64,16 @@ public class P1DemoSeedConfiguration {
                 jdbc.sql("""
                         INSERT INTO platform.quota (
                           tenant_id, metric, limit_value, used_value, warn_percent, over_limit_policy, updated_at, version)
-                        VALUES (:id, 'APP', 5, 0, 80, 'REJECT', timestamptz '2026-01-01 00:00:00+00', 1),
-                               (:id, 'CUSTOM_LEDGER', 10, 0, 80, 'REJECT', timestamptz '2026-01-01 00:00:00+00', 1)
+                        VALUES (:id, 'APP', 5,
+                                 (SELECT count(*) FROM business_meta.application
+                                  WHERE tenant_id = :id AND kind = 'CUSTOM' AND deleted_at IS NULL),
+                                 80, 'REJECT', timestamptz '2026-01-01 00:00:00+00', 1),
+                               (:id, 'CUSTOM_LEDGER', 10,
+                                 (SELECT count(*) FROM business_meta.ledger l
+                                  JOIN business_meta.application a ON a.id = l.application_id
+                                  WHERE l.tenant_id = :id AND l.scope = 'TENANT' AND l.deleted_at IS NULL
+                                    AND a.kind = 'CUSTOM' AND a.deleted_at IS NULL),
+                                 80, 'REJECT', timestamptz '2026-01-01 00:00:00+00', 1)
                         ON CONFLICT (tenant_id, metric) DO NOTHING
                         """).param("id", TENANT_ID).update();
     }
