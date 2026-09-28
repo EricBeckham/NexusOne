@@ -10,6 +10,7 @@ import one.nexus.common.id.UuidV7;
 import one.nexus.common.time.Utc;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
+import one.nexus.p3.application.ProductApplicationNotifier;
 import one.nexus.p3.flow.ProcessRecords.ProcessInstanceView;
 import one.nexus.p3.flow.ProcessRecords.StartCommand;
 import one.nexus.p3.flow.ProcessRecords.TodoView;
@@ -43,6 +44,7 @@ public class SequentialApprovalService {
     private final ProcessDefinitionPublishService publishing;
     private final ApprovalCommentStore comments;
     private final ObjectProvider<AuditPort> auditPort;
+    private final ProductApplicationNotifier productNotifications;
 
     public SequentialApprovalService(
             RuntimeService runtimeService,
@@ -53,7 +55,8 @@ public class SequentialApprovalService {
             ObjectProvider<TenantMemberGrantSeeder> grantSeeder,
             ProcessDefinitionPublishService publishing,
             ApprovalCommentStore comments,
-            ObjectProvider<AuditPort> auditPort
+            ObjectProvider<AuditPort> auditPort,
+            ProductApplicationNotifier productNotifications
     ) {
         this.runtimeService = runtimeService;
         this.taskService = taskService;
@@ -64,6 +67,7 @@ public class SequentialApprovalService {
         this.publishing = publishing;
         this.comments = comments;
         this.auditPort = auditPort;
+        this.productNotifications = productNotifications;
     }
 
     @Transactional
@@ -160,6 +164,9 @@ public class SequentialApprovalService {
                 null));
         store.recordAction(tenant.tenantId(), instanceId, null, tenant.personId(), "START",
                 "START:" + command.businessKey(), now);
+        if (productRequest) {
+            productNotifications.assigned(assignee, task.getName(), tenant.personId());
+        }
         return view;
     }
 
@@ -240,6 +247,8 @@ public class SequentialApprovalService {
             store.recordAction(tenant.tenantId(), todo.instanceId(), todoId, tenant.personId(), outcome, key, now);
         }
         auditDecision(tenant, todo, outcome, normalized);
+        productNotifications.decided(instance.businessKey(), outcome, instance.initiatorPersonId(), tenant.personId(),
+                todo.taskName());
         TodoView saved = store.findTodo(tenant.tenantId(), todoId).orElseThrow();
         return normalized == null ? saved : saved.withComment(normalized);
     }
