@@ -202,7 +202,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 
 **Java 端口**：`Set<String> EntryAccessService.readableEntries()`（`nexus-permission-core`，包 `one.nexus.permission.entry`，经 `PermissionModule.entries()` 取得）—— 当前上下文成员可 `read` 的入口键集合。入口候选集合由调用方传入的「租户已安装入口」决定：`readableEntries(Collection<String> candidateKeys)`，A 只做权限过滤，不维护入口清单。
 
-**HTTP**：`GET /api/v1/permission/entries/readable` →
+**HTTP**（仅运维 / 调试，门户走 Java 端口）：`GET /api/v1/permission/entries/readable?keys=fn:leave:leave_apply&keys=...`，只回答调用者本人。候选键由调用方给出（r3，与 Java 端口一致；实现见 #784）→
 
 ```json
 { "entries": ["fn:leave:leave_apply", "fn:expense:expense_apply"], "computed_at": "2026-09-28T08:00:00Z" }
