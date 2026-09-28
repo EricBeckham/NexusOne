@@ -51,6 +51,7 @@ describe("W3 Studio home", () => {
       "/p3/ledgers",
       "/p3/notifications",
       "/p3/portal",
+      "/p3/portal/config",
       "/p3/workflow",
       "/p3/publish-center",
       "/p3/reports",

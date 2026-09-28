@@ -4,7 +4,15 @@ export const p3Nav = [
   { id: "forms", label: "表单", to: "/p3/forms", section: "工作台" },
   { id: "ledgers", label: "台账", to: "/p3/ledgers", section: "工作台" },
   { id: "notifications", label: "站内通知", to: "/p3/notifications", section: "工作台" },
-  { id: "portal", label: "功能入口", to: "/p3/portal", section: "工作台" },
+  {
+    id: "portal",
+    label: "门户",
+    section: "工作台",
+    children: [
+      { id: "portal-entries", label: "功能入口", to: "/p3/portal" },
+      { id: "portal-config", label: "门户配置", to: "/p3/portal/config" },
+    ],
+  },
   {
     // FA5: one group keeps the sidebar within eleven top items.
     id: "process-config",
