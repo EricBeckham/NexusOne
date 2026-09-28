@@ -152,8 +152,9 @@ r3 改为**状态同步**，替代 r2 的 outbox 事件。原因见开发 B 的 
 
 **B 的职责**：每个实例保存当前状态和 `revision`。安装、升级、卸载时，在与安装写入**同一事务**内把 `revision` +1，从 1 开始。
 
-- 租户自助路径：沿用现有仓储写入。
-- 平台批准路径：沿用现有的 `saveApprovedInstallation(PlatformActivationCommand, …)` 这类能力写入器，只多写 `revision` 与状态列。
+- 存储（V1.1，按 PLB7a / PLB7 实际实现）：实例单独存在 `market.app_instance`（V716），每个租户、每个应用最多一个 `INSTALLED` 实例，卸载的行保留。
+- 租户自助路径：写入前断言当前租户上下文就是该行的租户。
+- 平台批准路径：经 `PlatformActivationCommand`（实现 C3 的 `ApprovedTenantWrite`）写入目标租户，写入前断言目标租户一致。
 
 **查询端口**（r3.1；r3.3 强调：方法**不带租户参数**，租户只取服务端上下文。#779 当前的 `current(UUID tenantId, UUID instanceId)` 必须由 C 在 PLC7 中改成下面的形状；B 不实现可以传入任意 tenantId 的查询）：接口由 C 定义在 `nexus-p3-studio`（`one.nexus.p3.instance.AppInstanceQuery`，#779 已有），B 在 `nexus-p4-market` 实现并注册为 Spring bean。`p4-market` 依赖 `p3-studio`，反过来不行，所以接口放在消费方。形状如下：
 
@@ -188,7 +189,24 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 - `event_id` 与 outbox 行 id 无关：现有 `OutboxPort.append` 在收到载荷后才生成行 id，调用方拿不到。`event_id` 随载荷写进 outbox 行，重投时投递的是同一行，所以值不变。C 只按载荷里的 `event_id` 去重（r3.3）。
 - 对账本身不需要 `event_id`，也不需要 `previous_version`（`event_id` 只用于下文租户自助路径事件的去重）。C6 的 `drift` 用覆盖记录的 `base_version` 和当前 `version` 比较得出。
 
-**租户自助路径的事件**（r3.1）：租户自己订购、升级、卸载时有真实的租户成员身份，B 用现有的 `OutboxPort.append` 发事件，destination 为 `p4.app_instance`。载荷就是上面的状态，外加 `event_id`（UUIDv7，**由 B 在组装载荷时生成**，r3.3）和事件类型（`installed` / `upgraded` / `uninstalled`）。C 按 #779 已实现的规则消费：先按 `event_id` 去重，再按 `revision` 定顺序；等于已应用 +1 时整体覆盖钉扎与入口；有缺口时查 `current(instanceId)`；查询结果仍落后于事件时不记已处理，交给 outbox 重试；覆盖不删租户个性化。
+**租户自助路径的事件**（r3.1；**V1.1 按实际实现改正字段名**）：租户自己订购、升级、卸载时有真实的租户成员身份，B 用现有的 `OutboxPort.append` 发事件，destination 为 `p4.app_instance`，`event_type` 为 `p4.app_instance.installed` / `upgraded` / `uninstalled`。**载荷字段以 C 的 `InstanceEvents` 解析器为准**，与上面查询端口的 JSON 不同名：
+
+```json
+{ "event_id": "0192f0c4-...", "event_type": "upgraded", "instance_id": "uuid", "instance_revision": 2,
+  "product_code": "oa_basic", "app_code": "leave", "version": "1.1.0", "previous_version": "1.0.0",
+  "mode": "INHERIT", "entries": ["fn:leave:leave_apply"], "occurred_at": "2026-09-28T08:00:00Z" }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `event_id` | UUIDv7，**由 B 在组装载荷时生成**（r3.3） |
+| `instance_revision` | 对应查询端口的 `revision` |
+| `occurred_at` | 对应查询端口的 `changed_at` |
+| `previous_version` | 仅 `upgraded` 有值，其余为 `null` |
+| `mode` / `entries` | `uninstalled` 时为 `null` / `[]` |
+| 键 | **全部必须出现**，不适用的写 `null`。应用默认的 JSON 序列化器会丢弃 null，所以事件载荷必须用保留 null 的序列化器（见 `AppInstanceService.EVENT_JSON`），否则 C 会以「缺少必填字段」拒收 |
+
+C 按 `previous_version` 与 `mode` / `entries` 判断事件类型（`InstanceEvent.kind()`），不依赖 `event_type`。C 按 #779 已实现的规则消费：先按 `event_id` 去重，再按 `revision` 定顺序；等于已应用 +1 时整体覆盖钉扎与入口；有缺口时查 `current(instanceId)`；查询结果仍落后于事件时不记已处理，交给 outbox 重试；覆盖不删租户个性化。
 
 **平台批准路径不发事件**，理由见本节开头。C 在门户加载、入口列表、个性化解析时调 `current()` 对账，按 `revision` 比较补齐。这条对账路径也兜住了事件丢失或延迟的情况，所以它是必需的，事件只是加速。
 
@@ -302,3 +320,5 @@ r2 中的 `previous_version` 取消；`event_id` 与三种事件类型在 r3.1 �
 **r3.4（2026-09-28）**：C5 的 HTTP 接口允许门户前端直接调用；补充 PLA5 兼容开关对 C5 结果的影响。
 
 **r4（2026-09-28，用户决定）**：① 旧产品、旧组织、旧数据不迁移，全部重新初始化测试数据；取消过渡映射、`legacy_key` 与 PLB9；新增三线各自的测试数据初始化（见「旧数据：不迁移」）。② 所有审计事件暂缓：C3、C4 的审计要求改为暂缓，不再新增审计工作。
+
+**V1.1（2026-09-28，用户批准；开发 B 额度用完，未参与）**：按已合入的实现改正 C4。① 事件载荷字段名以 C 的 `InstanceEvents` 解析器为准（`instance_revision`、`previous_version`、`occurred_at`），并要求保留 null；② 实例存储为 `market.app_instance`（V716），平台批准写入经 `PlatformActivationCommand`（`ApprovedTenantWrite`）。只改文字以对齐实现，不改任何行为。
