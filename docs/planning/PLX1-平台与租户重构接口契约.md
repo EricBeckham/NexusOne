@@ -183,7 +183,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 
 - C 为每个实例保存已应用的 `revision`，拿到的 revision 比本地大时，以状态整体覆盖本地；相等时不做任何事。
 - 因为状态是全量的，同一版本再次升回、中间变化被跳过、重复拉取都不会出错。
-- 不需要 `event_id`，也不需要 `previous_version`。C6 的 `drift` 用覆盖记录的 `base_version` 和当前 `version` 比较得出。
+- 对账本身不需要 `event_id`，也不需要 `previous_version`（`event_id` 只用于下文租户自助路径事件的去重）。C6 的 `drift` 用覆盖记录的 `base_version` 和当前 `version` 比较得出。
 
 **租户自助路径的事件**（r3.1）：租户自己订购、升级、卸载时有真实的租户成员身份，B 用现有的 `OutboxPort.append` 发事件，destination 为 `p4.app_instance`。载荷就是上面的状态，外加 `event_id`（UUIDv7，与 outbox 行 id 相同）和事件类型（`installed` / `upgraded` / `uninstalled`）。C 按 #779 已实现的规则消费：先按 `event_id` 去重，再按 `revision` 定顺序；等于已应用 +1 时整体覆盖钉扎与入口；有缺口时查 `current(instanceId)`；查询结果仍落后于事件时不记已处理，交给 outbox 重试；覆盖不删租户个性化。
 
@@ -283,6 +283,6 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 | 事务描述错误 | 更正：`JdbcOutboxStore.append` 经 `DataSourceUtils` 加入已有 Spring 事务 |
 | 旧键冲突时「跳过」会静默漏迁 | 改为整批中止、输出可操作报告、可重跑；迁移完成前旧产品按旧路径运行 |
 
-r2 中的 `event_id`、`previous_version` 与三种事件类型随之取消。
+r2 中的 `previous_version` 取消；`event_id` 与三种事件类型在 r3.1 中恢复，只用于租户自助路径。
 
 **r3.1（2026-09-28，对齐 C 在 #779 按 r2 做的实现）**：租户自助路径恢复带完整状态的事件，即 r2 的形状加 event_id，C 的消费逻辑不用改；平台批准路径仍不发事件，由 C 在门户加载时调 `current()` 对账补齐（C 新增契约测试 ⑤）。`AppInstanceQuery` 接口由 C 定义在 p3-studio，B 实现。
