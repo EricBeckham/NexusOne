@@ -30,7 +30,7 @@ class ApprovalProductDemoSeedConfigurationTest {
         var env = new MockEnvironment().withProperty(DemoProfileGate.ENABLED, "false");
         @SuppressWarnings("unchecked")
         ObjectProvider<RepositoryService> processes = mock(ObjectProvider.class);
-        assertDoesNotThrow(() -> configuration.approvalProductDemoSeed(null, env, null, processes)
+        assertDoesNotThrow(() -> configuration.approvalProductDemoSeed(null, env, null, processes, null)
                 .run((ApplicationArguments) null));
         verifyNoInteractions(processes);
     }
@@ -45,7 +45,7 @@ class ApprovalProductDemoSeedConfigurationTest {
                 .withProperty(DemoProfileGate.ENVIRONMENT, "local")
                 .withProperty("spring.datasource.url", "jdbc:postgresql://db.example.test/nexusone");
         assertThrows(IllegalStateException.class,
-                () -> configuration.approvalProductDemoSeed(jdbc, env, transaction, processes)
+                () -> configuration.approvalProductDemoSeed(jdbc, env, transaction, processes, null)
                         .run((ApplicationArguments) null));
         verifyNoInteractions(jdbc, transaction, processes);
     }
@@ -71,7 +71,7 @@ class ApprovalProductDemoSeedConfigurationTest {
                 .withProperty(DemoProfileGate.ENVIRONMENT, "local")
                 .withProperty("spring.datasource.url", "jdbc:postgresql://localhost:5432/nexusone");
 
-        configuration.approvalProductDemoSeed(jdbc, env, transaction, processes).run((ApplicationArguments) null);
+        configuration.approvalProductDemoSeed(jdbc, env, transaction, processes, null).run((ApplicationArguments) null);
 
         var sql = org.mockito.ArgumentCaptor.forClass(String.class);
         org.mockito.Mockito.verify(jdbc, org.mockito.Mockito.atLeastOnce()).sql(sql.capture());

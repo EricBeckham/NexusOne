@@ -146,6 +146,29 @@ class DemoSeedPostgresBootTest {
                 """, created.id().toString()));
     }
 
+    /**
+     * AUTH6 hardening: platform content writes require a real bearer token and issued context
+     * ({@code PlatformContentContextFilter}); the demo actor headers no longer authorize them. The authenticated path
+     * is covered by {@code Auth6RouteRealChainTest}. The audit_event.tenant_id check this test used to make on the
+     * header path is deferred with the rest of audit (PL0.2).
+     */
+    @Test
+    void demoActorHeadersCannotWritePlatformContent() throws Exception {
+        MvcResult refused = mvc.perform(post("/api/v1/p1/platform/form-templates")
+                        .header(DemoPlatformContextFilter.ACTOR_HEADER, "01900000-0000-7000-8000-0000000000ac")
+                        .header(DemoPlatformContextFilter.REASON_HEADER, "j1-platform-smoke")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"j1_header_refused","name":"header refused",
+                                 "fields":[{"key":"subject","label":"subject","type":"TEXT","required":true}]}
+                                """))
+                .andReturn();
+        assertEquals(401, refused.getResponse().getStatus(), refused.getResponse().getContentAsString());
+        assertEquals(0, count("SELECT count(*) FROM platform.form_template WHERE code = ?", "j1_header_refused"),
+                "a refused request writes nothing");
+    }
+
+    @org.junit.jupiter.api.Disabled("AUTH6: demo headers no longer write platform content; see demoActorHeadersCannotWritePlatformContent")
     @Test
     void platformFormTemplateCreateViaHttpPersistsAuditTenantId() throws Exception {
         MvcResult created = mvc.perform(post("/api/v1/p1/platform/form-templates")

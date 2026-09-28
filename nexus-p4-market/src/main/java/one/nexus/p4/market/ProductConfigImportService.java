@@ -61,7 +61,7 @@ public class ProductConfigImportService {
     public ImportAccepted importPackage(Map<String, Object> packageBody, String conflictStrategy, String idempotencyKey) {
         PlatformContext actor = isolation.requirePlatformContext("product-definition.import", PlatformDuty.SYSTEM_ADMIN);
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            var existing = jobs.findByIdempotencyKey(idempotencyKey.trim());
+            var existing = jobs.findByIdempotencyKey(idempotencyKey.trim(), clock.now());
             if (existing.isPresent()) {
                 return new ImportAccepted(existing.get().id(), existing.get().status());
             }
