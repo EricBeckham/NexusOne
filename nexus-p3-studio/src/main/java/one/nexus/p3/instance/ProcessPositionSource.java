@@ -3,7 +3,7 @@ package one.nexus.p3.instance;
 import java.util.List;
 import java.util.UUID;
 
-/** POSITION references on installed processes. B supplies these from the manifest; empty until then. */
+/** POSITION references on installed processes. The market module reads them from the published manifest. */
 public interface ProcessPositionSource {
     List<PositionRef> positions(UUID tenantId);
 
