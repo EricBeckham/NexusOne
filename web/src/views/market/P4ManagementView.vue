@@ -190,7 +190,39 @@
     <template v-else>
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="已开通产品按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="installations">
-        <p v-if="!loading && installations.length" class="installations-count nx-muted" data-testid="installations-count">共 {{ installations.length }} 个已开通产品</p>
+        <p v-if="!loading && (appInstances.length || installations.length)" class="installations-count nx-muted" data-testid="installations-count">
+          共 {{ appInstances.length }} 个应用实例<span v-if="installations.length">，{{ installations.length }} 个旧版安装</span>
+        </p>
+        <section v-if="appInstances.length" class="app-instances" data-testid="app-instances">
+          <h2>应用实例</h2>
+          <div class="installation-list">
+            <article v-for="instance in appInstances" :key="instance.id" class="installation-card" data-testid="app-instance-card">
+              <div class="installation-summary">
+                <div class="installation-identity">
+                  <div class="installation-title">
+                    <h3>{{ appById(instance.appId)?.name || instance.appCode || "未命名应用" }}</h3>
+                    <NxStatusTag :status="instance.status" :label="installStatusDisplay(instance.status).label" :tone="installStatusDisplay(instance.status).tone" data-testid="app-instance-status" />
+                  </div>
+                  <p class="installation-meta">
+                    <code>{{ instance.appCode || appById(instance.appId)?.code || "应用" }}</code>
+                    <span aria-hidden="true">·</span>版本 <strong>{{ instance.version || versionLabel(instance.appVersionId) }}</strong>
+                    <span aria-hidden="true">·</span>模式 <strong data-testid="app-instance-mode">{{ instanceModeLabel(instance.mode) }}</strong>
+                    <span aria-hidden="true">·</span>修订 <strong>{{ instance.revision }}</strong>
+                  </p>
+                  <p class="installation-meta">
+                    产品 <code>{{ instance.productCode || "暂无" }}</code>
+                    <span aria-hidden="true">·</span>SKU <code>{{ instance.skuCode || "暂无" }}</code>
+                    <span aria-hidden="true">·</span>更新于 {{ formatDate(instance.changedAt) }}
+                  </p>
+                </div>
+              </div>
+              <p class="instance-entries" data-testid="app-instance-entries">
+                可用入口：<template v-if="instance.entries?.length"><code v-for="entry in instance.entries" :key="entry">{{ entry }}</code></template><span v-else>暂无</span>
+              </p>
+              <small class="nx-muted installation-id" data-testid="app-instance-id">实例编号 <code :title="instance.id">{{ instance.id }}</code></small>
+            </article>
+          </div>
+        </section>
         <section v-if="upgradeOffers.length" class="instance-upgrades" data-testid="instance-upgrades">
           <h2>应用可以升级</h2>
           <article v-for="offer in upgradeOffers" :key="offer.instanceId" data-testid="instance-upgrade-offer">
@@ -200,7 +232,7 @@
           </article>
         </section>
         <NxDataTable
-          v-if="loading || error || !installations.length"
+          v-if="loading || error || (!installations.length && !appInstances.length)"
           :loading="loading"
           :error="tableError"
           :empty="!loading && !error && !installations.length"
@@ -216,7 +248,9 @@
             <router-link class="primary" to="/p4/market">前往应用目录</router-link>
           </template>
         </NxDataTable>
-        <div v-else class="installation-list"><article v-for="installation in installations" :key="installation.id" class="installation-card">
+        <section v-if="installations.length" class="legacy-installations" data-testid="legacy-installations">
+          <h2>旧版安装</h2>
+          <div class="installation-list"><article v-for="installation in installations" :key="installation.id" class="installation-card">
           <div class="installation-summary">
             <div class="installation-identity">
               <div class="installation-title">
@@ -259,7 +293,8 @@
             <form class="upgrade-form" @submit.prevent="upgrade(installation)"><label>目标版本<select v-model="targets[installation.id]" required><option value="">请选择已发布版本</option><option v-for="version in publishedVersions(installation.appId)" :key="version.id" :value="version.id">{{ version.version }}</option></select></label><button class="nx-btn nx-btn--default" type="submit" data-testid="upgrade-submit" :disabled="busyId === installation.id || !targets[installation.id]">{{ busyId === installation.id ? "提交中…" : "提交升级" }}</button></form>
           </details>
           <small class="nx-muted installation-id" data-testid="installation-id">安装编号 <code :title="installation.id">{{ installation.id }}</code></small>
-        </article></div>
+          </article></div>
+        </section>
       </section>
     </template>
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
@@ -278,7 +313,7 @@ import { session } from "../../api/session";
 import { devNotesEnabled } from "../../utils/devNotes";
 
 const route = useRoute();
-const apps = ref([]); const skus = ref([]); const subscriptions = ref([]); const installations = ref([]);
+const apps = ref([]); const skus = ref([]); const subscriptions = ref([]); const installations = ref([]); const appInstances = ref([]);
 const upgradeOffers = ref([]); const catalogProducts = ref([]);
 const versionsByApp = reactive({}); const selectedApp = ref(null); const versions = ref([]);
 const targets = reactive({}); const loading = ref(true); const error = ref(""); const notice = ref(""); const busyId = ref("");
@@ -388,8 +423,9 @@ async function load() {
     await Promise.all(apps.value.map(async (app) => { versionsByApp[app.id] = camelRows(await p4.versions(app.id)); }));
     if (section.value === "packages" && apps.value.length && !selectedApp.value) await selectApp(apps.value[0]);
     if (session.contextId && ["subscriptions", "installations"].includes(section.value)) {
-      const [subs, installs] = await Promise.all([p4.subscriptions(), p4.installations()]);
-      subscriptions.value = camelRows(subs); installations.value = camelRows(installs);
+      const instanceRequest = section.value === "installations" ? p4.appInstances() : Promise.resolve([]);
+      const [subs, installs, instances] = await Promise.all([p4.subscriptions(), p4.installations(), instanceRequest]);
+      subscriptions.value = camelRows(subs); installations.value = camelRows(installs); appInstances.value = camelRows(instances);
       if (section.value === "subscriptions") await loadEntitlementSummaries();
       if (section.value === "installations") await loadInstanceUpgrades();
     }
@@ -411,6 +447,11 @@ const versionLabel = (id) => Object.values(versionsByApp).flat().find((version) 
 function installationStatus(sub) { const row = installations.value.find((item) => item.tenantId === sub.tenantId && item.appId === appForSku(sub.skuCode)?.id && item.status === "INSTALLED"); return row ? row.status : "暂无安装"; }
 const INSTALL_STATUS = { INSTALLED: ["已开通", "success"], UPGRADING: ["升级中", "info"], FAILED: ["开通失败", "danger"], UNINSTALLED: ["已停用", "neutral"] };
 function installStatusDisplay(status) { const [label, tone] = INSTALL_STATUS[String(status || "").toUpperCase()] || [status || "未知", "neutral"]; return { label, tone }; }
+function instanceModeLabel(mode) {
+  if (mode === "INHERIT") return "跟随平台（INHERIT）";
+  if (mode === "FORK") return "租户派生（FORK）";
+  return mode || "暂无";
+}
 function formatDate(value) { return value ? new Date(value).toLocaleString("zh-CN") : "暂无"; }
 function formatAttributes(value) { return value && Object.keys(value).length ? JSON.stringify(value) : "暂无属性"; }
 async function loadInstanceUpgrades() {
@@ -466,6 +507,10 @@ onMounted(load);
 /* Q8: installed products are a flat list of cards (no card-in-card); the status tag sits with the name, the one Primary on the right. */
 .installations{display:grid;gap:var(--nx-space-3)}
 .installations-count{margin:0;font-size:var(--nx-font-size-sm)}
+.app-instances,.legacy-installations{display:grid;gap:var(--nx-space-3)}
+.app-instances h2,.legacy-installations h2{margin:var(--nx-space-2) 0 0;font-size:var(--nx-font-size-lg)}
+.instance-entries{display:flex;flex-wrap:wrap;gap:6px;margin:0;color:var(--nx-text-secondary);font-size:var(--nx-font-size-sm)}
+.instance-entries code{padding:2px 6px;border-radius:4px;background:var(--nx-bg-sidebar);color:var(--nx-text-regular)}
 .installation-title{display:flex;flex-wrap:wrap;align-items:center;gap:var(--nx-space-2)}
 .installation-meta code{font-size:var(--nx-font-size-xs);color:var(--nx-text-secondary)}
 .installation-identity{display:grid;gap:4px;min-width:0}.installation-identity h3{margin:0;font-size:16px;font-weight:600;line-height:24px}.installation-meta{margin:0;color:var(--nx-text-secondary);font-size:var(--nx-font-size-sm);display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}.installation-meta strong{color:var(--nx-text-primary)}

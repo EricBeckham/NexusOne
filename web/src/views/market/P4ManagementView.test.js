@@ -5,7 +5,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 
 const mocks = vi.hoisted(() => ({
   apps: vi.fn(), app: vi.fn(), versions: vi.fn(), version: vi.fn(), skus: vi.fn(), sku: vi.fn(),
-  subscriptions: vi.fn(), subscription: vi.fn(), installations: vi.fn(), installation: vi.fn(), upgrade: vi.fn(),
+  subscriptions: vi.fn(), subscription: vi.fn(), installations: vi.fn(), installation: vi.fn(), appInstances: vi.fn(), upgrade: vi.fn(),
   upgradeSteps: vi.fn(), upgradeFacts: vi.fn(), commercialEntitlements: vi.fn(),
   session: { contextId: "ctx-1", tenantId: "tenant-1" },
 }));
@@ -38,7 +38,7 @@ describe("P4 management subpages", () => {
     Object.values(mocks).filter((value) => typeof value === "function").forEach((fn) => fn.mockReset());
     mocks.session.contextId = "ctx-1"; mocks.session.tenantId = "tenant-1";
     mocks.apps.mockResolvedValue([app]); mocks.skus.mockResolvedValue([sku]); mocks.versions.mockResolvedValue([version]);
-    mocks.subscriptions.mockResolvedValue([]); mocks.installations.mockResolvedValue([]); mocks.upgrade.mockResolvedValue({}); mocks.commercialEntitlements.mockResolvedValue([]);
+    mocks.subscriptions.mockResolvedValue([]); mocks.installations.mockResolvedValue([]); mocks.appInstances.mockResolvedValue([]); mocks.upgrade.mockResolvedValue({}); mocks.commercialEntitlements.mockResolvedValue([]);
   });
 
   it("shows package details and version history from the read models", async () => {
@@ -92,7 +92,7 @@ describe("P4 management subpages", () => {
     expect(installations.find(".installations.nx-card").exists()).toBe(false);
     expect(installations.get(".installation-title [data-testid='installation-status']").text()).toBe("已开通");
     expect(installations.get(".installation-meta").text()).toContain("crm");
-    expect(installations.get('[data-testid="installations-count"]').text()).toBe("共 1 个已开通产品");
+    expect(installations.get('[data-testid="installations-count"]').text()).toBe("共 0 个应用实例，1 个旧版安装");
     // S8: the fixed "暂无数据" upgrade facts are a developer note, not shown in the demo.
     // XB8: facts come from the server when the fold opens — nothing before that.
     expect(installations.find('[data-testid="upgrade-facts"]').exists()).toBe(false);
@@ -105,6 +105,23 @@ describe("P4 management subpages", () => {
     await installations.get("select").setValue("version-1");
     await installations.get("form").trigger("submit"); await flushPromises();
     expect(mocks.installations).toHaveBeenCalled(); expect(mocks.upgrade).toHaveBeenCalledWith("install-1", "version-1");
+  });
+
+  it("shows product-native application instances after platform approval", async () => {
+    mocks.appInstances.mockResolvedValue([
+      { id: "instance-leave", tenant_id: "tenant-1", product_code: "acc_office", sku_code: "acc_office_std", app_id: "app-1", app_code: "acc_leave", app_version_id: "version-1", version: "1.0.0", status: "INSTALLED", mode: "INHERIT", entries: ["leave.apply"], revision: 1, changed_at: "2026-09-28T13:51:31Z" },
+      { id: "instance-expense", tenant_id: "tenant-1", product_code: "acc_office", sku_code: "acc_office_std", app_id: "app-2", app_code: "acc_expense", app_version_id: "version-2", version: "1.0.0", status: "INSTALLED", mode: "INHERIT", entries: ["expense.apply"], revision: 1, changed_at: "2026-09-28T13:51:31Z" },
+    ]);
+    const wrapper = await mountPage("/p4/installations");
+    expect(mocks.appInstances).toHaveBeenCalledOnce();
+    expect(wrapper.findAll('[data-testid="app-instance-card"]')).toHaveLength(2);
+    expect(wrapper.get('[data-testid="installations-count"]').text()).toBe("共 2 个应用实例");
+    expect(wrapper.findAll('[data-testid="app-instance-mode"]').map((node) => node.text())).toEqual([
+      "跟随平台（INHERIT）", "跟随平台（INHERIT）",
+    ]);
+    expect(wrapper.text()).toContain("acc_leave");
+    expect(wrapper.text()).toContain("acc_expense");
+    expect(wrapper.text()).not.toContain("还没有已开通可用的产品");
   });
 
   it("does not request tenant data without a server tenant context", async () => {
