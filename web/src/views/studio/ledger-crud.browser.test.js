@@ -104,6 +104,56 @@ describe("T3-E application and ledger CRUD", () => {
     expect(router.currentRoute.value.fullPath).toBe("/p3/ledgers/ledger-1");
   });
 
+  it("validates all three identifier codes before creating an application", async () => {
+    const { wrapper } = await mountAt("/p3/ledgers", LedgerListView);
+    await wrapper.get('[data-testid="ledger-create-toggle"]').trigger("click");
+    await wrapper.get('[data-testid="application-code"]').setValue("费用应用");
+    await wrapper.get('[data-testid="application-name"]').setValue("费用应用");
+    await wrapper.get('[data-testid="ledger-code"]').setValue("expense");
+    await wrapper.get('[data-testid="ledger-name"]').setValue("付款台账");
+    await wrapper.get('[data-testid="ledger-create-form"]').trigger("submit");
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toContain("应用代码须以英文字母开头");
+    expect(mocks.createApplication).not.toHaveBeenCalled();
+    expect(mocks.createLedger).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-testid="application-code"]').setValue("expense");
+    await wrapper.get('[data-testid="ledger-code"]').setValue("付款台账");
+    await wrapper.get('[data-testid="ledger-create-form"]').trigger("submit");
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toContain("台账代码须以英文字母开头");
+    expect(mocks.createApplication).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-testid="ledger-code"]').setValue("payments");
+    await wrapper.get('[data-testid="ledger-field-code"]').setValue("tenant_id");
+    await wrapper.get('[data-testid="ledger-create-form"]').trigger("submit");
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toContain("系统保留字段");
+    expect(mocks.createApplication).not.toHaveBeenCalled();
+  });
+
+  it("reuses the same tenant application after a ledger request fails, without a duplicate POST", async () => {
+    mocks.createApplication.mockResolvedValue({ id: "app-retry", app_code: "expense", display_name: "费用应用", kind: "CUSTOM" });
+    mocks.createLedger.mockRejectedValueOnce(Object.assign(new Error("illegal identifier"), { code: "P3.SCHEMA.0001" }))
+      .mockResolvedValueOnce(ledger);
+    const { wrapper, router } = await mountAt("/p3/ledgers", LedgerListView);
+    await wrapper.get('[data-testid="ledger-create-toggle"]').trigger("click");
+    await wrapper.get('[data-testid="application-code"]').setValue("EXPENSE");
+    await wrapper.get('[data-testid="application-name"]').setValue("费用应用");
+    await wrapper.get('[data-testid="ledger-code"]').setValue("payments");
+    await wrapper.get('[data-testid="ledger-name"]').setValue("付款台账");
+    await wrapper.get('[data-testid="ledger-create-form"]').trigger("submit");
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toContain("代码不符合台账标识符规则");
+    expect(mocks.createApplication).toHaveBeenCalledTimes(1);
+    expect(mocks.createLedger).toHaveBeenCalledWith(expect.objectContaining({ ledger_code: "payments", application_id: "app-retry" }));
+    await wrapper.get('[data-testid="ledger-create-form"]').trigger("submit");
+    await flushPromises();
+    expect(mocks.createApplication).toHaveBeenCalledTimes(1);
+    expect(mocks.createLedger).toHaveBeenCalledTimes(2);
+    expect(router.currentRoute.value.fullPath).toBe("/p3/ledgers/ledger-1");
+  });
+
   it("creates, updates with version, and deletes a ledger record", async () => {
     let records = [{ id: "record-1", title: "旧标题", amount: 10, version: 3 }];
     mocks.getLedger.mockResolvedValue(ledger);
