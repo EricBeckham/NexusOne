@@ -41,12 +41,14 @@ public class MarketService {
     private final IdentityRepository identities;
     private final AuditPort audit;
     private final ProductDefaultPermissionProvisioner permissionPacks;
+    private final AppDesignService appDesign;
 
     @Autowired
     public MarketService(MarketRepository market, TenantRepository tenants,
             ObjectProvider<IdentityRepository> identities, ObjectProvider<AuditPort> audit,
-            ObjectProvider<ProductDefaultPermissionProvisioner> permissionPacks) {
-        this(market, tenants, Clock.systemUTC(), identities.getIfAvailable(), audit.getIfAvailable(), permissionPacks.getIfAvailable());
+            ObjectProvider<ProductDefaultPermissionProvisioner> permissionPacks,
+            AppDesignService appDesign) {
+        this(market, tenants, Clock.systemUTC(), identities.getIfAvailable(), audit.getIfAvailable(), permissionPacks.getIfAvailable(), appDesign);
     }
 
     MarketService(MarketRepository market, TenantRepository tenants, Clock clock) {
@@ -60,12 +62,19 @@ public class MarketService {
 
     MarketService(MarketRepository market, TenantRepository tenants, Clock clock,
             IdentityRepository identities, AuditPort audit, ProductDefaultPermissionProvisioner permissionPacks) {
+        this(market, tenants, clock, identities, audit, permissionPacks, null);
+    }
+
+    MarketService(MarketRepository market, TenantRepository tenants, Clock clock,
+            IdentityRepository identities, AuditPort audit, ProductDefaultPermissionProvisioner permissionPacks,
+            AppDesignService appDesign) {
         this.market = market;
         this.tenants = tenants;
         this.clock = clock;
         this.identities = identities;
         this.audit = audit;
         this.permissionPacks = permissionPacks;
+        this.appDesign = appDesign;
     }
 
     @Transactional
@@ -96,6 +105,7 @@ public class MarketService {
             default -> false;
         };
         if (!allowed) throw new IllegalStateException("invalid version transition: " + current.status() + " -> " + target);
+        if (target == VersionStatus.PUBLISHED && appDesign != null) appDesign.requirePublishable(versionId);
         Instant now = clock.instant();
         AppVersion next = new AppVersion(current.id(), current.appId(), current.version(), target,
                 current.releaseNotes(), current.createdAt(), target == VersionStatus.PUBLISHED ? now : current.publishedAt());
