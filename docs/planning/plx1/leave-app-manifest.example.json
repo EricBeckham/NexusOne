@@ -1,0 +1,99 @@
+{
+  "schema": "nexus.app-manifest.v1",
+  "app_code": "leave",
+  "version": "1.0.0",
+  "category_code": "oa",
+  "name": "请假",
+  "ledgers": [
+    {
+      "code": "leave",
+      "name": "请假台账",
+      "fields": [
+        { "code": "title", "name": "请假类型", "type": "TEXT", "required": true, "indexed": true },
+        { "code": "days", "name": "天数", "type": "NUMERIC", "required": true, "indexed": false },
+        { "code": "start_at", "name": "开始时间", "type": "TIMESTAMPTZ", "required": true, "indexed": false },
+        { "code": "reason", "name": "事由", "type": "TEXT", "required": false, "indexed": false }
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "code": "leave_apply",
+      "name": "请假申请",
+      "ledger_code": "leave",
+      "purpose": "FILL",
+      "layout": { "sections": [ { "title": "基本信息", "fields": ["title", "days", "start_at", "reason"] } ] },
+      "readonly_fields": []
+    },
+    {
+      "code": "leave_approve",
+      "name": "请假审批",
+      "ledger_code": "leave",
+      "purpose": "APPROVE",
+      "layout": { "sections": [ { "title": "申请内容", "fields": ["title", "days", "start_at", "reason"] } ] },
+      "readonly_fields": ["title", "days", "start_at", "reason"]
+    },
+    {
+      "code": "leave_view",
+      "name": "请假记录",
+      "ledger_code": "leave",
+      "purpose": "VIEW",
+      "layout": { "sections": [ { "title": "请假记录", "fields": ["title", "days", "start_at", "reason"] } ] },
+      "readonly_fields": ["title", "days", "start_at", "reason"]
+    }
+  ],
+  "processes": [
+    {
+      "key": "leave_approval",
+      "name": "请假审批",
+      "form_code": "leave_apply",
+      "nodes": [
+        { "id": "n1", "name": "部门审批", "form_code": "leave_approve", "assignee": { "type": "ROLE", "ref": "leave_approver" } },
+        { "id": "n2", "name": "人事备案", "form_code": "leave_approve", "assignee": { "type": "POSITION", "ref": "hr_clerk" } }
+      ]
+    }
+  ],
+  "role_pack": [
+    {
+      "code": "leave_applicant",
+      "name": "请假申请人",
+      "grants": [
+        { "resource": "fn.leave.leave_apply", "action": "read", "scope": "SELF" },
+        { "resource": "fn.leave.leave_apply", "action": "write", "scope": "SELF" }
+      ]
+    },
+    {
+      "code": "leave_approver",
+      "name": "请假审批人",
+      "grants": [
+        { "resource": "fn.leave.leave_view", "action": "read", "scope": "DEPT_AND_CHILDREN" }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "key": "fn:leave:leave_apply",
+      "app_code": "leave",
+      "form_code": "leave_apply",
+      "ledger_code": "leave",
+      "process_key": "leave_approval",
+      "name": "请假申请",
+      "icon": "calendar",
+      "kind": "FILL",
+      "default_group": "办公",
+      "sort": 10
+    },
+    {
+      "key": "fn:leave:leave_view",
+      "app_code": "leave",
+      "form_code": "leave_view",
+      "ledger_code": "leave",
+      "process_key": null,
+      "name": "请假记录",
+      "icon": "list",
+      "kind": "LIST",
+      "default_group": "办公",
+      "sort": 20
+    }
+  ]
+}
