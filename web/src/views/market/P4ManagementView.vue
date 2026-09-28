@@ -54,6 +54,13 @@
               />
             </div>
             <h3>版本与发布记录</h3>
+            <div v-if="catalogProducts.length" data-testid="product-auto-upgrade">
+              <h3>产品小版本自动升级</h3>
+              <label v-for="product in catalogProducts" :key="product.id">
+                <input type="checkbox" :checked="product.autoUpgradeMinor" :data-testid="`auto-upgrade-${product.code}`" @change="toggleAutoUpgrade(product, $event)" />
+                {{ product.name }} 跟随同一主版本的新发布
+              </label>
+            </div>
             <NxDataTable
               :loading="loading"
               :empty="!loading && !versions.length"
@@ -179,6 +186,14 @@
       <NxNoPermission v-if="!session.contextId" title="需要先进入租户" description="已开通产品按租户查看，请先登录并切换到对应租户。" />
       <section v-else class="installations">
         <p v-if="!loading && installations.length" class="installations-count nx-muted" data-testid="installations-count">共 {{ installations.length }} 个已开通产品</p>
+        <section v-if="upgradeOffers.length" class="instance-upgrades" data-testid="instance-upgrades">
+          <h2>应用可以升级</h2>
+          <article v-for="offer in upgradeOffers" :key="offer.instanceId" data-testid="instance-upgrade-offer">
+            <p>{{ offer.appCode }} {{ offer.currentVersion }} → {{ offer.targetVersion }}<span v-if="offer.minor">（同一主版本）</span></p>
+            <button class="nx-btn nx-btn--default" type="button" data-testid="instance-upgrade" :disabled="busyId === offer.instanceId" @click="upgradeInstance(offer)">升级</button>
+            <button class="ghost" type="button" data-testid="instance-uninstall" :disabled="busyId === offer.instanceId" @click="uninstallInstance(offer)">卸载</button>
+          </article>
+        </section>
         <NxDataTable
           v-if="loading || error || !installations.length"
           :loading="loading"
@@ -258,6 +273,7 @@ import { devNotesEnabled } from "../../utils/devNotes";
 
 const route = useRoute();
 const apps = ref([]); const skus = ref([]); const subscriptions = ref([]); const installations = ref([]);
+const upgradeOffers = ref([]); const catalogProducts = ref([]);
 const versionsByApp = reactive({}); const selectedApp = ref(null); const versions = ref([]);
 const targets = reactive({}); const loading = ref(true); const error = ref(""); const notice = ref(""); const busyId = ref("");
 const section = computed(() => ({ "p4-packages": "packages", "p4-skus": "skus", "p4-subscriptions": "subscriptions", "p4-installations": "installations" })[route.name] || "packages");
@@ -368,6 +384,11 @@ async function load() {
       const [subs, installs] = await Promise.all([p4.subscriptions(), p4.installations()]);
       subscriptions.value = camelRows(subs); installations.value = camelRows(installs);
       if (section.value === "subscriptions") await loadEntitlementSummaries();
+      if (section.value === "installations") await loadInstanceUpgrades();
+    }
+    if (section.value === "packages" && session.platformMode && typeof p4.products === "function") {
+      try { catalogProducts.value = camelRows(await p4.products()); }
+      catch { catalogProducts.value = []; }
     }
   } catch (err) { error.value = err.message || "星市数据暂时不可用"; }
   finally { loading.value = false; }
@@ -385,6 +406,36 @@ const INSTALL_STATUS = { INSTALLED: ["已开通", "success"], UPGRADING: ["升�
 function installStatusDisplay(status) { const [label, tone] = INSTALL_STATUS[String(status || "").toUpperCase()] || [status || "未知", "neutral"]; return { label, tone }; }
 function formatDate(value) { return value ? new Date(value).toLocaleString("zh-CN") : "暂无"; }
 function formatAttributes(value) { return value && Object.keys(value).length ? JSON.stringify(value) : "暂无属性"; }
+async function loadInstanceUpgrades() {
+  upgradeOffers.value = [];
+  if (typeof p4.appInstanceUpgradeOffers !== "function") return;
+  try { upgradeOffers.value = camelRows(await p4.appInstanceUpgradeOffers()); }
+  catch { upgradeOffers.value = []; }
+}
+async function upgradeInstance(offer) {
+  busyId.value = offer.instanceId; error.value = ""; notice.value = "";
+  try {
+    const result = await p4.upgradeAppInstance(offer.instanceId, offer.targetVersionId);
+    const kept = (result?.role_pack || result?.rolePack || []).some((role) => (role.grants_not_in_pack || role.grantsNotInPack || []).length);
+    await load();
+    notice.value = kept ? "已升级。新版本去掉的授权仍保留，请管理员处理。" : "已升级到 " + offer.targetVersion + "。";
+  } catch (err) { error.value = err.message || "升级失败"; }
+  finally { busyId.value = ""; }
+}
+async function uninstallInstance(offer) {
+  busyId.value = offer.instanceId; error.value = ""; notice.value = "";
+  try { await p4.uninstallAppInstance(offer.instanceId); await load(); notice.value = "已卸载 " + offer.appCode + "。"; }
+  catch (err) { error.value = err.message || "卸载失败"; }
+  finally { busyId.value = ""; }
+}
+async function toggleAutoUpgrade(product, event) {
+  const enabled = event.target.checked;
+  try {
+    await p4.setProductAutoUpgrade(product.id, { version: product.version, enabled });
+    await load();
+    notice.value = enabled ? "已开启小版本自动升级。" : "已关闭小版本自动升级。";
+  } catch (err) { error.value = err.message || "保存失败"; event.target.checked = !enabled; }
+}
 async function upgrade(installation) {
   const versionId = targets[installation.id]; if (!versionId) return;
   busyId.value = installation.id; error.value = ""; notice.value = "";

@@ -44,6 +44,12 @@ public class ProductCatalogController {
     public String createSku(@PathVariable UUID id, @RequestBody SkuWrite request) {
         return service.createSku(id, request);
     }
+    /** PLB8 / D3: product-level switch for same-major automatic upgrades. */
+    @PutMapping("/{id}/auto-upgrade-minor")
+    public Product setAutoUpgradeMinor(@PathVariable UUID id, @RequestBody AutoUpgrade request) {
+        return service.setAutoUpgradeMinor(id, request != null && request.enabled(), request == null ? 0 : request.version());
+    }
     public record AppsWrite(long version, List<ProductApp> apps) {}
     public record Publish(long version) {}
+    public record AutoUpgrade(long version, boolean enabled) {}
 }

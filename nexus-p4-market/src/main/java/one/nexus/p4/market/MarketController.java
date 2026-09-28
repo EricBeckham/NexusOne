@@ -44,7 +44,21 @@ public class MarketController {
     }
     /** PLB7: the current tenant's application instances (all statuses). */
     @GetMapping("/app-instances") List<AppInstanceService.AppInstance> appInstances(){return service.appInstances();}
+    /** PLB8: INHERIT instances that have a newer published version. */
+    @GetMapping("/app-instances/upgrade-offers") List<AppInstanceService.UpgradeOffer> appInstanceUpgradeOffers(){
+        return service.appInstanceUpgradeOffers();
+    }
+    /** PLB8: manual upgrade. Body is the published version id. */
+    @PostMapping("/app-instances/{id}/upgrade") AppInstanceService.UpgradeResult upgradeAppInstance(
+            @PathVariable UUID id, @RequestBody InstanceUpgrade request){
+        return service.upgradeAppInstance(id, request == null ? null : request.versionId());
+    }
+    /** PLB8: uninstall keeps the instance row and emits the tenant-path event. */
+    @PostMapping("/app-instances/{id}/uninstall") AppInstanceService.AppInstance uninstallAppInstance(@PathVariable UUID id){
+        return service.uninstallAppInstance(id);
+    }
     public record ProductSubscribe(@com.fasterxml.jackson.annotation.JsonAlias({"sku_code","skuCode"}) String skuCode){}
+    public record InstanceUpgrade(@com.fasterxml.jackson.annotation.JsonAlias({"version_id","versionId"}) UUID versionId){}
     @PostMapping("/tenants/{tenantId}/activation-applications") @ResponseStatus(HttpStatus.CREATED)
     ActivationApplication requestActivation(@PathVariable UUID tenantId,@RequestBody Install request){
         return service.requestActivation(tenantId,request.skuCode(),request.versionId());

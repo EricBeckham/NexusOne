@@ -28,9 +28,13 @@ public class ProductCatalogService {
     private final JdbcClient jdbc;
     private final ObjectMapper json;
     private final IsolationGuard isolation;
+    private AppInstanceService instances;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void useInstances(AppInstanceService instances) { this.instances = instances; }
 
     public record Product(UUID id, String code, String name, String description, String status,
-            Instant createdAt, Instant updatedAt, long version) {}
+            Instant createdAt, Instant updatedAt, long version, boolean autoUpgradeMinor) {}
     public record ProductWrite(String code, String name, String description, Long version) {}
     public record ProductApp(UUID appId, UUID versionId, int sortOrder) {}
     public record ProductView(Product product, List<ProductApp> apps, List<String> skuCodes) {}
@@ -152,6 +156,19 @@ public class ProductCatalogService {
         return request.code();
     }
 
+    /** PLB8 / D3. Turning the switch on catches INHERIT instances up to the newest same-major published version. */
+    @Transactional
+    public Product setAutoUpgradeMinor(UUID id, boolean enabled, long expectedVersion) {
+        platform("product.auto-upgrade");
+        int changed = jdbc.sql("""
+                UPDATE market.product SET auto_upgrade_minor=:enabled, updated_at=CURRENT_TIMESTAMP, version=version+1
+                WHERE id=:id AND version=:version
+                """).param("enabled", enabled).param("id", id).param("version", expectedVersion).update();
+        if (changed != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "product version changed or product not found");
+        if (enabled && instances != null) instances.catchUpProduct(id);
+        return requireProduct(id);
+    }
+
     private ProductView view(UUID id) {
         Product product = requireProduct(id);
         List<ProductApp> apps = jdbc.sql("""
@@ -173,7 +190,7 @@ public class ProductCatalogService {
     private Product mapProduct(ResultSet row, int index) throws SQLException {
         return new Product(row.getObject("id", UUID.class), row.getString("code"), row.getString("name"),
                 row.getString("description"), row.getString("status"), row.getTimestamp("created_at").toInstant(),
-                row.getTimestamp("updated_at").toInstant(), row.getLong("version"));
+                row.getTimestamp("updated_at").toInstant(), row.getLong("version"), row.getBoolean("auto_upgrade_minor"));
     }
     private void platform(String operation) { isolation.requirePlatformContext(operation, PlatformDuty.SYSTEM_ADMIN); }
     private static void requireWrite(ProductWrite request, boolean creating) {

@@ -26,6 +26,7 @@ import one.nexus.p4.market.MarketModels.Sku;
 import one.nexus.p4.market.MarketModels.Subscription;
 import one.nexus.p4.market.MarketModels.SubscriptionStatus;
 import one.nexus.permission.PermissionModule;
+import one.nexus.permission.pack.RolePackService.AppliedRole;
 import one.nexus.permission.pack.RolePackService.GrantSpec;
 import one.nexus.permission.pack.RolePackService.RolePackCommand;
 import one.nexus.permission.pack.RolePackService.RoleSpec;
@@ -103,6 +104,13 @@ public class AppInstanceService {
     public record Plan(String skuCode, UUID productId, String productCode, List<PlannedApp> apps) {}
 
     public record PlannedApp(UUID appId, UUID versionId, TemplateVersion template, List<String> entries) {}
+
+    /** Tenant upgrade. {@code rolePack} reports grants a newer manifest dropped; those grants are not revoked. */
+    public record UpgradeResult(AppInstance instance, List<AppliedRole> rolePack) {}
+
+    /** A newer published version an INHERIT instance can move to. {@code minor} keeps the same major number. */
+    public record UpgradeOffer(UUID instanceId, String appCode, String currentVersion, UUID targetVersionId,
+            String targetVersion, boolean minor) {}
 
     public static boolean productNative(Sku sku) {
         return sku != null && sku.appId() == null;
@@ -209,6 +217,231 @@ public class AppInstanceService {
                 .param("tenant", tenant).query(this::map).list();
     }
 
+    /** Newer published versions for the current tenant's INHERIT instances. Empty when nothing is ahead. */
+    @Transactional(readOnly = true)
+    public List<UpgradeOffer> upgradeOffers() {
+        List<UpgradeOffer> offers = new ArrayList<>();
+        for (AppInstance instance : current()) {
+            UpgradeOffer offer = offerFor(instance);
+            if (offer != null) offers.add(offer);
+        }
+        return List.copyOf(offers);
+    }
+
+    /**
+     * Tenant self-service upgrade. Same transaction updates the pinned version, entries and revision,
+     * lands added role-pack grants, and emits {@code p4.app_instance} with {@code previous_version} set.
+     */
+    @Transactional
+    public UpgradeResult upgrade(UUID instanceId, UUID targetVersionId) {
+        AppInstance current = requireInstalled(instanceId, true);
+        if (!DEFAULT_MODE.equals(current.mode())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "only inherit instances can be upgraded");
+        }
+        TemplateVersion target = requireTarget(current, targetVersionId);
+        String previous = current.version();
+        AppInstance next = writeUpgrade(current, target);
+        List<AppliedRole> landed = land(target, false, current.tenantId());
+        emit(next, previous, "upgraded", "p4.app_instance.upgraded", next.changedAt());
+        return new UpgradeResult(next, landed);
+    }
+
+    /**
+     * Uninstall keeps the row. Status becomes {@code UNINSTALLED}, mode is null, entries are empty, revision bumps.
+     * The tenant path emits an event whose kind is {@code UNINSTALLED}. The subscription ends when it has no
+     * installed instance left.
+     */
+    @Transactional
+    public AppInstance uninstall(UUID instanceId) {
+        AppInstance current = requireInstalled(instanceId, true);
+        Instant now = clock.instant();
+        int changed = jdbc.sql("""
+                UPDATE market.app_instance
+                SET status='UNINSTALLED', mode=NULL, entries='[]'::jsonb, revision=revision+1, changed_at=:now
+                WHERE id=:id AND status='INSTALLED' AND revision=:revision
+                """).param("now", Timestamp.from(now)).param("id", current.id()).param("revision", current.revision()).update();
+        if (changed != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "instance changed before uninstall");
+        AppInstance next = copy(current, current.appVersionId(), current.version(), "UNINSTALLED", null, List.of(),
+                current.revision() + 1, now);
+        emit(next, null, "uninstalled", "p4.app_instance.uninstalled", now);
+        int remaining = jdbc.sql("""
+                SELECT count(*) FROM market.app_instance WHERE subscription_id=:id AND status='INSTALLED'
+                """).param("id", current.subscriptionId()).query(Integer.class).single();
+        if (remaining == 0) {
+            jdbc.sql("""
+                    UPDATE market.subscription SET status='CANCELLED', ended_at=:now
+                    WHERE id=:id AND status='ACTIVE'
+                    """).param("now", Timestamp.from(now)).param("id", current.subscriptionId()).update();
+        }
+        return next;
+    }
+
+    /** Publish hook: INHERIT instances of products with the switch on follow this version when it is a same-major bump. No event. */
+    @Transactional
+    public void autoUpgradePublished(UUID versionId) {
+        TemplateVersion target = templates.published(versionId).orElse(null);
+        if (target == null) return;
+        List<AppInstance> rows = jdbc.sql(SELECT + """
+                 WHERE i.status='INSTALLED' AND i.mode='INHERIT' AND i.app_version_id<>:version
+                   AND i.app_id=(SELECT app_id FROM market.app_version WHERE id=:version)
+                   AND EXISTS (SELECT 1 FROM market.product p WHERE p.id=i.product_id AND p.auto_upgrade_minor)
+                """).param("version", versionId).query(this::map).list();
+        for (AppInstance instance : rows) {
+            if (sameMajorNewer(instance.version(), target.version())) quietUpgrade(instance, target);
+        }
+    }
+
+    /** After the product switch is turned on, move each INHERIT instance to its newest same-major published version. No event. */
+    @Transactional
+    public void catchUpProduct(UUID productId) {
+        Boolean enabled = jdbc.sql("SELECT auto_upgrade_minor FROM market.product WHERE id=:id")
+                .param("id", productId).query(Boolean.class).optional().orElse(false);
+        if (!Boolean.TRUE.equals(enabled)) return;
+        List<AppInstance> rows = jdbc.sql(SELECT + """
+                 WHERE i.product_id=:product AND i.status='INSTALLED' AND i.mode='INHERIT'
+                """).param("product", productId).query(this::map).list();
+        for (AppInstance instance : rows) {
+            TemplateVersion target = newestSameMajor(instance);
+            if (target != null) quietUpgrade(instance, target);
+        }
+    }
+
+    private void quietUpgrade(AppInstance current, TemplateVersion target) {
+        writeUpgrade(current, target);
+        land(target, true, current.tenantId());
+    }
+
+    private UpgradeOffer offerFor(AppInstance instance) {
+        if (!"INSTALLED".equals(instance.status()) || !DEFAULT_MODE.equals(instance.mode())) return null;
+        TemplateVersion best = null;
+        for (TemplateVersion candidate : publishedOf(instance.appId())) {
+            if (candidate.versionId().equals(instance.appVersionId())) continue;
+            if (compareVersions(candidate.version(), instance.version()) <= 0) continue;
+            if (best == null || compareVersions(candidate.version(), best.version()) > 0) best = candidate;
+        }
+        if (best == null) return null;
+        return new UpgradeOffer(instance.id(), instance.appCode(), instance.version(), best.versionId(), best.version(),
+                sameMajor(instance.version(), best.version()));
+    }
+
+    private TemplateVersion newestSameMajor(AppInstance instance) {
+        TemplateVersion best = null;
+        for (TemplateVersion candidate : publishedOf(instance.appId())) {
+            if (!sameMajorNewer(instance.version(), candidate.version())) continue;
+            if (best == null || compareVersions(candidate.version(), best.version()) > 0) best = candidate;
+        }
+        return best;
+    }
+
+    private List<TemplateVersion> publishedOf(UUID appId) {
+        List<UUID> ids = jdbc.sql("""
+                SELECT id FROM market.app_version WHERE app_id=:app AND status='PUBLISHED'
+                """).param("app", appId).query(UUID.class).list();
+        List<TemplateVersion> versions = new ArrayList<>();
+        for (UUID id : ids) templates.published(id).ifPresent(versions::add);
+        return versions;
+    }
+
+    private AppInstance requireInstalled(UUID instanceId, boolean owned) {
+        AppInstance instance = jdbc.sql(SELECT + " WHERE i.id=:id").param("id", instanceId).query(this::map).optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "app instance not found"));
+        if (owned && !instance.tenantId().equals(boundTenant())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "app instance not found");
+        }
+        if (!"INSTALLED".equals(instance.status())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "instance is not installed");
+        }
+        return instance;
+    }
+
+    private TemplateVersion requireTarget(AppInstance current, UUID targetVersionId) {
+        if (targetVersionId == null || targetVersionId.equals(current.appVersionId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "instance is already on this version");
+        }
+        TemplateVersion target = templates.published(targetVersionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "target version is not a published manifest"));
+        if (!target.appCode().equals(current.appCode())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "target version belongs to another application");
+        }
+        return target;
+    }
+
+    private AppInstance writeUpgrade(AppInstance current, TemplateVersion target) {
+        List<String> entries = entryKeys(target);
+        Instant now = clock.instant();
+        int changed = jdbc.sql("""
+                UPDATE market.app_instance
+                SET app_version_id=:version, entries=CAST(:entries AS jsonb), revision=revision+1, changed_at=:now
+                WHERE id=:id AND status='INSTALLED' AND revision=:revision
+                """).param("version", target.versionId()).param("entries", json.writeValueAsString(entries))
+                .param("now", Timestamp.from(now)).param("id", current.id()).param("revision", current.revision()).update();
+        if (changed != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "instance changed before upgrade");
+        return copy(current, target.versionId(), target.version(), "INSTALLED", current.mode(), entries,
+                current.revision() + 1, now);
+    }
+
+    private List<AppliedRole> land(TemplateVersion target, boolean platform, UUID tenantId) {
+        Optional<RolePackCommand> pack = rolePack(target);
+        if (pack.isEmpty()) return List.of();
+        PermissionModule module = requirePermissions();
+        if (platform) {
+            return module.rolePacks().applyApproved(new PlatformInstanceWrite(tenantId), pack.get()).roles();
+        }
+        return module.rolePacks().apply(pack.get()).roles();
+    }
+
+    private static AppInstance copy(AppInstance current, UUID versionId, String version, String status, String mode,
+            List<String> entries, long revision, Instant changedAt) {
+        return new AppInstance(current.id(), current.tenantId(), current.productId(), current.productCode(),
+                current.skuCode(), current.subscriptionId(), current.appId(), current.appCode(), versionId, version,
+                status, mode, entries, revision, changedAt, false);
+    }
+
+    private static List<String> entryKeys(TemplateVersion template) {
+        List<String> entries = new ArrayList<>();
+        for (Map<String, Object> entry : template.entries()) {
+            if (entry.get("key") instanceof String key && !key.isBlank()) entries.add(key);
+        }
+        return List.copyOf(entries);
+    }
+
+    /** Same major, and the target sorts after the current version. Unparseable versions are not automatic. */
+    static boolean sameMajorNewer(String current, String target) {
+        int[] left = parts(current);
+        int[] right = parts(target);
+        return left != null && right != null && left[0] == right[0] && compareParts(left, right) < 0;
+    }
+
+    private static boolean sameMajor(String current, String target) {
+        int[] left = parts(current);
+        int[] right = parts(target);
+        return left != null && right != null && left[0] == right[0];
+    }
+
+    private static int compareVersions(String left, String right) {
+        int[] a = parts(left);
+        int[] b = parts(right);
+        if (a == null || b == null) return String.valueOf(left).compareTo(String.valueOf(right));
+        return compareParts(a, b);
+    }
+
+    private static int compareParts(int[] left, int[] right) {
+        for (int i = 0; i < 3; i++) if (left[i] != right[i]) return Integer.compare(left[i], right[i]);
+        return 0;
+    }
+
+    private static int[] parts(String version) {
+        if (version == null) return null;
+        String[] bits = version.split("\\.");
+        if (bits.length != 3) return null;
+        int[] values = new int[3];
+        for (int i = 0; i < 3; i++) {
+            try { values[i] = Integer.parseInt(bits[i]); }
+            catch (NumberFormatException ex) { return null; }
+        }
+        return values;
+    }
+
     private AppInstance installOne(UUID tenantId, Plan plan, PlannedApp app, UUID subscriptionId, Instant now,
             PlatformActivationCommand command) {
         Optional<AppInstance> existing = jdbc.sql(SELECT + " WHERE i.tenant_id = :tenant AND i.app_id = :app AND i.status = 'INSTALLED'")
@@ -261,23 +494,27 @@ public class AppInstanceService {
 
     /** C4 tenant-path event, in the payload shape of C's {@code InstanceEvents} parser. */
     private void emitInstalled(AppInstance instance, Instant now) {
+        emit(instance, null, "installed", "p4.app_instance.installed", now);
+    }
+
+    private void emit(AppInstance instance, String previousVersion, String eventType, String outboxType, Instant now) {
         OutboxPort port = outbox.getIfAvailable();
         if (port == null) {
             return; // no outbox in this context; C still reconciles through AppInstanceQuery
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("event_id", UuidV7.generate().toString());
-        payload.put("event_type", "installed");
+        payload.put("event_type", eventType);
         payload.put("instance_id", instance.id().toString());
         payload.put("instance_revision", instance.revision());
         payload.put("product_code", instance.productCode());
         payload.put("app_code", instance.appCode());
         payload.put("version", instance.version());
-        payload.put("previous_version", null);
+        payload.put("previous_version", previousVersion);
         payload.put("mode", instance.mode());
         payload.put("entries", instance.entries());
         payload.put("occurred_at", now.toString());
-        port.append(new OutboxAppendCommand(DESTINATION, "p4.app_instance.installed", 1, EVENT_JSON.writeValueAsString(payload),
+        port.append(new OutboxAppendCommand(DESTINATION, outboxType, 1, EVENT_JSON.writeValueAsString(payload),
                 "app_instance", instance.id(), null, null));
     }
 
