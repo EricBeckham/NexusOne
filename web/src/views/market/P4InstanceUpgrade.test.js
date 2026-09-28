@@ -4,7 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const mocks = vi.hoisted(() => ({
-  apps: vi.fn(), skus: vi.fn(), versions: vi.fn(), subscriptions: vi.fn(), installations: vi.fn(),
+  apps: vi.fn(), skus: vi.fn(), versions: vi.fn(), subscriptions: vi.fn(), installations: vi.fn(), appInstances: vi.fn(),
   appInstanceUpgradeOffers: vi.fn(), upgradeAppInstance: vi.fn(), uninstallAppInstance: vi.fn(),
   products: vi.fn(), setProductAutoUpgrade: vi.fn(), commercialEntitlements: vi.fn(),
   session: { contextId: "ctx-1", tenantId: "tenant-1", platformMode: false, products: ["p4"] },
@@ -38,6 +38,7 @@ describe("PLB8 instance upgrade", () => {
     mocks.versions.mockResolvedValue([{ id: "v1", app_id: "app-1", version: "1.0.0", status: "PUBLISHED" }]);
     mocks.subscriptions.mockResolvedValue([]);
     mocks.installations.mockResolvedValue([]);
+    mocks.appInstances.mockResolvedValue([]);
     mocks.appInstanceUpgradeOffers.mockResolvedValue([{
       instance_id: "inst-1", app_code: "leave", current_version: "1.0.0",
       target_version_id: "v2", target_version: "1.1.0", minor: true,

@@ -11,7 +11,7 @@ export const session = reactive({
   displayName: "",
   positionName: "",
   memberships: [],
-  platformMode: true,
+  platformMode: false,
   demoActorId: "01900000-0000-7000-8000-0000000000ac",
   demoReason: "m0-12-ui",
   bootstrapToken: "",
@@ -69,7 +69,7 @@ function hydrate() {
     displayName: stored.displayName || "",
     positionName: stored.positionName || "",
     memberships: stored.memberships || [],
-    platformMode: stored.platformMode !== false,
+    platformMode: stored.platformMode === true,
     demoActorId: stored.demoActorId || session.demoActorId,
     demoReason: stored.demoReason || session.demoReason,
     bootstrapToken: stored.bootstrapToken || "",
@@ -257,6 +257,9 @@ export function clearIdentity() {
   session.memberships = [];
   session.lastTraceId = "";
   session.loginMethod = "";
+  // Platform view is an identity-scoped choice. Never carry a platform operator's
+  // cross-tenant mode into the next person who signs in on the same browser.
+  session.platformMode = false;
   session.products = null;
   productsLoadedFor = null;
   persist();
