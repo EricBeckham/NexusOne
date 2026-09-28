@@ -27,7 +27,18 @@ class PlatformContentContextFilterTest extends Auth6RouteRealChainTest {
         "POST,/api/v1/p4/apps", "POST,/api/v1/p4/apps/" + ID + "/versions",
         "POST,/api/v1/p4/versions/" + ID + "/review", "POST,/api/v1/p4/versions/" + ID + "/approve",
         "POST,/api/v1/p4/versions/" + ID + "/publish", "POST,/api/v1/p4/skus",
-        "GET,/api/v1/p4/activation-applications", "POST,/api/v1/p4/activation-applications/" + ID + "/approve"
+        "GET,/api/v1/p4/activation-applications", "POST,/api/v1/p4/activation-applications/" + ID + "/approve",
+        // PL re-plan platform content (PLB2 / PLB5 / PLB6 / PLB8)
+        "GET,/api/v1/p4/app-categories", "GET,/api/v1/p4/app-categories/oa", "POST,/api/v1/p4/app-categories/oa",
+        "PUT,/api/v1/p4/app-categories/oa", "DELETE,/api/v1/p4/app-categories/oa",
+        "PUT,/api/v1/p4/apps/" + ID + "/category",
+        "GET,/api/v1/p4/versions/" + ID + "/manifest", "POST,/api/v1/p4/versions/" + ID + "/manifest/validate",
+        "PUT,/api/v1/p4/versions/" + ID + "/manifest",
+        "GET,/api/v1/p4/products", "GET,/api/v1/p4/products/" + ID, "POST,/api/v1/p4/products",
+        "PUT,/api/v1/p4/products/" + ID, "PUT,/api/v1/p4/products/" + ID + "/apps",
+        "PUT,/api/v1/p4/products/" + ID + "/auto-upgrade-minor",
+        "POST,/api/v1/p4/products/" + ID + "/publish", "POST,/api/v1/p4/products/" + ID + "/archive",
+        "POST,/api/v1/p4/products/" + ID + "/skus"
     })
     void realSystemAdminCanConfigureContentAndEveryRouteFailsClosed(String method, String path) throws Exception {
         assignOnly(PlatformDutyCatalog.SYSTEM_ADMIN);
@@ -79,6 +90,15 @@ class PlatformContentContextFilterTest extends Auth6RouteRealChainTest {
         for (String path : List.of("/api/v1/p1/tenants", "/api/v1/p4/product-definitions/import",
                 "/api/v1/p1/platform/form-templates/not-a-uuid/publish", "/api/v1/audit/events")) {
             assertTrue(content().shouldNotFilter(request("POST", path, null, null)));
+        }
+        // Tenant-side market paths keep tenant isolation and are never bridged to a platform context.
+        for (String[] tenantSide : new String[][] {
+                {"GET", "/api/v1/p4/app-instances"}, {"GET", "/api/v1/p4/app-instances/upgrade-offers"},
+                {"POST", "/api/v1/p4/tenants/" + UUID.randomUUID() + "/product-subscriptions"},
+                {"GET", "/api/v1/p4/catalog/groups"}, {"POST", "/api/v1/p4/app-categories/Not-A-Code"},
+                {"PATCH", "/api/v1/p4/products/" + UUID.randomUUID()}}) {
+            assertTrue(content().shouldNotFilter(request(tenantSide[0], tenantSide[1], null, null)),
+                    tenantSide[0] + " " + tenantSide[1]);
         }
         var mine = request("GET", "/api/v1/p4/activation-applications", null, null);
         mine.addParameter("mine", "true");
