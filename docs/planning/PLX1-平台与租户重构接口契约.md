@@ -85,7 +85,7 @@ B 提供校验端口：`AppManifestValidator.validate(manifest) → List<Problem
 
 ## C3 · 角色包落地（A 提供，B 在订购 / 升级时调用）
 
-**Java 端口**（`nexus-permission-core`）：
+**Java 端口**（`nexus-permission-core`，包 `one.nexus.permission.pack`，经 `PermissionModule.rolePacks()` 取得）：
 
 ```java
 RolePackResult RolePackService.apply(RolePackCommand command);
@@ -100,7 +100,7 @@ record AppliedRole(String tenantRoleCode, boolean created, int grantsAdded, List
 | 规则 | 说明 |
 |---|---|
 | 租户 | 取当前绑定上下文；调用方不传租户 |
-| 租户角色编码 | `app_{app_code}_{role_code}`（截断规则由 A 定义并在此补充），避免与租户自建角色冲突 |
+| 租户角色编码 | `app_{app_code}_{role_code}`，避免与租户自建角色冲突。两段编码各 ≤ 24，拼接后最长 53，小于 `iam.perm_role.code` 的 64，**无需截断**；租户自建角色不得以 `app_` 开头（A 在创建角色时校验） |
 | 幂等 | 角色已存在则只补缺失授权；重复调用 `created=false, grantsAdded=0` |
 | **不绑定岗位** | 只创建角色与授权（D4）；绑定由租户管理员在岗位页完成 |
 | 升级 | 新版本新增的授权自动补上；新版本删除的授权**不自动收回**，列入 `grantsNotInPack` 交管理员处理 |
@@ -137,7 +137,7 @@ outbox：destination `p4.app_instance`；事件类型与载荷：
 
 ## C5 · 成员可读入口（A 提供，C 门户使用）
 
-**Java 端口**：`Set<String> EntryAccessService.readableEntries()` —— 当前上下文成员可 `read` 的入口键集合。
+**Java 端口**：`Set<String> EntryAccessService.readableEntries()`（`nexus-permission-core`，包 `one.nexus.permission.entry`，经 `PermissionModule.entries()` 取得）—— 当前上下文成员可 `read` 的入口键集合。入口候选集合由调用方传入的「租户已安装入口」决定：`readableEntries(Collection<String> candidateKeys)`，A 只做权限过滤，不维护入口清单。
 
 **HTTP**：`GET /api/v1/permission/entries/readable` →
 
@@ -190,7 +190,7 @@ outbox：destination `p4.app_instance`；事件类型与载荷：
 
 | 角色 | 负责核对 | 结论 |
 |---|---|---|
-| 开发 A | C1 授权资源、C3、C5 | |
+| 开发 A | C1 授权资源、C3、C5 | **通过**（2026-09-28）。已核实：`iam.perm_grant.resource` 为 VARCHAR(128)，`fn.{app}.{form}` 最长 52；`iam.perm_role.code` 为 VARCHAR(64)，角色编码无需截断；权限引擎已支持 `position` 授权主体（主体 id 为岗位 UUID，`IamSubjectDirectory` 按 ACTIVE 任职收集）；C3 / C5 端口放 `nexus-permission-core`，C5 改为由调用方传入候选入口键 |
 | 开发 B | C1 元数据、C2、C4、过渡映射 | |
 | 开发 C | C1 展示、C4 消费、C6 | |
 
