@@ -440,6 +440,13 @@ export const perm = {
   installExample: () => api("/api/v1/permission/matrix/example", { method: "POST", body: {} }),
   createRole: (body) => api("/api/v1/permission/roles", { method: "POST", body }),
   assign: (body) => api("/api/v1/permission/assignments", { method: "POST", body }),
+  /** PLA1: position ↔ role binding. */
+  positionRoles: () => api("/api/v1/permission/positions/roles"),
+  setPositionRoles: (positionId, roleIds) =>
+    api(`/api/v1/permission/positions/${encodeURIComponent(positionId)}/roles`, {
+      method: "PUT",
+      body: { role_ids: roleIds },
+    }),
   grant: (body) =>
     api("/api/v1/permission/grants", { method: "POST", body, traceId: loadSettings().lastTraceId }),
 };
