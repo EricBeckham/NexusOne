@@ -1,5 +1,6 @@
 package one.nexus.permission.api;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -130,20 +131,29 @@ public class PermissionController {
 
     public record CheckBody(String resource, String action) {}
 
-    public record RoleBody(String code, String name, boolean systemRole) {}
+    /**
+     * Request bodies accept both spellings: the product JSON mapper is snake_case, while the permission page (and
+     * module tests) send camelCase. Without the aliases a camelCase body arrived as nulls and the grant/assignment
+     * write failed with 500.
+     */
+    public record RoleBody(String code, String name, @JsonAlias({"system_role", "systemRole"}) boolean systemRole) {}
 
-    public record AssignmentBody(String principalType, String principalId, UUID roleId) {}
+    public record AssignmentBody(
+            @JsonAlias({"principal_type", "principalType"}) String principalType,
+            @JsonAlias({"principal_id", "principalId"}) String principalId,
+            @JsonAlias({"role_id", "roleId"}) UUID roleId) {}
 
     public record GrantBody(
             String effect,
-            String principalType,
-            String principalId,
+            @JsonAlias({"principal_type", "principalType"}) String principalType,
+            @JsonAlias({"principal_id", "principalId"}) String principalId,
             String resource,
             String action,
-            String scopeKind,
-            List<String> specifiedDepartments,
+            @JsonAlias({"scope_kind", "scopeKind"}) String scopeKind,
+            @JsonAlias({"specified_departments", "specifiedDepartments"}) List<String> specifiedDepartments,
             Map<String, FieldBody> fields
     ) {}
 
-    public record FieldBody(boolean visible, boolean editable, String mask, boolean secondAuthorization) {}
+    public record FieldBody(boolean visible, boolean editable, String mask,
+            @JsonAlias({"second_authorization", "secondAuthorization"}) boolean secondAuthorization) {}
 }

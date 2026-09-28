@@ -89,6 +89,28 @@ describe("P2 permissions management", () => {
     mocks.grant.mockResolvedValue(cell);
   });
 
+  it("reads the product API's snake_case rows (subject and scope columns are not empty)", async () => {
+    mocks.grants.mockResolvedValue([{
+      id: "g-snake", effect: "GRANT", principal_type: "user", principal_id: "person-snake", resource: "report",
+      action: "read", scope_kind: "SELF", specified_departments: [],
+      fields: { amount_total: { visible: true, editable: false, mask: "NONE", second_authorization: true } },
+    }]);
+    mocks.assignments.mockResolvedValue([{ id: "a-snake", principal_type: "position", principal_id: "pos-snake",
+      role_id: role.id, role_code: role.code }]);
+
+    const scope = await mountPermission("/p2/permissions/datascope");
+    const row = scope.get('[data-testid="scope-table"] tbody tr').text();
+    expect(row).toContain("user:person-snake");
+    expect(row).toContain("SELF");
+    expect(row).toContain("例外");
+
+    const roles = await mountPermission("/p2/permissions/roles");
+    expect(roles.get('[data-testid="assignment-table"]').text()).toContain("pos-snake");
+
+    const fields = await mountPermission("/p2/permissions/fields");
+    expect(fields.text()).toContain("amount_total"); // field names inside `fields` keep their spelling
+  });
+
   it("loads role and assignment tables from the existing Permission API", async () => {
     const wrapper = await mountPermission();
 
