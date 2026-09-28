@@ -8,7 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {PermissionController.class, PositionRoleController.class, EntryAccessController.class})
+/** Covers every controller in {@code one.nexus.permission.api}, so a new permission endpoint never answers 500. */
+@RestControllerAdvice(basePackageClasses = PermissionController.class)
 public class PermissionErrorHandler {
     @ExceptionHandler(PermissionException.class)
     public ResponseEntity<Map<String, Object>> handle(PermissionException ex) {

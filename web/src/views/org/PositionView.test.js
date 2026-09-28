@@ -4,7 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 
 const mocks = vi.hoisted(() => ({
   p2: { positions: vi.fn(), createPosition: vi.fn(), assignEmployment: vi.fn() },
-  perm: { positionRoles: vi.fn(), roles: vi.fn(), setPositionRoles: vi.fn() },
+  perm: { positionRoles: vi.fn(), roles: vi.fn(), setPositionRoles: vi.fn(), effectivePosition: vi.fn() },
 }));
 vi.mock("../../api/client", () => mocks);
 
@@ -60,6 +60,23 @@ describe("PLA2 position ↔ role binding", () => {
     mocks.perm.setPositionRoles.mockRejectedValue(Object.assign(new Error("denied"), { status: 403, code: "P2.PERM.0003" }));
     await wrapper.get("[data-testid='role-editor']").trigger("submit"); await flushPromises();
     expect(wrapper.get("[data-testid='role-editor']").text()).toContain("你没有修改岗位角色的权限");
+  });
+
+  it("previews what a position brings (PLA3)", async () => {
+    mocks.perm.effectivePosition.mockResolvedValue({
+      subject_type: "POSITION", duty_conflict: false,
+      roles: [{ role_code: "ledger_reader", role_name: "台账查看", via: "POSITION", via_id: "pos-1", via_label: "文员" }],
+      permissions: [{ resource: "ledger", action: "read", outcome: "ALLOW",
+        sources: [{ effect: "GRANT", scope: "DEPT", principal_type: "role", principal_id: "ledger_reader", label: "ledger_reader" }] }],
+    });
+    const wrapper = mount(PositionView); await flushPromises();
+    await wrapper.get("[data-testid='position-pos-1'] [data-action='preview']").trigger("click"); await flushPromises();
+
+    const panel = wrapper.get("[data-testid='position-preview']");
+    expect(panel.text()).toContain("「文员」的有效权限");
+    expect(panel.text()).toContain("台账查看");
+    expect(panel.get("[data-permission='ledger:read']").text()).toContain("本部门");
+    expect(mocks.perm.effectivePosition).toHaveBeenCalledWith("pos-1");
   });
 
   it("falls back to a plain position list without permission read access", async () => {

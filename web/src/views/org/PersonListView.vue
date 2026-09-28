@@ -62,7 +62,7 @@
               <small>{{ value(employment.valid_from || employment.validFrom) }} 至 {{ value(employment.valid_to || employment.validTo) }}</small>
             </article></div>
           </section>
-          <section class="detail-section"><h3>角色与权限摘要</h3><NxEmpty title="暂无角色 / 权限摘要" description="当前接口未提供按人员关联的角色与权限查询。" compact /></section>
+          <section class="detail-section"><h3>有效权限</h3><EffectivePermissionPanel :effective="effective" :error="effectiveError" /></section>
           <section class="detail-section"><h3>登录状态</h3><dl class="person-facts"><dt>账号关联</dt><dd class="nx-code">{{ value(detail?.account_id || detail?.accountId) }}</dd><dt>最近登录</dt><dd>暂无登录记录读接口</dd></dl></section>
         </template>
         <footer class="drawer-actions"><button class="ghost" type="button" @click="closeDrawer">关闭</button></footer>
@@ -74,13 +74,15 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { NxDataTable, NxEmpty, NxErrorState, NxPageHeader, NxStatusTag } from "../../components";
-import { p2 } from "../../api/client";
+import { p2, perm } from "../../api/client";
 import { ensureContext, session } from "../../api/session";
+import EffectivePermissionPanel from "./EffectivePermissionPanel.vue";
 
 const rows = ref([]); const loading = ref(false); const error = ref(""); const creating = ref(false);
 const form = reactive({ display_name: "", employee_no: "", email: "" });
 const selectedPerson = ref(null); const detail = ref(null); const employments = ref([]); const departments = ref([]); const positions = ref([]);
 const detailLoading = ref(false); const detailError = ref(""); const employmentError = ref("");
+const effective = ref(null); const effectiveError = ref("");
 const value = (input) => input === null || input === undefined || input === "" ? "暂无" : input;
 const displayName = (person) => person?.display_name || person?.displayName || "暂无姓名";
 const tableError = computed(() => (error.value ? { title: "用户目录暂时无法加载", description: error.value } : ""));
@@ -103,10 +105,15 @@ function positionName(id) { return positions.value.find((item) => (item.id || it
 async function loadDetail(person) {
   const requestedId = person.id;
   detailLoading.value = true; detailError.value = ""; employmentError.value = "";
-  const [personResult, employmentResult, departmentResult, positionResult] = await Promise.allSettled([
-    p2.getPerson(requestedId), p2.employments(requestedId), p2.departments(), p2.positions(),
+  effective.value = null; effectiveError.value = "";
+  const [personResult, employmentResult, departmentResult, positionResult, effectiveResult] = await Promise.allSettled([
+    p2.getPerson(requestedId), p2.employments(requestedId), p2.departments(), p2.positions(), perm.effectivePerson(requestedId),
   ]);
   if (selectedPerson.value?.id !== requestedId) return;
+  if (effectiveResult.status === "fulfilled") effective.value = effectiveResult.value || null;
+  else effectiveError.value = effectiveResult.reason?.status === 403 || effectiveResult.reason?.code === "P2.PERM.0003"
+    ? "你没有查看权限配置的权限。"
+    : `${effectiveResult.reason?.code || ""} ${effectiveResult.reason?.message || "无法计算有效权限"}`.trim();
   if (personResult.status === "fulfilled") detail.value = personResult.value || person;
   else detailError.value = `${personResult.reason?.code || ""} ${personResult.reason?.message || "无法读取人员详情"}`.trim();
   if (employmentResult.status === "fulfilled") employments.value = employmentResult.value || [];

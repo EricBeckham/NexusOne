@@ -440,6 +440,9 @@ export const perm = {
   installExample: () => api("/api/v1/permission/matrix/example", { method: "POST", body: {} }),
   createRole: (body) => api("/api/v1/permission/roles", { method: "POST", body }),
   assign: (body) => api("/api/v1/permission/assignments", { method: "POST", body }),
+  /** PLA3: effective-permission preview. */
+  effectivePerson: (personId) => api(`/api/v1/permission/effective/persons/${encodeURIComponent(personId)}`),
+  effectivePosition: (positionId) => api(`/api/v1/permission/effective/positions/${encodeURIComponent(positionId)}`),
   /** PLA1: position ↔ role binding. */
   positionRoles: () => api("/api/v1/permission/positions/roles"),
   setPositionRoles: (positionId, roleIds) =>
