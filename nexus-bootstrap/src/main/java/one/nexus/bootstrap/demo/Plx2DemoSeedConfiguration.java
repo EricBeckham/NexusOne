@@ -9,6 +9,7 @@ import one.nexus.p4.market.MarketService;
 import one.nexus.p4.market.ProductCatalogService;
 import one.nexus.permission.PermissionModule;
 import one.nexus.permission.admin.TenantMemberGrantSeeder;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,13 +27,17 @@ public class Plx2DemoSeedConfiguration {
     @Bean
     @Order(Plx2DemoSeedOrder.PATH)
     ApplicationRunner plx2DemoSeed(JdbcClient jdbc, IdentityModule identity, PermissionModule permissions,
-            TenantMemberGrantSeeder seeder, AppDesignService design, MarketService market,
+            ObjectProvider<TenantMemberGrantSeeder> seeder, AppDesignService design, MarketService market,
             ProductCatalogService products, MarketRepository repository, MarketIsolation isolation, Environment env) {
+        // The seeder bean only exists with nexus.permission.seed-tenant-member-grants=true; a hard dependency stopped
+        // every context without it from starting. Resolve lazily and fall back to a local seeder for the demo pass.
         return args -> run(
                 env.getProperty(DemoProfileGate.ENABLED),
                 env.getProperty(DemoProfileGate.ENVIRONMENT, "local"),
                 env.getProperty("spring.datasource.url", ""),
-                jdbc, identity, permissions, seeder, design, market, products, repository, isolation);
+                jdbc, identity, permissions,
+                seeder.getIfAvailable(() -> new TenantMemberGrantSeeder(permissions, identity.repository())),
+                design, market, products, repository, isolation);
     }
 
     static void run(String enabled, String environment, String datasourceUrl, JdbcClient jdbc,

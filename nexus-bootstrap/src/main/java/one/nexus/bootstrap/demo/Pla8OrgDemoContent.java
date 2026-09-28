@@ -86,8 +86,29 @@ public final class Pla8OrgDemoContent {
 
     private static Model.Person person(OrganizationService org, IdentityRepository repository, UUID tenantId,
             String name, String employeeNo, String email, UUID accountId) {
+        ensureAccount(repository, tenantId, accountId, name, employeeNo, email);
         return repository.findPersonByEmployeeNo(tenantId, employeeNo).orElseGet(() -> org.createPerson(
                 new OrganizationService.PersonCommand(name, employeeNo, email, null, HIRED, accountId)));
+    }
+
+    /**
+     * A person's account must exist first ({@code iam_person_account_id_fkey}); the in-memory repository used by
+     * unit tests has no foreign keys, so only a PostgreSQL boot showed it. Written through the identity repository,
+     * idempotent, same shape as the P2 demo accounts.
+     */
+    private static void ensureAccount(IdentityRepository repository, UUID tenantId, UUID accountId, String name,
+            String employeeNo, String email) {
+        Instant since = HIRED.atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
+        String handle = employeeNo.toLowerCase(java.util.Locale.ROOT);
+        if (repository.findAccount(accountId).isEmpty()) {
+            repository.saveAccount(new Model.GlobalAccount(accountId, "demo-seed:pla8:" + handle, email, null,
+                    "pla8-" + handle, name, Model.AccountStatus.ACTIVE, since, since, null, 0));
+        }
+        if (repository.findMembership(tenantId, accountId).isEmpty()) {
+            repository.saveMembership(new Model.TenantMembership(
+                    UUID.nameUUIDFromBytes(("pla8-membership:" + tenantId + ":" + accountId).getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                    tenantId, accountId, Model.MembershipStatus.ACTIVE, since, since, null, 0));
+        }
     }
 
     private static void employ(OrganizationService org, IdentityRepository repository, UUID tenantId, UUID personId,

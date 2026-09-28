@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import one.nexus.p3.instance.ProcessPositionSource;
 import one.nexus.p3.template.PlatformTemplateCatalog;
 import one.nexus.p3.template.PlatformTemplateCatalog.TemplateVersion;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,8 @@ public class MarketProcessPositionSource implements ProcessPositionSource {
 
     private final PlatformTemplateCatalog catalog;
     private final InstalledVersions installed;
+
+    @Autowired // two constructors: tell Spring which one (the other is for tests)
 
     public MarketProcessPositionSource(JdbcClient jdbc, PlatformTemplateCatalog catalog) {
         this(catalog, tenantId -> jdbc.sql("""
