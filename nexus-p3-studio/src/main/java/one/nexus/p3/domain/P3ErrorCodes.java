@@ -21,6 +21,8 @@ public final class P3ErrorCodes {
     public static final ErrorCode ACTION_INVALID = ErrorCode.of("P3", "ACTION", 1);
     public static final ErrorCode ACTION_NOT_FOUND = ErrorCode.of("P3", "ACTION", 2);
     public static final ErrorCode ACTION_CONFLICT = ErrorCode.of("P3", "ACTION", 3);
+    /** PLC3: portal menu / home module config. */
+    public static final ErrorCode PORTAL_INVALID = ErrorCode.of("P3", "PORTAL", 1);
 
     private P3ErrorCodes() {}
 }
