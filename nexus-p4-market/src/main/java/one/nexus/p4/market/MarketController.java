@@ -37,6 +37,14 @@ public class MarketController {
         return service.subscribeProduct(tenantId,request.skuCode(),request.versionId());
     }
     /** Tenant 开通申请 — PENDING; platform approves separately. No payment. */
+    /** PLB7: tenant-admin self-service subscription to a product-native SKU; installs its apps as instances. */
+    @PostMapping("/tenants/{tenantId}/product-subscriptions") @ResponseStatus(HttpStatus.CREATED)
+    List<AppInstanceService.AppInstance> subscribeProductSku(@PathVariable UUID tenantId,@RequestBody ProductSubscribe request){
+        return service.subscribeProductSku(tenantId,request.skuCode());
+    }
+    /** PLB7: the current tenant's application instances (all statuses). */
+    @GetMapping("/app-instances") List<AppInstanceService.AppInstance> appInstances(){return service.appInstances();}
+    public record ProductSubscribe(@com.fasterxml.jackson.annotation.JsonAlias({"sku_code","skuCode"}) String skuCode){}
     @PostMapping("/tenants/{tenantId}/activation-applications") @ResponseStatus(HttpStatus.CREATED)
     ActivationApplication requestActivation(@PathVariable UUID tenantId,@RequestBody Install request){
         return service.requestActivation(tenantId,request.skuCode(),request.versionId());
