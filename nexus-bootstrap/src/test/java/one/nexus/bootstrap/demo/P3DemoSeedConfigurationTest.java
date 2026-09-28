@@ -61,7 +61,8 @@ class P3DemoSeedConfigurationTest {
         var sql = org.mockito.ArgumentCaptor.forClass(String.class);
         org.mockito.Mockito.verify(jdbc, org.mockito.Mockito.times(8)).sql(sql.capture());
         var p3Statements = sql.getAllValues().stream()
-                .filter(statementSql -> statementSql.contains("business_meta."))
+                // Only writes: the P1 quota seed also *reads* business_meta in count(*) subqueries.
+                .filter(statementSql -> statementSql.contains("INSERT INTO business_meta."))
                 .toList();
         assertTrue(p3Statements.size() == 4, "expected four P3 metadata inserts");
         for (String statementSql : p3Statements) {

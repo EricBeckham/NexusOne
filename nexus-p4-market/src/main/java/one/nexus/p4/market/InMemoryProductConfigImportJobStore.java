@@ -30,13 +30,14 @@ public class InMemoryProductConfigImportJobStore implements ProductConfigImportJ
     }
 
     @Override
-    public Optional<ImportJob> findByIdempotencyKey(String key) {
+    public Optional<ImportJob> findByIdempotencyKey(String key, Instant now) {
         if (key == null || key.isBlank()) return Optional.empty();
         UUID id = byKey.get(key);
         if (id == null) return Optional.empty();
         ImportJob job = byId.get(id);
         if (job == null) return Optional.empty();
-        if (job.createdAt() != null && job.createdAt().isBefore(Instant.now().minus(IDEMPOTENCY_TTL))) {
+        // Same clock as the job's createdAt; mixing in the wall clock expired every job stamped by a fixed clock.
+        if (now != null && job.createdAt() != null && job.createdAt().isBefore(now.minus(IDEMPOTENCY_TTL))) {
             return Optional.empty();
         }
         return Optional.of(job);

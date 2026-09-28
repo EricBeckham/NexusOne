@@ -41,7 +41,8 @@ class PlatformActivationPersistenceIT {
 
     @BeforeAll static void schema() {
         String url=System.getProperty("nexus.test.activation.jdbc", "");
-        assertTrue(url.matches("jdbc:postgresql://127\\.0\\.0\\.1:(?!5432/)[0-9]+/test_[a-z0-9_]+"),
+        // Opt-in: skipped (not failed) unless an explicit disposable database is named.
+        org.junit.jupiter.api.Assumptions.assumeTrue(url.matches("jdbc:postgresql://127\\.0\\.0\\.1:(?!5432/)[0-9]+/test_[a-z0-9_]+"),
                 "explicit disposable loopback test_* JDBC URL on a non-business port is required");
         var source=new DriverManagerDataSource(url,"postgres","");
         jdbc=JdbcClient.create(source);

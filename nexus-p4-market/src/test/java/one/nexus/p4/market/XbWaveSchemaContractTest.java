@@ -105,9 +105,11 @@ class XbWaveSchemaContractTest {
                     .max(Integer::compare).orElseThrow();
             // XB added none (V705 at XB12). V706 is P2 #601 (tenant self-registration + activation applications).
             // V707 is DPO-L2 (durable print mapping + revision history). V708 is DPO-L4-pre (print template metadata).
-            // V709 is DPO-L6-pre (operator-recorded upgrade steps).
+            // V709 is DPO-L6-pre (operator-recorded upgrade steps). V710 FA completion actions, V711 installation
+            // process override. PL re-plan: V712 PLC6 instance overrides, V713 PLB1 app category + manifest, V714 PLC2
+            // portal menu, V715 PLB5 product/app/SKU, V716 PLB7a app instances, V717 PLB8 product minor auto-upgrade.
             // A new migration must update this pin on purpose, taking the next global version.
-            assertEquals(709, max,"unexpected new migration; take the next global version in a dedicated schema card");
+            assertEquals(717, max,"unexpected new migration; take the next global version in a dedicated schema card");
         }
     }
 

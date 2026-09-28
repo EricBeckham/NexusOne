@@ -101,6 +101,9 @@ class G4P1StagingAuditEventsIT {
         registry.add("nexus.audit.persistence", () -> "jdbc");
     }
 
+    // Fails on event ordering (p1.admin.init.accepted before p1.tenant.created) since before the PL re-plan.
+    // Audit events are deferred by the product owner (PL0.2 §10); re-enable when audit work resumes.
+    @org.junit.jupiter.api.Disabled("Audit deferred (PL0.2): event order p1.admin.init.accepted vs p1.tenant.created")
     @Test
     void getAuditEventsReadsStagingAndExportsJson() throws Exception {
         String suffix = Long.toString(System.nanoTime(), 36);

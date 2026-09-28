@@ -53,7 +53,7 @@ public class ApprovalProductDemoSeedConfiguration {
     @Bean
     @Order(100)
     ApplicationRunner approvalProductDemoSeed(JdbcClient jdbc, Environment env, TransactionTemplate transaction,
-            ObjectProvider<RepositoryService> processes) {
+            ObjectProvider<RepositoryService> processes, ObjectProvider<one.nexus.p1.config.P1Properties> platform) {
         return args -> {
             if (!DemoProfileGate.enabled(env.getProperty(DemoProfileGate.ENABLED))) {
                 return;
@@ -65,7 +65,10 @@ public class ApprovalProductDemoSeedConfiguration {
             new P1DemoSeedConfiguration().p1DemoSeed(jdbc, env, transaction).run(args);
             transaction.executeWithoutResult(status -> {
                 seedCatalog(jdbc);
-                publishProcess(processes.getIfAvailable());
+                RepositoryService repository = processes.getIfAvailable();
+                publishProcess(repository);
+                var properties = platform == null ? null : platform.getIfAvailable();
+                publishPlatformDefault(repository, properties == null ? null : properties.getPlatformTenant().getId());
             });
         };
     }
@@ -209,10 +212,25 @@ public class ApprovalProductDemoSeedConfiguration {
 
     /** Deploys the one-level BPMN the same way M10 does: tenant-scoped Flowable deployment. */
     public static void publishProcess(RepositoryService repository) {
+        deploy(repository, P1DemoSeedConfiguration.TENANT_ID.toString());
+    }
+
+    /**
+     * The product definition pins this process as its platform default, and installations resolve that pin under
+     * the <b>platform</b> tenant ({@code ProcessDefinitionPublishService.getPlatformDefault}). A demo-tenant-only
+     * deployment left the pin unresolvable (P3.FLOW.0002) when a demo member subscribed and started the process.
+     * Idempotent; a no-op without a repository or a configured platform tenant.
+     */
+    public static void publishPlatformDefault(RepositoryService repository, java.util.UUID platformTenantId) {
+        if (platformTenantId != null) {
+            deploy(repository, platformTenantId.toString());
+        }
+    }
+
+    private static void deploy(RepositoryService repository, String tenantId) {
         if (repository == null) {
             return;
         }
-        String tenantId = P1DemoSeedConfiguration.TENANT_ID.toString();
         ProcessDefinition existing = repository.createProcessDefinitionQuery()
                 .processDefinitionKey(PROCESS_KEY)
                 .processDefinitionTenantId(tenantId)

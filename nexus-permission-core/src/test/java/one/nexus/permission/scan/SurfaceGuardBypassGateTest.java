@@ -120,7 +120,11 @@ class SurfaceGuardBypassGateTest {
                 .anyMatch(p -> p.endsWith("AuthorizedExport.java")));
         assertTrue(SurfaceGuardBypassAllowlist.EXPORT_PATHS.stream()
                 .anyMatch(p -> p.endsWith("IsolatedExport.java")));
-        assertTrue(SurfaceGuardBypassAllowlist.UNGUARDED_P3_LEFTOVER_PATHS.isEmpty());
+        // No real P3 surface is exempt: only the two documented P4 controllers whose paths match by word
+        // (/process-configuration, /records) and whose services authorize every call.
+        assertEquals(2, SurfaceGuardBypassAllowlist.UNGUARDED_P3_LEFTOVER_PATHS.size());
+        assertTrue(SurfaceGuardBypassAllowlist.UNGUARDED_P3_LEFTOVER_PATHS.stream()
+                .allMatch(p -> p.startsWith("nexus-p4-market/src/main/java/one/nexus/p4/market/")));
         assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("SurfaceGuard"));
         assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("TodoSurfaceGuard"));
         assertTrue(SurfaceGuardBypassAllowlist.GUARD_TOKENS.contains("ProcessDefinitionSurfaceGuard"));

@@ -44,11 +44,18 @@ public final class SurfaceGuardBypassAllowlist {
             "nexus-p3-studio/src/main/java/one/nexus/p3/infra/permission/TenantOnlyDataScopeHook.java");
 
     /**
-     * No remaining unguarded P3 leftover RestController. Todo HTTP now goes
-     * through {@code TodoSurfaceGuard}. Keep the list so the gate can grow
-     * a documented leftover later without a shape change.
+     * No unguarded P3 surface remains (Todo HTTP goes through {@code TodoSurfaceGuard}). The entries below are P4
+     * controllers the path regex matches by word only — they are not P3 surfaces and are authorized in their service:
+     * <ul>
+     *   <li>{@code /installations/{id}/process-configuration} matches {@code /process}; the service calls
+     *       {@code ProcessDefinitionSurfaceGuard.requireRead/requireWrite} on every method.</li>
+     *   <li>{@code /installations/{id}/upgrade-steps/{step}/records} matches {@code /records}; the service requires a
+     *       platform context with {@code SYSTEM_ADMIN} and a named operator.</li>
+     * </ul>
      */
-    public static final List<String> UNGUARDED_P3_LEFTOVER_PATHS = List.of();
+    public static final List<String> UNGUARDED_P3_LEFTOVER_PATHS = List.of(
+            "nexus-p4-market/src/main/java/one/nexus/p4/market/InstallationProcessConfigurationController.java",
+            "nexus-p4-market/src/main/java/one/nexus/p4/market/UpgradeStepRecordController.java");
 
     /**
      * Tokens that count as going through SurfaceGuard / the same Decision.

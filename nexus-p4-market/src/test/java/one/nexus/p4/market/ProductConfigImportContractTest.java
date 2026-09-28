@@ -81,7 +81,7 @@ class ProductConfigImportContractTest {
                 "PUBLISHED", Instant.EPOCH, Instant.EPOCH, 1)));
         assertThatThrownBy(() -> service.importPackage(pkg("pub-1"), "fail", "idem-fail"))
                 .isInstanceOf(ResponseStatusException.class);
-        ImportJob job = jobs.findByIdempotencyKey("idem-fail").orElseThrow();
+        ImportJob job = jobs.findByIdempotencyKey("idem-fail", clock.now()).orElseThrow();
         assertThat(job.status()).isEqualTo(JobStatus.FAILED);
         assertThat(job.error()).contains("refuse overwrite");
     }
