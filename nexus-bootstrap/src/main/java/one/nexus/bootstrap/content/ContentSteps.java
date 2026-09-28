@@ -1,6 +1,7 @@
 package one.nexus.bootstrap.content;
 
 import java.util.List;
+import java.util.UUID;
 import one.nexus.bootstrap.demo.ApprovalProductDemoSeedConfiguration;
 import one.nexus.bootstrap.demo.P1DemoSeedConfiguration;
 import org.flowable.engine.RepositoryService;
@@ -30,7 +31,12 @@ public final class ContentSteps {
         public String key() { return "tenant"; }
         public String label() { return "演示租户（星河科技 · 演示数据）"; }
         public boolean present(JdbcClient jdbc, RepositoryService processes) {
-            return exists(jdbc, "SELECT 1 FROM platform.tenant WHERE id = :id", P1DemoSeedConfiguration.TENANT_ID);
+            UUID tenant = P1DemoSeedConfiguration.TENANT_ID;
+            return exists(jdbc, "SELECT 1 FROM platform.tenant WHERE id = :id", tenant)
+                    && exists(jdbc, "SELECT 1 FROM platform.tenant_config WHERE tenant_id = :id", tenant)
+                    && exists(jdbc, "SELECT 1 FROM platform.entitlement_projection WHERE tenant_id = :id", tenant)
+                    && exists(jdbc, "SELECT 1 FROM platform.quota WHERE tenant_id = :id AND metric = 'APP'", tenant)
+                    && exists(jdbc, "SELECT 1 FROM platform.quota WHERE tenant_id = :id AND metric = 'CUSTOM_LEDGER'", tenant);
         }
         public void apply(JdbcClient jdbc, RepositoryService processes) {
             P1DemoSeedConfiguration.seedTenant(jdbc);
