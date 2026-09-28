@@ -15,7 +15,7 @@
 | 错误 | 沿用 `{code, message, details}`；各线错误码前缀：A `P2.PERM.*`，B `P4.APP.*` / `P4.PRODUCT.*`，C `P3.INSTANCE.*` / `P3.PORTAL.*` |
 | 进程内调用 | 跨线调用优先 Java 端口（同一 jar 内），HTTP 仅供界面与运维；端口接口放在提供方模块 |
 | 幂等 | 所有「落地 / 安装 / 升级」操作可重复调用，结果一致 |
-| 跨租户写入 | 平台上下文里对某个租户的写入（如批准开通）一律经能力对象显式给出目标租户，并在同一事务内完成；不得伪造目标租户的上下文或 membership（r2） |
+| 跨租户写入 | 平台上下文里对某个租户的写入（如批准开通）一律经能力对象显式给出目标租户，并在同一事务内完成；不得伪造目标租户的上下文或 membership，包括不得写入会被调度器恢复成租户身份的 `exec_outbox` 行（r2 / r3） |
 | 安全 | 日志、事件、错误中不写字段值与凭证，只写编码和编号 |
 
 ## C1 · 功能入口（B 定义、A 授权、C 展示）
@@ -144,58 +144,57 @@ A 先调 `assertActive()`，再以 `targetTenantId()` 显式写入该租户的�
 
 HTTP（仅运维 / 调试）：`POST /api/v1/permission/role-packs/apply`，需 `permission.role:write`。
 
-## C4 · 应用实例事件（B 发出，C 订阅）
+## C4 · 应用实例状态同步（B 提供，C 拉取）
 
-outbox：destination `p4.app_instance`；事件类型与载荷：
+r3 改为**状态同步**，替代 r2 的 outbox 事件。原因见开发 B 的 r2 复核：`OutboxDispatcher` 投递时，`ExecutionIsolation.runRestored` 会把行上的 `membership_id` 重新签发成目标租户的 `TenantContext`。平台批准时，平台运营并没有目标租户的成员身份，往 `exec_outbox` 写任何一种身份都等于冒充租户成员。本契约**不新增**平台来源的 outbox 行，也不修改调度器的恢复语义。
 
-| event_type | 触发 |
-|---|---|
-| `p4.app_instance.installed` | 订购后为某应用创建实例 |
-| `p4.app_instance.upgraded` | 实例切换到新平台版本 |
-| `p4.app_instance.uninstalled` | 退订 / 卸载 |
+**B 的职责**：每个实例保存当前状态和 `revision`。安装、升级、卸载时，在与安装写入**同一事务**内把 `revision` +1，从 1 开始。
 
-```json
-{
-  "event_id": "0192f0c4-7a1e-7c3b-9f00-000000000001",
-  "instance_id": "uuid",
-  "instance_revision": 3,
-  "product_code": "oa_basic",
-  "app_code": "leave",
-  "version": "1.1.0",
-  "previous_version": "1.0.0",
-  "mode": "INHERIT",
-  "entries": ["fn:leave:leave_apply", "fn:leave:leave_view"],
-  "occurred_at": "2026-09-28T08:00:00Z"
-}
+- 租户自助路径：沿用现有仓储写入。
+- 平台批准路径：沿用现有的 `saveApprovedInstallation(PlatformActivationCommand, …)` 这类能力写入器，只多写 `revision` 与状态列。
+
+**B 提供查询端口**（`nexus-p4-market`，经 Spring 注入）：
+
+```java
+List<AppInstanceState> AppInstanceQuery.current();          // 当前租户的全部实例，含已卸载
+Optional<AppInstanceState> AppInstanceQuery.current(UUID instanceId);
+
+record AppInstanceState(UUID instanceId, long revision, String status,   // INSTALLED / UNINSTALLED
+                        String productCode, String appCode, String version, String mode,
+                        List<String> entries, Instant changedAt) {}
 ```
 
-**字段**（r2）：
+对应 JSON（snake_case）：
 
-| 字段 | installed | upgraded | uninstalled |
-|---|---|---|---|
-| `event_id` | 必填 | 必填 | 必填 |
-| `instance_id`、`instance_revision`、`product_code`、`app_code`、`occurred_at` | 必填 | 必填 | 必填 |
-| `version` | 安装的版本 | 新版本 | 卸载前的版本 |
-| `previous_version` | `null` | 必填，旧版本 | `null` |
-| `mode` | 必填 | 必填 | `null` |
-| `entries` | 该版本全部入口键 | 新版本全部入口键（全量，不是差量） | `[]` |
+```json
+{ "instance_id": "uuid", "revision": 3, "status": "INSTALLED", "product_code": "oa_basic",
+  "app_code": "leave", "version": "1.1.0", "mode": "INHERIT",
+  "entries": ["fn:leave:leave_apply", "fn:leave:leave_view"], "changed_at": "2026-09-28T08:00:00Z" }
+```
 
-键始终出现，不适用的值写 `null`，不省略。
+| 规则 | 说明 |
+|---|---|
+| 租户 | 只取服务端上下文，调用方不传租户；没有租户上下文时拒绝 |
+| `entries` | 当前版本的全部入口键（全量）；`UNINSTALLED` 时为 `[]`，`mode` 为 `null` |
+| 卸载 | 实例行保留，状态为 `UNINSTALLED`，这样 C 能看到卸载 |
+| 历史 | 状态变化照常记审计（平台批准时执行人为平台运营、目标为该租户），端口本身只给当前状态 |
 
-**去重与顺序**（r2，替代原先的 `(instance_id, event_type, version)`，因为同一实例可以再次升回同一版本）：
+**C 的职责**：C 在**合法的租户上下文**里对账，时机包括门户加载、入口列表、个性化解析，以及 C 自己的租户内任务。
 
-- `event_id` 为 UUIDv7，与 outbox 行 id 相同，重投时不变。消费方以 `event_id` 去重。
-- `instance_revision` 由 B 保存在实例上，每次安装 / 升级 / 卸载在同一事务内 +1，从 1 开始。
-- 消费方为每个实例记住已应用的最大 revision：收到的 ≤ 已应用 → 丢弃；= 已应用 + 1 → 应用；> 已应用 + 1（有缺口）→ 不按事件增量处理，改为调 B 的查询端口 `AppInstanceQuery.current(instanceId)` 取当前全量状态覆盖本地，再记下它的 revision。
-- 因为 `entries` 是全量的，按最新状态覆盖总是正确的。
+- C 为每个实例保存已应用的 `revision`，拿到的 revision 比本地大时，以状态整体覆盖本地；相等时不做任何事。
+- 因为状态是全量的，同一版本再次升回、中间变化被跳过、重复拉取都不会出错。
+- 不需要 `event_id`，也不需要 `previous_version`。C6 的 `drift` 用覆盖记录的 `base_version` 和当前 `version` 比较得出。
 
-**租户与信封**：租户在信封上，不在载荷里。
+**可选提示事件**：只限租户自助路径，因为那里有真实的租户成员身份。B 可以用现有的 `OutboxPort.append` 发 `p4.app_instance.changed`，载荷只有 `{instance_id, revision}`。C 收到后调 `current(instanceId)` 取状态，事件本身不携带状态。平台批准路径不发这个事件：目标租户下次进入门户时，C 对账就能拿到。
 
-**平台批准开通时的写入**（r2）：现有 `JdbcOutboxStore.append` 从当前上下文取租户并要求 membership，平台运营批准时没有目标租户的 membership，而且它自开一个 JDBC 事务，与安装写入不是同一原子操作。所以：
+**事务**：r2 说 `JdbcOutboxStore.append`「自开 JDBC 事务」是错的。它经 `Jdbc.transactionalCall` → `DataSourceUtils.getConnection`，已有 Spring 事务时会加入该事务。r3 的状态同步本身不依赖 outbox。
 
-- 租户自己订购、升级、卸载：继续用 `OutboxPort.append`。B 在 PLB7 中核实它和安装写入处于同一个数据库事务；如果不是，也改走下面的专用写入器。
-- 平台批准开通：B 在 `MarketRepository` 上加 `appendApprovedInstanceEvent(PlatformActivationCommand, InstanceEvent)`，与现有 `saveApprovedInstallation` 同样的能力校验，在**同一个批准事务**内向 `platform.exec_outbox` 写一行：`tenant_id` = 被批准的租户，`actor_id` = 平台运营，`trace_id` = 批准请求的 trace；membership 列按平台运营身份写，不冒充目标租户成员。
-- 不允许「安装先提交，事件再异步补」。
+**契约测试**：
+
+| 线 | 测试 |
+|---|---|
+| B | ① 平台批准事务回滚后，没有实例，也没有 revision 变化；② 安装、升级、再升回同一版本、卸载，revision 依次为 1、2、3、4；③ `current()` 只返回本租户的实例，无上下文时拒绝；④ 平台批准路径不产生 `exec_outbox` 行 |
+| C | ① 对账幂等（同一 revision 拉两次，结果不变）；② revision 从 1 跳到 3 时按状态整体覆盖；③ `UNINSTALLED` 后入口消失；④ 升回旧版本后，已覆盖对象的 `drift` 正确 |
 
 `mode` 为实例整体默认；按对象派生的覆盖不改变该值（见 C6）。
 
@@ -237,7 +236,7 @@ outbox：destination `p4.app_instance`；事件类型与载荷：
 ```
 
 - `drift = true` 表示平台已有更新版本而覆盖仍基于旧基线（C 的差异与合并功能使用）。
-- 升级（C4 `upgraded`）只改变未覆盖对象的解析结果；已覆盖对象保持不变并出现 `drift`。
+- 升级（C4 对账发现 `version` 变化）只改变未覆盖对象的解析结果；已覆盖对象保持不变并出现 `drift`。
 - 台账字段只能**新增**（租户个性化不删除、不改类型平台字段），保证平台升级可叠加。
 
 ## 与现有模型的过渡
@@ -245,7 +244,7 @@ outbox：destination `p4.app_instance`；事件类型与载荷：
 | 现有 | 契约下的对应 |
 |---|---|
 | `ProductDefinition`（一个表单模板 + 至多一个流程） | 单应用清单：`forms[1]`（`FILL`）、`entries[1]`（`FILL`）；有流程时 `processes[1]` 且入口 `process_key` 指向它，流程键与版本都为空时 `processes[]` 为空、入口 `process_key = null`（仍迁移，只是不走流程）。B 的 PLB9 迁移 |
-| 不合新编码规则的旧流程键（如 `demoSimpleApproval`） | 迁移时规范化：驼峰转下划线、转小写、截到 24 位（`demo_simple_approval`），原键写入该流程的 `legacy_key`（可选字段，只在迁移产生的清单里出现）。运行时按新键查找，查不到再按 `legacy_key` 查，已在途的流程实例不改键、照常办完。规范化后冲突或仍不合规则的，迁移报告列出并跳过，不自动改名 |
+| 不合新编码规则的旧流程键（如 `demoSimpleApproval`） | 迁移时规范化：驼峰转下划线、转小写、截到 24 位（`demo_simple_approval`），原键写入该流程的 `legacy_key`（可选字段，只在迁移产生的清单里出现）。运行时按新键查找，查不到再按 `legacy_key` 查，已在途的流程实例不改键、照常办完。规范化后冲突或仍不合规则的，**整批迁移中止**（r3）：一条都不写，输出报告，逐条列出旧产品、旧键、冲突对象和建议的新键；管理员在旧产品上改好键后重跑。迁移是幂等的，可以反复执行。迁移完成前，旧产品继续按旧路径运行（`ProductDefinition` + 固定流程），已安装的租户不受影响、不下线；不允许部分迁移、静默漏迁 |
 | `InstallationProductPin` | 实例引用的平台版本 |
 | `InstallationProcessConfiguration`（流程覆盖） | `PROCESS` 类型覆盖记录 |
 | `tenant_member` 全员种子 | 由岗位绑定角色替代（A 的 PLA5，保留兼容开关） |
@@ -256,8 +255,8 @@ outbox：destination `p4.app_instance`；事件类型与载荷：
 | 角色 | 负责核对 | 结论 |
 |---|---|---|
 | 开发 A | C1 授权资源、C3、C5 | **通过**（2026-09-28）。已核实：`iam.perm_grant.resource` 为 VARCHAR(128)，`fn.{app}.{form}` 最长 52；`iam.perm_role.code` 为 VARCHAR(64)，角色编码无需截断；权限引擎已支持 `position` 授权主体（主体 id 为岗位 UUID，`IamSubjectDirectory` 按 ACTIVE 任职收集）；C3 / C5 端口放 `nexus-permission-core`，C5 改为由调用方传入候选入口键 |
-| 开发 B | C1 元数据、C2、C4、过渡映射 | 第一轮**暂不通过**（2026-09-28，五条意见见 PR 评论），r2 已逐条修订，待 B 复核 |
-| 开发 C | C1 展示、C4 消费、C6 | C1 展示、C6 **通过**（2026-09-28）。r2 改了 C4 的去重与顺序、新增 `NEEDS_MAPPING`（C 负责），待 C 复核这两处 |
+| 开发 B | C1 元数据、C2、C4、过渡映射 | C1 元数据、C2 **可接受**（r2 复核）。C4、过渡映射第二轮暂不通过；r3 已改为状态同步，并调整迁移策略，待 B 复核 |
+| 开发 C | C1 展示、C4 消费、C6 | C1 展示、C6 **通过**（2026-09-28）。r3 把 C4 改为 C 拉取对账，另新增 `NEEDS_MAPPING`（C 负责），待 C 复核这两处 |
 
 三方均通过后合入；合入即冻结 V1。
 
@@ -274,3 +273,12 @@ outbox：destination `p4.app_instance`；事件类型与载荷：
 | 5. 过渡映射容纳真实数据 | 「与现有模型的过渡」 | 无流程的定义迁为 `processes[]` 空；旧流程键规范化并保留 `legacy_key` |
 
 另：三线并行都会加 Flyway 迁移（C 已用 V712），版本号先合先得；每个 PR 合入前 rebase 到 main 并确认版本号没有和别人重复。
+**r3（2026-09-28，回应开发 B 对 r2 的复核）**
+
+| B 的意见 | 修订 |
+|---|---|
+| 平台写目标租户的 outbox 行时，调度器会恢复成租户成员身份 | C4 改为状态同步：B 在实例上保存 `revision` 与全量状态，平台批准路径不写 `exec_outbox`；C 在合法租户上下文里经 `AppInstanceQuery` 拉取对账。租户自助路径可以额外发一个不携带状态的 `changed` 提示事件。调度器语义不变。B / C 各四条契约测试 |
+| 事务描述错误 | 更正：`JdbcOutboxStore.append` 经 `DataSourceUtils` 加入已有 Spring 事务 |
+| 旧键冲突时「跳过」会静默漏迁 | 改为整批中止、输出可操作报告、可重跑；迁移完成前旧产品按旧路径运行 |
+
+r2 中的 `event_id`、`previous_version` 与三种事件类型随之取消。
