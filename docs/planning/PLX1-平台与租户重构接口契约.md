@@ -131,7 +131,9 @@ interface ApprovedTenantWrite {
 }
 ```
 
-A 先调 `assertActive()`，再以 `targetTenantId()` 显式写入该租户的角色与授权、刷新其策略版本、记审计（执行人 = 平台运营，目标租户 = 被批准租户）。要求在 B 的批准事务内调用，事务回滚则一起回滚。仍然**不绑定岗位**。
+A 先调 `assertActive()`，再以 `targetTenantId()` 显式写入该租户的角色与授权、刷新其策略版本、记审计（执行人 = 平台运营，目标租户 = 被批准租户）。仍然**不绑定岗位**。
+
+**事务**（r3.2 更正）：权限库使用独立的 DataSource（`PermissionConfiguration`），和市场写入**不在同一个数据库事务**。正确性靠两点保证：落地幂等，可以放心重试；未绑定岗位的角色不影响任何人，市场事务回滚后留下的角色无害，下次落地时复用。B 在安装事务提交**之前**调用 `apply` / `applyApproved`，调用失败时让安装一起失败。实现见 #786。
 
 | 规则 | 说明 |
 |---|---|
@@ -286,3 +288,5 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 r2 中的 `previous_version` 取消；`event_id` 与三种事件类型在 r3.1 中恢复，只用于租户自助路径。
 
 **r3.1（2026-09-28，对齐 C 在 #779 按 r2 做的实现）**：租户自助路径恢复带完整状态的事件，即 r2 的形状加 event_id，C 的消费逻辑不用改；平台批准路径仍不发事件，由 C 在门户加载时调 `current()` 对账补齐（C 新增契约测试 ⑤）。`AppInstanceQuery` 接口由 C 定义在 p3-studio，B 实现。
+
+**r3.2（2026-09-28）**：更正 C3 的事务描述。权限库使用独立的 DataSource，无法与市场写入同一事务，改为「落地幂等 + 未绑定的角色无害 + 安装提交前调用」。
