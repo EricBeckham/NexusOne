@@ -94,18 +94,6 @@ public class TenantMemberGrantSeeder {
         return mode;
     }
 
-    /** PLA5: makes sure the member and designer roles with their grants exist in the context tenant; assigns nobody. */
-    public void ensureRoleDefinitions() {
-        TenantContext context = TenantContextHolder.get();
-        if (context == null) {
-            return;
-        }
-        Object lock = locks.computeIfAbsent(context.tenantId(), ignored -> new Object());
-        synchronized (lock) {
-            ensureMemberRole(context.tenantId());
-            ensureDesignerRole(context.tenantId());
-        }
-    }
 
     /**
      * No-op when the seeder bean is off (permission-core ITs) or the provider

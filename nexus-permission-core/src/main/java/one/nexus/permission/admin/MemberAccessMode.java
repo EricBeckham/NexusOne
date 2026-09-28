@@ -10,7 +10,8 @@ import java.util.Locale;
  *   <li>{@link #POSITION} — the re-plan model: {@code tenant_member} and the process-designer role reach people only
  *       through position bindings (PLA1), and portal entries follow {@code fn.*:read} grants strictly.</li>
  * </ul>
- * Switch a tenant's data first with the member-access conversion (dry run, then apply), then flip the property.
+ * Legacy data is not migrated (PL0.2): flip to POSITION once the re-initialised test data binds the member roles to
+ * positions.
  */
 public enum MemberAccessMode {
     LEGACY,
