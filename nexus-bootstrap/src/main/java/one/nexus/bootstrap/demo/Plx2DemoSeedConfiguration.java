@@ -18,8 +18,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * PLX2. One ordered pass for the new-model demo: the fixed tenant, PLA8's organization and position roles,
- * then PLB9's published leave product and subscription. Portal menus stay at {@link Plx2DemoSeedOrder#PORTAL}
- * until that seed is merged. A later start writes nothing new. The permission member-access switch is not changed.
+ * then PLB9's published leave product and subscription. The portal menu is written later at
+ * {@link Plx2DemoSeedOrder#PORTAL}. A later start writes nothing new. The permission member-access switch is not changed.
  */
 @Configuration
 public class Plx2DemoSeedConfiguration {
