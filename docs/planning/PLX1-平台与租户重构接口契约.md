@@ -155,7 +155,7 @@ r3 改为**状态同步**，替代 r2 的 outbox 事件。原因见开发 B 的 
 - 租户自助路径：沿用现有仓储写入。
 - 平台批准路径：沿用现有的 `saveApprovedInstallation(PlatformActivationCommand, …)` 这类能力写入器，只多写 `revision` 与状态列。
 
-**查询端口**（r3.1）：接口由 C 定义在 `nexus-p3-studio`（`one.nexus.p3.instance.AppInstanceQuery`，#779 已有），B 在 `nexus-p4-market` 实现并注册为 Spring bean。`p4-market` 依赖 `p3-studio`，反过来不行，所以接口放在消费方。形状如下：
+**查询端口**（r3.1；r3.3 强调：方法**不带租户参数**，租户只取服务端上下文。#779 当前的 `current(UUID tenantId, UUID instanceId)` 必须由 C 在 PLC7 中改成下面的形状；B 不实现可以传入任意 tenantId 的查询）：接口由 C 定义在 `nexus-p3-studio`（`one.nexus.p3.instance.AppInstanceQuery`，#779 已有），B 在 `nexus-p4-market` 实现并注册为 Spring bean。`p4-market` 依赖 `p3-studio`，反过来不行，所以接口放在消费方。形状如下：
 
 ```java
 List<AppInstanceState> AppInstanceQuery.current();          // 当前租户的全部实例，含已卸载
@@ -185,9 +185,10 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 
 - C 为每个实例保存已应用的 `revision`，拿到的 revision 比本地大时，以状态整体覆盖本地；相等时不做任何事。
 - 因为状态是全量的，同一版本再次升回、中间变化被跳过、重复拉取都不会出错。
+- `event_id` 与 outbox 行 id 无关：现有 `OutboxPort.append` 在收到载荷后才生成行 id，调用方拿不到。`event_id` 随载荷写进 outbox 行，重投时投递的是同一行，所以值不变。C 只按载荷里的 `event_id` 去重（r3.3）。
 - 对账本身不需要 `event_id`，也不需要 `previous_version`（`event_id` 只用于下文租户自助路径事件的去重）。C6 的 `drift` 用覆盖记录的 `base_version` 和当前 `version` 比较得出。
 
-**租户自助路径的事件**（r3.1）：租户自己订购、升级、卸载时有真实的租户成员身份，B 用现有的 `OutboxPort.append` 发事件，destination 为 `p4.app_instance`。载荷就是上面的状态，外加 `event_id`（UUIDv7，与 outbox 行 id 相同）和事件类型（`installed` / `upgraded` / `uninstalled`）。C 按 #779 已实现的规则消费：先按 `event_id` 去重，再按 `revision` 定顺序；等于已应用 +1 时整体覆盖钉扎与入口；有缺口时查 `current(instanceId)`；查询结果仍落后于事件时不记已处理，交给 outbox 重试；覆盖不删租户个性化。
+**租户自助路径的事件**（r3.1）：租户自己订购、升级、卸载时有真实的租户成员身份，B 用现有的 `OutboxPort.append` 发事件，destination 为 `p4.app_instance`。载荷就是上面的状态，外加 `event_id`（UUIDv7，**由 B 在组装载荷时生成**，r3.3）和事件类型（`installed` / `upgraded` / `uninstalled`）。C 按 #779 已实现的规则消费：先按 `event_id` 去重，再按 `revision` 定顺序；等于已应用 +1 时整体覆盖钉扎与入口；有缺口时查 `current(instanceId)`；查询结果仍落后于事件时不记已处理，交给 outbox 重试；覆盖不删租户个性化。
 
 **平台批准路径不发事件**，理由见本节开头。C 在门户加载、入口列表、个性化解析时调 `current()` 对账，按 `revision` 比较补齐。这条对账路径也兜住了事件丢失或延迟的情况，所以它是必需的，事件只是加速。
 
@@ -197,7 +198,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 
 | 线 | 测试 |
 |---|---|
-| B | ① 平台批准事务回滚后，没有实例，也没有 revision 变化；② 安装、升级、再升回同一版本、卸载，revision 依次为 1、2、3、4；③ `current()` 只返回本租户的实例，无上下文时拒绝；④ 平台批准路径不产生 `exec_outbox` 行 |
+| B | ⓪ 租户自助路径：安装与事件在同一事务提交（安装回滚则没有 outbox 行），同一 outbox 行重投时载荷里的 `event_id` 不变；① 平台批准事务回滚后，没有实例，也没有 revision 变化；② 安装、升级、再升回同一版本、卸载，revision 依次为 1、2、3、4；③ `current()` 只返回本租户的实例，无上下文时拒绝；④ 平台批准路径不产生 `exec_outbox` 行 |
 | C | ① 对账幂等（同一 revision 拉两次，结果不变）；② revision 从 1 跳到 3 时按状态整体覆盖；③ `UNINSTALLED` 后入口消失；④ 升回旧版本后，已覆盖对象的 `drift` 正确；⑤ 没有任何事件、只有平台批准产生的实例时，门户加载后入口出现 |
 
 `mode` 为实例整体默认；按对象派生的覆盖不改变该值（见 C6）。
@@ -248,7 +249,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 | 现有 | 契约下的对应 |
 |---|---|
 | `ProductDefinition`（一个表单模板 + 至多一个流程） | 单应用清单：`forms[1]`（`FILL`）、`entries[1]`（`FILL`）；有流程时 `processes[1]` 且入口 `process_key` 指向它，流程键与版本都为空时 `processes[]` 为空、入口 `process_key = null`（仍迁移，只是不走流程）。B 的 PLB9 迁移 |
-| 不合新编码规则的旧流程键（如 `demoSimpleApproval`） | 迁移时规范化：驼峰转下划线、转小写、截到 24 位（`demo_simple_approval`），原键写入该流程的 `legacy_key`（可选字段，只在迁移产生的清单里出现）。运行时按新键查找，查不到再按 `legacy_key` 查，已在途的流程实例不改键、照常办完。规范化后冲突或仍不合规则的，**整批迁移中止**（r3）：一条都不写，输出报告，逐条列出旧产品、旧键、冲突对象和建议的新键；管理员在旧产品上改好键后重跑。迁移是幂等的，可以反复执行。迁移完成前，旧产品继续按旧路径运行（`ProductDefinition` + 固定流程），已安装的租户不受影响、不下线；不允许部分迁移、静默漏迁 |
+| 不合新编码规则的旧流程键（如 `demoSimpleApproval`） | 迁移时规范化：驼峰转下划线、转小写、截到 24 位（`demo_simple_approval`），原键写入该流程的 `legacy_key`（可选字段，只在迁移产生的清单里出现）。运行时按新键查找，查不到再按 `legacy_key` 查，已在途的流程实例不改键、照常办完。规范化后冲突或仍不合规则的，**整批迁移中止**（r3）：一条都不写，输出报告，逐条列出旧产品、旧键、冲突对象和建议的新键；由平台运营给迁移工具提供一份显式的「旧键 → 新键」映射（写审计），确认无冲突后重跑；已发布的 `ProductDefinition` 不可修改（`ProductDefinitionService.update` 只允许 DRAFT），也不需要修改（r3.3）。迁移是幂等的，可以反复执行。迁移完成前，旧产品继续按旧路径运行（`ProductDefinition` + 固定流程），已安装的租户不受影响、不下线；不允许部分迁移、静默漏迁 |
 | `InstallationProductPin` | 实例引用的平台版本 |
 | `InstallationProcessConfiguration`（流程覆盖） | `PROCESS` 类型覆盖记录 |
 | `tenant_member` 全员种子 | 由岗位绑定角色替代（A 的 PLA5，保留兼容开关） |
@@ -290,3 +291,5 @@ r2 中的 `previous_version` 取消；`event_id` 与三种事件类型在 r3.1 �
 **r3.1（2026-09-28，对齐 C 在 #779 按 r2 做的实现）**：租户自助路径恢复带完整状态的事件，即 r2 的形状加 event_id，C 的消费逻辑不用改；平台批准路径仍不发事件，由 C 在门户加载时调 `current()` 对账补齐（C 新增契约测试 ⑤）。`AppInstanceQuery` 接口由 C 定义在 p3-studio，B 实现。
 
 **r3.2（2026-09-28）**：更正 C3 的事务描述。权限库使用独立的 DataSource，无法与市场写入同一事务，改为「落地幂等 + 未绑定的角色无害 + 安装提交前调用」。
+
+**r3.3（2026-09-28，回应开发 B 对 r3.1 的复核）**：① `event_id` 由 B 在组装载荷时生成，不要求等于 outbox 行 id，新增 B⓪ 同事务与重投测试；② `AppInstanceQuery` 不带租户参数，C 在 PLC7 中把 #779 的现有签名改成契约形状；③ 旧键冲突改由迁移工具接受显式、写审计的「旧键 → 新键」映射，不修改已发布的旧产品。
