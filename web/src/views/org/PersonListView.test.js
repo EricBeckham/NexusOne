@@ -5,7 +5,8 @@ import { flushPromises, mount } from "@vue/test-utils";
 const mocks = vi.hoisted(() => ({
   persons: vi.fn(), getPerson: vi.fn(), employments: vi.fn(), departments: vi.fn(), positions: vi.fn(), createPerson: vi.fn(),
 }));
-vi.mock("../../api/client", () => ({ p2: mocks }));
+const permMocks = vi.hoisted(() => ({ effectivePerson: vi.fn() }));
+vi.mock("../../api/client", () => ({ p2: mocks, perm: permMocks }));
 vi.mock("../../api/session", () => ({ session: { contextId: "ctx-1", accessToken: "token" }, ensureContext: vi.fn() }));
 
 import PersonListView from "./PersonListView.vue";
@@ -19,6 +20,18 @@ describe("P2 person directory V7", () => {
     mocks.persons.mockResolvedValue(rows); mocks.getPerson.mockResolvedValue({ ...rows[0], phone: "13800000000", accountId: "account-1", hiredOn: "2024-01-02" });
     mocks.employments.mockResolvedValue([{ id: "employment-1", departmentId: "dept-1", positionId: "pos-1", kind: "PRIMARY", status: "ACTIVE", validFrom: "2024-01-02" }]);
     mocks.departments.mockResolvedValue([{ id: "dept-1", name: "研发部" }]); mocks.positions.mockResolvedValue([{ id: "pos-1", name: "工程师" }]);
+    permMocks.effectivePerson.mockReset();
+    permMocks.effectivePerson.mockResolvedValue({
+      subject_type: "PERSON", duty_conflict: false,
+      roles: [
+        { role_code: "tenant_member", role_name: "成员", via: "POSITION", via_id: "pos-1", via_label: "工程师" },
+        { role_code: "auditor", role_name: "临时审计", via: "PERSONAL", via_id: "person-1", via_label: "个人（例外授权）" },
+      ],
+      permissions: [
+        { resource: "ledger", action: "read", outcome: "ALLOW", sources: [{ effect: "GRANT", scope: "DEPT", principal_type: "role", principal_id: "tenant_member", label: "tenant_member" }] },
+        { resource: "report", action: "read", outcome: "DENY", sources: [{ effect: "DENY", scope: "ALL", principal_type: "user", principal_id: "person-1", label: "个人（例外授权）" }] },
+      ],
+    });
   });
 
   it("renders the user directory and keeps details read-only with real employment data", async () => {
@@ -28,7 +41,12 @@ describe("P2 person directory V7", () => {
     await wrapper.get("[data-testid='nx-data-table'] .person-name").trigger("click"); await flushPromises();
     const drawer = wrapper.get("[data-testid='person-drawer']");
     expect(drawer.text()).toContain("13800000000"); expect(drawer.text()).toContain("研发部"); expect(drawer.text()).toContain("工程师");
-    expect(drawer.text()).toContain("当前接口未提供按人员关联的角色与权限查询");
+    const effective = drawer.get("[data-testid='effective-permissions']");
+    expect(effective.text()).toContain("岗位：工程师");
+    expect(effective.text()).toContain("个人例外授权");
+    expect(effective.get("[data-permission='ledger:read']").text()).toContain("允许");
+    expect(effective.get("[data-permission='report:read']").text()).toContain("拒绝");
+    expect(permMocks.effectivePerson).toHaveBeenCalledWith("person-1");
     expect(drawer.text()).toContain("暂无登录记录读接口");
     expect(drawer.find("input").exists()).toBe(false);
     expect(mocks.getPerson).toHaveBeenCalledWith("person-1"); expect(mocks.employments).toHaveBeenCalledWith("person-1");

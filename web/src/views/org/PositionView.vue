@@ -34,7 +34,10 @@
             <span v-for="role in rolesOf(row.id)" :key="role.role_id" class="role-chip">{{ role.role_name || role.role_code }}</span>
             <span v-if="!rolesOf(row.id).length" class="nx-muted">未绑定</span>
           </td>
-          <td v-if="canBind"><button type="button" class="link" @click="openEditor(row)">编辑角色</button></td>
+          <td v-if="canBind" class="row-actions">
+            <button type="button" class="link" @click="openEditor(row)">编辑角色</button>
+            <button type="button" class="link" data-action="preview" @click="openPreview(row)">有效权限</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -52,6 +55,13 @@
         <button type="button" @click="closeEditor">取消</button>
       </div>
     </form>
+
+    <section v-if="previewing" class="nx-card editor" data-testid="position-preview">
+      <h3>「{{ previewing.name }}」的有效权限</h3>
+      <p class="nx-muted">只含岗位本身带来的角色与授权，不含个人例外授权。</p>
+      <EffectivePermissionPanel :effective="preview" :loading="previewLoading" :error="previewError" />
+      <div class="actions"><button type="button" @click="previewing = null">关闭</button></div>
+    </section>
   </div>
 </template>
 
@@ -59,8 +69,13 @@
 import { onMounted, reactive, ref } from "vue";
 import { NxPageHeader } from "../../components";
 import { p2, perm } from "../../api/client";
+import EffectivePermissionPanel from "./EffectivePermissionPanel.vue";
 
 const positions = ref([]);
+const previewing = ref(null);
+const preview = ref(null);
+const previewLoading = ref(false);
+const previewError = ref("");
 const roles = ref([]);
 const bindings = ref({});
 const canBind = ref(false);
@@ -79,6 +94,22 @@ function message(err) {
 
 function rolesOf(positionId) {
   return bindings.value[positionId] || [];
+}
+
+/** PLA3: what holding this position brings, recomputed each time (bindings may just have changed). */
+async function openPreview(row) {
+  previewing.value = row;
+  preview.value = null;
+  previewError.value = "";
+  previewLoading.value = true;
+  try {
+    const result = await perm.effectivePosition(row.id);
+    if (previewing.value?.id === row.id) preview.value = result;
+  } catch (err) {
+    if (previewing.value?.id === row.id) previewError.value = message(err);
+  } finally {
+    previewLoading.value = false;
+  }
 }
 
 function indexBindings(rows) {
@@ -168,4 +199,5 @@ async function saveRoles() {
 .editor { margin-top: 16px; max-width: 520px; }
 .role-option { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
 .actions { display: flex; gap: 8px; margin-top: 12px; }
+.row-actions { display: flex; gap: 12px; }
 </style>
