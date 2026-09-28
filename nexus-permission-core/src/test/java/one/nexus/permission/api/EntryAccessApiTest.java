@@ -53,8 +53,10 @@ class EntryAccessApiTest {
                         .param("keys", "fn:leave:leave_apply", "fn:expense:expense_apply", "not-a-key")
                         .header("Authorization", "Bearer " + token).header("X-Nexus-Context-Id", contextId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.entries.length()").value(1))
+                // PLA5 default (legacy): installed entries show unless denied; malformed keys still drop.
+                .andExpect(jsonPath("$.entries.length()").value(2))
                 .andExpect(jsonPath("$.entries[0]").value("fn:leave:leave_apply"))
+                .andExpect(jsonPath("$.entries[1]").value("fn:expense:expense_apply"))
                 .andExpect(jsonPath("$.computed_at").exists());
 
         mvc.perform(get("/api/v1/permission/entries/readable")

@@ -23,6 +23,7 @@ import one.nexus.p2.org.OrganizationService;
 import one.nexus.p2.persist.InMemoryIdentityRepository;
 import one.nexus.p2.smtp.KeycloakSmtpHook;
 import one.nexus.permission.PermissionModule;
+import one.nexus.permission.admin.MemberAccessMode;
 import one.nexus.permission.engine.DataScopeKind;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.position.PositionRoleService;
@@ -55,6 +56,7 @@ class EntryAccessServiceTest {
         TenantContextHolder.set(adminContext);
         permissions = PermissionModule.create(new InMemoryPolicyRepository(), iam.repository(),
                 new InMemoryPolicyInvalidation());
+        permissions.entries().useMemberAccessMode(MemberAccessMode.POSITION); // strict filtering; LEGACY has its own test
 
         Model.Position position = iam.organization().createPosition(
                 new OrganizationService.PositionCommand("clerk", "文员", "GENERAL", null));
@@ -109,6 +111,18 @@ class EntryAccessServiceTest {
 
         grant("DENY", "user", clerk.toString(), "fn.leave.leave_apply");
         assertEquals(Set.of(VIEW), clerkReads(List.of(APPLY, VIEW)));
+    }
+
+    @Test
+    void legacyModeShowsEveryInstalledEntryUnlessExplicitlyDenied() {
+        permissions.entries().useMemberAccessMode(MemberAccessMode.LEGACY);
+        assertEquals(List.of(APPLY, VIEW, EXPENSE), List.copyOf(clerkReads(List.of(APPLY, VIEW, EXPENSE))));
+
+        grant("DENY", "user", clerk.toString(), "fn.expense.expense_apply");
+        assertEquals(List.of(APPLY, VIEW), List.copyOf(clerkReads(List.of(APPLY, VIEW, EXPENSE))));
+
+        permissions.entries().usePlatformTenant(tenant);
+        assertTrue(clerkReads(List.of(APPLY)).isEmpty(), "the platform tenant still gets nothing");
     }
 
     @Test

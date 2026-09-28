@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 import one.nexus.p2.kernel.TenantContext;
 import one.nexus.p2.kernel.TenantContextHolder;
 import one.nexus.permission.PermissionService;
+import one.nexus.permission.admin.MemberAccessMode;
+import one.nexus.permission.engine.Decision;
 import one.nexus.permission.support.PermissionException;
 
 /**
@@ -21,8 +23,12 @@ public final class EntryAccessService {
     public static final String ACTION = "read";
     private static final Pattern CODE = Pattern.compile("[a-z][a-z0-9_]{0,23}");
 
+    /** Engine reason for "nothing grants this" — the only denial LEGACY mode overlooks. */
+    static final String NO_GRANT = "no_grant";
+
     private final PermissionService permissions;
     private volatile UUID platformTenantId;
+    private volatile MemberAccessMode mode = MemberAccessMode.LEGACY;
 
     public EntryAccessService(PermissionService permissions, UUID platformTenantId) {
         this.permissions = permissions;
@@ -32,6 +38,19 @@ public final class EntryAccessService {
     /** The platform tenant gets no business entries (platform features go through PV / AUTH6). */
     public void usePlatformTenant(UUID platformTenantId) {
         this.platformTenantId = platformTenantId;
+    }
+
+    /**
+     * PLA5: in {@link MemberAccessMode#LEGACY} an installed entry is shown unless something actively denies it
+     * (explicit deny, tenant boundary, …) — the pre-re-plan behaviour where every member could use everything. In
+     * {@link MemberAccessMode#POSITION} only a {@code fn.*:read} grant shows it.
+     */
+    public void useMemberAccessMode(MemberAccessMode mode) {
+        this.mode = mode == null ? MemberAccessMode.LEGACY : mode;
+    }
+
+    public MemberAccessMode mode() {
+        return mode;
     }
 
     /** Readable subset of {@code candidateKeys}, in candidate order, without duplicates; malformed keys are dropped. */
@@ -46,7 +65,11 @@ public final class EntryAccessService {
         }
         for (String key : new LinkedHashSet<>(candidateKeys)) {
             String resource = resourceOf(key);
-            if (resource != null && permissions.decide(resource, ACTION).allowed()) {
+            if (resource == null) {
+                continue;
+            }
+            Decision decision = permissions.decide(resource, ACTION);
+            if (decision.allowed() || (mode == MemberAccessMode.LEGACY && NO_GRANT.equals(decision.reason()))) {
                 readable.add(key);
             }
         }

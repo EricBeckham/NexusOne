@@ -6,6 +6,7 @@ import one.nexus.p2.IdentityConfiguration;
 import one.nexus.p2.IdentityModule;
 import one.nexus.permission.engine.PolicySnapshotPoller;
 import one.nexus.permission.engine.SnapshotManager;
+import one.nexus.permission.admin.MemberAccessMode;
 import one.nexus.permission.admin.TenantMemberGrantSeeder;
 import one.nexus.permission.persist.InMemoryPolicyRepository;
 import one.nexus.permission.persist.JdbcPolicyRepository;
@@ -75,7 +76,8 @@ public class PermissionConfiguration {
             PolicyInvalidationPort invalidation,
             ObjectProvider<AuditPort> audits,
             ObjectProvider<IdentityConfiguration.IamProperties> iam,
-            PermissionProperties properties
+            PermissionProperties properties,
+            Environment env
     ) {
         PermissionModule module = PermissionModule.create(
                 repository,
@@ -87,14 +89,20 @@ public class PermissionConfiguration {
         if (iamProperties != null) {
             module.entries().usePlatformTenant(iamProperties.mfaPolicy().platformTenantId());
         }
+        module.entries().useMemberAccessMode(memberAccess(env));
         invalidation.startListening();
         return module;
     }
 
     @Bean
     @ConditionalOnProperty(name = "nexus.permission.seed-tenant-member-grants", havingValue = "true")
-    TenantMemberGrantSeeder tenantMemberGrantSeeder(PermissionModule module, IdentityModule identity) {
-        return new TenantMemberGrantSeeder(module, identity.repository());
+    TenantMemberGrantSeeder tenantMemberGrantSeeder(PermissionModule module, IdentityModule identity, Environment env) {
+        return new TenantMemberGrantSeeder(module, identity.repository(), memberAccess(env));
+    }
+
+    /** PLA5 switch {@code nexus.permission.member-access}: {@code legacy} (default) or {@code position}. */
+    static MemberAccessMode memberAccess(Environment env) {
+        return MemberAccessMode.parse(env.getProperty("nexus.permission.member-access"));
     }
 
     @Bean(destroyMethod = "close")
