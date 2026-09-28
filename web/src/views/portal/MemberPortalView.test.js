@@ -59,7 +59,42 @@ describe("PLC5 member portal", () => {
     expect(wrapper.text()).toContain("请假申请");
     expect(wrapper.text()).not.toContain("报销");
     expect(wrapper.text()).toContain("还没有应用实例");
+    expect(wrapper.text()).not.toContain("实例查询尚未接通");
     expect(mocks.readableEntries).toHaveBeenCalledWith(["fn:leave:leave_apply", "fn:expense:expense_apply"]);
+  });
+
+  it("lists an installed application and hides an uninstalled one", async () => {
+    mocks.portalMenu.mockResolvedValue({
+      items: [{ id: "apply", label: "请假申请", entry_key: "fn:leave:leave_apply", sort: 1, hidden: false }],
+    });
+    mocks.portalModules.mockResolvedValue({ modules: [] });
+    mocks.readableEntries.mockResolvedValue(["fn:leave:leave_apply"]);
+    mocks.currentInstances.mockResolvedValue([
+      { instance_id: "leave-1", status: "INSTALLED", app_code: "leave", version: "1.0.0", entries: ["fn:leave:leave_apply"] },
+      { instance_id: "gone", status: "UNINSTALLED", app_code: "expense", version: "1.0.0", entries: [] },
+    ]);
+
+    const wrapper = await mountPortal();
+
+    expect(wrapper.get("[data-testid='portal-apps']").text()).toContain("leave");
+    expect(wrapper.get("[data-testid='portal-apps']").text()).toContain("1.0.0");
+    expect(wrapper.get("[data-testid='portal-apps']").text()).not.toContain("expense");
+    expect(wrapper.text()).toContain("请假申请");
+  });
+
+  it("keeps the menu when the instance call fails", async () => {
+    mocks.portalMenu.mockResolvedValue({
+      items: [{ id: "apply", label: "请假申请", entry_key: "fn:leave:leave_apply", sort: 1, hidden: false }],
+    });
+    mocks.portalModules.mockResolvedValue({ modules: [] });
+    mocks.readableEntries.mockResolvedValue(["fn:leave:leave_apply"]);
+    mocks.currentInstances.mockRejectedValue(new Error("down"));
+
+    const wrapper = await mountPortal();
+
+    expect(wrapper.text()).toContain("请假申请");
+    expect(wrapper.text()).toContain("还没有应用实例");
+    expect(wrapper.text()).not.toContain("门户暂时打不开");
   });
 
   it("does not list every menu entry when the readable-entry call fails", async () => {
