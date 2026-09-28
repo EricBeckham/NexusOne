@@ -60,6 +60,7 @@ const routes = [
   { path: "/p3/todos", name: "todos", component: () => import("./views/studio/TodoInboxView.vue"), meta: { title: "待办", product: "p3" } },
   { path: "/p3/todos/:id", name: "todo-detail", component: () => import("./views/studio/TodoInboxView.vue"), meta: { title: "待办办理", product: "p3" } },
   { path: "/p3/notifications", name: "notifications", component: () => import("./views/studio/NotifyInboxView.vue"), meta: { title: "站内通知", product: "p3" } },
+  { path: "/p3/portal", name: "portal-entries", component: () => import("./views/studio/PortalEntriesView.vue"), meta: { title: "功能入口", product: "p3" } },
   { path: "/p3/audit", name: "audit", component: () => import("./views/studio/AuditTraceView.vue"), meta: { title: "审计哈希链", product: "p3" } },
   { path: "/p3/workflow", name: "workflow-designer", component: () => import("./views/studio/ProcessViewerView.vue"), meta: { title: "流程设计器", product: "p3" } },
   { path: "/p3/workflow/:key", name: "workflow-definition", component: () => import("./views/studio/ProcessViewerView.vue"), meta: { title: "流程设计器", product: "p3" } },

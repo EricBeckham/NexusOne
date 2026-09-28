@@ -23,6 +23,10 @@ public final class P3ErrorCodes {
     public static final ErrorCode ACTION_CONFLICT = ErrorCode.of("P3", "ACTION", 3);
     /** PLC3: portal menu / home module config. */
     public static final ErrorCode PORTAL_INVALID = ErrorCode.of("P3", "PORTAL", 1);
+    /** PLX1 C6: instance override / resolution. 0002 is reserved for NEEDS_MAPPING. */
+    public static final ErrorCode INSTANCE_NOT_FOUND = ErrorCode.of("P3", "INSTANCE", 1);
+    public static final ErrorCode INSTANCE_NEEDS_MAPPING = ErrorCode.of("P3", "INSTANCE", 2);
+    public static final ErrorCode INSTANCE_INVALID = ErrorCode.of("P3", "INSTANCE", 3);
 
     private P3ErrorCodes() {}
 }
