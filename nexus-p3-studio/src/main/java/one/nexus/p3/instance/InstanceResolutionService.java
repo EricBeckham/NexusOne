@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import one.nexus.p3.domain.P3ErrorCodes;
 import one.nexus.p3.domain.P3Exception;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,13 +20,24 @@ public class InstanceResolutionService {
 
     private final InstanceOverrideStore overrides;
     private final PlatformObjectSource platform;
+    private final InstanceReconciler reconciler;
 
     public InstanceResolutionService(InstanceOverrideStore overrides, PlatformObjectSource platform) {
+        this(overrides, platform, null);
+    }
+
+    @Autowired
+    public InstanceResolutionService(InstanceOverrideStore overrides, PlatformObjectSource platform,
+            InstanceReconciler reconciler) {
         this.overrides = overrides;
         this.platform = platform;
+        this.reconciler = reconciler;
     }
 
     public ResolvedObject resolve(UUID tenantId, UUID instanceId, ObjectType type, String code) {
+        if (reconciler != null) {
+            reconciler.reconcile(tenantId);
+        }
         String objectCode = requireCode(code);
         requireIds(tenantId, instanceId);
         Optional<OverrideRecord> override = overrides.find(tenantId, instanceId, type, objectCode);

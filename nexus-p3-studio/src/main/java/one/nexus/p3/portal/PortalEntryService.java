@@ -1,14 +1,19 @@
 package one.nexus.p3.portal;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import one.nexus.p3.instance.InstanceConsumptionStore;
+import one.nexus.p3.instance.InstanceReconciler;
+import one.nexus.p3.instance.InstanceSnapshot;
 import one.nexus.p3.instance.ProcessStartGate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /** PLX1 C1: visible entries are installed, well-formed, and marked readable. */
@@ -19,30 +24,68 @@ public class PortalEntryService {
     private final InstalledEntrySource installed;
     private final EntryReadFilter readable;
     private final ProcessStartGate starts;
+    private final InstanceReconciler reconciler;
+    private final InstanceConsumptionStore pins;
 
     public PortalEntryService(InstalledEntrySource installed, EntryReadFilter readable, ProcessStartGate starts) {
+        this(installed, readable, starts, null, null);
+    }
+
+    @Autowired
+    public PortalEntryService(InstalledEntrySource installed, EntryReadFilter readable, ProcessStartGate starts,
+            InstanceReconciler reconciler, InstanceConsumptionStore pins) {
         this.installed = installed;
         this.readable = readable;
         this.starts = starts;
+        this.reconciler = reconciler;
+        this.pins = pins;
     }
 
     public List<PortalEntry> visible(UUID tenantId) {
-        List<FunctionEntry> candidates = new ArrayList<>();
-        for (FunctionEntry entry : installed.installed(tenantId)) {
-            if (wellFormed(entry)) {
-                candidates.add(entry);
+        if (reconciler != null) {
+            reconciler.reconcile(tenantId);
+        }
+        Map<String, FunctionEntry> byKey = new LinkedHashMap<>();
+        if (pins != null) {
+            int sort = 0;
+            for (InstanceSnapshot snapshot : pins.list(tenantId)) {
+                if (snapshot == null || !snapshot.installed()) {
+                    continue;
+                }
+                for (String key : snapshot.entries()) {
+                    FunctionEntry entry = fromKey(key, sort++);
+                    if (entry != null) {
+                        byKey.putIfAbsent(entry.key(), entry);
+                    }
+                }
             }
         }
-        List<String> keys = candidates.stream().map(FunctionEntry::key).toList();
+        for (FunctionEntry entry : installed.installed(tenantId)) {
+            if (wellFormed(entry)) {
+                byKey.put(entry.key(), entry);
+            }
+        }
+        List<String> keys = List.copyOf(byKey.keySet());
         List<String> allowed = readable.readable(keys);
         Set<String> visible = new HashSet<>(allowed == null ? List.of() : allowed);
-        return candidates.stream()
+        return byKey.values().stream()
                 .filter(entry -> visible.contains(entry.key()))
                 .sorted(Comparator.comparing(FunctionEntry::defaultGroup, Comparator.nullsLast(String::compareTo))
                         .thenComparingInt(FunctionEntry::sort)
                         .thenComparing(FunctionEntry::key))
                 .map(entry -> present(tenantId, entry))
                 .toList();
+    }
+
+    static FunctionEntry fromKey(String key, int sort) {
+        if (key == null) {
+            return null;
+        }
+        String[] parts = key.split(":", -1);
+        if (parts.length != 3 || !"fn".equals(parts[0]) || parts[1].isBlank() || parts[2].isBlank()) {
+            return null;
+        }
+        return new FunctionEntry(key, parts[1], parts[2], parts[1], parts[2], "grid", EntryKind.FILL, parts[1], sort, null);
     }
 
     private PortalEntry present(UUID tenantId, FunctionEntry entry) {

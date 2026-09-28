@@ -63,6 +63,26 @@ public class JdbcInstanceConsumptionStore implements InstanceConsumptionStore {
     }
 
     @Override
+    public List<InstanceSnapshot> list(UUID tenantId) {
+        return jdbc.query("""
+                SELECT instance_id, instance_revision, product_code, app_code, version, previous_version, mode,
+                       entries::text AS entries, status
+                  FROM business_meta.app_instance_state
+                 WHERE tenant_id = ?
+                 ORDER BY app_code, instance_id
+                """, (rs, i) -> new InstanceSnapshot(
+                rs.getObject("instance_id", UUID.class),
+                rs.getLong("instance_revision"),
+                rs.getString("product_code"),
+                rs.getString("app_code"),
+                rs.getString("version"),
+                rs.getString("previous_version"),
+                rs.getString("mode"),
+                mapper.readValue(rs.getString("entries"), KEYS),
+                "INSTALLED".equals(rs.getString("status"))), tenantId);
+    }
+
+    @Override
     public void save(UUID tenantId, InstanceSnapshot snapshot) {
         jdbc.update("""
                 INSERT INTO business_meta.app_instance_state
