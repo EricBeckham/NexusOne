@@ -58,7 +58,9 @@
         </section>
       </div>
 
-      <section v-if="kind === 'matrix'" class="nx-card content-card" data-testid="permission-matrix">
+      <ExceptionGrantsPanel v-if="kind === 'exceptions'" />
+
+      <section v-else-if="kind === 'matrix'" class="nx-card content-card" data-testid="permission-matrix">
         <div class="section-heading">
           <div>
             <h2>权限矩阵总览</h2>
@@ -170,7 +172,7 @@
               <thead><tr><th>主体</th><th>主体 ID</th><th>角色</th><th>分配 ID</th></tr></thead>
               <tbody>
                 <tr v-for="assignment in assignments" :key="assignment.id">
-                  <td>{{ assignment.principalType }}</td>
+                  <td>{{ assignment.principalType }}<span v-if="assignment.principalType === 'user'" class="exception-badge" title="直接给个人，不经过岗位（D5）">例外</span></td>
                   <td class="code-cell">{{ assignment.principalId }}</td>
                   <td>{{ assignment.roleCode || assignment.roleId }}</td>
                   <td class="code-cell">{{ assignment.id }}</td>
@@ -214,7 +216,7 @@
               <thead><tr><th>主体</th><th>资源 / 操作</th><th>效果</th><th>数据范围</th><th>指定部门</th></tr></thead>
               <tbody>
                 <tr v-for="grant in grants" :key="grant.id">
-                  <td>{{ grant.principalType }}:{{ grant.principalId }}</td>
+                  <td>{{ grant.principalType }}:{{ grant.principalId }}<span v-if="grant.principalType === 'user'" class="exception-badge" title="直接给个人，不经过岗位（D5）">例外</span></td>
                   <td>{{ grant.resource }} / {{ grant.action }}</td>
                   <td>{{ grant.effect }}</td>
                   <td>{{ grant.scopeKind || "暂无" }}</td>
@@ -292,6 +294,7 @@ import { NxEmpty, NxErrorState, NxNoPermission, NxPageHeader } from "../../compo
 import NxSourceBanner from "../../components/NxSourceBanner.vue";
 import { perm } from "../../api/client";
 import { session } from "../../api/session";
+import ExceptionGrantsPanel from "./ExceptionGrantsPanel.vue";
 
 const route = useRoute();
 const tabs = [
@@ -299,6 +302,7 @@ const tabs = [
   { id: "datascope", label: "数据范围", to: "/p2/permissions/datascope" },
   { id: "fields", label: "字段权限", to: "/p2/permissions/fields" },
   { id: "matrix", label: "矩阵总览", to: "/p2/permissions/matrix" },
+  { id: "exceptions", label: "例外授权", to: "/p2/permissions/exceptions" },
 ];
 // Values are the existing PermissionController DataScopeKind / Mask enums. The
 // browser only submits their names; evaluation remains in PermissionEngine.
@@ -310,6 +314,7 @@ const pageTitle = computed(() => ({
   datascope: "数据范围",
   fields: "字段权限",
   matrix: "权限矩阵",
+  exceptions: "例外授权",
 }[kind.value]));
 
 const loading = ref(false);
@@ -545,6 +550,7 @@ watch(() => session.contextId, load);
 .specified-field { grid-column: 1 / -1; }
 .table-scroll { overflow-x: auto; }
 .code-cell { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.exception-badge { margin-left: 6px; border-radius: 10px; padding: 0 6px; font-size: 12px; background: var(--nx-warning-bg, #fef0c7); color: var(--nx-warning, #b54708); }
 .matrix-summary { display: flex; flex-wrap: wrap; gap: var(--nx-space-4); }
 .matrix-summary span { color: var(--nx-text-secondary); }
 .matrix-summary strong { color: var(--nx-text-primary); }
