@@ -153,7 +153,7 @@ r3 改为**状态同步**，替代 r2 的 outbox 事件。原因见开发 B 的 
 - 租户自助路径：沿用现有仓储写入。
 - 平台批准路径：沿用现有的 `saveApprovedInstallation(PlatformActivationCommand, …)` 这类能力写入器，只多写 `revision` 与状态列。
 
-**B 提供查询端口**（`nexus-p4-market`，经 Spring 注入）：
+**查询端口**（r3.1）：接口由 C 定义在 `nexus-p3-studio`（`one.nexus.p3.instance.AppInstanceQuery`，#779 已有），B 在 `nexus-p4-market` 实现并注册为 Spring bean。`p4-market` 依赖 `p3-studio`，反过来不行，所以接口放在消费方。形状如下：
 
 ```java
 List<AppInstanceState> AppInstanceQuery.current();          // 当前租户的全部实例，含已卸载
@@ -185,7 +185,9 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 - 因为状态是全量的，同一版本再次升回、中间变化被跳过、重复拉取都不会出错。
 - 不需要 `event_id`，也不需要 `previous_version`。C6 的 `drift` 用覆盖记录的 `base_version` 和当前 `version` 比较得出。
 
-**可选提示事件**：只限租户自助路径，因为那里有真实的租户成员身份。B 可以用现有的 `OutboxPort.append` 发 `p4.app_instance.changed`，载荷只有 `{instance_id, revision}`。C 收到后调 `current(instanceId)` 取状态，事件本身不携带状态。平台批准路径不发这个事件：目标租户下次进入门户时，C 对账就能拿到。
+**租户自助路径的事件**（r3.1）：租户自己订购、升级、卸载时有真实的租户成员身份，B 用现有的 `OutboxPort.append` 发事件，destination 为 `p4.app_instance`。载荷就是上面的状态，外加 `event_id`（UUIDv7，与 outbox 行 id 相同）和事件类型（`installed` / `upgraded` / `uninstalled`）。C 按 #779 已实现的规则消费：先按 `event_id` 去重，再按 `revision` 定顺序；等于已应用 +1 时整体覆盖钉扎与入口；有缺口时查 `current(instanceId)`；查询结果仍落后于事件时不记已处理，交给 outbox 重试；覆盖不删租户个性化。
+
+**平台批准路径不发事件**，理由见本节开头。C 在门户加载、入口列表、个性化解析时调 `current()` 对账，按 `revision` 比较补齐。这条对账路径也兜住了事件丢失或延迟的情况，所以它是必需的，事件只是加速。
 
 **事务**：r2 说 `JdbcOutboxStore.append`「自开 JDBC 事务」是错的。它经 `Jdbc.transactionalCall` → `DataSourceUtils.getConnection`，已有 Spring 事务时会加入该事务。r3 的状态同步本身不依赖 outbox。
 
@@ -194,7 +196,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 | 线 | 测试 |
 |---|---|
 | B | ① 平台批准事务回滚后，没有实例，也没有 revision 变化；② 安装、升级、再升回同一版本、卸载，revision 依次为 1、2、3、4；③ `current()` 只返回本租户的实例，无上下文时拒绝；④ 平台批准路径不产生 `exec_outbox` 行 |
-| C | ① 对账幂等（同一 revision 拉两次，结果不变）；② revision 从 1 跳到 3 时按状态整体覆盖；③ `UNINSTALLED` 后入口消失；④ 升回旧版本后，已覆盖对象的 `drift` 正确 |
+| C | ① 对账幂等（同一 revision 拉两次，结果不变）；② revision 从 1 跳到 3 时按状态整体覆盖；③ `UNINSTALLED` 后入口消失；④ 升回旧版本后，已覆盖对象的 `drift` 正确；⑤ 没有任何事件、只有平台批准产生的实例时，门户加载后入口出现 |
 
 `mode` 为实例整体默认；按对象派生的覆盖不改变该值（见 C6）。
 
@@ -282,3 +284,5 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 | 旧键冲突时「跳过」会静默漏迁 | 改为整批中止、输出可操作报告、可重跑；迁移完成前旧产品按旧路径运行 |
 
 r2 中的 `event_id`、`previous_version` 与三种事件类型随之取消。
+
+**r3.1（2026-09-28，对齐 C 在 #779 按 r2 做的实现）**：租户自助路径恢复带完整状态的事件，即 r2 的形状加 event_id，C 的消费逻辑不用改；平台批准路径仍不发事件，由 C 在门户加载时调 `current()` 对账补齐（C 新增契约测试 ⑤）。`AppInstanceQuery` 接口由 C 定义在 p3-studio，B 实现。
