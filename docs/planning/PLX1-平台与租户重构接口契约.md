@@ -131,7 +131,7 @@ interface ApprovedTenantWrite {
 }
 ```
 
-A 先调 `assertActive()`，再以 `targetTenantId()` 显式写入该租户的角色与授权、刷新其策略版本、记审计（执行人 = 平台运营，目标租户 = 被批准租户）。仍然**不绑定岗位**。
+A 先调 `assertActive()`，再以 `targetTenantId()` 显式写入该租户的角色与授权、刷新其策略版本（审计暂缓，见 r4）。仍然**不绑定岗位**。
 
 **事务**（r3.2 更正）：权限库使用独立的 DataSource（`PermissionConfiguration`），和市场写入**不在同一个数据库事务**。正确性靠两点保证：落地幂等，可以放心重试；未绑定岗位的角色不影响任何人，市场事务回滚后留下的角色无害，下次落地时复用。B 在安装事务提交**之前**调用 `apply` / `applyApproved`，调用失败时让安装一起失败。实现见 #786。
 
@@ -142,7 +142,7 @@ A 先调 `assertActive()`，再以 `targetTenantId()` 显式写入该租户的�
 | 幂等 | 角色已存在则只补缺失授权；重复调用 `created=false, grantsAdded=0` |
 | **不绑定岗位** | 只创建角色与授权（D4）；绑定由租户管理员在岗位页完成 |
 | 升级 | 新版本新增的授权自动补上；新版本删除的授权**不自动收回**，列入 `grantsNotInPack` 交管理员处理 |
-| 审计 | 每次落地记一条权限审计，含应用编码与版本 |
+| 审计 | **暂缓**（r4，用户决定所有审计事件暂缓）。PLA7 已有的一条落地审计沿用现有审计端口，不新增要求 |
 
 HTTP（仅运维 / 调试）：`POST /api/v1/permission/role-packs/apply`，需 `permission.role:write`。
 
@@ -179,7 +179,7 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 | 租户 | 只取服务端上下文，调用方不传租户；没有租户上下文时拒绝 |
 | `entries` | 当前版本的全部入口键（全量）；`UNINSTALLED` 时为 `[]`，`mode` 为 `null` |
 | 卸载 | 实例行保留，状态为 `UNINSTALLED`，这样 C 能看到卸载 |
-| 历史 | 状态变化照常记审计（平台批准时执行人为平台运营、目标为该租户），端口本身只给当前状态 |
+| 历史 | 端口只给当前状态；状态变化的审计暂缓（r4） |
 
 **C 的职责**：C 在**合法的租户上下文**里对账，时机包括门户加载、入口列表、个性化解析，以及 C 自己的租户内任务。
 
@@ -245,24 +245,28 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 - 升级（C4 对账发现 `version` 变化）只改变未覆盖对象的解析结果；已覆盖对象保持不变并出现 `drift`。
 - 台账字段只能**新增**（租户个性化不删除、不改类型平台字段），保证平台升级可叠加。
 
-## 与现有模型的过渡
+## 旧数据：不迁移（r4）
 
-| 现有 | 契约下的对应 |
-|---|---|
-| `ProductDefinition`（一个表单模板 + 至多一个流程） | 单应用清单：`forms[1]`（`FILL`）、`entries[1]`（`FILL`）；有流程时 `processes[1]` 且入口 `process_key` 指向它，流程键与版本都为空时 `processes[]` 为空、入口 `process_key = null`（仍迁移，只是不走流程）。B 的 PLB9 迁移 |
-| 不合新编码规则的旧流程键（如 `demoSimpleApproval`） | 迁移时规范化：驼峰转下划线、转小写、截到 24 位（`demo_simple_approval`），原键写入该流程的 `legacy_key`（可选字段，只在迁移产生的清单里出现）。运行时按新键查找，查不到再按 `legacy_key` 查，已在途的流程实例不改键、照常办完。规范化后冲突或仍不合规则的，**整批迁移中止**（r3）：一条都不写，输出报告，逐条列出旧产品、旧键、冲突对象和建议的新键；由平台运营给迁移工具提供一份显式的「旧键 → 新键」映射（写审计），确认无冲突后重跑；已发布的 `ProductDefinition` 不可修改（`ProductDefinitionService.update` 只允许 DRAFT），也不需要修改（r3.3）。迁移是幂等的，可以反复执行。迁移完成前，旧产品继续按旧路径运行（`ProductDefinition` + 固定流程），已安装的租户不受影响、不下线；不允许部分迁移、静默漏迁 |
-| `InstallationProductPin` | 实例引用的平台版本 |
-| `InstallationProcessConfiguration`（流程覆盖） | `PROCESS` 类型覆盖记录 |
-| `tenant_member` 全员种子 | 由岗位绑定角色替代（A 的 PLA5，保留兼容开关） |
-| 办结后动作（FA） | v1 保持租户配置；后续可随清单下发（本契约不含） |
+2026-09-28 用户决定：**旧产品、旧组织机构、旧数据一律不迁移**，全部按新模型重新初始化测试数据。因此：
+
+- r2–r3.3 中关于 `ProductDefinition` 映射、旧流程键规范化、`legacy_key`、整批中止与「旧键 → 新键」映射的内容**全部取消**；清单里不再有 `legacy_key` 字段。B 的 PLB9（旧数据迁移）取消。
+- `InstallationProductPin`、`InstallationProcessConfiguration` 等旧表不再作为新模型的数据来源。新模型只认应用版本清单（C2）、实例（C4）和覆盖记录（C6）。旧代码路径何时下线，由各线在后续卡片中清理。
+- `tenant_member` 按人挂的种子仍由 PLA5 的开关控制（默认 `legacy`）。等新测试数据就绪、岗位都绑定好角色后，再切到 `position`。
+- 新测试数据由三线各自初始化，按各自的契约接口写入，不直接写别人的表：
+  - A 负责组织、岗位、人员、岗位绑定角色；
+  - B 负责分类、应用版本清单、产品和订购；
+  - C 负责门户菜单与首页模块。
+  - 编排与演示路径在 PLX2 中完成。
+
+办结后动作（FA）：v1 仍保持租户配置，后续可随清单下发（本契约不含）。
 
 ## 评审
 
 | 角色 | 负责核对 | 结论 |
 |---|---|---|
 | 开发 A | C1 授权资源、C3、C5 | **通过**（2026-09-28）。已核实：`iam.perm_grant.resource` 为 VARCHAR(128)，`fn.{app}.{form}` 最长 52；`iam.perm_role.code` 为 VARCHAR(64)，角色编码无需截断；权限引擎已支持 `position` 授权主体（主体 id 为岗位 UUID，`IamSubjectDirectory` 按 ACTIVE 任职收集）；C3 / C5 端口放 `nexus-permission-core`，C5 改为由调用方传入候选入口键 |
-| 开发 B | C1 元数据、C2、C4、过渡映射 | C1 元数据、C2 **可接受**（r2 复核）。C4、过渡映射第二轮暂不通过；r3 已改为状态同步，并调整迁移策略，待 B 复核 |
-| 开发 C | C1 展示、C4 消费、C6 | C1 展示、C6 **通过**（2026-09-28）。r3 把 C4 改为 C 拉取对账，另新增 `NEEDS_MAPPING`（C 负责），待 C 复核这两处 |
+| 开发 B | C1 元数据、C2、C4 | C1 元数据、C2 **可接受**（r2 复核）；C4 平台批准路径与状态同步方向**通过**（r3.1 复核）。r3.3 回应了 `event_id` 生成与查询接口两条，待 B 最终签字。过渡映射已随 r4 取消，不再需要复核 |
+| 开发 C | C1 展示、C4 消费、C6 | **通过**：C1 展示、C6、`NEEDS_MAPPING`、C4 拉取对账（r3.1 确认）；r3.3 第 2 条的查询接口已在 PLC7（#779）改成契约形状，契约测试 C①–⑤ 在 `InstanceReconcilerTest` |
 
 三方均通过后合入；合入即冻结 V1。
 
@@ -296,3 +300,5 @@ r2 中的 `previous_version` 取消；`event_id` 与三种事件类型在 r3.1 �
 **r3.3（2026-09-28，回应开发 B 对 r3.1 的复核）**：① `event_id` 由 B 在组装载荷时生成，不要求等于 outbox 行 id，新增 B⓪ 同事务与重投测试；② `AppInstanceQuery` 不带租户参数，C 在 PLC7 中把 #779 的现有签名改成契约形状；③ 旧键冲突改由迁移工具接受显式、写审计的「旧键 → 新键」映射，不修改已发布的旧产品。
 
 **r3.4（2026-09-28）**：C5 的 HTTP 接口允许门户前端直接调用；补充 PLA5 兼容开关对 C5 结果的影响。
+
+**r4（2026-09-28，用户决定）**：① 旧产品、旧组织、旧数据不迁移，全部重新初始化测试数据；取消过渡映射、`legacy_key` 与 PLB9；新增三线各自的测试数据初始化（见「旧数据：不迁移」）。② 所有审计事件暂缓：C3、C4 的审计要求改为暂缓，不再新增审计工作。
