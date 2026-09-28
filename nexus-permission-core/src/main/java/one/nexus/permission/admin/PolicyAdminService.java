@@ -16,6 +16,7 @@ import one.nexus.permission.engine.DataScopeKind;
 import one.nexus.permission.engine.FieldRule;
 import one.nexus.permission.engine.PolicySnapshot;
 import one.nexus.permission.engine.Rule;
+import one.nexus.permission.pack.RolePackService;
 import one.nexus.permission.persist.PolicyRepository;
 import one.nexus.permission.redis.PolicyInvalidationPort;
 import one.nexus.permission.support.PermissionException;
@@ -39,6 +40,10 @@ public final class PolicyAdminService {
 
     public PolicyRepository.RoleRecord createRole(String code, String name, boolean systemRole) {
         TenantContext context = TenantContextHolder.require();
+        if (code != null && code.startsWith(RolePackService.ROLE_PREFIX)) {
+            // PLX1 C3: app_ codes belong to application role packs (RolePackService), never hand-made roles.
+            throw PermissionException.badRequest("code", "role codes starting with app_ are reserved for application role packs");
+        }
         if (repository.findRoleByCode(context.tenantId(), code).isPresent()) {
             throw PermissionException.conflict("role code already exists in this tenant");
         }

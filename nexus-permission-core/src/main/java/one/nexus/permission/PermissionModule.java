@@ -9,6 +9,7 @@ import one.nexus.permission.admin.PolicyAdminService;
 import one.nexus.permission.admin.RoleMatrixService;
 import one.nexus.permission.engine.SnapshotManager;
 import one.nexus.permission.entry.EntryAccessService;
+import one.nexus.permission.pack.RolePackService;
 import one.nexus.permission.identity.IamSubjectDirectory;
 import one.nexus.permission.identity.SubjectDirectory;
 import one.nexus.permission.persist.PolicyRepository;
@@ -26,6 +27,7 @@ public final class PermissionModule {
     private final PolicyInvalidationPort invalidation;
     private final AuditPort audits;
     private final EntryAccessService entries;
+    private final RolePackService rolePacks;
 
     public PermissionModule(
             PolicyRepository repository,
@@ -53,6 +55,7 @@ public final class PermissionModule {
         this.matrix = new RoleMatrixService(repository, admin, service);
         this.duties = new PlatformDutyService(repository, admin, service);
         this.entries = new EntryAccessService(service, null);
+        this.rolePacks = new RolePackService(repository, invalidation, audits);
     }
 
     public static PermissionModule create(
@@ -121,6 +124,11 @@ public final class PermissionModule {
     /** PLX1 C5: readable-entry filter for the tenant portal. */
     public EntryAccessService entries() {
         return entries;
+    }
+
+    /** PLX1 C3: application role packs, called by the market on subscribe / upgrade / approved activation. */
+    public RolePackService rolePacks() {
+        return rolePacks;
     }
 
     public PolicyInvalidationPort invalidation() {
