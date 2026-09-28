@@ -72,6 +72,15 @@ public final class InMemoryPolicyRepository implements PolicyRepository {
     }
 
     @Override
+    public boolean deleteAssignment(UUID tenantId, UUID assignmentId) {
+        AssignmentRecord existing = assignments.get(assignmentId);
+        if (existing == null || !existing.tenantId().equals(tenantId)) {
+            return false;
+        }
+        return assignments.remove(assignmentId, existing);
+    }
+
+    @Override
     public Set<String> roleCodesFor(UUID tenantId, String userId, Set<String> positionIds, Set<String> departmentIds) {
         Set<String> codes = new LinkedHashSet<>();
         for (AssignmentRecord item : listAssignments(tenantId)) {
