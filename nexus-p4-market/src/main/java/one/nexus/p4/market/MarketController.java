@@ -1,5 +1,6 @@
 package one.nexus.p4.market;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -59,8 +60,8 @@ public class MarketController {
     @PostMapping("/app-instances/{id}/uninstall") AppInstanceService.AppInstance uninstallAppInstance(@PathVariable UUID id){
         return service.uninstallAppInstance(id);
     }
-    public record ProductSubscribe(@com.fasterxml.jackson.annotation.JsonAlias({"sku_code","skuCode"}) String skuCode){}
-    public record InstanceUpgrade(@com.fasterxml.jackson.annotation.JsonAlias({"version_id","versionId"}) UUID versionId){}
+    public record ProductSubscribe(@JsonAlias({"sku_code","skuCode"}) String skuCode){}
+    public record InstanceUpgrade(@JsonAlias({"version_id","versionId"}) UUID versionId){}
     @PostMapping("/tenants/{tenantId}/activation-applications") @ResponseStatus(HttpStatus.CREATED)
     ActivationApplication requestActivation(@PathVariable UUID tenantId,@RequestBody Install request){
         return service.requestActivation(tenantId,request.skuCode(),request.versionId());
@@ -96,9 +97,9 @@ public class MarketController {
     @PostMapping("/installations/{id}/uninstall") Installation uninstall(@PathVariable UUID id){return service.uninstall(id);}
 
     record CreateApp(String code,String name,String summary){}
-    record CreateVersion(String version,String releaseNotes){}
-    record CreateSku(String code,UUID appId,String name,Map<String,EntitlementSpec> entitlements){}
-    record Install(String skuCode,UUID versionId){}
-    record Upgrade(UUID versionId){}
+    record CreateVersion(String version,@JsonAlias({"release_notes","releaseNotes"}) String releaseNotes){}
+    record CreateSku(String code,@JsonAlias({"app_id","appId"}) UUID appId,String name,Map<String,EntitlementSpec> entitlements){}
+    record Install(@JsonAlias({"sku_code","skuCode"}) String skuCode,@JsonAlias({"version_id","versionId"}) UUID versionId){}
+    record Upgrade(@JsonAlias({"version_id","versionId"}) UUID versionId){}
     record Review(String note){}
 }
