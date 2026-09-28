@@ -351,6 +351,12 @@ export const p4 = {
   subscription: (id) => api(`/api/v1/p4/subscriptions/${encodeURIComponent(id)}`),
   commercialEntitlements: () => api("/api/v1/p4/commercial-entitlements"),
   commercialEntitlement: (id) => api(`/api/v1/p4/commercial-entitlements/${encodeURIComponent(id)}`),
+  appInstances: () => api("/api/v1/p4/app-instances"),
+  appInstanceUpgradeOffers: () => api("/api/v1/p4/app-instances/upgrade-offers"),
+  upgradeAppInstance: (id, versionId) => api(`/api/v1/p4/app-instances/${encodeURIComponent(id)}/upgrade`, { method: "POST", body: { versionId } }),
+  uninstallAppInstance: (id) => api(`/api/v1/p4/app-instances/${encodeURIComponent(id)}/uninstall`, { method: "POST", body: {} }),
+  products: () => api("/api/v1/p4/products", { platform: true }),
+  setProductAutoUpgrade: (id, body) => api(`/api/v1/p4/products/${encodeURIComponent(id)}/auto-upgrade-minor`, { method: "PUT", body, platform: true }),
   installations: () => api("/api/v1/p4/installations"),
   installation: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}`),
   // XB6 / XB7: honest upgrade step state and facts (UNKNOWN / null where nothing records or declares them).

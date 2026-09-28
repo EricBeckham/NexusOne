@@ -117,6 +117,7 @@ public class MarketService {
         AppVersion next = new AppVersion(current.id(), current.appId(), current.version(), target,
                 current.releaseNotes(), current.createdAt(), target == VersionStatus.PUBLISHED ? now : current.publishedAt());
         market.saveVersion(next);
+        if (target == VersionStatus.PUBLISHED && appInstances != null) appInstances.autoUpgradePublished(versionId);
         return next;
     }
 
@@ -199,6 +200,27 @@ public class MarketService {
     public List<AppInstanceService.AppInstance> appInstances() {
         requireTenantId();
         return requireAppInstances().current();
+    }
+
+    /** PLB8: newer published versions the current tenant can move an INHERIT instance onto. */
+    @Transactional(readOnly = true)
+    public List<AppInstanceService.UpgradeOffer> appInstanceUpgradeOffers() {
+        requireTenantId();
+        return requireAppInstances().upgradeOffers();
+    }
+
+    /** PLB8: tenant-admin manual upgrade. Emits {@code p4.app_instance} with the previous version. */
+    @Transactional
+    public AppInstanceService.UpgradeResult upgradeAppInstance(UUID instanceId, UUID versionId) {
+        requireTenantAdmin(requireTenantId());
+        return requireAppInstances().upgrade(instanceId, versionId);
+    }
+
+    /** PLB8: tenant-admin uninstall. The row stays so reconciliation can see {@code UNINSTALLED}. */
+    @Transactional
+    public AppInstanceService.AppInstance uninstallAppInstance(UUID instanceId) {
+        requireTenantAdmin(requireTenantId());
+        return requireAppInstances().uninstall(instanceId);
     }
 
     private AppInstanceService requireAppInstances() {
