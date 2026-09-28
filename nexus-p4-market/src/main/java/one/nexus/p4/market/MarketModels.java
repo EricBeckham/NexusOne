@@ -30,6 +30,20 @@ public final class MarketModels {
             Instant pinnedAt) {}
     public record CatalogItem(AppPackage app, AppVersion version, java.util.List<CatalogSku> skus) {}
 
+    /** PLB6: one published product on the shelf, with its product-native SKUs. */
+    public record ProductShelf(UUID id, String code, String name, String description, java.util.List<CatalogSku> skus) {
+        public ProductShelf {
+            skus = skus == null ? java.util.List.of() : java.util.List.copyOf(skus);
+        }
+    }
+
+    /** PLB6: products grouped by the category of their first application. */
+    public record CatalogGroup(String categoryCode, String categoryName, java.util.List<ProductShelf> products) {
+        public CatalogGroup {
+            products = java.util.List.copyOf(products);
+        }
+    }
+
     /**
      * XB7: one upgrade fact. {@code value == null} means nothing declares or records it (shown as 暂无);
      * {@code note} says why in plain words. Never a claim that something was checked when it was not.

@@ -341,6 +341,7 @@ export const p2 = {
 
 export const p4 = {
   catalog: () => api("/api/v1/p4/catalog", { auth: false }),
+  catalogGroups: () => api("/api/v1/p4/catalog/groups", { auth: false }),
   apps: () => api("/api/v1/p4/apps", { auth: false }),
   app: (appId) => api(`/api/v1/p4/apps/${encodeURIComponent(appId)}`, { auth: false }),
   versions: (appId) => api(`/api/v1/p4/apps/${encodeURIComponent(appId)}/versions`, { auth: false }),
@@ -357,6 +358,8 @@ export const p4 = {
   uninstallAppInstance: (id) => api(`/api/v1/p4/app-instances/${encodeURIComponent(id)}/uninstall`, { method: "POST", body: {} }),
   products: () => api("/api/v1/p4/products", { platform: true }),
   setProductAutoUpgrade: (id, body) => api(`/api/v1/p4/products/${encodeURIComponent(id)}/auto-upgrade-minor`, { method: "PUT", body, platform: true }),
+  archiveProduct: (id, version) => api(`/api/v1/p4/products/${encodeURIComponent(id)}/archive`, { method: "POST", body: { version }, platform: true }),
+  publishProduct: (id, version) => api(`/api/v1/p4/products/${encodeURIComponent(id)}/publish`, { method: "POST", body: { version }, platform: true }),
   installations: () => api("/api/v1/p4/installations"),
   installation: (id) => api(`/api/v1/p4/installations/${encodeURIComponent(id)}`),
   // XB6 / XB7: honest upgrade step state and facts (UNKNOWN / null where nothing records or declares them).

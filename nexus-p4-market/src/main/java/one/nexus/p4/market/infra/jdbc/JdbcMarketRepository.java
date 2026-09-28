@@ -4,6 +4,8 @@ import static one.nexus.common.time.Utc.sqlTimestamp;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,6 +174,43 @@ public class JdbcMarketRepository implements MarketRepository {
             }).list();
             return new CatalogItem(a,v,skus);
         }).list();
+    }
+    @Override public List<CatalogGroup> catalogGroups() {
+        List<Map<String, Object>> rows = jdbc.sql("""
+                SELECT p.id, p.code, p.name, p.description,
+                       c.code AS category_code, COALESCE(c.name, '未分类') AS category_name,
+                       COALESCE(c.sort_order, 2147483647) AS sort_order
+                FROM market.product p
+                LEFT JOIN LATERAL (
+                    SELECT a.category_code FROM market.product_app pa
+                    JOIN market.app_package a ON a.id = pa.app_id
+                    WHERE pa.product_id = p.id
+                    ORDER BY pa.sort_order, pa.app_id
+                    LIMIT 1
+                ) first_app ON true
+                LEFT JOIN market.app_category c ON c.code = first_app.category_code
+                WHERE p.status = 'PUBLISHED'
+                  AND EXISTS (SELECT 1 FROM market.sku s WHERE s.product_id = p.id AND s.app_id IS NULL)
+                ORDER BY sort_order, c.code NULLS LAST, p.name
+                """).query().listOfRows();
+        Map<String, List<ProductShelf>> grouped = new LinkedHashMap<>();
+        Map<String, String> names = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            UUID id = (UUID) row.get("id");
+            String category = (String) row.get("category_code");
+            String key = category == null ? "" : category;
+            names.putIfAbsent(key, String.valueOf(row.get("category_name")));
+            List<CatalogSku> skus = jdbc.sql("""
+                    SELECT * FROM market.sku WHERE product_id=:id AND app_id IS NULL ORDER BY code
+                    """).param("id", id).query(this::mapSku).list().stream()
+                    .map(sku -> new CatalogSku(sku.code(), sku.name(), sku.entitlements(), null)).toList();
+            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(new ProductShelf(
+                    id, String.valueOf(row.get("code")), String.valueOf(row.get("name")),
+                    (String) row.get("description"), skus));
+        }
+        List<CatalogGroup> groups = new ArrayList<>();
+        grouped.forEach((key, products) -> groups.add(new CatalogGroup(key.isEmpty() ? null : key, names.get(key), products)));
+        return List.copyOf(groups);
     }
     @Override public void bindSkuToProductDefinition(String skuCode, UUID productDefinitionId) {
         jdbc.sql("""

@@ -30,6 +30,8 @@ public class MarketController {
     @GetMapping("/skus") List<Sku> skus(){return service.skus();}
     @GetMapping("/skus/{code}") Sku sku(@PathVariable String code){return service.getSku(code);}
     @GetMapping("/catalog") List<CatalogItem> catalog(){return service.catalog();}
+    /** PLB6: product shelves grouped by application category. Archived products are omitted. */
+    @GetMapping("/catalog/groups") List<CatalogGroup> catalogGroups(){return service.catalogGroups();}
     @PostMapping("/tenants/{tenantId}/installations") @ResponseStatus(HttpStatus.CREATED)
     Installation install(@PathVariable UUID tenantId,@RequestBody Install request){return service.subscribeAndInstall(tenantId,request.skuCode(),request.versionId());}
         @PostMapping("/tenants/{tenantId}/subscriptions") @ResponseStatus(HttpStatus.CREATED)

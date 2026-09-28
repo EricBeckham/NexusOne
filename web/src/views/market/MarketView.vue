@@ -30,7 +30,7 @@
         <NxSkeleton v-for="n in 3" :key="n" variant="list-row" label="正在加载应用目录" />
       </div>
       <NxEmpty
-        v-else-if="!items.length"
+        v-else-if="!items.length && !groups.length"
         title="目录里还没有应用"
         description="平台审核并发布应用后才会出现在这里。空目录不是已自动准备的演示数据。见 prod-safe 内容手册。"
         data-testid="catalog-empty"
@@ -38,14 +38,34 @@
         <template #action><button class="ghost" type="button" data-testid="catalog-empty-reload" @click="load">刷新目录</button></template>
       </NxEmpty>
       <NxEmpty
-        v-else-if="!visibleItems.length"
+        v-else-if="!visibleItems.length && !visibleGroups.length"
         title="没有匹配的应用"
         :description="`没有应用的名称、编码、简介或 SKU 包含「${search.trim()}」。`"
         data-testid="catalog-no-match"
       >
         <template #action><button class="ghost" type="button" data-testid="catalog-no-match-clear" @click="resetSearch">清空筛选</button></template>
       </NxEmpty>
-      <section v-else class="catalog-grid" aria-label="已发布应用目录" data-testid="catalog-grid">
+      <section v-if="visibleGroups.length" class="catalog-groups" data-testid="catalog-groups">
+        <section v-for="group in visibleGroups" :key="group.categoryCode || 'none'" class="catalog-group" :data-testid="`catalog-group-${group.categoryCode || 'none'}`">
+          <h2>{{ group.categoryName }}</h2>
+          <article v-for="product in group.products" :key="product.id" class="app-card" data-testid="catalog-product">
+            <header class="card-header">
+              <div class="app-identity">
+                <h3>{{ product.name }}</h3>
+                <p class="app-meta"><code>{{ product.code }}</code></p>
+              </div>
+            </header>
+            <p class="summary">{{ product.description || "暂无简介" }}</p>
+            <ul class="sku-list">
+              <li v-for="sku in product.skus" :key="sku.code" class="sku-item" data-testid="catalog-product-sku">
+                <div class="sku-meta"><strong>{{ sku.name || sku.code }}</strong><code>{{ sku.code }}</code></div>
+                <button class="install-button nx-btn nx-btn--primary nx-btn--sm" type="button" data-testid="catalog-product-subscribe" :disabled="installing === sku.code" @click="subscribe(sku.code, null, sku.name || sku.code)">{{ installing === sku.code ? "提交中…" : "申请开通" }}</button>
+              </li>
+            </ul>
+          </article>
+        </section>
+      </section>
+      <section v-if="visibleItems.length" class="catalog-grid" aria-label="已发布应用目录" data-testid="catalog-grid">
         <article v-for="item in visibleItems" :key="item.version.id" class="app-card">
           <header class="card-header">
             <div class="app-logo" role="img" aria-label="应用标识占位"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></div>
@@ -105,7 +125,7 @@ import { nxMessage } from "../../feedback/nxMessage";
 const route = useRoute();
 const router = useRouter();
 
-const items = ref([]); const loading = ref(true); const error = ref(""); const installing = ref("");
+const items = ref([]); const groups = ref([]); const loading = ref(true); const error = ref(""); const installing = ref("");
 const failure = ref(null);
 // SKUs this tenant already subscribed (ACTIVE): show 已开通 instead of a subscribe that would 409.
 const subscribedSkus = ref(new Set());
@@ -141,10 +161,26 @@ const visibleItems = computed(() => {
   return items.value.filter((item) => [item.app?.name, item.app?.code, item.app?.summary, item.version?.version, ...catalogSkus(item).flatMap((sku) => [sku.name, sku.code])]
     .some((value) => String(value || "").toLocaleLowerCase().includes(term)));
 });
+const visibleGroups = computed(() => {
+  const term = search.value.trim().toLocaleLowerCase();
+  if (!term) return groups.value;
+  return groups.value.map((group) => ({
+    ...group,
+    products: group.products.filter((product) => [group.categoryName, product.name, product.code, ...product.skus.flatMap((sku) => [sku.name, sku.code])]
+      .some((value) => String(value || "").toLocaleLowerCase().includes(term))),
+  })).filter((group) => group.products.length);
+});
 
 async function load() {
   loading.value = true; error.value = "";
-  try { [items.value] = await Promise.all([p4.catalog().then((rows) => rows || []), loadSubscriptions()]); }
+  try {
+    const grouped = typeof p4.catalogGroups === "function"
+      ? p4.catalogGroups().then((rows) => normalizeGroups(rows || [])).catch(() => [])
+      : Promise.resolve([]);
+    const [rows, shelf] = await Promise.all([p4.catalog().then((list) => list || []), grouped, loadSubscriptions()]);
+    items.value = rows;
+    groups.value = shelf;
+  }
   catch (err) {
     const status = Number(err?.status) || 0;
     error.value = status === 403
@@ -171,6 +207,19 @@ async function subscribe(skuCode, versionId, skuLabel = "") {
     failure.value = { ...describeSubscribeError(err), skuCode, versionId, skuLabel };
   } finally { installing.value = ""; }
 }
+function normalizeGroups(rows) {
+  return (Array.isArray(rows) ? rows : []).map((group) => ({
+    categoryCode: group.categoryCode || group.category_code || "",
+    categoryName: group.categoryName || group.category_name || "未分类",
+    products: (group.products || []).map((product) => ({
+      id: product.id,
+      code: product.code,
+      name: product.name,
+      description: product.description,
+      skus: (product.skus || []).map((sku) => ({ code: sku.code, name: sku.name })),
+    })),
+  }));
+}
 function resetSearch() {
   search.value = "";
 }
@@ -189,6 +238,9 @@ onMounted(load);
 <style scoped>
 .market-page { display: grid; gap: var(--nx-space-4); }
 .catalog-skeleton { display: grid; gap: var(--nx-space-3); }
+.catalog-groups { display: flex; flex-direction: column; gap: var(--nx-space-5); }
+.catalog-group { display: flex; flex-direction: column; gap: var(--nx-space-3); }
+.catalog-group > h2 { margin: 0; font-size: 1.05rem; }
 .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,300px),1fr)); gap: var(--nx-space-4); align-items: stretch; }
 .app-card { display: flex; min-width: 0; flex-direction: column; gap: var(--nx-space-3); padding: var(--nx-space-4); background: var(--nx-surface); border: 1px solid var(--nx-border); border-radius: 12px; box-shadow: var(--nx-shadow-card); }
 .card-header { display: flex; align-items: flex-start; gap: var(--nx-space-3); min-width: 0; }
