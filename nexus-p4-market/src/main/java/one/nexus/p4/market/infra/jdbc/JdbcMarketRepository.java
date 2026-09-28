@@ -58,11 +58,29 @@ public class JdbcMarketRepository implements MarketRepository {
                 .param("published",sqlTimestamp(v.publishedAt())).update();
     }
     @Override public void saveSku(Sku s) {
-        jdbc.sql("""
+        int changed = jdbc.sql("""
                 INSERT INTO market.sku(code,app_id,name,entitlements) VALUES(:code,:app,:name,CAST(:items AS jsonb))
-                ON CONFLICT(code) DO UPDATE SET app_id=:app,name=:name,entitlements=CAST(:items AS jsonb)
+                ON CONFLICT(code) DO UPDATE SET name=:name,entitlements=CAST(:items AS jsonb)
+                WHERE market.sku.app_id=:app
                 """)
                 .param("code",s.code()).param("app",s.appId()).param("name",s.name()).param("items",write(s.entitlements())).update();
+        if (changed != 1) throw new IllegalStateException("SKU code already belongs to another product or app");
+        // Compatibility: each legacy one-app SKU also gets an explicit single-app product.
+        UUID productId = UUID.nameUUIDFromBytes(("nexusone.product.app:" + s.appId())
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String productCode = "app_" + s.appId().toString().replace("-", "").substring(0, 20);
+        jdbc.sql("""
+                INSERT INTO market.product(id,code,name,status,created_at,updated_at)
+                SELECT :product,:code,a.name,'DRAFT',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+                FROM market.app_package a WHERE a.id=:app
+                ON CONFLICT(id) DO NOTHING
+                """).param("product", productId).param("code", productCode).param("app", s.appId()).update();
+        jdbc.sql("""
+                INSERT INTO market.product_app(product_id,app_id,sort_order)
+                VALUES(:product,:app,0) ON CONFLICT(product_id,app_id) DO NOTHING
+                """).param("product", productId).param("app", s.appId()).update();
+        jdbc.sql("UPDATE market.sku SET product_id=:product WHERE code=:code AND product_id IS NULL")
+                .param("product", productId).param("code", s.code()).update();
     }
     @Override public void saveSubscription(Subscription s) {
         assertCurrentTenant(s.tenantId());
