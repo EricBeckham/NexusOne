@@ -265,10 +265,10 @@ record AppInstanceState(UUID instanceId, long revision, String status,   // INST
 | 角色 | 负责核对 | 结论 |
 |---|---|---|
 | 开发 A | C1 授权资源、C3、C5 | **通过**（2026-09-28）。已核实：`iam.perm_grant.resource` 为 VARCHAR(128)，`fn.{app}.{form}` 最长 52；`iam.perm_role.code` 为 VARCHAR(64)，角色编码无需截断；权限引擎已支持 `position` 授权主体（主体 id 为岗位 UUID，`IamSubjectDirectory` 按 ACTIVE 任职收集）；C3 / C5 端口放 `nexus-permission-core`，C5 改为由调用方传入候选入口键 |
-| 开发 B | C1 元数据、C2、C4 | C1 元数据、C2 **可接受**（r2 复核）；C4 平台批准路径与状态同步方向**通过**（r3.1 复核）。r3.3 回应了 `event_id` 生成与查询接口两条，待 B 最终签字。过渡映射已随 r4 取消，不再需要复核 |
+| 开发 B | C1 元数据、C2、C4 | C1 元数据、C2 **可接受**（r2 复核）；C4 平台批准路径与状态同步方向**通过**（r3.1 复核）。r3.3 两条（`event_id` 由载荷生成、`AppInstanceQuery` 不带租户参数）**通过**（2026-09-28 签字，无保留意见）。过渡映射已随 r4 取消 |
 | 开发 C | C1 展示、C4 消费、C6 | **通过**：C1 展示、C6、`NEEDS_MAPPING`、C4 拉取对账（r3.1 确认）；r3.3 第 2 条的查询接口已在 PLC7（#779）改成契约形状，契约测试 C①–⑤ 在 `InstanceReconcilerTest` |
 
-三方均通过后合入；合入即冻结 V1。
+**A、B、C 三方均已通过（2026-09-28）。** 合入即冻结 V1；此后修改需三方同意并升版本号。
 
 ## 修订记录
 
