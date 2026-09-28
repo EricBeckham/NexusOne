@@ -2,6 +2,7 @@ package one.nexus.permission;
 
 import java.time.Duration;
 import one.nexus.audit.AuditPort;
+import one.nexus.p2.IdentityConfiguration;
 import one.nexus.p2.IdentityModule;
 import one.nexus.permission.engine.PolicySnapshotPoller;
 import one.nexus.permission.engine.SnapshotManager;
@@ -73,6 +74,7 @@ public class PermissionConfiguration {
             IdentityModule identity,
             PolicyInvalidationPort invalidation,
             ObjectProvider<AuditPort> audits,
+            ObjectProvider<IdentityConfiguration.IamProperties> iam,
             PermissionProperties properties
     ) {
         PermissionModule module = PermissionModule.create(
@@ -81,6 +83,10 @@ public class PermissionConfiguration {
                 invalidation,
                 audits.getIfAvailable(),
                 properties.snapshotLoadTimeout());
+        IdentityConfiguration.IamProperties iamProperties = iam.getIfAvailable();
+        if (iamProperties != null) {
+            module.entries().usePlatformTenant(iamProperties.mfaPolicy().platformTenantId());
+        }
         invalidation.startListening();
         return module;
     }

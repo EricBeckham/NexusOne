@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {PermissionController.class, PositionRoleController.class})
+@RestControllerAdvice(assignableTypes = {PermissionController.class, PositionRoleController.class, EntryAccessController.class})
 public class PermissionErrorHandler {
     @ExceptionHandler(PermissionException.class)
     public ResponseEntity<Map<String, Object>> handle(PermissionException ex) {
