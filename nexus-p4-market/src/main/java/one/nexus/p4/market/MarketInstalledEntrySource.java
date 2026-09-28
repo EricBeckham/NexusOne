@@ -10,6 +10,7 @@ import one.nexus.p3.portal.FunctionEntry;
 import one.nexus.p3.portal.InstalledEntrySource;
 import one.nexus.p3.template.PlatformTemplateCatalog;
 import one.nexus.p3.template.PlatformTemplateCatalog.TemplateVersion;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,8 @@ import org.springframework.stereotype.Component;
 public class MarketInstalledEntrySource implements InstalledEntrySource {
     private final PlatformTemplateCatalog catalog;
     private final InstalledVersions installed;
+
+    @Autowired // two constructors: tell Spring which one (the other is for tests)
 
     public MarketInstalledEntrySource(JdbcClient jdbc, PlatformTemplateCatalog catalog) {
         this(catalog, tenantId -> jdbc.sql("""

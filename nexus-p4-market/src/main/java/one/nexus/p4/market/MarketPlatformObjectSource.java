@@ -10,6 +10,7 @@ import one.nexus.p3.instance.PlatformObject;
 import one.nexus.p3.instance.PlatformObjectSource;
 import one.nexus.p3.template.PlatformTemplateCatalog;
 import one.nexus.p3.template.PlatformTemplateCatalog.TemplateVersion;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,8 @@ import org.springframework.stereotype.Component;
 public class MarketPlatformObjectSource implements PlatformObjectSource {
     private final PlatformTemplateCatalog catalog;
     private final VersionIds versions;
+
+    @Autowired // two constructors: tell Spring which one (the other is for tests)
 
     public MarketPlatformObjectSource(JdbcClient jdbc, PlatformTemplateCatalog catalog) {
         this(catalog, (tenantId, instanceId) -> jdbc.sql("""
