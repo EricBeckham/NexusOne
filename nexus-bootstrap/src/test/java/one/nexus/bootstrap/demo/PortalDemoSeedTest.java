@@ -12,6 +12,8 @@ import one.nexus.p3.portal.MenuItem;
 import one.nexus.p3.portal.PortalConfigService;
 import one.nexus.p3.portal.PortalConfigStore;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 
 class PortalDemoSeedTest {
     @Test
@@ -30,6 +32,15 @@ class PortalDemoSeedTest {
         assertEquals(List.of("todos", "notices"), store.modules.stream().map(HomeModule::code).toList());
         assertEquals(2, store.menuWrites);
         assertEquals(2, store.moduleWrites);
+    }
+
+    @Test
+    void portalSeedIsOrderedAfterTheCatalogSubscription() throws Exception {
+        Order order = PortalDemoSeedConfiguration.class
+                .getDeclaredMethod("portalDemoSeed", PortalConfigService.class, Environment.class)
+                .getAnnotation(Order.class);
+        assertEquals(Plx2DemoSeedOrder.PORTAL, order.value());
+        assertTrue(Plx2DemoSeedOrder.PATH < order.value());
     }
 
     @Test
