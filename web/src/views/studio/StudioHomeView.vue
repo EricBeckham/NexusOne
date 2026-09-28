@@ -81,6 +81,7 @@ const ENTRY_GROUPS = [
       { label: "表单", hint: "填报与管理表单", to: "/p3/forms", icon: "file" },
       { label: "台账", hint: "业务记录与字段", to: "/p3/ledgers", icon: "table" },
       { label: "站内通知", hint: "审批与系统消息", to: "/p3/notifications", icon: "bell" },
+      { label: "功能入口", hint: "已安装应用里可见的功能", to: "/p3/portal", icon: "grid" },
     ],
   },
   {
