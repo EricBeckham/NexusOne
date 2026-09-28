@@ -42,3 +42,16 @@ export async function readableEntries(keys) {
 export function currentInstances() {
   return [];
 }
+
+/** PLC8 drifted overrides for the current tenant. */
+export function baselineDrift() {
+  return api("/api/v1/p3/instance-overrides/drift");
+}
+
+/** PLC8 rebase one override onto the current platform version. {@code choices} maps a path to TENANT or PLATFORM. */
+export function mergeBaseline(instanceId, objectType, objectCode, choices) {
+  return api(`/api/v1/p3/instances/${encodeURIComponent(instanceId)}/overrides/${encodeURIComponent(objectType)}/${encodeURIComponent(objectCode)}/merge`, {
+    method: "POST",
+    body: { choices },
+  });
+}

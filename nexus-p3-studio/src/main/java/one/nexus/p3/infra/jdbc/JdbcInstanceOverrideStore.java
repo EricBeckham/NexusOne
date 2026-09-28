@@ -42,6 +42,17 @@ public class JdbcInstanceOverrideStore implements InstanceOverrideStore {
     }
 
     @Override
+    public List<OverrideRecord> list(UUID tenantId) {
+        return jdbc.query("""
+                SELECT tenant_id, instance_id, object_type, object_code, base_version, content::text AS content,
+                       updated_at, updated_by
+                  FROM business_meta.instance_object_override
+                 WHERE tenant_id = ?
+                 ORDER BY instance_id, object_type, object_code
+                """, (rs, i) -> map(rs), tenantId);
+    }
+
+    @Override
     public OverrideRecord save(OverrideRecord record) {
         jdbc.update("""
                 INSERT INTO business_meta.instance_object_override

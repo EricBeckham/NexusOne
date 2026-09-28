@@ -83,6 +83,7 @@ const ENTRY_GROUPS = [
       { label: "站内通知", hint: "审批与系统消息", to: "/p3/notifications", icon: "bell" },
       { label: "功能入口", hint: "已安装应用里可见的功能", to: "/p3/portal", icon: "grid" },
       { label: "门户配置", hint: "菜单分组、排序、显隐和首页模块", to: "/p3/portal/config", icon: "list" },
+      { label: "基线差异", hint: "查看平台新版本与租户覆盖的差异并手动合并", to: "/p3/portal/baseline", icon: "list" },
     ],
   },
   {
