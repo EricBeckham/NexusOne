@@ -10,10 +10,10 @@
         @toggle="collapsed = !collapsed"
       />
       <div v-else class="picker-brand" data-testid="shell-brand">
-        <span class="brand-mark" aria-hidden="true">星</span>
+        <span class="brand-mark" aria-hidden="true">{{ route.meta.portal ? "门" : "星" }}</span>
         <div v-if="!collapsed">
-          <strong>星枢</strong>
-          <div class="brand-en">NexusOne · 选择产品</div>
+          <strong>{{ route.meta.portal ? "门户" : "星枢" }}</strong>
+          <div class="brand-en">{{ route.meta.portal ? "成员入口" : "NexusOne · 选择产品" }}</div>
         </div>
       </div>
       </div>

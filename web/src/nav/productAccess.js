@@ -13,9 +13,14 @@ export function productAllowed(allowed, productId) {
   return !Array.isArray(allowed) || allowed.includes(productId);
 }
 
+/** D6: a tenant member is the person who can enter only P3. They land on the portal, not the studio. */
+export function memberPortalHome(allowed) {
+  return Array.isArray(allowed) && allowed.length === 1 && allowed[0] === "p3";
+}
+
 /**
  * Navigation decision for a desktop route once the person is signed in.
- * - "/" with exactly one product → go straight to that product's home (a member lands in the P3 workbench);
+ * - "/" with only P3 → the member portal (D6). Any other single product still goes straight to that product's home;
  * - a product route the person may not enter → the no-access page;
  * - everything else (and unknown lists) → allowed.
  */
@@ -29,6 +34,7 @@ export async function productGuard(to, ensureProducts) {
   }
   if (!Array.isArray(allowed)) return true;
   if (to.path === "/") {
+    if (memberPortalHome(allowed)) return { path: "/portal", replace: true };
     const only = allowed.length === 1 ? productById(allowed[0]) : null;
     return only ? { path: only.home, replace: true } : true;
   }

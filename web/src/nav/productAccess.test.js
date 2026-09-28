@@ -37,8 +37,8 @@ describe("PV3 product guard", () => {
     }
     await expect(productGuard(page,async()=>['p1','p2','p4'])).resolves.toBe(true);
   });
-  it("sends a member with only P3 from / straight to the workbench", async () => {
-    await expect(productGuard(route("/"), async () => ["p3"])).resolves.toEqual({ path: "/p3", replace: true });
+  it("sends a member with only P3 from / straight to the portal", async () => {
+    await expect(productGuard(route("/"), async () => ["p3"])).resolves.toEqual({ path: "/portal", replace: true });
   });
 
   it("keeps the picker when several products are open", async () => {
@@ -110,6 +110,7 @@ describe("PV3 switcher, picker and no-access page", () => {
       history: createMemoryHistory(),
       routes: [
         { path: "/", component: { template: "<div />" } },
+        { path: "/portal", component: { template: "<div />" } },
         { path: "/no-access", component: { template: "<div />" } },
         ...["p1", "p2", "p3", "p4", "p5"].map((id) => ({ path: `/${id}`, component: { template: "<div />" } })),
       ],
@@ -140,6 +141,10 @@ describe("PV3 switcher, picker and no-access page", () => {
     session.products = [];
     const empty = await mountWith(ProductPickerView);
     expect(empty.find("[data-testid='product-picker-empty']").exists()).toBe(true);
+    session.products = ["p3"];
+    const member = await mountWith(ProductPickerView);
+    expect(member.find("[data-testid='member-portal']").attributes("href")).toBe("/portal");
+    expect(member.findAll("[data-product]").map((a) => a.attributes("data-product"))).toEqual(["portal"]);
   });
 
   it("explains the refusal and offers the products that are open", async () => {

@@ -20,6 +20,7 @@ const routes = [
   { path: "/register", name: "tenant-self-register", component: () => import("./views/tenants/TenantSelfRegisterView.vue"), meta: { public: true, title: "租户自助注册" } },
   { path: "/callback", name: "callback", component: () => import("./views/CallbackView.vue"), meta: { public: true, title: "授权码回跳" } },
   { path: "/", name: "product-picker", component: () => import("./views/ProductPickerView.vue"), meta: { title: "产品选择" } },
+  { path: "/portal", name: "member-portal", component: () => import("./views/portal/MemberPortalView.vue"), meta: { title: "门户", portal: true } },
   { path: "/no-access", name: "product-no-access", component: () => import("./views/ProductNoAccessView.vue"), meta: { title: "无权访问" } },
   { path: "/p1", name: "p1-home", component: () => import("./views/tenants/TenantHomeView.vue"), meta: { title: "首页", product: "p1" } },
   { path: "/p2", name: "p2-home", component: () => import("./views/org/IamHomeView.vue"), meta: { title: "首页", product: "p2" } },
